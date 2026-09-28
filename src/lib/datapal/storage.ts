@@ -1,5 +1,5 @@
 import { DataPalApiSettings, DataPalBusinessLead, DataPalSearchCampaign, DataPalSearchConfig } from "./types";
-import { SAMPLE_HISTORIC_CAMPAIGNS } from "./constants";
+import { COUNTRY_HIERARCHIES, SAMPLE_HISTORIC_CAMPAIGNS } from "./constants";
 
 const STORAGE_KEY_CAMPAIGNS = "bizzpal_datapal_campaigns";
 const STORAGE_KEY_SETTINGS = "bizzpal_datapal_settings";
@@ -109,9 +109,11 @@ const BIZ_LOCALITIES: Record<string, string[]> = {
  * Generates realistic high-fidelity business leads tailored to location, category and requirements
  */
 export function generateSyntheticLeads(config: DataPalSearchConfig): DataPalBusinessLead[] {
-  const city = config.city && config.city !== "All Cities" && config.city !== "CUSTOM" ? config.city : "Mumbai";
-  const state = config.state && config.state !== "All States" && config.state !== "CUSTOM" ? config.state : "Maharashtra";
-  const country = config.countryCode === "US" ? "United States" : config.countryCode === "AE" ? "United Arab Emirates" : "India";
+  const matchedCountry = COUNTRY_HIERARCHIES.find(c => c.code === config.countryCode) || COUNTRY_HIERARCHIES[0];
+  const city = config.city && config.city !== "All Cities" && config.city !== "CUSTOM" ? config.city : "Capital City";
+  const state = config.state && config.state !== "All States" && config.state !== "CUSTOM" ? config.state : "Main Region";
+  const country = matchedCountry.name;
+  const phonePrefix = matchedCountry.phonePrefix || "+91";
   const categories = config.selectedCategories.length > 0 ? config.selectedCategories : ["IT & Software Companies", "Restaurants & Fine Dining", "Dental Clinics"];
   const localities = BIZ_LOCALITIES[city] || BIZ_LOCALITIES["default"];
 
@@ -128,26 +130,24 @@ export function generateSyntheticLeads(config: DataPalSearchConfig): DataPalBusi
     let bizName = "";
     if (userQuery && userQuery.length > 1) {
       category = userQuery.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
-      const suffixes = ["Hub", "Care", "Services", "Center", "Associates", "Solutions", "Chambers", "Clinic", "Associates"];
+      const suffixes = ["Hub", "Care", "Services", "Center", "Associates", "Solutions", "Chambers", "Clinic", "Studio", "Enterprises"];
       const suffix = suffixes[i % suffixes.length];
       bizName = `${namePrefix} ${category} ${i % 3 === 0 ? suffix : ""}`.trim();
     } else {
       bizName = `${namePrefix} ${category.split("&")[0].trim()} ${i > 4 ? "Hub" : "Center"}`;
     }
 
-    const isMissingWebsite = config.requirement.toLowerCase().includes("website") || Math.random() < 0.35;
+    const isNormalExtract = config.requirement.toLowerCase().includes("normal");
+    const isMissingWebsite = !isNormalExtract && (config.requirement.toLowerCase().includes("website") || Math.random() < 0.35);
     const hasPhone = config.filters.mustHavePhone ? true : Math.random() < 0.95;
     const hasEmail = config.filters.mustHaveEmail ? true : Math.random() < 0.82;
 
     const cleanCitySlug = city.toLowerCase().replace(/[^a-z0-9]/g, "");
     const cleanNameSlug = namePrefix.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-    const phoneNum = country === "India"
-      ? `+91 ${98000 + Math.floor(Math.random() * 1900)} ${10000 + Math.floor(Math.random() * 89999)}`
-      : `+1 (${Math.floor(Math.random() * 800) + 201}) ${Math.floor(Math.random() * 899) + 100}-${Math.floor(Math.random() * 8999) + 1000}`;
-
+    const phoneNum = `${phonePrefix} ${Math.floor(Math.random() * 90000) + 10000} ${Math.floor(Math.random() * 90000) + 10000}`;
     const email = hasEmail ? `${cleanNameSlug}.${cleanCitySlug}@gmail.com` : null;
-    const website = isMissingWebsite ? null : `https://${cleanNameSlug}${category.slice(0, 3).toLowerCase().replace(/[^a-z]/g, "")}.in`;
+    const website = isMissingWebsite ? null : `https://${cleanNameSlug}${category.slice(0, 3).toLowerCase().replace(/[^a-z]/g, "")}.${config.countryCode.toLowerCase() === "in" ? "in" : "com"}`;
 
     const rating = parseFloat((4.1 + Math.random() * 0.8).toFixed(1));
     const reviewsCount = Math.floor(Math.random() * 320) + 28;
@@ -155,15 +155,27 @@ export function generateSyntheticLeads(config: DataPalSearchConfig): DataPalBusi
     let notes = "";
     let opportunityLevel: "Critical" | "High" | "Medium" | "Low" = "Medium";
 
-    if (isMissingWebsite) {
+    if (isNormalExtract) {
+      opportunityLevel = "High";
+      notes = `Full Business Record: Verified ${locality} establishment. Operational presence with ${reviewsCount} reviews (${rating}★). Verified phone & outreach contact.`;
+    } else if (isMissingWebsite) {
       opportunityLevel = "Critical";
       notes = `High Impact Opportunity: Active local business with ${reviewsCount} reviews on Google Maps (${rating}★) but NO website or landing page. Pitch website + local SEO.`;
-    } else if (config.requirement.toLowerCase().includes("ordering") || config.requirement.toLowerCase().includes("booking")) {
+    } else if (config.requirement.toLowerCase().includes("ordering") || config.requirement.toLowerCase().includes("booking") || config.requirement.toLowerCase().includes("appointment")) {
       opportunityLevel = "High";
       notes = `Needs Digital Ordering / Booking: Operates purely manual phone consultations. High willingness for appointment scheduling SaaS.`;
     } else if (config.requirement.toLowerCase().includes("social")) {
       opportunityLevel = "High";
       notes = `Social Media Gap: Zero active Instagram or LinkedIn presence despite high foot traffic. Ready for retainers.`;
+    } else if (config.requirement.toLowerCase().includes("gbp") || config.requirement.toLowerCase().includes("maps")) {
+      opportunityLevel = "High";
+      notes = `Local Maps & GBP Gap: Unclaimed listing or missing localized map citations. Ideal target for Local SEO pack ranking.`;
+    } else if (config.requirement.toLowerCase().includes("whatsapp")) {
+      opportunityLevel = "High";
+      notes = `WhatsApp Direct Messaging Gap: Missing 1-click WhatsApp customer support widget and automated business catalog.`;
+    } else if (config.requirement.toLowerCase().includes("logo") || config.requirement.toLowerCase().includes("brand")) {
+      opportunityLevel = "Medium";
+      notes = `Branding & Visual Identity Gap: Generic store typography and lacking branded identity. Prime candidate for design package.`;
     } else {
       opportunityLevel = rating >= 4.7 ? "High" : "Medium";
       notes = `Established player in ${locality}. Ready for CRM expansion, customer loyalty automations, and WhatsApp business API.`;

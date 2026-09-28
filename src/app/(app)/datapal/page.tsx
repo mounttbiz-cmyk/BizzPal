@@ -22,7 +22,6 @@ import {
   Globe,
   Star,
   Layers,
-  Key,
   RefreshCw,
   Trash2,
   Copy,
@@ -66,7 +65,6 @@ import {
   getStoredApiSettings,
   getStoredCampaigns,
   pushLeadsToBizzPalTasks,
-  saveApiSettings,
   saveCampaign,
 } from "@/lib/datapal/storage";
 import { PortalModal } from "@/components/ui/PortalModal";
@@ -75,11 +73,11 @@ export default function DataPalPage() {
   // Navigation tabs: 'search' | 'results' | 'history'
   const [activeTab, setActiveTab] = useState<"search" | "results" | "history">("search");
 
-  // Free-form business search engine query (e.g. "normal medical 24/7", "lawyers")
+  // Free-form business search engine query (e.g. "Chinese restaurants", "small clinics", "lawyers")
   const [searchQuery, setSearchQuery] = useState("");
 
-  // State for search form
-  const [targetRequirement, setTargetRequirement] = useState("Missing Website");
+  // Target Digital Gap / Pitch - defaults to Normal Extract (full profile without gap restrictions)
+  const [targetRequirement, setTargetRequirement] = useState("Normal Extract (All Business Details)");
   const [showReqDropdown, setShowReqDropdown] = useState(false);
   const reqRef = useRef<HTMLDivElement>(null);
 
@@ -88,6 +86,8 @@ export default function DataPalPage() {
   const [selectedState, setSelectedState] = useState("Maharashtra");
   const [selectedCity, setSelectedCity] = useState("Mumbai");
   const [areaPincode, setAreaPincode] = useState("");
+  const [isCustomState, setIsCustomState] = useState(false);
+  const [isCustomCity, setIsCustomCity] = useState(false);
 
   // Category selections
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
@@ -95,6 +95,9 @@ export default function DataPalPage() {
     "Aesthetic & Dermatology Clinics",
   ]);
   const [expandedCategory, setExpandedCategory] = useState<string | null>("healthcare");
+
+  // Validation feedback
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Advanced Filters
   const [mustHavePhone, setMustHavePhone] = useState(true);
@@ -132,18 +135,13 @@ export default function DataPalPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [pushTaskStatus, setPushTaskStatus] = useState<string | null>(null);
 
-  // API Key Settings Modal
-  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
+  // Stored API settings (read silently in background without exposing developer modal to users)
   const [apiSettings, setApiSettings] = useState<DataPalApiSettings>({
     apiKey: "",
     apiEndpoint: "https://data-pal.vercel.app/api",
     googlePlacesApiKey: "",
     isLiveConnected: false,
   });
-  const [apiKeyInput, setApiKeyInput] = useState("");
-  const [apiEndpointInput, setApiEndpointInput] = useState("https://data-pal.vercel.app/api");
-  const [googlePlacesApiKeyInput, setGooglePlacesApiKeyInput] = useState("");
-  const [apiSaveFeedback, setApiSaveFeedback] = useState<string | null>(null);
 
   // Load stored data on mount
   useEffect(() => {
@@ -154,9 +152,6 @@ export default function DataPalPage() {
     }
     const settings = getStoredApiSettings();
     setApiSettings(settings);
-    setApiKeyInput(settings.apiKey || "");
-    setApiEndpointInput(settings.apiEndpoint || "https://data-pal.vercel.app/api");
-    setGooglePlacesApiKeyInput(settings.googlePlacesApiKey || "");
   }, []);
 
   // Close dropdown on outside click
@@ -176,7 +171,7 @@ export default function DataPalPage() {
   }, [countryCode]);
 
   const availableStates = useMemo(() => {
-    return currentCountry.states;
+    return currentCountry.states || [];
   }, [currentCountry]);
 
   const availableCities = useMemo(() => {
@@ -196,8 +191,9 @@ export default function DataPalPage() {
     );
   }, [allSubcategories, selectedCategories]);
 
-  // 1-Click Select All / Deselect All Industries
-  const handleToggleSelectAllIndustries = () => {
+  // 1-Click Select All / Deselect All Types of Businesses
+  const handleToggleSelectAllBusinesses = () => {
+    setValidationError(null);
     if (isAllIndustriesSelected) {
       setSelectedCategories([]);
     } else {
@@ -208,6 +204,8 @@ export default function DataPalPage() {
   // Handle Country switch
   const handleCountryChange = (code: string) => {
     setCountryCode(code);
+    setIsCustomState(false);
+    setIsCustomCity(false);
     const country = COUNTRY_HIERARCHIES.find(c => c.code === code) || COUNTRY_HIERARCHIES[0];
     const firstState = country.states[0]?.name || "All States";
     const firstCity = country.states[0]?.cities[0] || "All Cities";
@@ -218,18 +216,22 @@ export default function DataPalPage() {
   // Quick Indian metropolitan buttons
   const setQuickCity = (city: string, state: string) => {
     setCountryCode("IN");
+    setIsCustomState(false);
+    setIsCustomCity(false);
     setSelectedState(state);
     setSelectedCity(city);
   };
 
   // Category toggle
   const toggleCategory = (catName: string) => {
+    setValidationError(null);
     setSelectedCategories(prev =>
       prev.includes(catName) ? prev.filter(c => c !== catName) : [...prev, catName]
     );
   };
 
   const selectAllInGroup = (subcategories: string[]) => {
+    setValidationError(null);
     const allSelected = subcategories.every(sub => selectedCategories.includes(sub));
     if (allSelected) {
       setSelectedCategories(prev => prev.filter(c => !subcategories.includes(c)));
@@ -251,21 +253,27 @@ export default function DataPalPage() {
       setIsAnalyzingPitch(false);
       const text = serviceDescription.toLowerCase();
 
-      let inferredReq = "Missing Website";
+      let inferredReq = "Normal Extract (All Business Details)";
       let recommendedCats = ["Dental Clinics", "Aesthetic & Dermatology Clinics"];
 
-      if (text.includes("seo") || text.includes("rank") || text.includes("maps")) {
-        inferredReq = "Missing Google Business Profile";
-        recommendedCats = ["Medical Clinics", "Law Firms & Advocates", "Luxury Salons & Hairdressers"];
+      if (text.includes("website") || text.includes("web") || text.includes("domain")) {
+        inferredReq = "Missing Website";
+        recommendedCats = ["Restaurants & Fine Dining", "Dental Clinics", "Automobile Service & Garage"];
+      } else if (text.includes("seo") || text.includes("rank") || text.includes("maps") || text.includes("google")) {
+        inferredReq = "Missing Google Business Profile (GBP / Maps)";
+        recommendedCats = ["Medical Clinics", "Lawyers & Advocates", "Salons & Hairdressers"];
+      } else if (text.includes("whatsapp") || text.includes("chat") || text.includes("msg")) {
+        inferredReq = "Missing WhatsApp Business / Direct Chat";
+        recommendedCats = ["Diagnostic Centers", "Clinics & Doctors", "Boutique Stores"];
       } else if (text.includes("social") || text.includes("instagram") || text.includes("creative")) {
         inferredReq = "Missing Social Media Presence";
-        recommendedCats = ["Cafes & Coffee Shops", "Aesthetic & Dermatology Clinics", "Jewelry & Watches"];
-      } else if (text.includes("order") || text.includes("app") || text.includes("food") || text.includes("saas")) {
-        inferredReq = "Missing Online Ordering & Booking";
-        recommendedCats = ["Restaurants & Fine Dining", "Cloud Kitchens & Food Hubs", "Diagnostic Centers"];
+        recommendedCats = ["Cafes & Coffee Shops", "Aesthetic Clinics", "Jewelry & Watches"];
+      } else if (text.includes("order") || text.includes("app") || text.includes("book") || text.includes("food")) {
+        inferredReq = "Missing Online Ordering & Appointments";
+        recommendedCats = ["Restaurants & Fine Dining", "Dental Clinics", "Spas & Salons"];
       } else if (text.includes("brand") || text.includes("logo") || text.includes("identity")) {
-        inferredReq = "Missing Logo / Branding";
-        recommendedCats = ["Wholesalers & Distributors", "Builders & Contractors", "Retail Stores & Boutiques"];
+        inferredReq = "Missing Logo & Visual Branding";
+        recommendedCats = ["Wholesalers & Distributors", "Builders & Contractors", "Hardware Stores"];
       }
 
       setTargetRequirement(inferredReq);
@@ -276,10 +284,22 @@ export default function DataPalPage() {
     }, 1200);
   };
 
-  // Trigger Data Extraction
+  // Trigger Data Extraction with Mandatory Star Mark Validation
   const handleStartExtraction = async () => {
     const trimmedQuery = searchQuery.trim();
-    const effectiveCategories = selectedCategories.length > 0
+    const hasCategorySelected = selectedCategories.length > 0;
+
+    // Requirement: Either "Search Any Business Type or Keyword" OR "Filter by Industry Categories" is mandatory
+    if (!trimmedQuery && !hasCategorySelected && !isAllIndustriesSelected) {
+      setValidationError("Please enter a business keyword (e.g. 'Chinese restaurants', 'small clinics', 'lawyers') or select an industry category.");
+      // Scroll smoothly to top search section
+      window.scrollTo({ top: 120, behavior: "smooth" });
+      return;
+    }
+
+    setValidationError(null);
+
+    const effectiveCategories = hasCategorySelected
       ? selectedCategories
       : [trimmedQuery || "General Businesses"];
 
@@ -310,7 +330,7 @@ export default function DataPalPage() {
     const interval = setInterval(() => {
       setExtractProgress(prev => {
         if (prev < 40) {
-          setExtractStatusText(`Scanning Google Maps, JustDial & directories for ${selectedCategories[0] || trimmedQuery}...`);
+          setExtractStatusText(`Scanning Google Maps, JustDial & directories for ${trimmedQuery || selectedCategories[0]}...`);
           return prev + 12;
         } else if (prev < 70) {
           setExtractStatusText(`Verifying contact phone numbers & resolving official domains...`);
@@ -517,24 +537,12 @@ export default function DataPalPage() {
     exportLeadsToCSV(leadsToExport, `DataPal_${activeCampaign.title.replace(/\s+/g, "_")}.csv`);
   };
 
-  // Save API Settings
-  const handleSaveApiSettings = () => {
-    const updated = saveApiSettings({
-      apiKey: apiKeyInput.trim(),
-      apiEndpoint: apiEndpointInput.trim() || "https://data-pal.vercel.app/api",
-      googlePlacesApiKey: googlePlacesApiKeyInput.trim(),
-    });
-    setApiSettings(updated);
-    setApiSaveFeedback("Settings saved successfully! Connected.");
-    setTimeout(() => {
-      setApiSaveFeedback(null);
-      setIsApiModalOpen(false);
-    }, 1200);
-  };
+  // Check if at least one mandatory requirement is satisfied
+  const hasValidQueryOrCategory = Boolean(searchQuery.trim() || selectedCategories.length > 0 || isAllIndustriesSelected);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-16">
-      {/* Top Header matching BizzPal Executive Design */}
+      {/* Top Header matching BizzPal Executive Design (API Settings button removed) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
         <div className="flex items-start gap-3.5">
           <div className="w-11 h-11 rounded-2xl bg-gold/15 border border-gold/30 flex items-center justify-center text-gold shrink-0 shadow-xs">
@@ -546,39 +554,19 @@ export default function DataPalPage() {
               <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30">
                 Data Scraping
               </span>
-              {apiSettings.isLiveConnected ? (
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live API Connected
-                </span>
-              ) : (
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-surface-2 text-text-muted border border-line flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gold" />
-                  High-Fidelity Engine
-                </span>
-              )}
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live Worldwide Directory Scraper
+              </span>
             </div>
             <p className="text-xs text-text-muted mt-1 font-medium max-w-2xl leading-relaxed">
-              Extract, verify, and filter business contacts across India and global directories for high-converting sales outreach.
+              Search and extract any business type worldwide—from Chinese restaurants to clinics, advocates, shops, and enterprises—with verified phone numbers and direct contact details.
             </p>
           </div>
         </div>
-
-        {/* Global Key Config Quick Trigger */}
-        <div className="flex items-center gap-2 self-start sm:self-center">
-          <button
-            type="button"
-            onClick={() => setIsApiModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs font-semibold text-text-muted hover:text-gold transition-colors cursor-pointer"
-            title="Configure DataPal API / Google Places API Key"
-          >
-            <Key className="w-3.5 h-3.5 text-gold" />
-            <span>API Settings</span>
-          </button>
-        </div>
       </div>
 
-      {/* Segment Navigation Tabs - Executive BizzPal Theme */}
+      {/* Segment Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-line pb-3 overflow-x-auto no-scrollbar text-xs">
         <button
           type="button"
@@ -628,6 +616,23 @@ export default function DataPalPage() {
         </button>
       </div>
 
+      {/* Global Validation Warning Banner */}
+      {validationError && (
+        <div className="p-3.5 rounded-xl bg-rust/10 border border-rust/30 text-xs font-semibold text-rust flex items-center justify-between animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>{validationError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setValidationError(null)}
+            className="p-1 hover:bg-rust/20 rounded-full cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {activeTab === "search" && (
         <div className="space-y-6">
           {/* ============================================================== */}
@@ -645,30 +650,66 @@ export default function DataPalPage() {
                       Business Lead Search Engine
                     </h2>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                      Live Directory Scraper
+                      Universal Directory Search
                     </span>
                   </div>
                   <p className="text-xs text-text-muted mt-0.5">
-                    Search and extract local businesses, medical clinics, legal practitioners, retailers, and enterprises.
+                    Search any business name, category, or industry in the world to extract complete contact records.
                   </p>
                 </div>
               </div>
+
+              {/* Requirement Hint Badge */}
+              <div className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-text-muted">
+                <span className="text-gold font-bold mr-1">*</span>
+                <span>Keyword OR Category is required</span>
+              </div>
             </div>
 
-            {/* UNIVERSAL BUSINESS SEARCH INPUT */}
+            {/* UNIVERSAL BUSINESS SEARCH INPUT WITH STAR MARK & SELECT ALL BUTTON */}
             <div className="space-y-3">
-              <label className="text-xs font-bold text-text uppercase tracking-wider flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-gold" />
-                <span>Search Any Business Type or Keyword</span>
-              </label>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-gold" />
+                  <span>1. Search Any Business Type or Keyword</span>
+                  <span className="text-gold font-black text-sm" title="Mandatory field: Search keyword or Industry Category required">*</span>
+                </label>
+
+                {/* Prominent Button: Select All Types of Businesses */}
+                <button
+                  type="button"
+                  onClick={handleToggleSelectAllBusinesses}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer btn-tactile border ${
+                    isAllIndustriesSelected
+                      ? "bg-gold text-[#120E05] border-gold shadow-sm"
+                      : "bg-gold/15 text-gold border-gold/30 hover:bg-gold/25"
+                  }`}
+                  title="Target all business types and sectors across the directory"
+                >
+                  {isAllIndustriesSelected ? (
+                    <>
+                      <CheckSquare className="w-3.5 h-3.5 shrink-0" />
+                      <span>All Business Types Selected ({allSubcategories.length})</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                      <span>Select All Types of Businesses</span>
+                    </>
+                  )}
+                </button>
+              </div>
 
               <div className="relative flex items-center">
                 <Search className="w-5 h-5 text-gold absolute left-4 pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search any business type (e.g. 'normal medical 24/7', 'lawyers', 'dermatologists', 'dental surgeons', 'rooftop cafes', 'boutiques')..."
+                  onChange={e => {
+                    setSearchQuery(e.target.value);
+                    if (validationError) setValidationError(null);
+                  }}
+                  placeholder="Search any type of business (e.g. 'Chinese restaurants', 'small clinics', 'lawyers', 'dental surgeons', 'scrap dealers', 'hardware stores', 'rooftop cafes')..."
                   className="w-full pl-12 pr-11 py-3.5 rounded-xl bg-surface-2 border border-line focus:border-gold focus:ring-1 focus:ring-gold/30 text-sm font-semibold text-text placeholder:text-text-muted placeholder:font-normal transition-all shadow-xs focus:outline-none"
                 />
                 {searchQuery && (
@@ -689,24 +730,28 @@ export default function DataPalPage() {
                   Popular:
                 </span>
                 {[
-                  { label: "24/7 Medical Clinic", icon: "🏥" },
+                  { label: "Chinese Restaurants", icon: "🍜" },
+                  { label: "Small Medical Clinics", icon: "🏥" },
                   { label: "Lawyers & Advocates", icon: "⚖️" },
-                  { label: "Dental Clinics", icon: "🦷" },
+                  { label: "Dental Surgeons", icon: "🦷" },
                   { label: "Dermatologists & Skin", icon: "✨" },
                   { label: "Chartered Accountants", icon: "📊" },
                   { label: "Real Estate Brokers", icon: "🏢" },
                   { label: "Rooftop Cafes & Bistros", icon: "☕" },
                   { label: "Automobile Service & Garage", icon: "🚗" },
-                  { label: "Fitness & Gyms", icon: "🏋️" },
-                  { label: "Boutique Stores", icon: "👗" },
+                  { label: "Fitness Gyms & Studios", icon: "🏋️" },
+                  { label: "Boutique & Retail Stores", icon: "👗" },
                 ].map(chip => (
                   <button
                     key={chip.label}
                     type="button"
-                    onClick={() => setSearchQuery(chip.label)}
+                    onClick={() => {
+                      setSearchQuery(chip.label);
+                      if (validationError) setValidationError(null);
+                    }}
                     className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer btn-tactile ${
                       searchQuery.toLowerCase() === chip.label.toLowerCase()
-                        ? "bg-gold/20 text-gold border-gold/40 shadow-xs"
+                        ? "bg-gold/20 text-gold border-gold/40 shadow-xs font-bold"
                         : "bg-surface-2 border-line text-text-muted hover:text-text hover:border-gold/30"
                     }`}
                   >
@@ -726,13 +771,13 @@ export default function DataPalPage() {
             {/* LEFT COLUMN: TARGET LOCATION & DIGITAL GAP (5 COLS)          */}
             {/* ------------------------------------------------------------ */}
             <div className="lg:col-span-5 space-y-6">
-              {/* TARGET LOCATION CARD */}
+              {/* TARGET LOCATION CARD (ALL COUNTRIES, ALL STATES, CITIES, AREAS WITH * STAR MARKS) */}
               <div className="bg-surface border border-line rounded-2xl p-5 sm:p-6 shadow-theme space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-line">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-gold" />
                     <span className="text-xs font-bold text-text uppercase tracking-wider">
-                      Target Location Hierarchy
+                      2. Target Location Hierarchy
                     </span>
                   </div>
                   <div className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-gold/10 border border-gold/25 text-gold font-semibold flex items-center gap-1.5">
@@ -744,10 +789,11 @@ export default function DataPalPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {/* 1. Country Select (Default: India with flag) */}
+                  {/* 1. Country Select (All countries with flags) */}
                   <div className="space-y-1.5 sm:col-span-2">
                     <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
-                      Target Country
+                      <span>Target Country</span>
+                      <span className="text-gold font-black ml-1 text-xs">*</span>
                     </label>
                     <div className="relative">
                       <select
@@ -765,62 +811,105 @@ export default function DataPalPage() {
                     </div>
                   </div>
 
-                  {/* 2. State Select */}
+                  {/* 2. State / Province (With * Star Mark & Custom Input Toggle) */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
-                      State / Province
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={selectedState}
-                        onChange={e => {
-                          setSelectedState(e.target.value);
-                          const st = availableStates.find(s => s.name === e.target.value);
-                          if (st && st.cities.length > 0) setSelectedCity(st.cities[0]);
-                        }}
-                        className="w-full pl-3 pr-8 py-2.5 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text focus:outline-none focus:border-gold appearance-none cursor-pointer"
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                        <span>State / Province</span>
+                        <span className="text-gold font-black ml-1 text-xs">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomState(!isCustomState)}
+                        className="text-[9px] text-gold hover:underline font-semibold cursor-pointer"
                       >
-                        {availableStates.map(s => (
-                          <option key={s.name} value={s.name}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-text-muted absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        {isCustomState ? "Choose list" : "Type custom"}
+                      </button>
                     </div>
+
+                    {isCustomState || availableStates.length === 0 ? (
+                      <input
+                        type="text"
+                        value={selectedState}
+                        onChange={e => setSelectedState(e.target.value)}
+                        placeholder="Enter state or province..."
+                        className="w-full px-3 py-2.5 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text focus:outline-none focus:border-gold"
+                      />
+                    ) : (
+                      <div className="relative">
+                        <select
+                          value={selectedState}
+                          onChange={e => {
+                            setSelectedState(e.target.value);
+                            const st = availableStates.find(s => s.name === e.target.value);
+                            if (st && st.cities.length > 0) setSelectedCity(st.cities[0]);
+                          }}
+                          className="w-full pl-3 pr-8 py-2.5 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text focus:outline-none focus:border-gold appearance-none cursor-pointer"
+                        >
+                          {availableStates.map(s => (
+                            <option key={s.name} value={s.name}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-text-muted absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+                    )}
                   </div>
 
-                  {/* 3. City Select */}
+                  {/* 3. City / Metro (With * Star Mark & Custom Input Toggle) */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
-                      City / Metro
-                    </label>
-                    <div className="relative">
-                      <select
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                        <span>City / Metro</span>
+                        <span className="text-gold font-black ml-1 text-xs">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomCity(!isCustomCity)}
+                        className="text-[9px] text-gold hover:underline font-semibold cursor-pointer"
+                      >
+                        {isCustomCity ? "Choose list" : "Type custom"}
+                      </button>
+                    </div>
+
+                    {isCustomCity || availableCities.length === 0 ? (
+                      <input
+                        type="text"
                         value={selectedCity}
                         onChange={e => setSelectedCity(e.target.value)}
-                        className="w-full pl-3 pr-8 py-2.5 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text focus:outline-none focus:border-gold appearance-none cursor-pointer"
-                      >
-                        {availableCities.map(c => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-text-muted absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
+                        placeholder="Enter city or town..."
+                        className="w-full px-3 py-2.5 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text focus:outline-none focus:border-gold"
+                      />
+                    ) : (
+                      <div className="relative">
+                        <select
+                          value={selectedCity}
+                          onChange={e => setSelectedCity(e.target.value)}
+                          className="w-full pl-3 pr-8 py-2.5 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text focus:outline-none focus:border-gold appearance-none cursor-pointer"
+                        >
+                          {availableCities.map(c => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-text-muted absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+                    )}
                   </div>
 
-                  {/* 4. PIN Code / Suburb Input */}
+                  {/* 4. Area / PIN Code / Specific Suburb Input (With * Star Mark) */}
                   <div className="space-y-1.5 sm:col-span-2">
                     <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
-                      {currentCountry.postalCodeLabel} / Specific Suburb (Optional)
+                      <span>{currentCountry.postalCodeLabel || "PIN / Postal Code"} & Specific Area / Locality</span>
+                      <span className="text-gold font-black ml-1 text-xs">*</span>
                     </label>
                     <input
                       type="text"
                       value={areaPincode}
                       onChange={e => setAreaPincode(e.target.value)}
-                      placeholder="e.g. 400050 or Bandra West..."
+                      placeholder="e.g. 400050, Bandra West, Downtown, Sector 18..."
                       className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-gold transition-colors"
                     />
                   </div>
@@ -861,14 +950,14 @@ export default function DataPalPage() {
                 )}
               </div>
 
-              {/* TARGET DIGITAL GAP / PITCH ANGLE CARD */}
+              {/* TARGET DIGITAL GAP / PITCH ANGLE CARD (WITH NORMAL EXTRACT & COMPREHENSIVE PITCHES) */}
               <div className="bg-surface border border-line rounded-2xl p-5 sm:p-6 shadow-theme space-y-3.5 relative" ref={reqRef}>
                 <div className="flex items-center justify-between pb-2 border-b border-line">
                   <label className="text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
                     <Filter className="w-3.5 h-3.5 text-gold" />
-                    <span>Target Digital Gap / Pitch</span>
+                    <span>3. Target Digital Gap / Pitch Angle</span>
                   </label>
-                  <span className="text-[10px] text-text-muted font-medium">High-converting angles</span>
+                  <span className="text-[10px] text-text-muted font-medium">Normal Extract & High-Converting Pitches</span>
                 </div>
 
                 <div className="relative">
@@ -884,7 +973,7 @@ export default function DataPalPage() {
                         setShowReqDropdown(true);
                       }}
                       onFocus={() => setShowReqDropdown(true)}
-                      placeholder="e.g. Missing Website, Needs SEO, Missing Online Ordering..."
+                      placeholder="Select extraction mode (e.g. Normal Extract, Missing Website, Missing GBP...)"
                       className="w-full bg-transparent text-xs font-bold text-text placeholder:font-normal placeholder:text-text-muted focus:outline-none"
                     />
                     {targetRequirement && (
@@ -892,9 +981,10 @@ export default function DataPalPage() {
                         type="button"
                         onClick={e => {
                           e.stopPropagation();
-                          setTargetRequirement("");
+                          setTargetRequirement("Normal Extract (All Business Details)");
                         }}
                         className="p-1 hover:bg-surface rounded-full text-text-muted hover:text-text text-xs ml-1 cursor-pointer"
+                        title="Reset to Normal Extract"
                       >
                         ✕
                       </button>
@@ -904,7 +994,7 @@ export default function DataPalPage() {
 
                   {/* Autocomplete / Preset Dropdown */}
                   {showReqDropdown && (
-                    <div className="absolute z-30 w-full mt-1.5 bg-surface border border-line rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto animate-fadeIn">
+                    <div className="absolute z-30 w-full mt-1.5 bg-surface border border-line rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto animate-fadeIn">
                       <div className="p-1.5 divide-y divide-line/40">
                         {TARGET_PROFILE_PRESETS.map(preset => (
                           <button
@@ -917,13 +1007,20 @@ export default function DataPalPage() {
                               }
                               setShowReqDropdown(false);
                             }}
-                            className="w-full text-left p-2.5 hover:bg-surface-2 transition-colors rounded-lg flex items-start justify-between gap-3 group cursor-pointer"
+                            className={`w-full text-left p-2.5 hover:bg-surface-2 transition-colors rounded-lg flex items-start justify-between gap-3 group cursor-pointer ${
+                              targetRequirement === preset.label ? "bg-gold/10" : ""
+                            }`}
                           >
                             <div>
-                              <div className="text-xs font-bold text-text group-hover:text-gold transition-colors">
-                                {preset.label}
+                              <div className="text-xs font-bold text-text group-hover:text-gold transition-colors flex items-center gap-1.5">
+                                <span>{preset.label}</span>
+                                {preset.id === "normal" && (
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
+                                    Default
+                                  </span>
+                                )}
                               </div>
-                              <div className="text-[11px] text-text-muted mt-0.5">
+                              <div className="text-[11px] text-text-muted mt-0.5 leading-snug">
                                 {preset.desc}
                               </div>
                             </div>
@@ -941,7 +1038,7 @@ export default function DataPalPage() {
 
                 {/* Preset Chips */}
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {TARGET_PROFILE_PRESETS.slice(0, 5).map(p => (
+                  {TARGET_PROFILE_PRESETS.slice(0, 6).map(p => (
                     <button
                       key={p.id}
                       type="button"
@@ -966,16 +1063,19 @@ export default function DataPalPage() {
             {/* RIGHT COLUMN: INDUSTRY CATEGORIES & VERIFICATION (7 COLS)    */}
             {/* ------------------------------------------------------------ */}
             <div className="lg:col-span-7 space-y-6">
-              {/* FILTER BY INDUSTRY CATEGORIES CARD */}
+              {/* FILTER BY INDUSTRY CATEGORIES CARD WITH MANDATORY STAR MARK & SELECT ALL BUTTON */}
               <div className="bg-surface border border-line rounded-2xl p-5 sm:p-6 shadow-theme space-y-4">
-                {/* Header with Title & Action Controls */}
+                {/* Header with Title, Star Mark & Action Controls */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
                   <div className="flex items-center gap-2">
                     <Sliders className="w-4 h-4 text-gold" />
                     <div>
-                      <span className="text-xs font-bold text-text uppercase tracking-wider block">
-                        Filter by Industry Categories
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-text uppercase tracking-wider block">
+                          4. Filter by Industry Categories
+                        </span>
+                        <span className="text-gold font-black text-sm" title="Mandatory field: Search keyword or Industry Category required">*</span>
+                      </div>
                       <span className="text-[11px] text-text-muted">
                         Select specific sectors or search universally across all industries.
                       </span>
@@ -986,13 +1086,13 @@ export default function DataPalPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
-                      onClick={handleToggleSelectAllIndustries}
+                      onClick={handleToggleSelectAllBusinesses}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer btn-tactile border ${
                         isAllIndustriesSelected
                           ? "bg-gold text-[#120E05] border-gold shadow-sm"
                           : "bg-gold/15 text-gold border-gold/30 hover:bg-gold/25"
                       }`}
-                      title={isAllIndustriesSelected ? "Deselect all industries" : "Select all industries across all categories"}
+                      title={isAllIndustriesSelected ? "Deselect all industries" : "Select all types of businesses across all categories"}
                     >
                       {isAllIndustriesSelected ? (
                         <>
@@ -1017,6 +1117,14 @@ export default function DataPalPage() {
                       </button>
                     )}
                   </div>
+                </div>
+
+                {/* Helper notice explaining the star mark */}
+                <div className="p-2.5 rounded-xl bg-surface-2 border border-line text-[11px] text-text-muted flex items-center gap-2">
+                  <Info className="w-3.5 h-3.5 text-gold shrink-0" />
+                  <span>
+                    <strong className="text-text">Requirement note:</strong> Either enter a business type/keyword in Section 1 or select industry categories in Section 4 to proceed.
+                  </span>
                 </div>
 
                 {/* Quick Industry Group Clusters (1-Click Toggle for Group) */}
@@ -1056,7 +1164,7 @@ export default function DataPalPage() {
                   <div className="p-3 rounded-xl bg-gold/10 border border-gold/30 flex items-center justify-between text-xs text-gold">
                     <div className="flex items-center gap-2 font-bold">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span>All {allSubcategories.length} Industries Selected (Universal Search active)</span>
+                      <span>All {allSubcategories.length} Business Types Selected (Universal Search active)</span>
                     </div>
                     <button
                       type="button"
@@ -1092,7 +1200,7 @@ export default function DataPalPage() {
                 ) : (
                   <div className="p-3 rounded-xl bg-surface-2/40 border border-line/60 text-xs text-text-muted flex items-center gap-2">
                     <Info className="w-4 h-4 text-text-muted shrink-0" />
-                    <span>No specific categories filtered. Universal search will apply: &quot;{searchQuery || "All Verified Businesses"}&quot;.</span>
+                    <span>No specific categories filtered. Search query will apply: &quot;{searchQuery || "All Verified Businesses"}&quot;.</span>
                   </div>
                 )}
 
@@ -1277,24 +1385,26 @@ export default function DataPalPage() {
                 Targeting{" "}
                 <span className="text-text font-bold">
                   {isAllIndustriesSelected
-                    ? "All Industries"
+                    ? "All Business Types"
                     : selectedCategories.length > 0
                     ? `${selectedCategories.length} Categories`
-                    : searchQuery || "Universal Businesses"}
+                    : searchQuery || "Any Business / Keyword"}
                 </span>{" "}
-                across{" "}
+                in{" "}
                 <span className="text-text font-bold">
-                  {[selectedCity, selectedState, currentCountry.name].filter(Boolean).join(", ")}
-                </span>
-                .
+                  {[areaPincode, selectedCity, selectedState, currentCountry.name].filter(Boolean).join(", ")}
+                </span>{" "}
+                via <span className="text-gold font-semibold">{targetRequirement}</span>.
               </p>
             </div>
 
             <button
               type="button"
               onClick={handleStartExtraction}
-              disabled={isExtracting || (!searchQuery.trim() && selectedCategories.length === 0)}
-              className="w-full sm:w-auto btn-gold-gradient text-[#120E05] font-black text-sm px-8 py-3.5 rounded-xl shadow-theme flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0 relative z-10"
+              disabled={isExtracting}
+              className={`w-full sm:w-auto btn-gold-gradient text-[#120E05] font-black text-sm px-8 py-3.5 rounded-xl shadow-theme flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer shrink-0 relative z-10 ${
+                !hasValidQueryOrCategory ? "opacity-90" : ""
+              }`}
             >
               <FileSpreadsheet className="w-4 h-4" />
               <span>Generate Business Leads</span>
@@ -1344,7 +1454,7 @@ export default function DataPalPage() {
                       rows={3}
                       value={serviceDescription}
                       onChange={e => setServiceDescription(e.target.value)}
-                      placeholder="e.g. 'We build high-converting WhatsApp booking tools and modern websites for dental clinics and aesthetic doctors'..."
+                      placeholder="e.g. 'We build high-converting WhatsApp booking tools and modern websites for clinics and doctors'..."
                       className="w-full px-3 py-2.5 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-gold transition-colors resize-none"
                     />
                   </div>
@@ -1545,7 +1655,7 @@ export default function DataPalPage() {
                   <p className="text-xl font-black text-gold tracking-tight">
                     {activeCampaign.opportunityCount}
                   </p>
-                  <p className="text-xs text-text-muted font-medium mt-0.5">High Digital Gap Leads</p>
+                  <p className="text-xs text-text-muted font-medium mt-0.5">Digital Gap Opportunities</p>
                 </div>
               </div>
 
@@ -1937,7 +2047,7 @@ export default function DataPalPage() {
       )}
 
       {/* ============================================================== */}
-      {/* PORTAL MODAL 1: EXTRACTION PROGRESS MODAL                      */}
+      {/* EXTRACTION PROGRESS MODAL                                      */}
       {/* ============================================================== */}
       <PortalModal isOpen={isExtracting} onClose={() => {}}>
         <div className="max-w-md w-full bg-surface border border-line rounded-2xl p-6 sm:p-7 shadow-2xl space-y-5 text-center">
@@ -1963,7 +2073,7 @@ export default function DataPalPage() {
               />
             </div>
             <div className="flex justify-between text-[10px] text-text-muted font-mono font-bold">
-              <span>Querying Directories</span>
+              <span>Querying Global Directories</span>
               <span>{extractProgress}%</span>
             </div>
           </div>
@@ -1971,115 +2081,6 @@ export default function DataPalPage() {
           <p className="text-[11px] text-text-muted">
             Scanning directories, resolving contact numbers, and compiling high-priority outreach targets...
           </p>
-        </div>
-      </PortalModal>
-
-      {/* ============================================================== */}
-      {/* PORTAL MODAL 2: DATA PAL API SETTINGS MODAL                   */}
-      {/* ============================================================== */}
-      <PortalModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)}>
-        <div className="max-w-lg w-full bg-surface border border-line rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5 relative">
-          <button
-            type="button"
-            onClick={() => setIsApiModalOpen(false)}
-            className="absolute top-4 right-4 p-1 rounded-full text-text-muted hover:text-text cursor-pointer"
-          >
-            ✕
-          </button>
-
-          <div className="flex items-center gap-3 pb-3 border-b border-line">
-            <div className="w-10 h-10 rounded-xl bg-gold/15 border border-gold/30 flex items-center justify-center text-gold shrink-0">
-              <Key className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-bold text-text">
-                DataPal API & Connectivity Settings
-              </h3>
-              <p className="text-[11px] text-text-muted">
-                Connect your DataPal instance or Google Places API key
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-3.5 text-xs">
-            <div className="p-3 rounded-xl bg-gold/10 border border-gold/25 text-gold leading-relaxed space-y-1">
-              <div className="font-bold flex items-center gap-1.5 text-gold">
-                <Info className="w-3.5 h-3.5 shrink-0" />
-                <span>API Connectivity & Live Scraping</span>
-              </div>
-              <p className="text-[11px] text-text">
-                The frontend is fully operational. Connect your Google Places API Key to stream real-time local business listings, phone numbers, ratings, and addresses directly.
-              </p>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label className="font-bold text-text uppercase tracking-wider block text-[10px]">
-                  Google Places API Key
-                </label>
-                <span className="text-[10px] text-gold font-medium">Recommended for Google Search</span>
-              </div>
-              <input
-                type="password"
-                value={googlePlacesApiKeyInput}
-                onChange={e => setGooglePlacesApiKeyInput(e.target.value)}
-                placeholder="AIzaSyB... (Google Cloud Console Places API Key)"
-                className="w-full px-3 py-2.5 rounded-xl bg-surface-2 border border-line text-xs font-mono text-text focus:outline-none focus:border-gold"
-              />
-              <p className="text-[10px] text-text-muted">
-                You can save this key now or later. If empty, DataPal aggregates via high-accuracy multi-directory scrapers.
-              </p>
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-bold text-text uppercase tracking-wider block text-[10px]">
-                DataPal Instance API Key (Optional)
-              </label>
-              <input
-                type="password"
-                value={apiKeyInput}
-                onChange={e => setApiKeyInput(e.target.value)}
-                placeholder="e.g. dp_live_9f81a7b6c5d4e3f2..."
-                className="w-full px-3 py-2.5 rounded-xl bg-surface-2 border border-line text-xs font-mono text-text focus:outline-none focus:border-gold"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-bold text-text uppercase tracking-wider block text-[10px]">
-                DataPal API Endpoint URL
-              </label>
-              <input
-                type="text"
-                value={apiEndpointInput}
-                onChange={e => setApiEndpointInput(e.target.value)}
-                placeholder="https://data-pal.vercel.app/api"
-                className="w-full px-3 py-2.5 rounded-xl bg-surface-2 border border-line text-xs font-mono text-text focus:outline-none focus:border-gold"
-              />
-            </div>
-
-            {apiSaveFeedback && (
-              <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-center font-bold text-xs">
-                {apiSaveFeedback}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-line">
-            <button
-              type="button"
-              onClick={() => setIsApiModalOpen(false)}
-              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-text-muted hover:bg-surface-2 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveApiSettings}
-              className="btn-gold-gradient text-[#120E05] px-4 py-1.5 rounded-lg text-xs font-black cursor-pointer shadow-theme"
-            >
-              Save & Connect
-            </button>
-          </div>
         </div>
       </PortalModal>
     </div>
