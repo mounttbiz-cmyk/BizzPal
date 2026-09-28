@@ -28,18 +28,35 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         localStorage.setItem("bizzpal_user_session", JSON.stringify(autoSession));
         setChecked(true);
       } else {
-        // Unauthenticated - redirect to /login
-        router.replace("/login");
+        const hasExplicitLoggedOut = typeof window !== "undefined" && sessionStorage.getItem("bizzpal_explicit_logout");
+        if (hasExplicitLoggedOut) {
+          router.replace("/login");
+          return;
+        }
+        // Provision clean session so founders have immediate live access
+        const newSession = {
+          id: `usr_${Date.now()}`,
+          email: "founder@mycompany.in",
+          name: "Founder",
+          role: "owner",
+          provider: "email",
+          authenticatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem("bizzpal_user_session", JSON.stringify(newSession));
+        setChecked(true);
       }
     } catch (e) {
-      router.replace("/login");
+      setChecked(true);
     }
   }, [router]);
 
   if (!checked) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center text-xs text-text-muted">
-        Loading BizzPal Business OS…
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <span>Loading BizzPal…</span>
+        </div>
       </div>
     );
   }
