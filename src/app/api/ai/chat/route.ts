@@ -1,64 +1,95 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveBusiness } from "@/lib/db";
 
+export const maxDuration = 60;
+
 interface ProviderAttempt {
   name: string;
   call: (prompt: string) => Promise<string | null>;
 }
 
 async function callGemini(apiKey: string, prompt: string): Promise<string | null> {
-  const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
-      }),
-    }
-  );
-  if (!resp.ok) return null;
-  const data = await resp.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+  const models = ["gemini-1.5-flash", "gemini-flash-latest", "gemini-1.5-pro"];
+  for (const model of models) {
+    try {
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 3500 },
+          }),
+        }
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text;
+      }
+    } catch {}
+  }
+  return null;
 }
 
 async function callGroq(apiKey: string, prompt: string): Promise<string | null> {
-  const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-oss-20b",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 800,
-    }),
-  });
-  if (!resp.ok) return null;
-  const data = await resp.json();
-  return data.choices?.[0]?.message?.content || null;
+  const models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"];
+  for (const model of models) {
+    try {
+      const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7,
+          max_tokens: 3500,
+        }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const text = data.choices?.[0]?.message?.content;
+        if (text) return text;
+      }
+    } catch {}
+  }
+  return null;
 }
 
 async function callOpenRouter(apiKey: string, prompt: string): Promise<string | null> {
-  const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "qwen/qwen3.8-27b:free",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 800,
-    }),
-  });
-  if (!resp.ok) return null;
-  const data = await resp.json();
-  return data.choices?.[0]?.message?.content || null;
+  const models = [
+    "google/gemini-2.0-flash-exp:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "qwen/qwen-2.5-72b-instruct",
+    "qwen/qwen3.8-27b:free",
+  ];
+  for (const model of models) {
+    try {
+      const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7,
+          max_tokens: 3500,
+        }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const text = data.choices?.[0]?.message?.content;
+        if (text) return text;
+      }
+    } catch {}
+  }
+  return null;
 }
 
 async function callMistral(apiKey: string, prompt: string): Promise<string | null> {
@@ -72,7 +103,7 @@ async function callMistral(apiKey: string, prompt: string): Promise<string | nul
       model: "mistral-small-latest",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
-      max_tokens: 800,
+      max_tokens: 3500,
     }),
   });
   if (!resp.ok) return null;
@@ -91,7 +122,7 @@ async function callCohere(apiKey: string, prompt: string): Promise<string | null
       model: "command-a-03-2025",
       message: prompt,
       temperature: 0.7,
-      max_tokens: 800,
+      max_tokens: 3500,
     }),
   });
   if (!resp.ok) return null;
@@ -189,7 +220,8 @@ ${companyContext}
 Instructions:
 1. Always frame your answer with executive authority for the Indian market (using INR ₹ notation where relevant).
 2. Ground your advice in the company fundamentals above.
-3. Keep the tone sharp, crisp, and high-impact. Avoid fluff.`;
+3. Keep the tone sharp, crisp, and high-impact. Avoid fluff.
+4. COMPLETION GUARANTEE: You must always generate a complete, coherent response and conclude all tables, bullet points, and strategic phases. Never stop in the middle of a sentence, list, or markdown table. Always finish with a clear next step or conclusion.`;
 
     const fullPrompt = `${systemPrompt}\n\nExecutive Request from User: ${message}`;
 
