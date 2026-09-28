@@ -137,6 +137,26 @@ export default function GrowthStrategyPage() {
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [monthlyBurn, setMonthlyBurn] = useState(0);
   const [cashOnHand, setCashOnHand] = useState(0);
+  const [ceoName, setCeoName] = useState("Astra");
+
+  useEffect(() => {
+    const syncCeo = () => {
+      try {
+        const raw = localStorage.getItem("bizzpal_custom_advisors");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.ceo?.name) setCeoName(parsed.ceo.name);
+        }
+      } catch {}
+    };
+    syncCeo();
+    window.addEventListener("bizzpal_advisors_updated", syncCeo);
+    window.addEventListener("storage", syncCeo);
+    return () => {
+      window.removeEventListener("bizzpal_advisors_updated", syncCeo);
+      window.removeEventListener("storage", syncCeo);
+    };
+  }, []);
 
   const applyBusinessProfile = (p: any) => {
     if (!p) return;
@@ -359,7 +379,7 @@ export default function GrowthStrategyPage() {
             </div>
             <h1 className="text-lg font-bold text-text">Enterprise Growth Strategy</h1>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-500 dark:text-amber-300 border border-amber-500/30 font-bold uppercase tracking-wider">
-              Astra AI Engine
+              {ceoName} AI Engine
             </span>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider">
               Horizon 2026
@@ -387,11 +407,11 @@ export default function GrowthStrategyPage() {
             <span>Simulate Scenarios</span>
           </Link>
           <Link
-            href={`/chat?message=${encodeURIComponent(`Astra, review our current growth strategy for ${companyName}. What are the highest-leverage growth vectors to accelerate ARR past ₹${Math.round(annualRevenue * 1.5).toLocaleString("en-IN")}?`)}`}
+            href={`/chat?message=${encodeURIComponent(`${ceoName}, review our current growth strategy for ${companyName}. What are the highest-leverage growth vectors to accelerate ARR past ₹${Math.round(annualRevenue * 1.5).toLocaleString("en-IN")}?`)}`}
             className="px-3.5 py-1.5 rounded-lg bg-brass text-white font-bold text-xs shadow-sm hover:brightness-110 btn-tactile inline-flex items-center gap-1.5 cursor-pointer"
           >
             <Bot className="w-3.5 h-3.5" />
-            <span>Consult Astra (CEO AI)</span>
+            <span>Consult {ceoName} (CEO AI)</span>
           </Link>
         </div>
       </div>
@@ -469,7 +489,7 @@ export default function GrowthStrategyPage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-xs font-extrabold text-text uppercase tracking-wider">
-                Astra (CEO AI) Strategic Directive
+                {ceoName} (CEO AI) Strategic Directive
               </span>
               <span className="text-[9px] px-2 py-0.2 rounded-full bg-brass/20 text-brass border border-brass/30 font-bold uppercase">
                 High-Leverage Vector

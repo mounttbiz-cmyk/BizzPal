@@ -66,6 +66,28 @@ export function ChatDock({
   ]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [ceoName, setCeoName] = useState("Astra");
+  const [cfoName, setCfoName] = useState("Marcus");
+
+  useEffect(() => {
+    const syncAdvisors = () => {
+      try {
+        const raw = localStorage.getItem("bizzpal_custom_advisors");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.ceo?.name) setCeoName(parsed.ceo.name);
+          if (parsed.cfo?.name) setCfoName(parsed.cfo.name);
+        }
+      } catch {}
+    };
+    syncAdvisors();
+    window.addEventListener("bizzpal_advisors_updated", syncAdvisors);
+    window.addEventListener("storage", syncAdvisors);
+    return () => {
+      window.removeEventListener("bizzpal_advisors_updated", syncAdvisors);
+      window.removeEventListener("storage", syncAdvisors);
+    };
+  }, []);
 
   // Keyboard shortcuts: Escape to close when open, ⌘J or Ctrl+J to toggle dock
   useEffect(() => {
@@ -183,7 +205,7 @@ export function ChatDock({
                 Online
               </span>
             </div>
-            <div className="text-[10px] text-text-muted">Astra (CEO) & Marcus (CFO)</div>
+            <div className="text-[10px] text-text-muted">{ceoName} (CEO) & {cfoName} (CFO)</div>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -244,7 +266,7 @@ export function ChatDock({
             >
               <div className="flex items-center gap-1.5 text-[10px] text-text-muted px-1">
                 <AgentAvatarIcon iconName={msg.avatar} className="w-3.5 h-3.5 text-brass" />
-                <span className="font-semibold text-text">{msg.senderName}</span>
+                <span className="font-semibold text-text">{msg.sender === "ceo" ? ceoName : (msg.sender === "cfo" ? cfoName : msg.senderName)}</span>
                 <span>({msg.role})</span>
                 <span>· {msg.timestamp}</span>
                 {msg.provenance && (

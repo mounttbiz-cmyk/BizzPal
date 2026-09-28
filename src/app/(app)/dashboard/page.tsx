@@ -53,7 +53,6 @@ function DashboardContent() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isQuickInputModalOpen, setIsQuickInputModalOpen] = useState(false);
 
-  // Daily Check-In State
   const [checkinData, setCheckinData] = useState<{
     isCompletedToday: boolean;
     todayCheckin: any;
@@ -66,6 +65,31 @@ function DashboardContent() {
     questions: [],
   });
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
+  const [advisorsSummary, setAdvisorsSummary] = useState("Astra, Marcus, Elena");
+
+  useEffect(() => {
+    const syncAdvisors = () => {
+      try {
+        const raw = localStorage.getItem("bizzpal_custom_advisors");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const ceo = parsed.ceo?.name || "Astra";
+          const cfo = parsed.cfo?.name || "Marcus";
+          const mkt = parsed.marketing?.name || "Elena";
+          setAdvisorsSummary(`${ceo}, ${cfo}, ${mkt}`);
+          return;
+        }
+      } catch {}
+      setAdvisorsSummary("Astra, Marcus, Elena");
+    };
+    syncAdvisors();
+    window.addEventListener("bizzpal_advisors_updated", syncAdvisors);
+    window.addEventListener("storage", syncAdvisors);
+    return () => {
+      window.removeEventListener("bizzpal_advisors_updated", syncAdvisors);
+      window.removeEventListener("storage", syncAdvisors);
+    };
+  }, []);
 
   // Close daily check-in modal on Escape
   useEscapeKey(() => setIsCheckInModalOpen(false), isCheckInModalOpen);
@@ -431,7 +455,7 @@ function DashboardContent() {
               </div>
               <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">
                 {checkinData.isCompletedToday
-                  ? "Executive agents (Astra, Marcus, Elena) are calibrated with today's operational telemetry."
+                  ? `Executive agents (${advisorsSummary}) are calibrated with today's operational telemetry.`
                   : "Continuous data collection mode is active. Give your AI executive team today's quick 60-second update."}
               </p>
             </div>

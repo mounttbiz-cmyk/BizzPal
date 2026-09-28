@@ -36,6 +36,11 @@ import {
   CustomizeAdvisorModal,
   AgentAvatarIcon,
 } from "@/components/chat/CustomizeAdvisorModal";
+import {
+  getAdvisorGreeting,
+  getStoredCustomAdvisors,
+  saveStoredCustomAdvisors,
+} from "@/lib/advisors";
 
 interface AgentMeta {
   id: string;
@@ -225,149 +230,24 @@ export default function ChatWorkspacePage() {
   const [companyProfile, setCompanyProfile] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initial seed conversations for each agent
-  const [conversations, setConversations] = useState<Record<string, ChatMessage[]>>({
-    ceo: [
-      {
-        id: "msg_init_ceo",
-        sender: "agent",
-        agentId: "ceo",
-        agentName: "Astra (CEO AI)",
-        avatar: "Crown",
-        timestamp: "Just now",
-        content:
-          "Good day. I am Astra, your CEO AI. I monitor company runway, capital allocation, and top-tier execution priorities. What strategic directive shall we review today?",
-        provider: "bizzpal-ai",
-        nextSteps: ["Review Runway & Solvency", "Examine Secondary Pipelines", "Run Decision Simulation"],
-      },
-    ],
-    cfo: [
-      {
-        id: "msg_init_cfo",
-        sender: "agent",
-        agentId: "cfo",
-        agentName: "Marcus (CFO AI)",
-        avatar: "TrendingUp",
-        timestamp: "Just now",
-        content:
-          "Marcus online. Cash burn, working capital, and unit economics are under surveillance. Your current liquid runway stands at 7.2 months. What financial model should we analyze?",
-        provider: "bizzpal-ai",
-        nextSteps: ["Open Cash Flow Forecast", "Analyze Tooling Overheads", "Calculate Break-Even Threshold"],
-      },
-    ],
-    marketing: [
-      {
-        id: "msg_init_mkt",
-        sender: "agent",
-        agentId: "marketing",
-        agentName: "Elena (Marketing AI)",
-        avatar: "Target",
-        timestamp: "Just now",
-        content:
-          "Elena ready. I'm tracking your inbound channel distribution, CAC payback velocity, and positioning resonance. How can we accelerate demand today?",
-        provider: "bizzpal-ai",
-        nextSteps: ["Audit Inbound Conversion Rates", "Calculate Blended CAC", "Plan ICP Retargeting Campaign"],
-      },
-    ],
-    sales: [
-      {
-        id: "msg_init_sales",
-        sender: "agent",
-        agentId: "sales",
-        agentName: "Vikram (Sales AI)",
-        avatar: "Zap",
-        timestamp: "Just now",
-        content:
-          "Vikram ready. Let's look at pipeline velocity, deal size qualification, proposal win rates, and enterprise client expansions. What pipeline are we closing?",
-        provider: "bizzpal-ai",
-        nextSteps: ["Score Pipeline Deals", "Audit Stalled Leads", "Model Enterprise Contract Tiering"],
-      },
-    ],
-    hr: [
-      {
-        id: "msg_init_hr",
-        sender: "agent",
-        agentId: "hr",
-        agentName: "Sarah (HR & Talent AI)",
-        avatar: "Users",
-        timestamp: "Just now",
-        content:
-          "Hi there, Sarah here. I specialize in headcount planning, talent retention benchmarks, compensation parity, and operational hiring velocity.",
-        provider: "bizzpal-ai",
-        nextSteps: ["Simulate Engineering Hire", "Check Revenue Per FTE", "Benchmark Tech Salaries in India"],
-      },
-    ],
-    operations: [
-      {
-        id: "msg_init_ops",
-        sender: "agent",
-        agentId: "operations",
-        agentName: "David (Operations AI)",
-        avatar: "Workflow",
-        timestamp: "Just now",
-        content:
-          "David active. I optimize your day-to-day workflow pipelines, eliminate manual friction, and ensure customer delivery SLAs remain in the top quartile.",
-        provider: "bizzpal-ai",
-        nextSteps: ["Launch Workflows Builder", "Audit Delivery Delays", "Review Vendor Subscriptions"],
-      },
-    ],
-    strategy: [
-      {
-        id: "msg_init_strat",
-        sender: "agent",
-        agentId: "strategy",
-        agentName: "Rohan (Strategy AI)",
-        avatar: "Compass",
-        timestamp: "Just now",
-        content:
-          "Rohan here. I analyze competitive defensibility, market expansion opportunities, pricing power moats, and strategic alliances.",
-        provider: "bizzpal-ai",
-        nextSteps: ["Open Market Entry Simulator", "Simulate Tier-2 City Expansion", "Map Platform Defensibility"],
-      },
-    ],
+  const [customAdvisors, setCustomAdvisors] = useState<Record<string, { name?: string; avatar?: string }>>(() => {
+    return getStoredCustomAdvisors();
   });
-
-  const [customAdvisors, setCustomAdvisors] = useState<Record<string, { name?: string; avatar?: string }>>({});
   const [editingAgent, setEditingAgent] = useState<AgentMeta | null>(null);
 
-  // Load custom advisors from localStorage
+  // Sync custom advisors reactively from localStorage and events
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("bizzpal_custom_advisors");
-      if (saved) {
-        setCustomAdvisors(JSON.parse(saved));
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
-
-  const handleSaveCustomAdvisor = (agentId: string, customData: { name: string; avatar: string }) => {
-    const updated = {
-      ...customAdvisors,
-      [agentId]: {
-        name: customData.name.trim() || undefined,
-        avatar: customData.avatar || undefined,
-      },
+    const syncAdvisors = () => {
+      setCustomAdvisors(getStoredCustomAdvisors());
     };
-    setCustomAdvisors(updated);
-    try {
-      localStorage.setItem("bizzpal_custom_advisors", JSON.stringify(updated));
-      window.dispatchEvent(new Event("bizzpal_advisors_updated"));
-    } catch (e) {}
-    setEditingAgent(null);
-  };
-
-  const handleResetCustomAdvisor = (agentId: string) => {
-    const updated = { ...customAdvisors };
-    delete updated[agentId];
-    setCustomAdvisors(updated);
-    try {
-      localStorage.setItem("bizzpal_custom_advisors", JSON.stringify(updated));
-      window.dispatchEvent(new Event("bizzpal_advisors_updated"));
-    } catch (e) {}
-    setEditingAgent(null);
-  };
+    syncAdvisors();
+    window.addEventListener("bizzpal_advisors_updated", syncAdvisors);
+    window.addEventListener("storage", syncAdvisors);
+    return () => {
+      window.removeEventListener("bizzpal_advisors_updated", syncAdvisors);
+      window.removeEventListener("storage", syncAdvisors);
+    };
+  }, []);
 
   const effectiveAgents = React.useMemo(() => {
     return EXECUTIVE_AGENTS.map(agent => {
@@ -380,6 +260,91 @@ export default function ChatWorkspacePage() {
       };
     });
   }, [customAdvisors]);
+
+  // Initial seed conversations for each agent, dynamically generated
+  const [conversations, setConversations] = useState<Record<string, ChatMessage[]>>(() => {
+    const initConvs: Record<string, ChatMessage[]> = {};
+    for (const agent of EXECUTIVE_AGENTS) {
+      initConvs[agent.id] = [
+        {
+          id: `msg_init_${agent.id}`,
+          sender: "agent",
+          agentId: agent.id,
+          agentName: `${agent.name} (${agent.role})`,
+          avatar: agent.avatar,
+          timestamp: "Just now",
+          content: getAdvisorGreeting(agent),
+          provider: "bizzpal-ai",
+          nextSteps: agent.id === "ceo"
+            ? ["Review Runway & Solvency", "Examine Secondary Pipelines", "Run Decision Simulation"]
+            : agent.id === "cfo"
+            ? ["Open Cash Flow Forecast", "Analyze Tooling Overheads", "Calculate Break-Even Threshold"]
+            : agent.id === "marketing"
+            ? ["Audit Inbound Conversion Rates", "Calculate Blended CAC", "Plan ICP Retargeting Campaign"]
+            : ["Score Pipeline Deals", "Audit Stalled Leads", "Model Enterprise Contract Tiering"],
+        },
+      ];
+    }
+    return initConvs;
+  });
+
+  const handleSaveCustomAdvisor = (agentId: string, customData: { name: string; avatar: string }) => {
+    const updated = {
+      ...customAdvisors,
+      [agentId]: {
+        name: customData.name.trim() || undefined,
+        avatar: customData.avatar || undefined,
+      },
+    };
+    setCustomAdvisors(updated);
+    saveStoredCustomAdvisors(updated);
+
+    // Immediately update initial message in conversation state with the new name/avatar
+    setConversations(prev => {
+      const agentList = prev[agentId] || [];
+      const updatedList = agentList.map(m => {
+        if (m.id.startsWith("msg_init_")) {
+          const targetMeta = effectiveAgents.find(a => a.id === agentId);
+          const currentAgent: AgentMeta = targetMeta ? {
+            ...targetMeta,
+            name: customData.name.trim() || targetMeta.name,
+            avatar: customData.avatar || targetMeta.avatar,
+          } : {
+            id: agentId,
+            name: customData.name.trim() || "Advisor",
+            role: "Executive AI",
+            avatar: customData.avatar || "Crown",
+            badge: "Executive",
+            color: "text-brass",
+            summary: "",
+            quickTools: [],
+            promptSuggestions: [],
+            kpis: [],
+            telemetryFeeds: [],
+          };
+          return {
+            ...m,
+            agentName: `${currentAgent.name} (${currentAgent.role})`,
+            avatar: currentAgent.avatar,
+            content: getAdvisorGreeting(currentAgent, companyProfile),
+          };
+        }
+        return m;
+      });
+      return { ...prev, [agentId]: updatedList };
+    });
+
+    setEditingAgent(null);
+  };
+
+  const handleResetCustomAdvisor = (agentId: string) => {
+    const updated = { ...customAdvisors };
+    delete updated[agentId];
+    setCustomAdvisors(updated);
+    saveStoredCustomAdvisors(updated);
+    setEditingAgent(null);
+  };
+
 
   useEffect(() => {
     try {
@@ -525,6 +490,8 @@ export default function ChatWorkspacePage() {
         body: JSON.stringify({
           message,
           agentId: activeAgentId,
+          agentName: activeAgent.name,
+          agentRole: activeAgent.role,
           companyProfile,
         }),
       });
@@ -605,7 +572,7 @@ export default function ChatWorkspacePage() {
             </span>
           </div>
           <p className="text-[11px] text-text-muted mt-1 font-medium">
-            Converse directly with specialized AI executive agents (CEO Astra, CFO Marcus, Marketing Elena, Sales Vikram) to audit decisions and execute playbooks.
+            Converse directly with specialized AI executive agents ({effectiveAgents.slice(0, 4).map(a => `${a.role.replace(" AI", "")} ${a.name}`).join(", ")}) to audit decisions and execute playbooks.
           </p>
         </div>
 
@@ -808,6 +775,18 @@ export default function ChatWorkspacePage() {
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             {currentMessages.map(msg => {
               const isUser = msg.sender === "user";
+              const msgAgent = effectiveAgents.find(a => a.id === msg.agentId) || activeAgent;
+              const displaySenderName = isUser ? msg.agentName : `${msgAgent.name} (${msgAgent.role})`;
+              const displayAvatar = isUser ? "User" : (activeAgent.id === msg.agentId ? activeAgent.avatar : msgAgent.avatar);
+              const displayContent = isUser
+                ? msg.content
+                : (msg.id.startsWith("msg_init_")
+                    ? getAdvisorGreeting(msgAgent, companyProfile)
+                    : msg.content
+                        .replace(/\bAstra, your CEO AI\b/gi, `${msgAgent.name}, your ${msgAgent.role}`)
+                        .replace(/\bI am Astra\b/gi, `I am ${msgAgent.name}`)
+                        .replace(/\bAstra\b/g, msgAgent.name)
+                  );
 
               return (
                 <div
@@ -826,7 +805,7 @@ export default function ChatWorkspacePage() {
                       <User className="w-4 h-4 text-white" />
                     ) : (
                       <AgentAvatarIcon
-                        iconName={activeAgent.id === msg.agentId ? activeAgent.avatar : msg.avatar}
+                        iconName={displayAvatar}
                         className="w-4 h-4"
                       />
                     )}
@@ -834,7 +813,7 @@ export default function ChatWorkspacePage() {
 
                   <div className="space-y-1.5 max-w-2xl min-w-0">
                     <div className={`flex items-center gap-2 text-[10px] ${isUser ? "justify-end" : ""}`}>
-                      <span className="font-bold text-text">{msg.agentName}</span>
+                      <span className="font-bold text-text">{displaySenderName}</span>
                       <span className="text-text-muted">{msg.timestamp}</span>
                     </div>
 
@@ -846,9 +825,9 @@ export default function ChatWorkspacePage() {
                       }`}
                     >
                       {isUser ? (
-                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                        <div className="whitespace-pre-wrap">{displayContent}</div>
                       ) : (
-                        <ChatMarkdown content={msg.content} />
+                        <ChatMarkdown content={displayContent} />
                       )}
 
                       {/* Structured Day-to-Day Input Card */}
@@ -1058,7 +1037,18 @@ export default function ChatWorkspacePage() {
               <div className="space-y-1.5">
                 {currentMessages.map(msg => {
                   const isUser = msg.sender === "user";
-                  const preview = msg.content.replace(/\s+/g, " ").trim();
+                  const msgAgent = effectiveAgents.find(a => a.id === msg.agentId) || activeAgent;
+                  const preview = (
+                    isUser
+                      ? msg.content
+                      : (msg.id.startsWith("msg_init_")
+                          ? getAdvisorGreeting(msgAgent, companyProfile)
+                          : msg.content
+                              .replace(/\bAstra, your CEO AI\b/gi, `${msgAgent.name}, your ${msgAgent.role}`)
+                              .replace(/\bI am Astra\b/gi, `I am ${msgAgent.name}`)
+                              .replace(/\bAstra\b/g, msgAgent.name)
+                        )
+                  ).replace(/\s+/g, " ").trim();
                   return (
                     <button
                       key={msg.id}
@@ -1070,7 +1060,7 @@ export default function ChatWorkspacePage() {
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <span className={`text-[10px] font-bold uppercase tracking-wide ${isUser ? "text-brass" : "text-cyan-400"}`}>
-                          {isUser ? "You" : activeAgent.name}
+                          {isUser ? "You" : msgAgent.name}
                         </span>
                         <span className="text-[9px] text-text-muted font-mono shrink-0 flex items-center gap-1">
                           <Clock className="w-2.5 h-2.5" />

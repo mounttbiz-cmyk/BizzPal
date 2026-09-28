@@ -101,7 +101,7 @@ async function callCohere(apiKey: string, prompt: string): Promise<string | null
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, agentId, companyProfile } = await req.json();
+    const { message, agentId, companyProfile, agentName, agentRole, customRoleTitle } = await req.json();
 
     // Executive Agent Personas
     const agentRoles: Record<string, { title: string; focus: string; tone: string }> = {
@@ -116,11 +116,31 @@ export async function POST(req: NextRequest) {
         tone: "Fiscally disciplined, data-first, razor-sharp, analytical.",
       },
       cmo: {
-        title: "Elena (CMO AI)",
+        title: "Elena (Marketing AI)",
         focus: "Customer acquisition cost (CAC), pipeline conversion velocity, inbound funnels, ICP qualification, messaging, and partner distribution channels.",
         tone: "Growth-oriented, energetic, conversion-focused, experimental.",
       },
+      marketing: {
+        title: "Elena (Marketing AI)",
+        focus: "Customer acquisition cost (CAC), pipeline conversion velocity, inbound funnels, ICP qualification, messaging, and partner distribution channels.",
+        tone: "Growth-oriented, energetic, conversion-focused, experimental.",
+      },
+      sales: {
+        title: "Vikram (Sales AI)",
+        focus: "Pipeline velocity, high-ticket deal closing, objection handling, win rates, and contract expansion.",
+        tone: "Sharp, persuasive, metric-focused, deal-driven.",
+      },
+      hr: {
+        title: "Sarah (HR & Talent AI)",
+        focus: "Headcount capacity modeling, key-person risk, compensation benchmarks, and talent velocity.",
+        tone: "Empathetic, structured, culturally aligned, strategic.",
+      },
       coo: {
+        title: "David (Operations AI)",
+        focus: "Process optimization, vendor SLAs, operational friction, capacity constraints, and operational bottlenecks.",
+        tone: "Systematic, efficiency-driven, pragmatic, operational.",
+      },
+      operations: {
         title: "David (Operations AI)",
         focus: "Process optimization, vendor SLAs, operational friction, capacity constraints, and operational bottlenecks.",
         tone: "Systematic, efficiency-driven, pragmatic, operational.",
@@ -132,7 +152,12 @@ export async function POST(req: NextRequest) {
       },
     };
 
-    const activeRole = agentRoles[agentId] || agentRoles.ceo;
+    const baseRole = agentRoles[agentId] || agentRoles.ceo;
+    const resolvedRoleTitle = customRoleTitle || (agentName ? `${agentName} (${agentRole || baseRole.title.split("(")[1] || "Executive AI"})` : baseRole.title);
+    const activeRole = {
+      ...baseRole,
+      title: resolvedRoleTitle,
+    };
 
     const activeBiz = getActiveBusiness();
     const resolvedProfile = companyProfile || activeBiz || {};

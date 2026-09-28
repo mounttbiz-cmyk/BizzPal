@@ -25,6 +25,30 @@ export function BriefingWidget({
   const [burn, setBurn] = useState(0);
   const [cash, setCash] = useState(0);
   const [isUploaded, setIsUploaded] = useState(false);
+  const [activeCeoName, setActiveCeoName] = useState(ceoName);
+
+  useEffect(() => {
+    const syncCeo = () => {
+      try {
+        const raw = localStorage.getItem("bizzpal_custom_advisors");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.ceo?.name) {
+            setActiveCeoName(parsed.ceo.name);
+            return;
+          }
+        }
+      } catch {}
+      setActiveCeoName(ceoName);
+    };
+    syncCeo();
+    window.addEventListener("bizzpal_advisors_updated", syncCeo);
+    window.addEventListener("storage", syncCeo);
+    return () => {
+      window.removeEventListener("bizzpal_advisors_updated", syncCeo);
+      window.removeEventListener("storage", syncCeo);
+    };
+  }, [ceoName]);
 
   const applyProfile = (p: any) => {
     if (!p) return;
@@ -84,7 +108,7 @@ export function BriefingWidget({
                   <StatusBadge label={isFresh ? "Calibrating" : "Autonomous"} tone="ai" />
                 </h2>
                 <span className="text-[10px] text-text-muted">
-                  Synthesized by {ceoName} (Chief Executive AI)
+                  Synthesized by {activeCeoName} (Chief Executive AI)
                 </span>
               </div>
             </div>
@@ -172,7 +196,7 @@ export function BriefingWidget({
             href="/chat"
             className="inline-flex items-center gap-1.5 text-gold hover:brightness-110 font-semibold text-xs btn-tactile cursor-pointer group"
           >
-            <span>Ask Astra to elaborate</span>
+            <span>Ask {activeCeoName} to elaborate</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
           </Link>
           <Link
