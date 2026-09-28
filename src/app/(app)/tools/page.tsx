@@ -661,15 +661,16 @@ function ToolsContent() {
       </div>
 
       {/* DataPal Featured Spotlight Banner */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-surface to-violet-950/40 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-            <Sparkles className="w-5 h-5" />
+      <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-brass/[0.08] via-surface to-brass/[0.03] dark:from-brass/[0.08] dark:via-surface dark:to-surface border border-brass/30 dark:border-brass/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm hover:border-brass/50 transition-all group">
+        <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-brass/[0.05] rounded-full blur-2xl pointer-events-none" />
+        <div className="flex items-center gap-3.5 relative z-10">
+          <div className="w-10 h-10 rounded-xl bg-brass/10 dark:bg-brass/15 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+            <Sparkles className="w-5 h-5 text-brass" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-extrabold text-text">DataPal™ Business Data Extraction</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brass/15 text-brass border border-brass/30">
                 New Integration
               </span>
             </div>
@@ -681,7 +682,7 @@ function ToolsContent() {
 
         <Link
           href="/datapal"
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition-all shrink-0 cursor-pointer"
+          className="relative z-10 flex items-center gap-2 px-4 py-2 rounded-xl btn-gold-gradient font-bold text-xs shadow-md transition-all hover:brightness-105 active:scale-[0.98] shrink-0 cursor-pointer"
         >
           <span>Launch DataPal Studio</span>
           <ArrowRight className="w-3.5 h-3.5" />
