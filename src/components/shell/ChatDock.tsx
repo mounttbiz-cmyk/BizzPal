@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { X, Send, BrainCircuit, Tag, ChevronDown, CheckCircle2, ArrowRight, Maximize2, Minimize2, MessageSquare } from "lucide-react";
+import { AgentAvatarIcon } from "@/components/chat/CustomizeAdvisorModal";
 
 export interface ContextChip {
   id: string;
@@ -48,7 +49,7 @@ export function ChatDock({
       sender: "ceo",
       senderName: "Astra",
       role: "CEO AI",
-      avatar: "👑",
+      avatar: "Crown",
       content: "Good morning. I've reviewed your latest telemetry and runway metrics. How can I assist with your executive priorities today?",
       timestamp: "09:00 AM",
       situation: "Active operations pipeline is healthy; cash runway sits at 8.0 months.",
@@ -242,7 +243,7 @@ export function ChatDock({
               className={`flex flex-col ${isUser ? "items-end" : "items-start"} space-y-1`}
             >
               <div className="flex items-center gap-1.5 text-[10px] text-text-muted px-1">
-                <span>{msg.avatar}</span>
+                <AgentAvatarIcon iconName={msg.avatar} className="w-3.5 h-3.5 text-brass" />
                 <span className="font-semibold text-text">{msg.senderName}</span>
                 <span>({msg.role})</span>
                 <span>· {msg.timestamp}</span>

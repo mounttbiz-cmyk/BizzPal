@@ -27,9 +27,15 @@ import {
   Clock,
   Info,
   MessageSquare,
+  Pencil,
+  User,
 } from "lucide-react";
 import { parseNaturalBusinessInput, ExtractedBusinessRecord } from "@/lib/intake/nlpParser";
 import { emitBusinessDataUpdated } from "@/lib/upload/events";
+import {
+  CustomizeAdvisorModal,
+  AgentAvatarIcon,
+} from "@/components/chat/CustomizeAdvisorModal";
 
 interface AgentMeta {
   id: string;
@@ -50,7 +56,7 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
     id: "ceo",
     name: "Astra",
     role: "CEO AI",
-    avatar: "👑",
+    avatar: "Crown",
     badge: "Strategic Vision",
     color: "text-amber-400 bg-amber-400/10 border-amber-400/30",
     summary: "Capital efficiency, enterprise scale milestones, founder alignment, and board-level directives.",
@@ -71,7 +77,7 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
     id: "cfo",
     name: "Marcus",
     role: "CFO AI",
-    avatar: "📊",
+    avatar: "TrendingUp",
     badge: "Capital & Runway",
     color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/30",
     summary: "Cash burn, liquidity runway, unit economics, INR tax/balance sheet discipline, and solvency alarms.",
@@ -93,7 +99,7 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
     id: "marketing",
     name: "Elena",
     role: "Marketing AI",
-    avatar: "🎯",
+    avatar: "Target",
     badge: "Demand & Growth",
     color: "text-purple-400 bg-purple-400/10 border-purple-400/30",
     summary: "CAC, ROAS efficiency, organic funnels, brand positioning, and demand generation economics.",
@@ -114,7 +120,7 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
     id: "sales",
     name: "Vikram",
     role: "Sales AI",
-    avatar: "⚡",
+    avatar: "Zap",
     badge: "Deal Velocity",
     color: "text-blue-400 bg-blue-400/10 border-blue-400/30",
     summary: "Pipeline velocity, enterprise deal structuring, lead scoring, and sales representative quotas.",
@@ -135,7 +141,7 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
     id: "hr",
     name: "Sarah",
     role: "HR & Talent AI",
-    avatar: "🤝",
+    avatar: "Users",
     badge: "Talent & Culture",
     color: "text-rose-400 bg-rose-400/10 border-rose-400/30",
     summary: "Headcount planning, talent retention, hiring cost, organizational structure, and compensation benchmarks.",
@@ -156,7 +162,7 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
     id: "operations",
     name: "David",
     role: "Operations AI",
-    avatar: "⚙️",
+    avatar: "Workflow",
     badge: "Efficiency & SLAs",
     color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/30",
     summary: "Process optimization, workflow automation, operational bottlenecks, vendor SLAs, and delivery margins.",
@@ -177,7 +183,7 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
     id: "strategy",
     name: "Rohan",
     role: "Strategy AI",
-    avatar: "🧭",
+    avatar: "Compass",
     badge: "Moats & Expansion",
     color: "text-orange-400 bg-orange-400/10 border-orange-400/30",
     summary: "Defensibility analysis, competitive moats, market expansion playbooks, and strategic partnerships.",
@@ -227,7 +233,7 @@ export default function ChatWorkspacePage() {
         sender: "agent",
         agentId: "ceo",
         agentName: "Astra (CEO AI)",
-        avatar: "👑",
+        avatar: "Crown",
         timestamp: "Just now",
         content:
           "Good day. I am Astra, your CEO AI. I monitor company runway, capital allocation, and top-tier execution priorities. What strategic directive shall we review today?",
@@ -241,7 +247,7 @@ export default function ChatWorkspacePage() {
         sender: "agent",
         agentId: "cfo",
         agentName: "Marcus (CFO AI)",
-        avatar: "📊",
+        avatar: "TrendingUp",
         timestamp: "Just now",
         content:
           "Marcus online. Cash burn, working capital, and unit economics are under surveillance. Your current liquid runway stands at 7.2 months. What financial model should we analyze?",
@@ -255,7 +261,7 @@ export default function ChatWorkspacePage() {
         sender: "agent",
         agentId: "marketing",
         agentName: "Elena (Marketing AI)",
-        avatar: "🎯",
+        avatar: "Target",
         timestamp: "Just now",
         content:
           "Elena ready. I'm tracking your inbound channel distribution, CAC payback velocity, and positioning resonance. How can we accelerate demand today?",
@@ -269,7 +275,7 @@ export default function ChatWorkspacePage() {
         sender: "agent",
         agentId: "sales",
         agentName: "Vikram (Sales AI)",
-        avatar: "⚡",
+        avatar: "Zap",
         timestamp: "Just now",
         content:
           "Vikram ready. Let's look at pipeline velocity, deal size qualification, proposal win rates, and enterprise client expansions. What pipeline are we closing?",
@@ -283,7 +289,7 @@ export default function ChatWorkspacePage() {
         sender: "agent",
         agentId: "hr",
         agentName: "Sarah (HR & Talent AI)",
-        avatar: "🤝",
+        avatar: "Users",
         timestamp: "Just now",
         content:
           "Hi there, Sarah here. I specialize in headcount planning, talent retention benchmarks, compensation parity, and operational hiring velocity.",
@@ -297,7 +303,7 @@ export default function ChatWorkspacePage() {
         sender: "agent",
         agentId: "operations",
         agentName: "David (Operations AI)",
-        avatar: "⚙️",
+        avatar: "Workflow",
         timestamp: "Just now",
         content:
           "David active. I optimize your day-to-day workflow pipelines, eliminate manual friction, and ensure customer delivery SLAs remain in the top quartile.",
@@ -311,7 +317,7 @@ export default function ChatWorkspacePage() {
         sender: "agent",
         agentId: "strategy",
         agentName: "Rohan (Strategy AI)",
-        avatar: "🧭",
+        avatar: "Compass",
         timestamp: "Just now",
         content:
           "Rohan here. I analyze competitive defensibility, market expansion opportunities, pricing power moats, and strategic alliances.",
@@ -320,6 +326,60 @@ export default function ChatWorkspacePage() {
       },
     ],
   });
+
+  const [customAdvisors, setCustomAdvisors] = useState<Record<string, { name?: string; avatar?: string }>>({});
+  const [editingAgent, setEditingAgent] = useState<AgentMeta | null>(null);
+
+  // Load custom advisors from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("bizzpal_custom_advisors");
+      if (saved) {
+        setCustomAdvisors(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const handleSaveCustomAdvisor = (agentId: string, customData: { name: string; avatar: string }) => {
+    const updated = {
+      ...customAdvisors,
+      [agentId]: {
+        name: customData.name.trim() || undefined,
+        avatar: customData.avatar || undefined,
+      },
+    };
+    setCustomAdvisors(updated);
+    try {
+      localStorage.setItem("bizzpal_custom_advisors", JSON.stringify(updated));
+      window.dispatchEvent(new Event("bizzpal_advisors_updated"));
+    } catch (e) {}
+    setEditingAgent(null);
+  };
+
+  const handleResetCustomAdvisor = (agentId: string) => {
+    const updated = { ...customAdvisors };
+    delete updated[agentId];
+    setCustomAdvisors(updated);
+    try {
+      localStorage.setItem("bizzpal_custom_advisors", JSON.stringify(updated));
+      window.dispatchEvent(new Event("bizzpal_advisors_updated"));
+    } catch (e) {}
+    setEditingAgent(null);
+  };
+
+  const effectiveAgents = React.useMemo(() => {
+    return EXECUTIVE_AGENTS.map(agent => {
+      const custom = customAdvisors[agent.id];
+      if (!custom) return agent;
+      return {
+        ...agent,
+        name: custom.name?.trim() || agent.name,
+        avatar: custom.avatar || agent.avatar,
+      };
+    });
+  }, [customAdvisors]);
 
   useEffect(() => {
     try {
@@ -336,7 +396,7 @@ export default function ChatWorkspacePage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversations, isTyping, activeAgentId]);
 
-  const activeAgent = EXECUTIVE_AGENTS.find(a => a.id === activeAgentId) || EXECUTIVE_AGENTS[0];
+  const activeAgent = effectiveAgents.find(a => a.id === activeAgentId) || effectiveAgents[0];
   const currentMessages = conversations[activeAgentId] || [];
 
   const handleCommitRecordFromChat = async (record: ExtractedBusinessRecord, msgId: string) => {
@@ -443,7 +503,7 @@ export default function ChatWorkspacePage() {
       sender: "user",
       agentId: activeAgentId,
       agentName: companyProfile?.founderName || "You",
-      avatar: "👤",
+      avatar: "User",
       timestamp: "Just now",
       content: message,
       structuredRecord: detectedRecord,
@@ -523,7 +583,7 @@ export default function ChatWorkspacePage() {
     }
   };
 
-  const filteredAgents = EXECUTIVE_AGENTS.filter(
+  const filteredAgents = effectiveAgents.filter(
     a =>
       a.name.toLowerCase().includes(searchRoster.toLowerCase()) ||
       a.role.toLowerCase().includes(searchRoster.toLowerCase()) ||
@@ -602,7 +662,7 @@ export default function ChatWorkspacePage() {
                   key={agent.id}
                   type="button"
                   onClick={() => setActiveAgentId(agent.id)}
-                  className={`w-full p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
+                  className={`w-full p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
                     isActive
                       ? "bg-cyan-500/10 border-cyan-500/40 text-text shadow-sm"
                       : "bg-transparent border-transparent hover:bg-surface-2/60 hover:border-line text-text-muted hover:text-text"
@@ -610,8 +670,8 @@ export default function ChatWorkspacePage() {
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="relative shrink-0">
-                      <div className="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-lg shadow-sm">
-                        {agent.avatar}
+                      <div className="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-text group-hover:text-brass shadow-sm transition-colors">
+                        <AgentAvatarIcon iconName={agent.avatar} className="w-4 h-4" />
                       </div>
                       <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-surface animate-pulse" />
                     </div>
@@ -633,11 +693,31 @@ export default function ChatWorkspacePage() {
                     </div>
                   </div>
 
-                  <ChevronRight
-                    className={`w-4 h-4 shrink-0 transition-transform ${
-                      isActive ? "text-cyan-400 translate-x-0.5" : "text-text-muted/40"
-                    }`}
-                  />
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={e => {
+                        e.stopPropagation();
+                        setEditingAgent(agent);
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.stopPropagation();
+                          setEditingAgent(agent);
+                        }
+                      }}
+                      title={`Customize ${agent.name} (name & icon)`}
+                      className="p-1 rounded-md text-text-muted/60 hover:text-brass hover:bg-surface-2 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </span>
+                    <ChevronRight
+                      className={`w-4 h-4 shrink-0 transition-transform ${
+                        isActive ? "text-cyan-400 translate-x-0.5" : "text-text-muted/40"
+                      }`}
+                    />
+                  </div>
                 </button>
               );
             })}
@@ -665,14 +745,23 @@ export default function ChatWorkspacePage() {
           {/* Active Desk Header */}
           <div className="p-3 sm:px-4 border-b border-line bg-surface-2/40 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center text-xl shrink-0 shadow-sm">
-                {activeAgent.avatar}
+              <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center text-brass shrink-0 shadow-sm">
+                <AgentAvatarIcon iconName={activeAgent.avatar} className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-bold text-text">
                     {activeAgent.name} ({activeAgent.role})
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setEditingAgent(activeAgent)}
+                    title="Customize Name & Symbol"
+                    className="px-2 py-0.5 rounded-md bg-surface border border-line hover:border-brass/40 hover:bg-surface-2 text-text-muted hover:text-brass text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <Pencil className="w-2.5 h-2.5 text-brass" />
+                    <span>Customize Name & Icon</span>
+                  </button>
                   <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono font-semibold uppercase flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     <span>Live Desk</span>
@@ -731,10 +820,17 @@ export default function ChatWorkspacePage() {
                     className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0 border mt-0.5 shadow-sm ${
                       isUser
                         ? "bg-brass text-white border-brass"
-                        : "bg-surface-2 border-line text-text"
+                        : "bg-surface-2 border-line text-brass"
                     }`}
                   >
-                    {msg.avatar}
+                    {isUser ? (
+                      <User className="w-4 h-4 text-white" />
+                    ) : (
+                      <AgentAvatarIcon
+                        iconName={activeAgent.id === msg.agentId ? activeAgent.avatar : msg.avatar}
+                        className="w-4 h-4"
+                      />
+                    )}
                   </div>
 
                   <div className="space-y-1.5 max-w-2xl min-w-0">
@@ -841,8 +937,8 @@ export default function ChatWorkspacePage() {
 
             {isTyping && (
               <div className="flex gap-3 mr-auto max-w-lg">
-                <div className="w-8 h-8 rounded-xl bg-surface-2 border border-line flex items-center justify-center text-sm shrink-0">
-                  {activeAgent.avatar}
+                <div className="w-8 h-8 rounded-xl bg-surface-2 border border-line flex items-center justify-center text-brass shrink-0 shadow-sm">
+                  <AgentAvatarIcon iconName={activeAgent.avatar} className="w-4 h-4" />
                 </div>
                 <div className="p-3.5 rounded-2xl bg-surface-2 border border-line text-xs rounded-tl-none flex items-center gap-2.5 text-text-muted">
                   <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
@@ -925,6 +1021,28 @@ export default function ChatWorkspacePage() {
               </span>
             </div>
 
+            {/* Active Advisor Profile & Customize Shortcut */}
+            <div className="p-3 rounded-xl bg-surface-2/40 border border-line flex items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-surface border border-line flex items-center justify-center text-brass shrink-0 shadow-xs">
+                  <AgentAvatarIcon iconName={activeAgent.avatar} className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-text truncate">{activeAgent.name}</div>
+                  <div className="text-[10px] text-text-muted">{activeAgent.role}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingAgent(activeAgent)}
+                className="px-2 py-1 rounded-lg bg-surface border border-line hover:border-brass/40 text-[10px] font-semibold text-text-muted hover:text-brass flex items-center gap-1 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                title="Customize name & icon"
+              >
+                <Pencil className="w-2.5 h-2.5 text-brass" />
+                <span>Edit</span>
+              </button>
+            </div>
+
             {currentMessages.length === 0 ? (
               <p className="text-[11px] text-text-muted leading-relaxed p-3 rounded-xl bg-surface-2/50 border border-line">
                 No messages yet with {activeAgent.name}. Start the conversation to see your history here.
@@ -963,6 +1081,23 @@ export default function ChatWorkspacePage() {
           </aside>
         )}
       </div>
+
+      {/* Customize Advisor Modal */}
+      {editingAgent && (
+        <CustomizeAdvisorModal
+          isOpen={!!editingAgent}
+          agent={editingAgent}
+          defaultName={
+            EXECUTIVE_AGENTS.find(a => a.id === editingAgent.id)?.name || editingAgent.name
+          }
+          defaultIcon={
+            EXECUTIVE_AGENTS.find(a => a.id === editingAgent.id)?.avatar || "Bot"
+          }
+          onClose={() => setEditingAgent(null)}
+          onSave={handleSaveCustomAdvisor}
+          onReset={handleResetCustomAdvisor}
+        />
+      )}
     </div>
   );
 }
