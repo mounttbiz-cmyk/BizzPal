@@ -12,7 +12,9 @@ import {
   Compass,
   Calculator,
   Sliders,
-  Sparkles,
+  Database,
+  Bot,
+  MessageSquare,
   ArrowRight,
   CheckCircle2,
   Lock,
@@ -665,7 +667,7 @@ function ToolsContent() {
         <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-brass/[0.05] rounded-full blur-2xl pointer-events-none" />
         <div className="flex items-center gap-3.5 relative z-10">
           <div className="w-10 h-10 rounded-xl bg-brass/10 dark:bg-brass/15 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5 text-brass" />
+            <Database className="w-5 h-5 text-brass" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -796,7 +798,7 @@ function ToolsContent() {
                       href={`/chat?message=${encodeURIComponent(`Run comprehensive diagnostic simulation on ${activeTool.name} with current enterprise benchmarks.`)}`}
                       className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs btn-tactile inline-flex items-center gap-2 shadow-xs transition-colors"
                     >
-                      <Sparkles className="w-4 h-4" />
+                      <Bot className="w-4 h-4" />
                       <span>Execute in AI Workspace</span>
                     </Link>
                     <Link
@@ -1817,7 +1819,7 @@ function ToolsContent() {
                           href={`/chat?message=${encodeURIComponent(`Open ${activeTool.name} analysis with relevant operational telemetry.`)}`}
                           className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs btn-tactile inline-flex items-center gap-2 shadow-xs transition-colors"
                         >
-                          <Sparkles className="w-4 h-4" />
+                          <Bot className="w-4 h-4" />
                           <span>Launch in AI Workspace</span>
                         </Link>
                         <Link
@@ -1905,7 +1907,7 @@ function ToolsContent() {
                 className="text-[10px] text-text-muted hover:text-text p-1.5 rounded hover:bg-surface-2 transition-colors"
                 title="Consult AI Agent"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Bot className="w-3.5 h-3.5" />
               </Link>
             </div>
           </div>

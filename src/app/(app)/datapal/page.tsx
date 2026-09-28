@@ -37,7 +37,6 @@ import {
   Info,
   CheckSquare,
   Square,
-  Sparkles,
 } from "lucide-react";
 import {
   BusinessCategory,
@@ -693,7 +692,7 @@ export default function DataPalPage() {
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                      <Square className="w-3.5 h-3.5 shrink-0" />
                       <span>Select All Types of Businesses</span>
                     </>
                   )}
