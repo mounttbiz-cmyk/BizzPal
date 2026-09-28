@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateSyntheticLeads } from "@/lib/datapal/storage";
+import { extractRealBusinessLeads } from "@/lib/datapal/realExtractor";
 import { DataPalSearchConfig } from "@/lib/datapal/types";
 
 export async function POST(req: NextRequest) {
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // If an external DataPal API key is provided, proxy request to DataPal backend
+    // 1. If an external DataPal scraper API key is provided, proxy to DataPal backend
     if (apiKey && apiKey.trim().length > 5) {
       const endpoint = apiEndpoint || "https://data-pal.vercel.app/api/scraper/bulkSearch";
       try {
@@ -45,12 +46,14 @@ export async function POST(req: NextRequest) {
           });
         }
       } catch (upstreamErr) {
-        console.warn("DataPal live API unreachable or failed, falling back to local engine:", upstreamErr);
+        console.warn("DataPal live API unreachable, attempting free real directory extractor:", upstreamErr);
       }
     }
 
-    // Default High-Fidelity Simulation Mode
-    const leads = generateSyntheticLeads(config);
+    // 2. LIVE FREE REAL-DATA EXTRACTION (OpenStreetMap Live + Google Places Free Tier)
+    const { leads: realLeads, sourceMode } = await extractRealBusinessLeads(config, apiKey);
+
+    const leads = realLeads.length > 0 ? realLeads : generateSyntheticLeads(config);
     const campaignId = `camp_${Date.now()}`;
     const locationString = [config.areaPincode, config.city, config.state, config.countryCode === "IN" ? "India" : config.countryCode]
       .filter(Boolean)
@@ -59,8 +62,8 @@ export async function POST(req: NextRequest) {
     const campaign = {
       id: campaignId,
       title: config.searchQuery?.trim()
-        ? `${config.searchQuery.trim()} in ${config.city || "All India"}`
-        : `${config.requirement || "Business Leads"} in ${config.city || "All India"}`,
+        ? `${config.searchQuery.trim()} in ${config.city || "All Regions"}`
+        : `${config.requirement || "Business Leads"} in ${config.city || "All Regions"}`,
       searchQuery: config.searchQuery,
       requirement: config.requirement,
       location: locationString,
@@ -77,9 +80,9 @@ export async function POST(req: NextRequest) {
     };
 
     return NextResponse.json({
-      mode: "client_high_fidelity",
+      mode: sourceMode === "fallback" ? "client_high_fidelity" : sourceMode,
       campaign,
-      message: "Data extraction completed successfully",
+      message: realLeads.length > 0 ? `Successfully extracted ${realLeads.length} real live businesses!` : "Data extraction completed successfully",
     });
   } catch (error: any) {
     console.error("DataPal extraction error:", error);
