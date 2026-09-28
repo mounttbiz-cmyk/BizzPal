@@ -34,11 +34,17 @@ export async function GET() {
         : item.badge,
     }));
 
-    // If database had empty sets, seed with defaults
+    // If database had empty sets, seed with defaults; otherwise ensure all defaults like DataPal are present
     if (!Array.isArray(nav) || nav.length === 0) {
-      nav = defaultNavItems;
+      nav = sanitizeNav(defaultNavItems);
       setPlatformConfig("dashboard_nav", nav);
     } else {
+      const existingIds = new Set(nav.map((n: any) => n.id));
+      const existingHrefs = new Set(nav.map((n: any) => n.href));
+      const missingDefaults = defaultNavItems.filter(
+        item => !existingIds.has(item.id) && !existingHrefs.has(item.href)
+      );
+      nav = [...nav, ...missingDefaults].sort((a: any, b: any) => a.order - b.order);
       nav = sanitizeNav(nav);
       setPlatformConfig("dashboard_nav", nav);
     }

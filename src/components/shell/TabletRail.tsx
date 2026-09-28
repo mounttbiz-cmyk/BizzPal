@@ -23,6 +23,26 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
   const { hasPlanLevel } = usePlanAccess();
   const [lockedItem, setLockedItem] = React.useState<NavItem | null>(null);
 
+  // Guarantee DataPal is always present in navigation items
+  const effectiveNavItems = React.useMemo(() => {
+    const list = navItems || [];
+    const hasDataPal = list.some(item => item.id === "nav_datapal" || item.href === "/datapal");
+    if (!hasDataPal) {
+      const datapalDefault: NavItem = {
+        id: "nav_datapal",
+        label: "DataPal",
+        href: "/datapal",
+        icon: "Database",
+        order: 10,
+        mobileTab: false,
+        group: "intelligence",
+        enabled: true,
+      };
+      return [...list, datapalDefault].sort((a, b) => a.order - b.order);
+    }
+    return list;
+  }, [navItems]);
+
   return (
     <aside className="hidden md:flex lg:hidden flex-col items-center w-16 h-screen fixed inset-y-0 left-0 bg-surface/95 backdrop-blur-2xl border-r border-line select-none z-30 py-3 transition-colors">
       {/* Brand Icon with Ribbon Logo */}
@@ -52,7 +72,7 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
 
       {/* Icon Navigation list */}
       <nav className="flex-1 flex flex-col items-center gap-2 overflow-y-auto w-full px-2">
-        {navItems.map(rawItem => {
+        {effectiveNavItems.map(rawItem => {
           const isWorkspace = rawItem.id === "nav_chat" || rawItem.label.toLowerCase().includes("workspace");
           const isStrategy = rawItem.id === "nav_strategy" || rawItem.label.toLowerCase().includes("strategy");
           const isPlaybooks = rawItem.id === "nav_playbooks" || rawItem.label.toLowerCase().includes("playbook");

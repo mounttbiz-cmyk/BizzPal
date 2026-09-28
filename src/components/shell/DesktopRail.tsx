@@ -86,6 +86,26 @@ export function DesktopRail({
     else setPlanBadgeLabel("Active Workspace");
   }, [currentPlan]);
 
+  // Guarantee DataPal is always present in navigation items
+  const effectiveNavItems = React.useMemo(() => {
+    const list = navItems || [];
+    const hasDataPal = list.some(item => item.id === "nav_datapal" || item.href === "/datapal");
+    if (!hasDataPal) {
+      const datapalDefault: NavItem = {
+        id: "nav_datapal",
+        label: "DataPal",
+        href: "/datapal",
+        icon: "Database",
+        order: 10,
+        mobileTab: false,
+        group: "intelligence",
+        enabled: true,
+      };
+      return [...list, datapalDefault].sort((a, b) => a.order - b.order);
+    }
+    return list;
+  }, [navItems]);
+
   return (
     <aside className="hidden lg:flex flex-col w-64 h-screen fixed inset-y-0 left-0 bg-surface/95 backdrop-blur-2xl border-r border-line select-none z-30 transition-colors">
       {/* Quick Business Input Modal */}
@@ -151,7 +171,7 @@ export function DesktopRail({
       {/* Nav List grouped */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {groups.map(group => {
-          const items = navItems.filter(item => item.group === group.key);
+          const items = effectiveNavItems.filter(item => item.group === group.key);
           if (items.length === 0) return null;
 
           return (

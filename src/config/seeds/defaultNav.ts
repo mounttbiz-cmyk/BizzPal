@@ -100,7 +100,7 @@ export const defaultNavItems: NavItem[] = [
   },
   {
     id: "nav_datapal",
-    label: "DataPal Extraction",
+    label: "DataPal",
     href: "/datapal",
     icon: "Database",
     order: 10,

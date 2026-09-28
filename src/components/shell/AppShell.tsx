@@ -13,6 +13,8 @@ import { usePathname } from "next/navigation";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { defaultNavItems } from "@/config/seeds/defaultNav";
+
 interface AppShellProps {
   children: React.ReactNode;
   navItems: NavItem[];
@@ -21,7 +23,15 @@ interface AppShellProps {
 }
 
 function sanitizeNavItems(list: NavItem[]): NavItem[] {
-  return list.map(item => {
+  const existingIds = new Set((list || []).map(item => item.id));
+  const existingHrefs = new Set((list || []).map(item => item.href));
+  const missingDefaults = defaultNavItems.filter(
+    def => !existingIds.has(def.id) && !existingHrefs.has(def.href)
+  );
+
+  const fullList = [...(list || []), ...missingDefaults].sort((a, b) => a.order - b.order);
+
+  return fullList.map(item => {
     const isWorkspace = item.id === "nav_chat" || item.label.toLowerCase().includes("workspace");
     const isStrategy = item.id === "nav_strategy" || item.label.toLowerCase().includes("strategy");
     const isPlaybooks = item.id === "nav_playbooks" || item.label.toLowerCase().includes("playbook");

@@ -29,8 +29,11 @@ export async function GET() {
   try {
     const website = getPlatformConfig("website_config", DEFAULT_WEBSITE_CONFIG);
     const features = getPlatformConfig("dashboard_features", DEFAULT_DASHBOARD_FEATURES);
-    const nav = getPlatformConfig("dashboard_nav", defaultNavItems);
     const widgets = getPlatformConfig("dashboard_widgets", defaultWidgets);
+    let rawNav = getPlatformConfig("dashboard_nav", defaultNavItems);
+    const existingNavIds = new Set((Array.isArray(rawNav) ? rawNav : []).map((n: any) => n.id));
+    const missingNavDefaults = defaultNavItems.filter(item => !existingNavIds.has(item.id));
+    const nav = Array.isArray(rawNav) ? [...rawNav, ...missingNavDefaults].sort((a: any, b: any) => a.order - b.order) : defaultNavItems;
     const tools = getPlatformConfig("tools_catalog", DEFAULT_TOOLS_CATALOG);
     const plans = getPlatformConfig("subscription_plans", DEFAULT_SUBSCRIPTION_PLANS);
     const metrics = getPlatformConfig("dashboard_metrics", defaultMetrics);
