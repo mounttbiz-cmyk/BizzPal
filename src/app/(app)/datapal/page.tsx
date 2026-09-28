@@ -540,30 +540,6 @@ export default function DataPalPage() {
           </div>
         </div>
 
-        {/* Header Right Actions */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setIsApiModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs font-semibold text-text hover:text-gold transition-all btn-tactile cursor-pointer"
-            title="Configure DataPal API Key"
-          >
-            <Key className="w-3.5 h-3.5 text-gold" />
-            <span>{apiSettings.isLiveConnected ? "API Connected" : "Connect API Key"}</span>
-          </button>
-
-          {campaigns.length > 0 && (
-            <button
-              type="button"
-              onClick={() => exportAllCampaignsToExcel(campaigns)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm transition-all btn-tactile cursor-pointer"
-              title="Download Master Excel Report of all campaigns"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>Export All to Excel</span>
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Segment Navigation Tabs */}
@@ -641,18 +617,6 @@ export default function DataPalPage() {
                 </div>
               </div>
 
-              {/* Google Places API Connectivity Badge & Button */}
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsApiModalOpen(true)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs font-semibold text-text hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer group"
-                >
-                  <Key className="w-3.5 h-3.5 text-gold group-hover:rotate-12 transition-transform" />
-                  <span>{apiSettings.googlePlacesApiKey ? "Google Places Connected" : "Connect Google API Key"}</span>
-                  <span className={`w-2 h-2 rounded-full ${apiSettings.googlePlacesApiKey ? "bg-emerald-500" : "bg-amber-500 animate-pulse"}`} />
-                </button>
-              </div>
             </div>
 
             {/* SECTION 1: UNIVERSAL BUSINESS SEARCH INPUT */}
@@ -662,9 +626,6 @@ export default function DataPalPage() {
                   <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   <span>1. Search Any Business Type or Keyword</span>
                 </label>
-                <span className="text-[11px] text-text-muted">
-                  Type any category (e.g. &quot;normal medical 24/7&quot;, &quot;lawyers&quot;, &quot;dermatologists&quot;)
-                </span>
               </div>
 
               <div className="relative flex items-center">

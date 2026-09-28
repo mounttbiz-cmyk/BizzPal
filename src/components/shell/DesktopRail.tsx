@@ -186,10 +186,13 @@ export function DesktopRail({
                   const isPlaybooks = rawItem.id === "nav_playbooks" || rawItem.label.toLowerCase().includes("playbook");
                   const isAnalytics = rawItem.id === "nav_analytics" || rawItem.label.toLowerCase().includes("analytics");
 
+                  const isDataPal = rawItem.id === "nav_datapal" || rawItem.href === "/datapal" || rawItem.label.toLowerCase().includes("datapal");
+
                   const item = {
                     ...rawItem,
+                    label: isDataPal ? "DataPal" : rawItem.label,
                     icon: isWorkspace ? "BrainCircuit" : isStrategy ? "Target" : isPlaybooks ? "BookOpen" : isAnalytics ? "BarChart3" : rawItem.icon,
-                    badge: (rawItem.badge?.toUpperCase() === "NEW" || rawItem.badge?.toUpperCase() === "PRO" || rawItem.id === "nav_datapal" || rawItem.label.includes("DataPal")) ? undefined : rawItem.badge,
+                    badge: (rawItem.badge?.toUpperCase() === "NEW" || rawItem.badge?.toUpperCase() === "PRO" || isDataPal) ? undefined : rawItem.badge,
                   };
 
                   const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
