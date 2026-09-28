@@ -1,1 +1,1 @@
-export const DASHBOARD_URL = '/login?signup=true';
+export const DASHBOARD_URL = '/login';

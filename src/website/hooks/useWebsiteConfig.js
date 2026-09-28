@@ -28,7 +28,7 @@ export const DEFAULT_WEBSITE_STATE = {
       { label: "Pricing", href: "/subscription" },
     ],
     ctaText: "Start with BizzPal",
-    ctaHref: "/dashboard",
+    ctaHref: "/login",
   },
   vision: {
     label: "The next interface is intelligence",
@@ -79,7 +79,7 @@ export const DEFAULT_WEBSITE_STATE = {
       eyebrow: "Scene 07 — Future",
       headline: "The future isn't coming. We're engineering it.",
       ctaText: "Build the Future with BizzPal",
-      ctaHref: "/dashboard",
+      ctaHref: "/login",
     },
   },
   about: {
@@ -119,7 +119,7 @@ export const DEFAULT_WEBSITE_STATE = {
     headline: "Ready to build what's next?",
     note: "Enter your email to begin your executive onboarding.",
     ctaText: "Start with BizzPal",
-    ctaHref: "/dashboard",
+    ctaHref: "/login",
     email: "hello@bizzpal.in",
     site: "bizzpal.in",
     linkedin: "https://linkedin.com/company/bizzpal",

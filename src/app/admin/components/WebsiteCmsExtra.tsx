@@ -23,7 +23,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
       { label: "Pricing", href: "/subscription" },
     ],
     ctaText: "Start with BizzPal",
-    ctaHref: "/dashboard",
+    ctaHref: "/login",
   };
 
   const vision = config?.vision || {
@@ -142,7 +142,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                 <label className="font-semibold text-text">Header CTA Destination URL</label>
                 <input
                   type="text"
-                  value={nav.ctaHref || "/dashboard"}
+                  value={nav.ctaHref || "/login"}
                   onChange={(e) =>
                     onChange({
                       ...config,

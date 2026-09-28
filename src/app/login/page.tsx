@@ -286,6 +286,15 @@ export default function LoginPage() {
       };
     }
 
+    const userSession = {
+      id: uid || `usr_${Date.now()}`,
+      email: cleanEmail || "user@bizzpal.in",
+      name: displayName || fullName || "Founder",
+      role: "owner",
+      provider: "email",
+      authenticatedAt: new Date().toISOString(),
+    };
+    localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
     localStorage.setItem("bizzpal_business_profile", JSON.stringify(businessProfile));
     if (cleanEmail) {
       localStorage.setItem(`bizzpal_user_business_${cleanEmail}`, JSON.stringify(businessProfile));
