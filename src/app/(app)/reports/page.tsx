@@ -1005,8 +1005,7 @@ export default function ReportsPage() {
       {/* Propose Custom Decision Modal */}
       {isAddDecisionOpen && (
         <PortalModal isOpen={isAddDecisionOpen} onClose={() => setIsAddDecisionOpen(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="relative w-full max-w-lg rounded-2xl bg-surface border border-line shadow-2xl p-6 space-y-4 animate-scale-up">
+          <div className="relative w-full max-w-lg rounded-2xl bg-surface border border-line shadow-2xl p-6 space-y-4 animate-scale-up" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between border-b border-line pb-3">
                 <div className="flex items-center gap-2">
                   <Target className="w-5 h-5 text-brass" />
@@ -1100,7 +1099,6 @@ export default function ReportsPage() {
                 </div>
               </form>
             </div>
-          </div>
         </PortalModal>
       )}
     </div>

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Lock, X, Sparkles } from "lucide-react";
-import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { PortalModal } from "@/components/ui/PortalModal";
 
 interface UpgradeModalProps {
   featureLabel: string;
@@ -12,8 +12,6 @@ interface UpgradeModalProps {
 }
 
 export function UpgradeModal({ featureLabel, requiredPlan, onClose }: UpgradeModalProps) {
-  useEscapeKey(onClose, true);
-
   const [planLabel, setPlanLabel] = React.useState<string>(() => {
     if (typeof window !== "undefined") {
       try {
@@ -48,8 +46,11 @@ export function UpgradeModal({ featureLabel, requiredPlan, onClose }: UpgradeMod
   }, [requiredPlan]);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="w-full max-w-sm p-6 rounded-2xl border border-line bg-surface shadow-2xl space-y-4 animate-scale-up">
+    <PortalModal isOpen={true} onClose={onClose}>
+      <div
+        className="w-full max-w-sm p-6 rounded-2xl border border-line bg-surface shadow-2xl space-y-4 animate-scale-up"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between">
           <div className="w-11 h-11 rounded-full bg-blue-500/10 border border-blue-500/25 flex items-center justify-center">
             <Lock className="w-5 h-5 text-blue-500" />
@@ -87,6 +88,6 @@ export function UpgradeModal({ featureLabel, requiredPlan, onClose }: UpgradeMod
           </Link>
         </div>
       </div>
-    </div>
+    </PortalModal>
   );
 }

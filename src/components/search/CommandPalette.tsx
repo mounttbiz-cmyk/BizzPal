@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -504,13 +505,19 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     router.push(item.href);
   };
 
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted || typeof document === "undefined") return null;
 
   let runningIndex = -1;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/80 backdrop-blur-sm flex items-start justify-center p-4 sm:pt-20 animate-fade-in"
+      className="fixed inset-0 m-0 z-[9999] bg-slate-900/60 dark:bg-black/85 backdrop-blur-md flex items-start justify-center p-4 sm:pt-20 animate-fade-in"
+      style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
       onClick={onClose}
     >
       <div
@@ -651,6 +658,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           </span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

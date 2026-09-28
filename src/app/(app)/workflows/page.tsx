@@ -31,6 +31,7 @@ import {
   FileCheck,
   X
 } from "lucide-react";
+import { PortalModal } from "@/components/ui/PortalModal";
 
 interface PipelineStage {
   stepNumber: 1 | 2 | 3 | 4 | 5 | 6;
@@ -901,8 +902,11 @@ export default function WorkflowsPage() {
 
       {/* Create Workflow Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-surface border border-line rounded-2xl shadow-2xl p-6 space-y-4 animate-scale-in">
+        <PortalModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)}>
+          <div
+            className="w-full max-w-md bg-surface border border-line rounded-2xl shadow-2xl p-6 space-y-4 animate-scale-in"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-line pb-3">
               <h3 className="text-sm font-bold text-text flex items-center gap-2">
                 <Plus className="w-4 h-4 text-brass" />
@@ -975,13 +979,16 @@ export default function WorkflowsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </PortalModal>
       )}
 
       {/* 100-Lead Batch Email Outreach Execution Modal */}
       {isEmailModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
-          <div className="w-full max-w-2xl bg-surface border border-line-strong rounded-2xl shadow-2xl p-6 space-y-5 animate-scale-in max-h-[92vh] overflow-y-auto">
+        <PortalModal isOpen={isEmailModalOpen} onClose={() => setIsEmailModalOpen(false)}>
+          <div
+            className="w-full max-w-2xl bg-surface border border-line-strong rounded-2xl shadow-2xl p-6 space-y-5 animate-scale-in max-h-[92vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-line pb-4">
               <div className="flex items-center gap-3">
@@ -1107,7 +1114,7 @@ export default function WorkflowsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </PortalModal>
       )}
     </div>
   );

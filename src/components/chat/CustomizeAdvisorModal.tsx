@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { PortalModal } from "@/components/ui/PortalModal";
 import {
   Crown,
   TrendingUp,
@@ -161,10 +162,7 @@ export function CustomizeAdvisorModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
-    >
+    <PortalModal isOpen={isOpen} onClose={onClose}>
       <div
         className="w-full max-w-lg bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden animate-scale-in"
         onClick={e => e.stopPropagation()}
@@ -303,6 +301,6 @@ export function CustomizeAdvisorModal({
           </div>
         </form>
       </div>
-    </div>
+    </PortalModal>
   );
 }

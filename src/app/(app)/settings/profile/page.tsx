@@ -24,6 +24,7 @@ import {
   X,
   ExternalLink
 } from "lucide-react";
+import { PortalModal } from "@/components/ui/PortalModal";
 import { useAuth } from "@/lib/firebase/authContext";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { saveUserProfileToFirestore } from "@/lib/firebase/firestore";
@@ -606,8 +607,11 @@ export default function BusinessProfileSettingsPage() {
 
       {/* Delete Account Confirmation Modal */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md p-6 rounded-2xl border border-rust/40 bg-surface shadow-2xl space-y-5 relative">
+        <PortalModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)}>
+          <div
+            className="w-full max-w-md p-6 rounded-2xl border border-rust/40 bg-surface shadow-2xl space-y-5 relative"
+            onClick={e => e.stopPropagation()}
+          >
             <button
               type="button"
               onClick={() => setIsDeleteModalOpen(false)}
@@ -676,7 +680,7 @@ export default function BusinessProfileSettingsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </PortalModal>
       )}
     </div>
   );

@@ -714,8 +714,7 @@ export default function ExecutivePlaybooksPage() {
       {/* Interactive Playbook Modal */}
       {activePlaybook && (
         <PortalModal isOpen={Boolean(activePlaybook)} onClose={() => setActivePlaybook(null)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="relative w-full max-w-2xl max-h-[90vh] rounded-2xl bg-surface border border-line shadow-2xl flex flex-col overflow-hidden animate-scale-up">
+          <div className="relative w-full max-w-2xl max-h-[90vh] rounded-2xl bg-surface border border-line shadow-2xl flex flex-col overflow-hidden animate-scale-up" onClick={e => e.stopPropagation()}>
               {/* Modal Top Bar */}
               <div className="p-4 sm:p-5 border-b border-line flex items-center justify-between bg-surface-2/60">
                 <div className="flex items-center gap-2.5">
@@ -822,15 +821,13 @@ export default function ExecutivePlaybooksPage() {
                 </div>
               </div>
             </div>
-          </div>
         </PortalModal>
       )}
 
       {/* Create Custom Playbook Modal */}
       {isCreateOpen && (
         <PortalModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="relative w-full max-w-xl max-h-[90vh] rounded-2xl bg-surface border border-line shadow-2xl flex flex-col overflow-hidden animate-scale-up">
+          <div className="relative w-full max-w-xl max-h-[90vh] rounded-2xl bg-surface border border-line shadow-2xl flex flex-col overflow-hidden animate-scale-up" onClick={e => e.stopPropagation()}>
               <div className="p-5 border-b border-line flex items-center justify-between bg-surface-2/60">
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-brass" />
@@ -994,7 +991,6 @@ export default function ExecutivePlaybooksPage() {
                 </div>
               </form>
             </div>
-          </div>
         </PortalModal>
       )}
     </div>

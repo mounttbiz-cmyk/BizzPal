@@ -8,6 +8,7 @@ import { Check, ArrowRight, Sparkles, CheckCircle2, X, Building2, Zap, Crown, Ta
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
+import { PortalModal } from "@/components/ui/PortalModal";
 
 interface PlanTier {
   id: string;
@@ -417,8 +418,11 @@ export default function SubscriptionPage() {
 
       {/* Payment Confirmation Modal */}
       {selectedPlanForModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md p-6 rounded-2xl border border-line bg-surface shadow-2xl space-y-4 animate-scale-up">
+        <PortalModal isOpen={Boolean(selectedPlanForModal)} onClose={() => setSelectedPlanForModal(null)}>
+          <div
+            className="w-full max-w-md p-6 rounded-2xl border border-line bg-surface shadow-2xl space-y-4 animate-scale-up"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-line">
               <div className="flex items-center gap-2">
                 <Crown className="w-4 h-4 text-amber-500" />
@@ -474,7 +478,7 @@ export default function SubscriptionPage() {
               </button>
             </div>
           </div>
-        </div>
+        </PortalModal>
       )}
     </div>
   );
