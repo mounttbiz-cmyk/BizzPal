@@ -789,19 +789,18 @@ export default function ChatWorkspacePage() {
                 ))}
               </div>
 
-              {/* Chat History Toggle Button */}
-              <button
-                type="button"
-                onClick={() => setShowDossier(prev => !prev)}
-                title={showDossier ? "Hide Chat History" : "Show Chat History"}
-                className={`p-2 rounded-lg border text-xs transition-all cursor-pointer ${
-                  showDossier
-                    ? "bg-cyan-500/15 text-cyan-400 border-cyan-500/30"
-                    : "bg-surface border-line text-text-muted hover:text-text"
-                }`}
-              >
-                {showDossier ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
-              </button>
+              {/* Show Chat History button (when history is collapsed) */}
+              {!showDossier && (
+                <button
+                  type="button"
+                  onClick={() => setShowDossier(true)}
+                  title="Show Chat History"
+                  className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-2 border border-line hover:border-cyan-500/40 text-text-muted hover:text-cyan-400 text-xs font-medium cursor-pointer transition-all shadow-2xs"
+                >
+                  <PanelRightOpen className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="text-[11px]">Chat History</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1015,6 +1014,14 @@ export default function ChatWorkspacePage() {
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-cyan-400" />
                 <span className="text-xs font-bold text-text font-sans">Chat History</span>
+                <button
+                  type="button"
+                  onClick={() => setShowDossier(false)}
+                  title="Hide Chat History"
+                  className="p-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 border border-transparent hover:border-line transition-all cursor-pointer"
+                >
+                  <PanelRightClose className="w-3.5 h-3.5" />
+                </button>
               </div>
               <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded bg-surface-2 border border-line text-text-muted uppercase">
                 {currentMessages.length} msgs
