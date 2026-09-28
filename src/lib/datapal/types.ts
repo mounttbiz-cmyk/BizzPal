@@ -63,6 +63,7 @@ export interface DataPalSearchFilters {
 }
 
 export interface DataPalSearchConfig {
+  searchQuery?: string;
   requirement: string;
   requirementId?: string;
   countryCode: string;
@@ -81,6 +82,7 @@ export interface DataPalSearchConfig {
 export interface DataPalSearchCampaign {
   id: string;
   title: string;
+  searchQuery?: string;
   requirement: string;
   location: string;
   countryCode: string;
@@ -98,6 +100,7 @@ export interface DataPalSearchCampaign {
 export interface DataPalApiSettings {
   apiKey: string;
   apiEndpoint: string;
+  googlePlacesApiKey?: string;
   isLiveConnected: boolean;
   lastConnectedAt?: string;
   remainingCredits?: number;

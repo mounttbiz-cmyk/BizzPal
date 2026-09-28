@@ -16,7 +16,7 @@ import {
   TrendingUp,
   Percent,
   X,
-  Sparkles,
+  Save,
   Table as TableIcon,
   ShieldCheck,
   RefreshCw,
@@ -476,7 +476,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     disabled={isSubmitting}
                     className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs shadow-lg shadow-cyan-500/25 hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 btn-tactile cursor-pointer"
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <Sliders className="w-4 h-4" />
                     <span>{isSubmitting ? "Synchronizing Dashboard..." : "Confirm & Apply to Dashboard →"}</span>
                   </button>
                 </div>
@@ -600,7 +600,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                   disabled={isSubmitting}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs shadow-lg shadow-cyan-500/25 hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 btn-tactile cursor-pointer"
                 >
-                  <Sparkles className="w-4 h-4" />
+                  <Save className="w-4 h-4" />
                   <span>{isSubmitting ? "Applying..." : "Save & Synchronize Dashboard"}</span>
                 </button>
               </div>

@@ -30,7 +30,7 @@ function sanitizeNavItems(list: NavItem[]): NavItem[] {
     return {
       ...item,
       icon: isWorkspace ? "BrainCircuit" : isStrategy ? "Target" : isPlaybooks ? "BookOpen" : isAnalytics ? "BarChart3" : item.icon,
-      badge: (isStrategy && item.badge === "NEW") || (isPlaybooks && item.badge === "PRO") ? undefined : item.badge,
+      badge: (item.badge?.toUpperCase() === "NEW" || item.badge?.toUpperCase() === "PRO" || item.id === "nav_datapal" || item.label.includes("DataPal")) ? undefined : item.badge,
     };
   });
 }

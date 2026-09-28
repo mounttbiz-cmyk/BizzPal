@@ -9,7 +9,7 @@ import {
   Sliders,
   ArrowRight,
   RefreshCw,
-  Sparkles,
+  Cpu,
   GitBranch,
   TrendingUp,
   AlertTriangle,
@@ -714,7 +714,7 @@ export default function SimulatorPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-brass/10 border border-brass/25 flex items-center justify-center text-brass">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Cpu className="w-3.5 h-3.5" />
             </div>
             <span className="text-xs font-bold text-text uppercase tracking-wider">
               Executive Decision Query

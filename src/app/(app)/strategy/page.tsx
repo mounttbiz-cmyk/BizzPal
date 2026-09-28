@@ -8,7 +8,8 @@ import {
   Target,
   Zap,
   ArrowRight,
-  Sparkles,
+  BrainCircuit,
+  Bot,
   CheckCircle2,
   AlertTriangle,
   Layers,
@@ -389,7 +390,7 @@ export default function GrowthStrategyPage() {
             href={`/chat?message=${encodeURIComponent(`Astra, review our current growth strategy for ${companyName}. What are the highest-leverage growth vectors to accelerate ARR past ₹${Math.round(annualRevenue * 1.5).toLocaleString("en-IN")}?`)}`}
             className="px-3.5 py-1.5 rounded-lg bg-brass text-white font-bold text-xs shadow-sm hover:brightness-110 btn-tactile inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Bot className="w-3.5 h-3.5" />
             <span>Consult Astra (CEO AI)</span>
           </Link>
         </div>
@@ -463,7 +464,7 @@ export default function GrowthStrategyPage() {
       <div className="p-5 rounded-2xl border border-brass/30 bg-brass/5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-xl bg-brass/20 border border-brass/40 flex items-center justify-center text-brass shrink-0 mt-0.5">
-            <Sparkles className="w-5 h-5" />
+            <BrainCircuit className="w-5 h-5" />
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2">

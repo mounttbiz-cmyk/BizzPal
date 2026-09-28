@@ -10,7 +10,8 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
-  Sparkles,
+  BrainCircuit,
+  FileText,
   Zap,
   Mail,
   Users,
@@ -23,7 +24,6 @@ import {
   ChevronDown,
   ShieldAlert,
   Search,
-  BrainCircuit,
   UserCheck,
   RefreshCw,
   Activity,
@@ -71,7 +71,7 @@ function renderStageIcon(iconKey: string, className = "w-4 h-4") {
       return <UserCheck className={className} />;
     case "pen":
     case "✍️":
-      return <Sparkles className={className} />;
+      return <FileText className={className} />;
     case "target":
     case "🎯":
       return <CheckCircle2 className={className} />;
@@ -671,7 +671,7 @@ export default function WorkflowsPage() {
       <div className="p-4 rounded-xl bg-surface border border-line">
         <div className="flex items-center justify-between pb-3 border-b border-line/60">
           <span className="text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-brass" />
+            <BrainCircuit className="w-3.5 h-3.5 text-brass" />
             <span>BizzPal Closed-Loop Architecture: Event to Outcome</span>
           </span>
           <span className="text-[10px] text-text-muted font-mono">100% Deterministic & Auditable</span>
@@ -876,7 +876,7 @@ export default function WorkflowsPage() {
         {/* Action Bar */}
         <div className="pt-4 border-t border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="text-text-muted flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-brass" />
+            <Zap className="w-3.5 h-3.5 text-brass" />
             <span>Automated loop integrated with CRM, Banking, /gaps, and Executive Intelligence Briefings.</span>
           </div>
 

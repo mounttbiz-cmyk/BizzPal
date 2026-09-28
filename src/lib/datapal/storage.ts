@@ -50,6 +50,7 @@ export function getStoredApiSettings(): DataPalApiSettings {
   const fallback: DataPalApiSettings = {
     apiKey: "",
     apiEndpoint: "https://data-pal.vercel.app/api",
+    googlePlacesApiKey: "",
     isLiveConnected: false,
     remainingCredits: 2500,
   };
@@ -68,7 +69,10 @@ export function saveApiSettings(settings: Partial<DataPalApiSettings>): DataPalA
   const updated: DataPalApiSettings = {
     ...current,
     ...settings,
-    isLiveConnected: Boolean(settings.apiKey && settings.apiKey.trim().length > 6),
+    isLiveConnected: Boolean(
+      (settings.apiKey && settings.apiKey.trim().length > 6) ||
+      (settings.googlePlacesApiKey && settings.googlePlacesApiKey.trim().length > 6)
+    ),
     lastConnectedAt: new Date().toISOString(),
   };
   if (typeof window !== "undefined") {
@@ -113,13 +117,23 @@ export function generateSyntheticLeads(config: DataPalSearchConfig): DataPalBusi
 
   const results: DataPalBusinessLead[] = [];
   const count = Math.floor(Math.random() * 10) + 18; // 18 to 27 leads
+  const userQuery = config.searchQuery?.trim();
 
   for (let i = 0; i < count; i++) {
-    const category = categories[i % categories.length];
     const locality = localities[i % localities.length];
+    let category = categories[i % categories.length];
     const prefix = BIZ_NAME_PREFIXES[category.split(" ")[0]] || BIZ_NAME_PREFIXES.default;
     const namePrefix = prefix[Math.floor(Math.random() * prefix.length)];
-    const bizName = `${namePrefix} ${category.split("&")[0].trim()} ${i > 4 ? "Hub" : "Center"}`;
+
+    let bizName = "";
+    if (userQuery && userQuery.length > 1) {
+      category = userQuery.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+      const suffixes = ["Hub", "Care", "Services", "Center", "Associates", "Solutions", "Chambers", "Clinic", "Associates"];
+      const suffix = suffixes[i % suffixes.length];
+      bizName = `${namePrefix} ${category} ${i % 3 === 0 ? suffix : ""}`.trim();
+    } else {
+      bizName = `${namePrefix} ${category.split("&")[0].trim()} ${i > 4 ? "Hub" : "Center"}`;
+    }
 
     const isMissingWebsite = config.requirement.toLowerCase().includes("website") || Math.random() < 0.35;
     const hasPhone = config.filters.mustHavePhone ? true : Math.random() < 0.95;
@@ -133,7 +147,7 @@ export function generateSyntheticLeads(config: DataPalSearchConfig): DataPalBusi
       : `+1 (${Math.floor(Math.random() * 800) + 201}) ${Math.floor(Math.random() * 899) + 100}-${Math.floor(Math.random() * 8999) + 1000}`;
 
     const email = hasEmail ? `${cleanNameSlug}.${cleanCitySlug}@gmail.com` : null;
-    const website = isMissingWebsite ? null : `https://${cleanNameSlug}${category.slice(0, 3).toLowerCase()}.in`;
+    const website = isMissingWebsite ? null : `https://${cleanNameSlug}${category.slice(0, 3).toLowerCase().replace(/[^a-z]/g, "")}.in`;
 
     const rating = parseFloat((4.1 + Math.random() * 0.8).toFixed(1));
     const reviewsCount = Math.floor(Math.random() * 320) + 28;
@@ -169,7 +183,7 @@ export function generateSyntheticLeads(config: DataPalSearchConfig): DataPalBusi
       city,
       state,
       country,
-      postalCode: country === "India" ? `4000${10 + (i % 80)}` : "90210",
+      postalCode: config.areaPincode?.trim() ? config.areaPincode.trim() : country === "India" ? `4000${10 + (i % 80)}` : "90210",
       rating: rating,
       reviewsCount,
       existingPresence: isMissingWebsite ? "Google Maps, JustDial" : "Website, Google Maps, Instagram",

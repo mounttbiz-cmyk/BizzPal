@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Sun, Moon, Sparkles, Globe, Search } from "lucide-react";
+import { Sun, Moon, BrainCircuit, Globe, Search } from "lucide-react";
 import { useTheme } from "@/lib/theme/ThemeProvider";
 import { WEBSITE_URL } from "@/config/urls";
 
@@ -74,7 +74,7 @@ export function MobileHeader({
             className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gold/15 text-gold border border-gold/40 btn-tactile"
             aria-label="Open AI Workspace"
           >
-            <Sparkles className="w-3.5 h-3.5 text-gold" />
+            <BrainCircuit className="w-3.5 h-3.5 text-gold" />
             <span>Copilot</span>
           </button>
         )}

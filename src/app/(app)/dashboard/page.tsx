@@ -13,7 +13,6 @@ import {
   Eye,
   EyeOff,
   RotateCcw,
-  Sparkles,
   Save,
   CheckCircle2,
   X,
@@ -390,7 +389,7 @@ function DashboardContent() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28 sm:pb-32">
       {/* Toast Notification */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-surface border border-jade shadow-2xl text-xs font-semibold text-jade flex items-center gap-2 animate-bounce">

@@ -7,7 +7,7 @@ import {
   Plus,
   FileText,
   ShieldCheck,
-  Sparkles,
+  BrainCircuit,
   ExternalLink,
   CheckCircle2,
   Clock,
@@ -431,7 +431,7 @@ export default function KnowledgeHubPage() {
                 : "text-text-muted hover:text-text hover:bg-surface"
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <BookOpen className="w-3.5 h-3.5" />
             <span>All Knowledge & News ({docs.length + newsList.length})</span>
           </button>
 
@@ -700,7 +700,7 @@ export default function KnowledgeHubPage() {
               {/* Strategic Business Impact for User */}
               <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 space-y-1.5">
                 <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold">
-                  <Sparkles className="w-4 h-4" />
+                  <BrainCircuit className="w-4 h-4" />
                   <span>Strategic Impact for {companyName} (Advisor: {activeNews.executiveAdvisor})</span>
                 </div>
                 <p className="text-xs text-text leading-relaxed">

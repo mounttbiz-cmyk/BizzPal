@@ -58,7 +58,10 @@ export async function POST(req: NextRequest) {
 
     const campaign = {
       id: campaignId,
-      title: `${config.requirement || "Business Leads"} in ${config.city || "All India"}`,
+      title: config.searchQuery?.trim()
+        ? `${config.searchQuery.trim()} in ${config.city || "All India"}`
+        : `${config.requirement || "Business Leads"} in ${config.city || "All India"}`,
+      searchQuery: config.searchQuery,
       requirement: config.requirement,
       location: locationString,
       countryCode: config.countryCode,

@@ -104,7 +104,6 @@ export const defaultNavItems: NavItem[] = [
     href: "/datapal",
     icon: "Database",
     order: 10,
-    badge: "New",
     mobileTab: false,
     group: "intelligence",
     enabled: true,

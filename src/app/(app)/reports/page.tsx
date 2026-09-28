@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import {
   FileText,
-  Sparkles,
   Download,
   Share2,
   CheckCircle2,
@@ -572,7 +571,7 @@ export default function ReportsPage() {
             disabled={isGenerating}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-brass text-white text-xs font-semibold shadow-sm hover:brightness-110 btn-tactile disabled:opacity-50 cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <FileText className="w-3.5 h-3.5" />
             <span>{isGenerating ? "Synthesizing Briefing…" : "Generate Fresh Briefing"}</span>
           </button>
         </div>

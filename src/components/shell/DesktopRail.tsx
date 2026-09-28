@@ -169,7 +169,7 @@ export function DesktopRail({
                   const item = {
                     ...rawItem,
                     icon: isWorkspace ? "BrainCircuit" : isStrategy ? "Target" : isPlaybooks ? "BookOpen" : isAnalytics ? "BarChart3" : rawItem.icon,
-                    badge: (isStrategy && rawItem.badge === "NEW") || (isPlaybooks && rawItem.badge === "PRO") ? undefined : rawItem.badge,
+                    badge: (rawItem.badge?.toUpperCase() === "NEW" || rawItem.badge?.toUpperCase() === "PRO" || rawItem.id === "nav_datapal" || rawItem.label.includes("DataPal")) ? undefined : rawItem.badge,
                   };
 
                   const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));

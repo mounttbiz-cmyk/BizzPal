@@ -9,7 +9,6 @@ import {
   MessageSquare,
   ArrowRight,
   ShieldAlert,
-  Sparkles,
   RefreshCw,
   UserCheck,
   Clock,
@@ -370,7 +369,7 @@ export default function GapsPage() {
       {/* Alert Banner if present */}
       {scanMessage && (
         <div className="p-3.5 rounded-xl bg-brass-soft/40 border border-brass/40 flex items-center gap-2 text-xs font-semibold text-text animate-fade-in">
-          <Sparkles className="w-4 h-4 text-brass shrink-0" />
+          <Activity className="w-4 h-4 text-brass shrink-0" />
           <span>{scanMessage}</span>
         </div>
       )}

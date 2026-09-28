@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ChatMarkdown } from "@/components/shell/ChatMarkdown";
 import {
-  Sparkles,
+  BrainCircuit,
   Send,
   ArrowRight,
   TrendingUp,
@@ -537,7 +537,7 @@ export default function ChatWorkspacePage() {
         <div>
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-              <Sparkles className="w-4 h-4" />
+              <BrainCircuit className="w-4 h-4" />
             </div>
             <h1 className="text-base sm:text-lg font-bold text-text font-sans">AI Executive Suite</h1>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 font-bold uppercase tracking-wider font-mono">
@@ -761,7 +761,7 @@ export default function ChatWorkspacePage() {
                         <div className="mt-3 p-3.5 rounded-xl bg-surface border border-brass/40 text-text space-y-2.5 shadow-sm text-left">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-brass flex items-center gap-1.5">
-                              <Sparkles className="w-3 h-3 text-brass" />
+                              <BrainCircuit className="w-3 h-3 text-brass" />
                               <span>Day-to-Day Operational Update Detected</span>
                             </span>
                             {msg.recordCommitted ? (
@@ -858,7 +858,7 @@ export default function ChatWorkspacePage() {
             {/* Prompt Suggestions Carousel */}
             <div className="px-4 py-2 border-b border-line/50 bg-surface-2/30 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
               <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider shrink-0 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-cyan-400" />
+                <BrainCircuit className="w-3 h-3 text-cyan-400" />
                 <span>Suggested:</span>
               </span>
               {activeAgent.promptSuggestions.map((prompt, pIdx) => (

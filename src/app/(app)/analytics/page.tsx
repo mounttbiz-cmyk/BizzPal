@@ -10,7 +10,7 @@ import {
   Filter,
   BarChart3,
   Layers,
-  Sparkles,
+  Compass,
   ShieldCheck,
   Building2,
   DollarSign,
@@ -24,7 +24,6 @@ import {
   Search,
   Zap,
   Clock,
-  Compass,
   X
 } from "lucide-react";
 import { ProvenanceBadge } from "@/components/ui/Badge";
@@ -621,7 +620,7 @@ export default function AnalyticsPage() {
           <div className="p-5 rounded-2xl border border-line bg-surface shadow-theme space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-line">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-brass" />
+                <Compass className="w-4 h-4 text-brass" />
                 <h3 className="text-xs font-bold text-text uppercase tracking-wider">
                   What Should We Do? (Prescriptions)
                 </h3>

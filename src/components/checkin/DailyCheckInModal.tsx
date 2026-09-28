@@ -11,7 +11,7 @@ import {
   DollarSign,
   Users,
   ShieldAlert,
-  Sparkles,
+  Zap,
   Info
 } from "lucide-react";
 import { CheckInQuestion } from "@/lib/checkin/generateQuestions";
@@ -152,7 +152,7 @@ export function DailyCheckInModal({
       case "shield":
         return <ShieldAlert className="w-3.5 h-3.5 text-rust shrink-0" />;
       default:
-        return <Sparkles className="w-3.5 h-3.5 text-brass shrink-0" />;
+        return <Zap className="w-3.5 h-3.5 text-brass shrink-0" />;
     }
   };
 

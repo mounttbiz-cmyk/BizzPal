@@ -605,17 +605,6 @@ export default function LoginPage() {
                 Pal
               </span>
             </span>
-
-            {/* High-End Executive "AI Business OS" Pill */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/10 via-amber-400/15 to-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-300 shadow-[0_0_12px_rgba(245,197,66,0.12)] backdrop-blur-md">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400"></span>
-              </span>
-              <span className="text-[11px] font-mono font-bold uppercase tracking-widest leading-none">
-                AI Business OS
-              </span>
-            </div>
           </div>
         </div>
 

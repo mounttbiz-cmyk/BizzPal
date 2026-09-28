@@ -9,7 +9,6 @@ import {
   AlertCircle,
   Download,
   RotateCcw,
-  Sparkles,
   Layers,
   ArrowRight,
   ShieldCheck,
@@ -262,7 +261,7 @@ export function DataUploadWidget() {
                       onClick={handleApply}
                       className="mt-2 w-full py-2 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white text-xs font-bold rounded-lg shadow-md hover:brightness-110 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Apply to Dashboard</span>
                     </button>
                   </div>

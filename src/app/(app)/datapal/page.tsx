@@ -5,7 +5,8 @@ import Link from "next/link";
 import {
   Database,
   Search,
-  Sparkles,
+  Bot,
+  BrainCircuit,
   MapPin,
   Download,
   Filter,
@@ -29,6 +30,7 @@ import {
   Send,
   Sliders,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   ArrowRight,
   X,
@@ -64,19 +66,21 @@ import {
   saveApiSettings,
   saveCampaign,
 } from "@/lib/datapal/storage";
-import { StatusBadge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { PortalModal } from "@/components/ui/PortalModal";
 
 export default function DataPalPage() {
   // Navigation tabs: 'search' | 'results' | 'history'
   const [activeTab, setActiveTab] = useState<"search" | "results" | "history">("search");
+
+  // Free-form business search engine query (e.g. "normal medical 24/7", "lawyers")
+  const [searchQuery, setSearchQuery] = useState("");
 
   // State for search form
   const [targetRequirement, setTargetRequirement] = useState("Missing Website");
   const [showReqDropdown, setShowReqDropdown] = useState(false);
   const reqRef = useRef<HTMLDivElement>(null);
 
-  // Country & Location state
+  // Country & Location state (Default: India)
   const [countryCode, setCountryCode] = useState("IN");
   const [selectedState, setSelectedState] = useState("Maharashtra");
   const [selectedCity, setSelectedCity] = useState("Mumbai");
@@ -87,7 +91,6 @@ export default function DataPalPage() {
     "Dental Clinics",
     "Aesthetic & Dermatology Clinics",
   ]);
-  const [categorySearchQuery, setCategorySearchQuery] = useState("");
   const [expandedCategory, setExpandedCategory] = useState<string | null>("healthcare");
 
   // Advanced Filters
@@ -100,6 +103,9 @@ export default function DataPalPage() {
     "IndiaMART B2B",
   ]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Collapsible AI Pitch Card state
+  const [showAiPitchCard, setShowAiPitchCard] = useState(false);
 
   // AI Analyzer pitch / brochure
   const [serviceDescription, setServiceDescription] = useState("");
@@ -128,10 +134,12 @@ export default function DataPalPage() {
   const [apiSettings, setApiSettings] = useState<DataPalApiSettings>({
     apiKey: "",
     apiEndpoint: "https://data-pal.vercel.app/api",
+    googlePlacesApiKey: "",
     isLiveConnected: false,
   });
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [apiEndpointInput, setApiEndpointInput] = useState("https://data-pal.vercel.app/api");
+  const [googlePlacesApiKeyInput, setGooglePlacesApiKeyInput] = useState("");
   const [apiSaveFeedback, setApiSaveFeedback] = useState<string | null>(null);
 
   // Load stored data on mount
@@ -145,6 +153,7 @@ export default function DataPalPage() {
     setApiSettings(settings);
     setApiKeyInput(settings.apiKey || "");
     setApiEndpointInput(settings.apiEndpoint || "https://data-pal.vercel.app/api");
+    setGooglePlacesApiKeyInput(settings.googlePlacesApiKey || "");
   }, []);
 
   // Close dropdown on outside click
@@ -223,7 +232,7 @@ export default function DataPalPage() {
 
       if (text.includes("seo") || text.includes("rank") || text.includes("maps")) {
         inferredReq = "Missing Google Business Profile";
-        recommendedCats = ["Medical Clinics", "Law Firms & Advocates", "Salons & Hairdressers"];
+        recommendedCats = ["Medical Clinics", "Law Firms & Advocates", "Luxury Salons & Hairdressers"];
       } else if (text.includes("social") || text.includes("instagram") || text.includes("creative")) {
         inferredReq = "Missing Social Media Presence";
         recommendedCats = ["Cafes & Coffee Shops", "Aesthetic & Dermatology Clinics", "Jewelry & Watches"];
@@ -238,25 +247,26 @@ export default function DataPalPage() {
       setTargetRequirement(inferredReq);
       setSelectedCategories(recommendedCats);
       setAiPitchAnalysisResult(
-        `AI Analysis Complete: Optimized for ${inferredReq}. Selected high-converting targets: ${recommendedCats.join(", ")}.`
+        `AI Analysis Complete: Selected requirement "${inferredReq}" with target industries: ${recommendedCats.join(", ")}.`
       );
     }, 1200);
   };
 
   // Trigger Data Extraction
   const handleStartExtraction = async () => {
-    if (selectedCategories.length === 0) {
-      alert("Please select at least one business category or industry.");
-      return;
-    }
+    const trimmedQuery = searchQuery.trim();
+    const effectiveCategories = selectedCategories.length > 0
+      ? selectedCategories
+      : [trimmedQuery || "General Businesses"];
 
     const config: DataPalSearchConfig = {
+      searchQuery: trimmedQuery,
       requirement: targetRequirement,
       countryCode,
       state: selectedState,
       city: selectedCity,
       areaPincode,
-      selectedCategories,
+      selectedCategories: effectiveCategories,
       filters: {
         mustHavePhone,
         mustHaveEmail,
@@ -290,7 +300,6 @@ export default function DataPalPage() {
     }, 350);
 
     try {
-      // Call backend API (proxies to DataPal if key configured, or uses high-fidelity local generator)
       const res = await fetch("/api/datapal/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -315,13 +324,18 @@ export default function DataPalPage() {
         const locString = [areaPincode, selectedCity, selectedState, currentCountry.name]
           .filter(Boolean)
           .join(", ");
+        const campaignTitle = trimmedQuery
+          ? `${trimmedQuery} in ${selectedCity}`
+          : `${targetRequirement} in ${selectedCity}`;
+
         newCampaign = {
           id: `camp_${Date.now()}`,
-          title: `${targetRequirement} in ${selectedCity}`,
+          title: campaignTitle,
+          searchQuery: trimmedQuery,
           requirement: targetRequirement,
           location: locString,
           countryCode,
-          businessTypes: selectedCategories,
+          businessTypes: effectiveCategories,
           totalExtracted: leads.length,
           phoneCount: leads.filter(l => l.phone).length,
           emailCount: leads.filter(l => l.email).length,
@@ -333,7 +347,6 @@ export default function DataPalPage() {
         };
       }
 
-      // Save to localStorage & state
       const updated = saveCampaign(newCampaign);
       setCampaigns(updated);
       setActiveCampaign(newCampaign);
@@ -342,20 +355,23 @@ export default function DataPalPage() {
       setTimeout(() => {
         setIsExtracting(false);
         setActiveTab("results");
-      }, 600);
+      }, 500);
     } catch (err) {
       clearInterval(interval);
       setIsExtracting(false);
-      console.error("Extraction error:", err);
-      // Fallback local save
       const leads = generateSyntheticLeads(config);
+      const campaignTitle = trimmedQuery
+        ? `${trimmedQuery} in ${selectedCity}`
+        : `${targetRequirement} in ${selectedCity}`;
+
       const newCampaign: DataPalSearchCampaign = {
         id: `camp_${Date.now()}`,
-        title: `${targetRequirement} in ${selectedCity}`,
+        title: campaignTitle,
+        searchQuery: trimmedQuery,
         requirement: targetRequirement,
         location: `${selectedCity}, ${selectedState}, ${currentCountry.name}`,
         countryCode,
-        businessTypes: selectedCategories,
+        businessTypes: effectiveCategories,
         totalExtracted: leads.length,
         phoneCount: leads.filter(l => l.phone).length,
         emailCount: leads.filter(l => l.email).length,
@@ -482,9 +498,10 @@ export default function DataPalPage() {
     const updated = saveApiSettings({
       apiKey: apiKeyInput.trim(),
       apiEndpoint: apiEndpointInput.trim() || "https://data-pal.vercel.app/api",
+      googlePlacesApiKey: googlePlacesApiKeyInput.trim(),
     });
     setApiSettings(updated);
-    setApiSaveFeedback("Settings saved successfully! DataPal is connected.");
+    setApiSaveFeedback("Settings saved successfully! Connected.");
     setTimeout(() => {
       setApiSaveFeedback(null);
       setIsApiModalOpen(false);
@@ -492,181 +509,743 @@ export default function DataPalPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg text-text pb-16 selection:bg-gold/20">
-      {/* Top Header Banner */}
-      <div className="border-b border-line bg-surface/80 backdrop-blur-xl sticky top-0 z-20 transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
-              <Database className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg tracking-tight">DataPal™</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30">
-                  Extraction Engine
-                </span>
-                {apiSettings.isLiveConnected ? (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Live Cloud API
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-surface-2 text-text-muted border border-line flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                    High-Fidelity Mode
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-text-muted hidden sm:block">
-                Extract verified businesses, phone numbers & digital gap opportunities across India & worldwide
-              </p>
-            </div>
+    <div className="space-y-6 animate-fade-in pb-12">
+      {/* Top Header matching BizzPal Executive Design */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 via-indigo-600/20 to-violet-700/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5">
+            <Database className="w-5 h-5" />
           </div>
-
-          {/* Header Action Buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsApiModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-line text-xs font-semibold text-text hover:text-gold transition-all cursor-pointer"
-              title="Configure DataPal API Key"
-            >
-              <Key className="w-3.5 h-3.5 text-gold" />
-              <span>{apiSettings.isLiveConnected ? "API Key Connected" : "Connect API Key"}</span>
-            </button>
-
-            {campaigns.length > 0 && (
-              <button
-                type="button"
-                onClick={() => exportAllCampaignsToExcel(campaigns)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
-                title="Download Master Excel Report of all campaigns"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Export Master Excel</span>
-              </button>
-            )}
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-extrabold text-text tracking-tight">DataPal™ Extraction Engine</h1>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30">
+                Data Scraping
+              </span>
+              {apiSettings.isLiveConnected ? (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live API
+                </span>
+              ) : (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-surface-2 text-text-muted border border-line flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  High-Fidelity Mode
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-text-muted mt-1 font-medium max-w-2xl">
+              Extract, verify, and filter business contacts across India and global directories for high-converting sales outreach.
+            </p>
           </div>
         </div>
 
-        {/* Navigation Pills */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-line/60">
-          <div className="flex items-center gap-1 py-2 overflow-x-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={() => setActiveTab("search")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === "search"
-                  ? "bg-gold/15 text-gold border border-gold/30 shadow-xs"
-                  : "text-text-muted hover:text-text hover:bg-surface-2"
-              }`}
-            >
-              <Search className="w-4 h-4" />
-              <span>1. Extract Data (Search Studio)</span>
-            </button>
+        {/* Header Right Actions */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsApiModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs font-semibold text-text hover:text-gold transition-all btn-tactile cursor-pointer"
+            title="Configure DataPal API Key"
+          >
+            <Key className="w-3.5 h-3.5 text-gold" />
+            <span>{apiSettings.isLiveConnected ? "API Connected" : "Connect API Key"}</span>
+          </button>
 
+          {campaigns.length > 0 && (
             <button
               type="button"
-              onClick={() => setActiveTab("results")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap relative ${
-                activeTab === "results"
-                  ? "bg-gold/15 text-gold border border-gold/30 shadow-xs"
-                  : "text-text-muted hover:text-text hover:bg-surface-2"
-              }`}
+              onClick={() => exportAllCampaignsToExcel(campaigns)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm transition-all btn-tactile cursor-pointer"
+              title="Download Master Excel Report of all campaigns"
             >
-              <Building2 className="w-4 h-4" />
-              <span>2. Extracted Leads</span>
-              {activeCampaign && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface border border-line font-mono font-bold">
-                  {activeCampaign.results.length}
-                </span>
-              )}
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Export All to Excel</span>
             </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("history")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === "history"
-                  ? "bg-gold/15 text-gold border border-gold/30 shadow-xs"
-                  : "text-text-muted hover:text-text hover:bg-surface-2"
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>3. Campaign History</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface border border-line font-mono font-bold">
-                {campaigns.length}
-              </span>
-            </button>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Main Container Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        {/* ============================================================== */}
-        {/* TAB 1: SEARCH & SCRAPE STUDIO                                  */}
-        {/* ============================================================== */}
-        {activeTab === "search" && (
-          <div className="space-y-8 animate-fadeIn">
-            {/* Header Hero Section */}
-            <div className="text-center max-w-3xl mx-auto pt-2 pb-4">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
-                Generate <span className="text-indigo-400 bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">Business Data</span>
-              </h1>
-              <p className="mt-3 text-sm sm:text-base text-text-muted font-normal max-w-2xl mx-auto">
-                Configure your search parameters to extract high-quality, verified business contacts and digital gaps across India's top directories.
-              </p>
+      {/* Segment Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-line pb-3 overflow-x-auto no-scrollbar text-xs">
+        <button
+          type="button"
+          onClick={() => setActiveTab("search")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap btn-tactile ${
+            activeTab === "search"
+              ? "bg-indigo-600 text-white shadow-sm"
+              : "bg-surface border border-line text-text-muted hover:text-text hover:bg-surface-2"
+          }`}
+        >
+          <Search className="w-4 h-4" />
+          <span>1. Extract Data (Search Studio)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("results")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap btn-tactile ${
+            activeTab === "results"
+              ? "bg-indigo-600 text-white shadow-sm"
+              : "bg-surface border border-line text-text-muted hover:text-text hover:bg-surface-2"
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          <span>2. Extracted Leads</span>
+          {activeCampaign && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/20 dark:bg-white/10 font-mono font-bold">
+              {activeCampaign.results.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("history")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap btn-tactile ${
+            activeTab === "history"
+              ? "bg-indigo-600 text-white shadow-sm"
+              : "bg-surface border border-line text-text-muted hover:text-text hover:bg-surface-2"
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>3. Campaign History</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-2 border border-line font-mono font-bold">
+            {campaigns.length}
+          </span>
+        </button>
+      </div>
+
+      {activeTab === "search" && (
+        <div className="max-w-5xl mx-auto space-y-6">
+          {/* MAIN SEARCH & SCRAPE STUDIO CARD */}
+          <div className="bg-surface border border-line rounded-2xl p-5 sm:p-7 shadow-xs space-y-7">
+            {/* Header & Google API Status */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-line">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <Search className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-bold text-text">
+                      Business Lead Search Engine
+                    </h2>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      Live Scraper
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    Search and extract local businesses, clinics, legal practitioners, and enterprises worldwide.
+                  </p>
+                </div>
+              </div>
+
+              {/* Google Places API Connectivity Badge & Button */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsApiModalOpen(true)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs font-semibold text-text hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer group"
+                >
+                  <Key className="w-3.5 h-3.5 text-gold group-hover:rotate-12 transition-transform" />
+                  <span>{apiSettings.googlePlacesApiKey ? "Google Places Connected" : "Connect Google API Key"}</span>
+                  <span className={`w-2 h-2 rounded-full ${apiSettings.googlePlacesApiKey ? "bg-emerald-500" : "bg-amber-500 animate-pulse"}`} />
+                </button>
+              </div>
             </div>
 
-            {/* Split Screen Bento: AI Analyzer (Left) + Search Config (Right) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* LEFT CARD: AI Analyzer (4 cols) */}
-              <div className="lg:col-span-4 bg-surface border border-line rounded-3xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between">
-                <div className="space-y-6">
-                  {/* Card Header */}
-                  <div className="flex items-center gap-3.5 pb-4 border-b border-line">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-                      <Sparkles className="w-6 h-6" />
+            {/* SECTION 1: UNIVERSAL BUSINESS SEARCH INPUT */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-text uppercase tracking-wider flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>1. Search Any Business Type or Keyword</span>
+                </label>
+                <span className="text-[11px] text-text-muted">
+                  Type any category (e.g. &quot;normal medical 24/7&quot;, &quot;lawyers&quot;, &quot;dermatologists&quot;)
+                </span>
+              </div>
+
+              <div className="relative flex items-center">
+                <Search className="w-5 h-5 text-indigo-500 absolute left-3.5 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search any business type (e.g. 'normal medical 24/7', 'lawyers', 'dermatologists', 'dental surgeons', 'rooftop cafes', 'boutiques')..."
+                  className="w-full pl-11 pr-10 py-3.5 rounded-xl bg-surface-2 border border-line focus:border-indigo-500 text-sm font-semibold text-text placeholder:text-text-muted placeholder:font-normal transition-all shadow-xs focus:outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3.5 p-1 rounded-full text-text-muted hover:text-text hover:bg-surface text-xs"
+                    title="Clear search query"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Recommended Quick Search Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider mr-1">
+                  Popular:
+                </span>
+                {[
+                  { label: "24/7 Medical Clinic", icon: "🏥" },
+                  { label: "Lawyers & Advocates", icon: "⚖️" },
+                  { label: "Dental Clinics", icon: "🦷" },
+                  { label: "Dermatologists & Skin", icon: "✨" },
+                  { label: "Chartered Accountants", icon: "📊" },
+                  { label: "Real Estate Brokers", icon: "🏢" },
+                  { label: "Rooftop Cafes & Bistros", icon: "☕" },
+                  { label: "Automobile Service & Garage", icon: "🚗" },
+                  { label: "Fitness & Gyms", icon: "🏋️" },
+                  { label: "Boutique Stores", icon: "👗" },
+                ].map(chip => (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => setSearchQuery(chip.label)}
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+                      searchQuery.toLowerCase() === chip.label.toLowerCase()
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                        : "bg-surface-2 border-line text-text-muted hover:text-text hover:border-indigo-500/40"
+                    }`}
+                  >
+                    <span className="text-xs">{chip.icon}</span>
+                    <span>{chip.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* SECTION 2: TARGET LOCATION HIERARCHY (Country -> State -> City -> PIN Code) */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-surface-2/60 border border-line space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-line">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span className="text-xs font-bold text-text uppercase tracking-wider">
+                    2. Target Location Hierarchy
+                  </span>
+                </div>
+                <div className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-surface border border-line text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-1.5">
+                  <span>📍</span>
+                  <span className="truncate max-w-xs sm:max-w-md">
+                    {[areaPincode, selectedCity, selectedState, currentCountry.name].filter(Boolean).join(" • ")}
+                  </span>
+                </div>
+              </div>
+
+              {/* Responsive 4-Column Grid: Country -> State -> City -> PIN */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                {/* 1. Country Select (Default: India) */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                    Country
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={countryCode}
+                      onChange={e => handleCountryChange(e.target.value)}
+                      className="w-full pl-3 pr-8 py-2.5 rounded-xl bg-surface border border-line text-xs font-bold text-text focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                    >
+                      {COUNTRY_HIERARCHIES.map(c => (
+                        <option key={c.code} value={c.code}>
+                          {c.flag} {c.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-text-muted absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* 2. State Select */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                    State / Province
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedState}
+                      onChange={e => {
+                        setSelectedState(e.target.value);
+                        const st = availableStates.find(s => s.name === e.target.value);
+                        if (st && st.cities.length > 0) setSelectedCity(st.cities[0]);
+                      }}
+                      className="w-full pl-3 pr-8 py-2.5 rounded-xl bg-surface border border-line text-xs font-semibold text-text focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                    >
+                      {availableStates.map(s => (
+                        <option key={s.name} value={s.name}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-text-muted absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* 3. City Select */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                    City / Metro
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedCity}
+                      onChange={e => setSelectedCity(e.target.value)}
+                      className="w-full pl-3 pr-8 py-2.5 rounded-xl bg-surface border border-line text-xs font-semibold text-text focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                    >
+                      {availableCities.map(c => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-text-muted absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* 4. PIN Code / Suburb Input */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                    {currentCountry.postalCodeLabel} / Suburb
+                  </label>
+                  <input
+                    type="text"
+                    value={areaPincode}
+                    onChange={e => setAreaPincode(e.target.value)}
+                    placeholder="e.g. 400050 or Bandra"
+                    className="w-full px-3 py-2.5 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-indigo-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Metropolitan Hub Pills for India */}
+              {countryCode === "IN" && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-line/60">
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mr-1">
+                    Quick Metros:
+                  </span>
+                  {[
+                    { city: "Mumbai", state: "Maharashtra" },
+                    { city: "New Delhi", state: "Delhi NCR" },
+                    { city: "Bangalore (Bengaluru)", state: "Karnataka" },
+                    { city: "Pune", state: "Maharashtra" },
+                    { city: "Hyderabad", state: "Telangana" },
+                    { city: "Chennai", state: "Tamil Nadu" },
+                    { city: "Ahmedabad", state: "Gujarat" },
+                    { city: "Kolkata", state: "West Bengal" },
+                  ].map(hub => (
+                    <button
+                      key={hub.city}
+                      type="button"
+                      onClick={() => setQuickCity(hub.city, hub.state)}
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                        selectedCity === hub.city
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                          : "bg-surface text-text-muted border-line hover:text-text hover:bg-surface-2"
+                      }`}
+                    >
+                      {hub.city.split(" ")[0]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* SECTION 3: BUSINESS TYPE & TARGET REQUIREMENT FILTERS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Target Requirement / Digital Gap Dropdown */}
+              <div className="space-y-2 relative" ref={reqRef}>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>3. Target Digital Gap / Pitch</span>
+                  </label>
+                  <span className="text-[10px] text-text-muted">High-converting angles</span>
+                </div>
+
+                <div className="relative">
+                  <div
+                    onClick={() => setShowReqDropdown(true)}
+                    className="flex items-center w-full bg-surface-2 border border-line rounded-xl px-3.5 py-2.5 cursor-text focus-within:border-indigo-500 transition-colors"
+                  >
+                    <input
+                      type="text"
+                      value={targetRequirement}
+                      onChange={e => {
+                        setTargetRequirement(e.target.value);
+                        setShowReqDropdown(true);
+                      }}
+                      onFocus={() => setShowReqDropdown(true)}
+                      placeholder="e.g. Missing Website, Needs SEO, Missing Online Ordering..."
+                      className="w-full bg-transparent text-xs font-bold text-text placeholder:font-normal placeholder:text-text-muted focus:outline-none"
+                    />
+                    {targetRequirement && (
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setTargetRequirement("");
+                        }}
+                        className="p-1 hover:bg-surface rounded-full text-text-muted hover:text-text text-xs ml-1"
+                      >
+                        ✕
+                      </button>
+                    )}
+                    <ChevronDown className="w-4 h-4 text-text-muted ml-2 shrink-0 pointer-events-none" />
+                  </div>
+
+                  {/* Autocomplete / Preset Dropdown */}
+                  {showReqDropdown && (
+                    <div className="absolute z-30 w-full mt-1.5 bg-surface border border-line rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto animate-fadeIn">
+                      <div className="p-1.5 divide-y divide-line/40">
+                        {TARGET_PROFILE_PRESETS.map(preset => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => {
+                              setTargetRequirement(preset.label);
+                              if (preset.suggestedCategories) {
+                                setSelectedCategories(preset.suggestedCategories);
+                              }
+                              setShowReqDropdown(false);
+                            }}
+                            className="w-full text-left p-2.5 hover:bg-surface-2 transition-colors rounded-lg flex items-start justify-between gap-3 group cursor-pointer"
+                          >
+                            <div>
+                              <div className="text-xs font-bold text-text group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                {preset.label}
+                              </div>
+                              <div className="text-[11px] text-text-muted mt-0.5">
+                                {preset.desc}
+                              </div>
+                            </div>
+                            {preset.badge && (
+                              <span className="text-[9px] font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-text-muted shrink-0">
+                                {preset.badge}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-lg font-bold">AI Analyzer</h2>
-                      <p className="text-xs text-text-muted">Let AI figure out who needs you.</p>
+                  )}
+                </div>
+
+                {/* Preset Chips */}
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {TARGET_PROFILE_PRESETS.slice(0, 4).map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setTargetRequirement(p.label);
+                        if (p.suggestedCategories) setSelectedCategories(p.suggestedCategories);
+                      }}
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                        targetRequirement === p.label
+                          ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/40"
+                          : "bg-surface-2 text-text-muted border-line hover:text-text"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Business Categories Multi-Select & Explorer */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>4. Filter by Industry Categories</span>
+                  </label>
+                  {selectedCategories.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategories([])}
+                      className="text-[11px] text-text-muted hover:text-rust underline font-medium cursor-pointer"
+                    >
+                      Clear ({selectedCategories.length})
+                    </button>
+                  )}
+                </div>
+
+                {/* Selected Category Tags */}
+                {selectedCategories.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-surface-2/60 border border-line max-h-24 overflow-y-auto">
+                    {selectedCategories.map(cat => (
+                      <span
+                        key={cat}
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/25 text-indigo-700 dark:text-indigo-300 text-xs font-semibold"
+                      >
+                        <span className="truncate max-w-[140px]">{cat}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleCategory(cat)}
+                          className="hover:text-rust text-xs ml-0.5"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-surface-2/40 border border-line/60 text-xs text-text-muted">
+                    No categories filtered (Universal search will apply: &quot;{searchQuery || "All Businesses"}&quot;).
+                  </div>
+                )}
+
+                {/* Quick Accordion for Business Categories */}
+                <div className="border border-line rounded-xl overflow-hidden divide-y divide-line/60 bg-surface max-h-48 overflow-y-auto">
+                  {BUSINESS_CATEGORIES.map(group => {
+                    const isExpanded = expandedCategory === group.id;
+                    const selectedCount = group.subcategories.filter(s =>
+                      selectedCategories.includes(s)
+                    ).length;
+
+                    return (
+                      <div key={group.id}>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedCategory(isExpanded ? null : group.id)}
+                          className="w-full flex items-center justify-between p-2.5 hover:bg-surface-2 text-left transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-text">{group.name}</span>
+                            {selectedCount > 0 && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">
+                                {selectedCount}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-text-muted">
+                            {isExpanded ? "▲" : "▼"}
+                          </span>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="p-3 bg-surface-2/40 border-t border-line/60 space-y-2">
+                            <div className="flex justify-between items-center pb-1">
+                              <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider">
+                                Subcategories ({group.subcategories.length})
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => selectAllInGroup(group.subcategories)}
+                                className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold cursor-pointer"
+                              >
+                                {group.subcategories.every(s => selectedCategories.includes(s))
+                                  ? "Deselect All"
+                                  : "Select All"}
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                              {group.subcategories.map(sub => {
+                                const isChecked = selectedCategories.includes(sub);
+                                return (
+                                  <label
+                                    key={sub}
+                                    className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                                      isChecked
+                                        ? "bg-indigo-500/10 border-indigo-500/40 text-text font-semibold"
+                                        : "bg-surface border-line text-text-muted hover:text-text hover:bg-surface-2"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => toggleCategory(sub)}
+                                      className="rounded border-line text-indigo-600 focus:ring-0 w-3.5 h-3.5"
+                                    />
+                                    <span className="truncate">{sub}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 4: ADVANCED VERIFICATION RULES (COLLAPSIBLE) */}
+            <div className="border border-line rounded-xl bg-surface-2/40 p-3.5 space-y-3">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="w-full flex items-center justify-between text-xs font-bold text-text cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-gold" />
+                  <span>Advanced Verification & Lead Delivery Rules</span>
+                </div>
+                <span className="text-text-muted">{showAdvancedFilters ? "▲ Hide Options" : "▼ Show Options"}</span>
+              </button>
+
+              {showAdvancedFilters && (
+                <div className="pt-3 border-t border-line space-y-3.5 animate-fadeIn">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <label className="flex items-center gap-2.5 p-2 rounded-lg bg-surface border border-line text-xs font-medium cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={mustHavePhone}
+                        onChange={e => setMustHavePhone(e.target.checked)}
+                        className="rounded border-line text-indigo-600 focus:ring-0 w-4 h-4"
+                      />
+                      <span>Verified Phone (WhatsApp / Call)</span>
+                    </label>
+
+                    <label className="flex items-center gap-2.5 p-2 rounded-lg bg-surface border border-line text-xs font-medium cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={mustHaveEmail}
+                        onChange={e => setMustHaveEmail(e.target.checked)}
+                        className="rounded border-line text-indigo-600 focus:ring-0 w-4 h-4"
+                      />
+                      <span>Must have Email Address</span>
+                    </label>
+
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-surface border border-line text-xs">
+                      <span className="text-text-muted">Min Rating:</span>
+                      <select
+                        value={minRating}
+                        onChange={e => setMinRating(Number(e.target.value))}
+                        className="bg-transparent text-xs font-bold text-text focus:outline-none cursor-pointer"
+                      >
+                        <option value={0}>Any Rating</option>
+                        <option value={3.5}>3.5+ ★ Stars</option>
+                        <option value={4.0}>4.0+ ★ Stars</option>
+                        <option value={4.5}>4.5+ ★ Stars</option>
+                      </select>
                     </div>
                   </div>
 
-                  {/* Service Description Input */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-text uppercase tracking-wider block">
-                      Service URL or Description
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                      Aggregated Directories
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {DIRECTORY_SOURCES.map(source => {
+                        const isIncluded = selectedSources.includes(source.name);
+                        return (
+                          <button
+                            key={source.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSources(prev =>
+                                prev.includes(source.name)
+                                  ? prev.filter(s => s !== source.name)
+                                  : [...prev, source.name]
+                              );
+                            }}
+                            className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+                              isIncluded
+                                ? "bg-surface border-indigo-500/40 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                                : "bg-surface border-line text-text-muted hover:text-text"
+                            }`}
+                          >
+                            <span
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: source.color }}
+                            />
+                            <span>{source.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* SECTION 5: PRIMARY EXTRACTION CTA & STATUS */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-indigo-500/5 via-surface to-violet-500/5 border border-indigo-500/20">
+              <div className="text-left space-y-0.5">
+                <div className="text-xs font-bold text-text flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <span>Ready for Lead Generation</span>
+                </div>
+                <p className="text-[11px] text-text-muted">
+                  Aggregating Google Places, JustDial, and public directories across {selectedCity}, {selectedState}.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleStartExtraction}
+                disabled={isExtracting || (!searchQuery.trim() && selectedCategories.length === 0)}
+                className="w-full sm:w-auto py-3 px-7 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-sm shadow-md shadow-indigo-500/25 flex items-center justify-center gap-2.5 transition-all btn-tactile cursor-pointer disabled:opacity-50 shrink-0"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-white" />
+                <span>Generate Business Leads</span>
+                <ArrowRight className="w-4 h-4 text-white" />
+              </button>
+            </div>
+          </div>
+
+          {/* SECTION 6: OPTIONAL AI SMART MATCHER & PITCH ANALYZER (COLLAPSIBLE) */}
+          <div className="bg-surface border border-line rounded-2xl overflow-hidden shadow-xs">
+            <button
+              type="button"
+              onClick={() => setShowAiPitchCard(!showAiPitchCard)}
+              className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-surface-2 transition-colors cursor-pointer text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <BrainCircuit className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-text">AI Smart Matcher & Pitch Analyzer</h3>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-text-muted">
+                      Optional
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    Paste your service pitch or upload a brochure to let AI automatically identify target categories and digital gaps.
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                {showAiPitchCard ? "Hide ▲" : "Expand ▼"}
+              </span>
+            </button>
+
+            {showAiPitchCard && (
+              <div className="p-5 sm:p-6 border-t border-line space-y-4 bg-surface-2/30 animate-fadeIn">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Service Description */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-text uppercase tracking-wider block">
+                      Service Description / Offer Pitch
                     </label>
                     <textarea
                       rows={3}
                       value={serviceDescription}
                       onChange={e => setServiceDescription(e.target.value)}
-                      placeholder="e.g. 'We build high-converting e-commerce web apps and automated WhatsApp booking for clinics and restaurants'"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:border-gold/50 transition-colors resize-none"
+                      placeholder="e.g. 'We build high-converting WhatsApp booking tools and modern websites for dental clinics and aesthetic doctors'..."
+                      className="w-full px-3 py-2.5 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-indigo-500 transition-colors resize-none"
                     />
                   </div>
 
-                  {/* OR Divider */}
-                  <div className="relative flex items-center justify-center">
-                    <div className="border-t border-line w-full" />
-                    <span className="bg-surface px-3 text-[10px] uppercase font-bold text-text-muted absolute">
-                      OR
-                    </span>
-                  </div>
-
-                  {/* Upload Poster / Brochure */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-text uppercase tracking-wider block">
-                      Upload Poster / Brochure
+                  {/* Brochure Upload */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-text uppercase tracking-wider block">
+                      Upload Poster / Flyer / Brochure
                     </label>
-                    <label className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-dashed border-line hover:border-gold/50 bg-surface-2/60 hover:bg-surface-2 transition-all cursor-pointer group">
-                      <Upload className="w-4 h-4 text-text-muted group-hover:text-gold transition-colors shrink-0" />
+                    <label className="w-full flex items-center justify-center gap-2.5 px-3 py-4 rounded-xl border border-dashed border-line hover:border-indigo-500 bg-surface hover:bg-surface-2 transition-all cursor-pointer group">
+                      <Upload className="w-4 h-4 text-text-muted group-hover:text-indigo-500 transition-colors shrink-0" />
                       <span className="text-xs font-medium text-text-muted group-hover:text-text truncate">
-                        {uploadedBrochure ? uploadedBrochure.name : "Choose Image / Brochure to analyze"}
+                        {uploadedBrochure ? uploadedBrochure.name : "Choose PDF or Image file"}
                       </span>
                       <input
                         type="file"
@@ -684,1162 +1263,713 @@ export default function DataPalPage() {
                       />
                     </label>
                     {uploadedBrochure && (
-                      <div className="flex items-center justify-between text-[11px] text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
-                        <span className="truncate">📎 {uploadedBrochure.name} ({uploadedBrochure.size})</span>
+                      <div className="flex items-center justify-between text-[11px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                        <span className="truncate">📎 {uploadedBrochure.name}</span>
                         <button
                           type="button"
                           onClick={() => setUploadedBrochure(null)}
-                          className="text-text-muted hover:text-rust text-xs ml-2"
+                          className="text-text-muted hover:text-rust text-xs ml-2 cursor-pointer"
                         >
                           ✕
                         </button>
                       </div>
                     )}
                   </div>
-
-                  {/* AI Feedback Banner */}
-                  {aiPitchAnalysisResult && (
-                    <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 space-y-1">
-                      <div className="font-bold flex items-center gap-1.5 text-indigo-400">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Analysis Applied</span>
-                      </div>
-                      <p className="text-[11px] leading-relaxed">{aiPitchAnalysisResult}</p>
-                    </div>
-                  )}
                 </div>
 
-                {/* Generate Strategy CTA */}
-                <div className="pt-6">
+                {/* AI Feedback Banner */}
+                {aiPitchAnalysisResult && (
+                  <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-xs text-indigo-700 dark:text-indigo-300 space-y-1">
+                    <div className="font-bold flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Analysis Applied</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed">{aiPitchAnalysisResult}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-1">
                   <button
                     type="button"
                     onClick={handleAnalyzePitch}
                     disabled={isAnalyzingPitch || (!serviceDescription.trim() && !uploadedBrochure)}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                    className="flex items-center gap-2 py-2 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-sm transition-all btn-tactile cursor-pointer"
                   >
                     {isAnalyzingPitch ? (
                       <>
-                        <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
-                        <span>Synthesizing Strategy...</span>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                        <span>Analyzing Pitch Strategy...</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4 text-gold" />
+                        <BrainCircuit className="w-3.5 h-3.5 text-white" />
                         <span>Set Target Profile with AI</span>
                       </>
                     )}
                   </button>
                 </div>
               </div>
-
-              {/* RIGHT CARD: Search Configuration (8 cols) */}
-              <div className="lg:col-span-8 bg-surface border border-line rounded-3xl p-6 sm:p-8 shadow-sm space-y-7">
-                {/* Header */}
-                <div className="flex items-center gap-3.5 pb-4 border-b border-line">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-                    <Search className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold">Search Configuration</h2>
-                    <p className="text-xs text-text-muted">Define your target audience to start scraping.</p>
-                  </div>
-                </div>
-
-                {/* 1. Data Requirement (Target Profile) */}
-                <div className="space-y-2 relative" ref={reqRef}>
-                  <label className="text-xs font-bold text-text uppercase tracking-wider block">
-                    Data Requirement (Target Profile)
-                  </label>
-                  <div className="relative">
-                    <div
-                      onClick={() => setShowReqDropdown(true)}
-                      className="flex items-center w-full bg-surface-2 border border-line rounded-2xl px-4 py-3 cursor-text focus-within:border-gold/50 transition-colors"
-                    >
-                      <Search className="w-4 h-4 text-text-muted mr-3 shrink-0" />
-                      <input
-                        type="text"
-                        value={targetRequirement}
-                        onChange={e => {
-                          setTargetRequirement(e.target.value);
-                          setShowReqDropdown(true);
-                        }}
-                        onFocus={() => setShowReqDropdown(true)}
-                        placeholder="e.g. Missing Website, Needs SEO, Missing Online Ordering..."
-                        className="w-full bg-transparent text-xs font-bold text-text placeholder:font-normal placeholder:text-text-muted focus:outline-none"
-                      />
-                      {targetRequirement && (
-                        <button
-                          type="button"
-                          onClick={e => {
-                            e.stopPropagation();
-                            setTargetRequirement("");
-                          }}
-                          className="p-1 hover:bg-surface rounded-full text-text-muted hover:text-text text-xs"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Requirement Autocomplete Dropdown */}
-                    {showReqDropdown && (
-                      <div className="absolute z-30 w-full mt-2 bg-surface border border-line rounded-2xl shadow-xl overflow-hidden max-h-64 overflow-y-auto animate-fadeIn">
-                        <div className="p-2 divide-y divide-line/40">
-                          {TARGET_PROFILE_PRESETS.map(preset => (
-                            <button
-                              key={preset.id}
-                              type="button"
-                              onClick={() => {
-                                setTargetRequirement(preset.label);
-                                if (preset.suggestedCategories) {
-                                  setSelectedCategories(preset.suggestedCategories);
-                                }
-                                setShowReqDropdown(false);
-                              }}
-                              className="w-full text-left p-3 hover:bg-surface-2 transition-colors rounded-xl flex items-start justify-between gap-3 group"
-                            >
-                              <div>
-                                <div className="text-xs font-bold text-text group-hover:text-gold transition-colors">
-                                  {preset.label}
-                                </div>
-                                <div className="text-[11px] text-text-muted mt-0.5">
-                                  {preset.desc}
-                                </div>
-                              </div>
-                              {preset.badge && (
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-surface-2 border border-line text-text-muted shrink-0">
-                                  {preset.badge}
-                                </span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Quick Preset Badges */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {TARGET_PROFILE_PRESETS.slice(0, 5).map(p => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          setTargetRequirement(p.label);
-                          if (p.suggestedCategories) setSelectedCategories(p.suggestedCategories);
-                        }}
-                        className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
-                          targetRequirement === p.label
-                            ? "bg-gold/15 text-gold border-gold/40 shadow-xs"
-                            : "bg-surface-2 text-text-muted border-line hover:text-text hover:border-line-strong"
-                        }`}
-                      >
-                        {p.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 2. Target Location & Hierarchy */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-surface-2/60 border border-line space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-line">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-indigo-400" />
-                      <span className="text-xs font-bold">Target Location & Geographic Hierarchy</span>
-                    </div>
-                    <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-surface border border-line text-indigo-400 font-semibold truncate max-w-xs">
-                      📍 {[areaPincode, selectedCity, selectedState, currentCountry.name].filter(Boolean).join(", ")}
-                    </span>
-                  </div>
-
-                  {/* Country Selector */}
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
-                      Select Country
-                    </span>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                      {COUNTRY_HIERARCHIES.map(c => (
-                        <button
-                          key={c.code}
-                          type="button"
-                          onClick={() => handleCountryChange(c.code)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
-                            countryCode === c.code
-                              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                              : "bg-surface text-text border-line hover:bg-surface-2"
-                          }`}
-                        >
-                          <span className="text-sm">{c.flag}</span>
-                          <span className="truncate">{c.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* State, City & Area Inputs */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {/* State Selector */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider">
-                        State / Province
-                      </label>
-                      <select
-                        value={selectedState}
-                        onChange={e => {
-                          setSelectedState(e.target.value);
-                          const st = availableStates.find(s => s.name === e.target.value);
-                          if (st && st.cities.length > 0) setSelectedCity(st.cities[0]);
-                        }}
-                        className="w-full px-3 py-2 rounded-xl bg-surface border border-line text-xs font-semibold text-text focus:outline-none focus:border-gold/50 cursor-pointer"
-                      >
-                        {availableStates.map(s => (
-                          <option key={s.name} value={s.name}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* City Selector */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider">
-                        City / Metro
-                      </label>
-                      <select
-                        value={selectedCity}
-                        onChange={e => setSelectedCity(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-surface border border-line text-xs font-semibold text-text focus:outline-none focus:border-gold/50 cursor-pointer"
-                      >
-                        {availableCities.map(c => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Area / Postal Code */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider">
-                        Local Suburb / {currentCountry.postalCodeLabel}
-                      </label>
-                      <input
-                        type="text"
-                        value={areaPincode}
-                        onChange={e => setAreaPincode(e.target.value)}
-                        placeholder="e.g. Bandra, 400050"
-                        className="w-full px-3 py-2 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-gold/50"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Quick Metropolitan Hubs (India) */}
-                  {countryCode === "IN" && (
-                    <div className="pt-1">
-                      <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">
-                        Top Metropolitan Hubs:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          { city: "Mumbai", state: "Maharashtra" },
-                          { city: "New Delhi", state: "Delhi NCR" },
-                          { city: "Bangalore (Bengaluru)", state: "Karnataka" },
-                          { city: "Pune", state: "Maharashtra" },
-                          { city: "Hyderabad", state: "Telangana" },
-                          { city: "Chennai", state: "Tamil Nadu" },
-                          { city: "Ahmedabad", state: "Gujarat" },
-                          { city: "Kolkata", state: "West Bengal" },
-                        ].map(hub => (
-                          <button
-                            key={hub.city}
-                            type="button"
-                            onClick={() => setQuickCity(hub.city, hub.state)}
-                            className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
-                              selectedCity === hub.city
-                                ? "bg-indigo-600 text-white border-indigo-600"
-                                : "bg-surface text-text-muted border-line hover:text-text hover:bg-surface-2"
-                            }`}
-                          >
-                            {hub.city.split(" ")[0]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 3. Business Types & Industry Multi-select */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="text-xs font-bold text-text uppercase tracking-wider block">
-                        Business Types & Categories Filter
-                      </label>
-                      <span className="text-[11px] text-text-muted">
-                        Select specific industries to extract ({selectedCategories.length} selected)
-                      </span>
-                    </div>
-                    {selectedCategories.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCategories([])}
-                        className="text-[11px] text-text-muted hover:text-rust underline font-medium"
-                      >
-                        Clear All
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Selected Pills */}
-                  {selectedCategories.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 rounded-xl bg-surface-2/60 border border-line">
-                      {selectedCategories.map(cat => (
-                        <span
-                          key={cat}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium"
-                        >
-                          <span>{cat}</span>
-                          <button
-                            type="button"
-                            onClick={() => toggleCategory(cat)}
-                            className="hover:text-rust text-xs"
-                          >
-                            ✕
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Category Groups Accordion */}
-                  <div className="border border-line rounded-2xl overflow-hidden divide-y divide-line/60 bg-surface">
-                    {BUSINESS_CATEGORIES.map(group => {
-                      const isExpanded = expandedCategory === group.id;
-                      const selectedCount = group.subcategories.filter(s =>
-                        selectedCategories.includes(s)
-                      ).length;
-
-                      return (
-                        <div key={group.id} className="transition-colors">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedCategory(isExpanded ? null : group.id)}
-                            className="w-full flex items-center justify-between p-3.5 hover:bg-surface-2 text-left transition-colors cursor-pointer"
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-xs font-bold text-text">{group.name}</span>
-                              {selectedCount > 0 && (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
-                                  {selectedCount} selected
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-text-muted">
-                                {isExpanded ? "▲" : "▼"}
-                              </span>
-                            </div>
-                          </button>
-
-                          {isExpanded && (
-                            <div className="p-3.5 bg-surface-2/40 border-t border-line/60 space-y-2.5">
-                              <div className="flex justify-between items-center pb-1">
-                                <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider">
-                                  Subcategories ({group.subcategories.length})
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => selectAllInGroup(group.subcategories)}
-                                  className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold"
-                                >
-                                  {group.subcategories.every(s => selectedCategories.includes(s))
-                                    ? "Deselect All in Group"
-                                    : "Select All in Group"}
-                                </button>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {group.subcategories.map(sub => {
-                                  const isChecked = selectedCategories.includes(sub);
-                                  return (
-                                    <label
-                                      key={sub}
-                                      className={`flex items-center gap-2.5 p-2 rounded-xl border text-xs cursor-pointer transition-all ${
-                                        isChecked
-                                          ? "bg-indigo-600/10 border-indigo-500/40 text-text font-semibold"
-                                          : "bg-surface border-line text-text-muted hover:text-text hover:bg-surface-2"
-                                      }`}
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={() => toggleCategory(sub)}
-                                        className="rounded border-line text-indigo-600 focus:ring-0 w-3.5 h-3.5"
-                                      />
-                                      <span className="truncate">{sub}</span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 4. Advanced Directory & Verification Filters (Collapsible) */}
-                <div className="border border-line rounded-2xl bg-surface-2/40 p-4 space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    className="w-full flex items-center justify-between text-xs font-bold text-text cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Filter className="w-4 h-4 text-gold" />
-                      <span>Advanced Extraction & Verification Rules</span>
-                    </div>
-                    <span className="text-text-muted">{showAdvancedFilters ? "▲ Hide" : "▼ Show"}</span>
-                  </button>
-
-                  {showAdvancedFilters && (
-                    <div className="pt-3 border-t border-line space-y-4 animate-fadeIn">
-                      {/* Checkbox Toggles */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-surface border border-line text-xs font-medium cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={mustHavePhone}
-                            onChange={e => setMustHavePhone(e.target.checked)}
-                            className="rounded border-line text-gold focus:ring-0 w-4 h-4"
-                          />
-                          <span>Must have Verified Phone (WhatsApp / Call ready)</span>
-                        </label>
-
-                        <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-surface border border-line text-xs font-medium cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={mustHaveEmail}
-                            onChange={e => setMustHaveEmail(e.target.checked)}
-                            className="rounded border-line text-gold focus:ring-0 w-4 h-4"
-                          />
-                          <span>Must have Email Address</span>
-                        </label>
-                      </div>
-
-                      {/* Directory Sources */}
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
-                          Directories to Query
-                        </span>
-                        <div className="flex flex-wrap gap-2">
-                          {DIRECTORY_SOURCES.map(source => {
-                            const isIncluded = selectedSources.includes(source.name);
-                            return (
-                              <button
-                                key={source.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedSources(prev =>
-                                    prev.includes(source.name)
-                                      ? prev.filter(s => s !== source.name)
-                                      : [...prev, source.name]
-                                  );
-                                }}
-                                className={`text-[11px] font-semibold px-3 py-1.5 rounded-xl border transition-all flex items-center gap-1.5 ${
-                                  isIncluded
-                                    ? "bg-surface border-gold/40 text-gold shadow-xs"
-                                    : "bg-surface border-line text-text-muted hover:text-text"
-                                }`}
-                              >
-                                <span
-                                  className="w-2 h-2 rounded-full"
-                                  style={{ backgroundColor: source.color }}
-                                />
-                                <span>{source.name}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Primary Action Button */}
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={handleStartExtraction}
-                    disabled={isExtracting || selectedCategories.length === 0}
-                    className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 cursor-pointer disabled:opacity-50"
-                  >
-                    <FileSpreadsheet className="w-5 h-5 text-white" />
-                    <span>Generate Data Report</span>
-                    <ArrowRight className="w-5 h-5 text-white" />
-                  </button>
-                  <p className="text-[11px] text-center text-text-muted mt-2">
-                    Engineered for massive data extraction across India's top directories & global registries.
-                  </p>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ============================================================== */}
-        {/* TAB 2: EXTRACTED LEADS & TABLE VIEW                            */}
-        {/* ============================================================== */}
-        {activeTab === "results" && (
-          <div className="space-y-6 animate-fadeIn">
-            {/* If no campaign selected */}
-            {!activeCampaign ? (
-              <div className="text-center py-20 bg-surface border border-line rounded-3xl p-8 space-y-4">
-                <div className="w-16 h-16 rounded-3xl bg-surface-2 border border-line flex items-center justify-center mx-auto text-text-muted">
-                  <Search className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-bold">No extraction campaign active</h3>
-                <p className="text-xs text-text-muted max-w-md mx-auto">
-                  Start an extraction in the Search Studio to find verified businesses with high-converting digital gaps.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("search")}
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-xs"
-                >
-                  Start New Extraction
-                </button>
+      {/* ============================================================== */}
+      {/* TAB 2: EXTRACTED LEADS & TABLE VIEW                            */}
+      {/* ============================================================== */}
+      {activeTab === "results" && (
+        <div className="space-y-5">
+          {!activeCampaign ? (
+            <div className="text-center py-16 bg-surface border border-line rounded-2xl p-8 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-surface-2 border border-line flex items-center justify-center mx-auto text-text-muted">
+                <Search className="w-6 h-6" />
               </div>
-            ) : (
-              <>
-                {/* Campaign Summary & Controls Header */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface border border-line rounded-3xl p-6">
+              <h3 className="text-base font-bold text-text">No extraction campaign selected</h3>
+              <p className="text-xs text-text-muted max-w-md mx-auto">
+                Start an extraction in the Search Studio to find verified businesses with high-converting digital gaps.
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTab("search")}
+                className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs btn-tactile"
+              >
+                Start New Extraction
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Campaign Summary & Controls Header */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface border border-line rounded-2xl p-4 sm:p-5 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                    <Building2 className="w-5 h-5" />
+                  </div>
                   <div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-                        <Building2 className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-extrabold tracking-tight">{activeCampaign.title}</h2>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted mt-0.5">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-indigo-400" />
-                            {activeCampaign.location}
-                          </span>
-                          <span>•</span>
-                          <span>{activeCampaign.results.length} total extracted businesses</span>
-                          <span>•</span>
-                          <span className="font-mono text-[10px]">
-                            {new Date(activeCampaign.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
+                    <h2 className="text-base sm:text-lg font-extrabold text-text tracking-tight">
+                      {activeCampaign.title}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted mt-0.5">
+                      <span className="flex items-center gap-1 font-medium">
+                        <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+                        {activeCampaign.location}
+                      </span>
+                      <span>•</span>
+                      <span>{activeCampaign.results.length} businesses extracted</span>
                     </div>
                   </div>
-
-                  {/* Export and Task Action Buttons */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleExportExcel}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
-                    >
-                      <FileSpreadsheet className="w-4 h-4" />
-                      <span>Export Excel</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleExportCSV}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs font-bold text-text transition-all cursor-pointer"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Export CSV</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handlePushToTasks}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold/15 hover:bg-gold/25 border border-gold/30 text-gold text-xs font-bold transition-all cursor-pointer"
-                      title="Add extracted leads as outreach execution tasks in BizzPal"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Push to Tasks</span>
-                    </button>
-                  </div>
                 </div>
 
-                {pushTaskStatus && (
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl text-emerald-400 text-xs font-semibold flex items-center justify-between animate-fadeIn">
-                    <span>{pushTaskStatus}</span>
-                    <Link href="/tasks" className="underline hover:text-emerald-300 font-bold ml-2">
-                      View in Tasks & Execution →
-                    </Link>
-                  </div>
-                )}
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExportExcel}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xs transition-all btn-tactile cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>Export Excel</span>
+                  </button>
 
-                {/* Bento Metrics Bar */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="p-5 rounded-2xl bg-surface border border-line shadow-xs">
-                    <p className="text-2xl font-black text-text tracking-tight">
-                      {activeCampaign.results.length}
-                    </p>
-                    <p className="text-xs text-text-muted font-medium mt-0.5">Total Extracted</p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleExportCSV}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-line text-xs font-bold text-text transition-all btn-tactile cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export CSV</span>
+                  </button>
 
-                  <div className="p-5 rounded-2xl bg-surface border border-line shadow-xs">
-                    <p className="text-2xl font-black text-emerald-400 tracking-tight">
-                      {activeCampaign.phoneCount}
-                      <span className="text-xs font-semibold text-text-muted ml-1.5 font-normal">
-                        ({Math.round((activeCampaign.phoneCount / (activeCampaign.results.length || 1)) * 100)}%)
-                      </span>
-                    </p>
-                    <p className="text-xs text-text-muted font-medium mt-0.5">Verified Phone / WhatsApp</p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handlePushToTasks}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold/15 hover:bg-gold/25 border border-gold/30 text-gold text-xs font-bold transition-all btn-tactile cursor-pointer"
+                    title="Add extracted leads as outreach execution tasks in BizzPal"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Push to Tasks</span>
+                  </button>
+                </div>
+              </div>
 
-                  <div className="p-5 rounded-2xl bg-surface border border-line shadow-xs">
-                    <p className="text-2xl font-black text-cyan-400 tracking-tight">
-                      {activeCampaign.emailCount}
-                      <span className="text-xs font-semibold text-text-muted ml-1.5 font-normal">
-                        ({Math.round((activeCampaign.emailCount / (activeCampaign.results.length || 1)) * 100)}%)
-                      </span>
-                    </p>
-                    <p className="text-xs text-text-muted font-medium mt-0.5">Verified Emails</p>
-                  </div>
+              {pushTaskStatus && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center justify-between">
+                  <span>{pushTaskStatus}</span>
+                  <Link href="/tasks" className="underline hover:brightness-110 font-bold ml-2">
+                    View in Tasks & Execution →
+                  </Link>
+                </div>
+              )}
 
-                  <div className="p-5 rounded-2xl bg-surface border border-line shadow-xs">
-                    <p className="text-2xl font-black text-amber-400 tracking-tight">
-                      {activeCampaign.opportunityCount}
-                    </p>
-                    <p className="text-xs text-text-muted font-medium mt-0.5">High Digital Gap Opportunities</p>
-                  </div>
+              {/* Bento Metrics Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-4 rounded-xl bg-surface border border-line shadow-xs">
+                  <p className="text-xl font-black text-text tracking-tight">
+                    {activeCampaign.results.length}
+                  </p>
+                  <p className="text-xs text-text-muted font-medium mt-0.5">Total Extracted</p>
                 </div>
 
-                {/* Filter & Search Bar */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface border border-line rounded-2xl p-3">
-                  <div className="flex-1 relative">
-                    <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={resultsSearchQuery}
-                      onChange={e => setResultsSearchQuery(e.target.value)}
-                      placeholder="Filter by business name, phone, email, locality..."
-                      className="w-full pl-9 pr-4 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-gold/50"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                    {[
-                      { id: "all", label: "All Leads" },
-                      { id: "critical", label: "Missing Website" },
-                      { id: "whatsapp", label: "Has Phone" },
-                      { id: "email", label: "Has Email" },
-                      { id: "high_rating", label: "Top Rated (4.7+)" },
-                    ].map(f => (
-                      <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => setOpportunityFilter(f.id)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                          opportunityFilter === f.id
-                            ? "bg-indigo-600 text-white"
-                            : "bg-surface-2 text-text-muted hover:text-text"
-                        }`}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
+                <div className="p-4 rounded-xl bg-surface border border-line shadow-xs">
+                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                    {activeCampaign.phoneCount}
+                    <span className="text-xs font-semibold text-text-muted ml-1 font-normal">
+                      ({Math.round((activeCampaign.phoneCount / (activeCampaign.results.length || 1)) * 100)}%)
+                    </span>
+                  </p>
+                  <p className="text-xs text-text-muted font-medium mt-0.5">Verified Phone Numbers</p>
                 </div>
 
-                {/* Data Table */}
-                <div className="bg-surface border border-line rounded-3xl overflow-hidden shadow-sm">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-line bg-surface-2/60 text-[11px] uppercase font-bold text-text-muted tracking-wider">
-                          <th className="py-3.5 px-4 w-10 text-center">
-                            <input
-                              type="checkbox"
-                              checked={
-                                filteredLeads.length > 0 &&
-                                selectedLeadIds.size === filteredLeads.length
-                              }
-                              onChange={selectAllFilteredLeads}
-                              className="rounded border-line text-indigo-600 w-3.5 h-3.5"
-                            />
-                          </th>
-                          <th className="py-3.5 px-4 w-12 text-center">#</th>
-                          <th className="py-3.5 px-4 min-w-[200px]">Business</th>
-                          <th className="py-3.5 px-4 min-w-[130px]">Category</th>
-                          <th className="py-3.5 px-4 min-w-[200px]">Address & Area</th>
-                          <th className="py-3.5 px-4 min-w-[140px]">Phone Number</th>
-                          <th className="py-3.5 px-4 min-w-[150px]">Email Address</th>
-                          <th className="py-3.5 px-4 min-w-[90px]">Rating</th>
-                          <th className="py-3.5 px-4 min-w-[130px]">Presence</th>
-                          <th className="py-3.5 px-4 min-w-[240px]">AI Opportunity Notes</th>
-                          <th className="py-3.5 px-4 w-20 text-center">Action</th>
+                <div className="p-4 rounded-xl bg-surface border border-line shadow-xs">
+                  <p className="text-xl font-black text-cyan-600 dark:text-cyan-400 tracking-tight">
+                    {activeCampaign.emailCount}
+                    <span className="text-xs font-semibold text-text-muted ml-1 font-normal">
+                      ({Math.round((activeCampaign.emailCount / (activeCampaign.results.length || 1)) * 100)}%)
+                    </span>
+                  </p>
+                  <p className="text-xs text-text-muted font-medium mt-0.5">Verified Emails</p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-surface border border-line shadow-xs">
+                  <p className="text-xl font-black text-amber-500 tracking-tight">
+                    {activeCampaign.opportunityCount}
+                  </p>
+                  <p className="text-xs text-text-muted font-medium mt-0.5">High Digital Gap Leads</p>
+                </div>
+              </div>
+
+              {/* Filter & Search Bar */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface border border-line rounded-xl p-2.5">
+                <div className="flex-1 relative">
+                  <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={resultsSearchQuery}
+                    onChange={e => setResultsSearchQuery(e.target.value)}
+                    placeholder="Search by business, phone, email, locality..."
+                    className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  {[
+                    { id: "all", label: "All Leads" },
+                    { id: "critical", label: "Missing Website" },
+                    { id: "whatsapp", label: "Has Phone" },
+                    { id: "email", label: "Has Email" },
+                    { id: "high_rating", label: "Top Rated (4.7+)" },
+                  ].map(f => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setOpportunityFilter(f.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                        opportunityFilter === f.id
+                          ? "bg-indigo-600 text-white"
+                          : "bg-surface-2 text-text-muted hover:text-text"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Data Table */}
+              <div className="bg-surface border border-line rounded-2xl overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-line bg-surface-2/60 text-[10px] uppercase font-bold text-text-muted tracking-wider">
+                        <th className="py-3 px-3 w-8 text-center">
+                          <input
+                            type="checkbox"
+                            checked={
+                              filteredLeads.length > 0 &&
+                              selectedLeadIds.size === filteredLeads.length
+                            }
+                            onChange={selectAllFilteredLeads}
+                            className="rounded border-line text-indigo-600 w-3.5 h-3.5"
+                          />
+                        </th>
+                        <th className="py-3 px-3 w-10 text-center">#</th>
+                        <th className="py-3 px-3 min-w-[200px]">Business</th>
+                        <th className="py-3 px-3 min-w-[130px]">Category</th>
+                        <th className="py-3 px-3 min-w-[180px]">Address & Area</th>
+                        <th className="py-3 px-3 min-w-[140px]">Phone Number</th>
+                        <th className="py-3 px-3 min-w-[140px]">Email Address</th>
+                        <th className="py-3 px-3 min-w-[90px]">Rating</th>
+                        <th className="py-3 px-3 min-w-[120px]">Presence</th>
+                        <th className="py-3 px-3 min-w-[240px]">AI Opportunity Notes</th>
+                        <th className="py-3 px-3 w-16 text-center">WhatsApp</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line/60 text-xs">
+                      {filteredLeads.length === 0 ? (
+                        <tr>
+                          <td colSpan={11} className="py-12 text-center text-text-muted">
+                            No businesses match your filter criteria.
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-line/60 text-xs">
-                        {filteredLeads.length === 0 ? (
-                          <tr>
-                            <td colSpan={11} className="py-12 text-center text-text-muted">
-                              No businesses match your filter criteria.
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredLeads.map((lead, idx) => {
-                            const isSelected = selectedLeadIds.has(lead.id);
-                            return (
-                              <tr
-                                key={lead.id}
-                                className={`hover:bg-surface-2/60 transition-colors ${
-                                  isSelected ? "bg-indigo-500/5" : ""
-                                }`}
-                              >
-                                {/* Checkbox */}
-                                <td className="py-3 px-4 text-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected}
-                                    onChange={() => toggleSelectLead(lead.id)}
-                                    className="rounded border-line text-indigo-600 w-3.5 h-3.5 cursor-pointer"
-                                  />
-                                </td>
+                      ) : (
+                        filteredLeads.map((lead, idx) => {
+                          const isSelected = selectedLeadIds.has(lead.id);
+                          return (
+                            <tr
+                              key={lead.id}
+                              className={`hover:bg-surface-2/60 transition-colors ${
+                                isSelected ? "bg-indigo-500/5" : ""
+                              }`}
+                            >
+                              <td className="py-2.5 px-3 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleSelectLead(lead.id)}
+                                  className="rounded border-line text-indigo-600 w-3.5 h-3.5 cursor-pointer"
+                                />
+                              </td>
 
-                                {/* Index */}
-                                <td className="py-3 px-4 text-center font-mono text-text-muted text-[11px]">
-                                  {idx + 1}
-                                </td>
+                              <td className="py-2.5 px-3 text-center font-mono text-text-muted text-[11px]">
+                                {idx + 1}
+                              </td>
 
-                                {/* Business Name & Website */}
-                                <td className="py-3 px-4">
-                                  <div className="font-bold text-text truncate max-w-[220px]">
-                                    {lead.name}
-                                  </div>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    {lead.website ? (
-                                      <a
-                                        href={lead.website}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-[11px] text-indigo-400 hover:underline flex items-center gap-1 truncate max-w-[180px]"
-                                      >
-                                        <Globe className="w-3 h-3 shrink-0" />
-                                        <span>Website</span>
-                                      </a>
-                                    ) : (
-                                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-rust/15 text-rust border border-rust/30">
-                                        No Website
-                                      </span>
-                                    )}
-                                    <span className="text-[10px] text-text-muted/60">•</span>
-                                    <span className="text-[10px] text-text-muted truncate">
-                                      {lead.source.split(" ")[0]}
-                                    </span>
-                                  </div>
-                                </td>
-
-                                {/* Category */}
-                                <td className="py-3 px-4">
-                                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-surface-2 border border-line text-text truncate block max-w-[130px]">
-                                    {lead.category}
-                                  </span>
-                                </td>
-
-                                {/* Address */}
-                                <td className="py-3 px-4">
-                                  <div className="text-text-muted text-[11px] truncate max-w-[200px]" title={lead.address}>
-                                    {lead.address}
-                                  </div>
-                                  <div className="text-[10px] text-text-muted/70 font-mono">
-                                    {lead.city}, {lead.postalCode}
-                                  </div>
-                                </td>
-
-                                {/* Phone */}
-                                <td className="py-3 px-4 font-mono">
-                                  {lead.phone ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <a
-                                        href={`tel:${lead.phone}`}
-                                        className="text-emerald-400 hover:underline font-semibold text-[11px]"
-                                      >
-                                        {lead.phone}
-                                      </a>
-                                      <button
-                                        type="button"
-                                        onClick={() => copyText(lead.phone!, `phone_${lead.id}`)}
-                                        className="p-1 hover:bg-surface-2 rounded text-text-muted hover:text-text text-[10px]"
-                                        title="Copy phone"
-                                      >
-                                        {copiedId === `phone_${lead.id}` ? (
-                                          <Check className="w-3 h-3 text-emerald-400" />
-                                        ) : (
-                                          <Copy className="w-3 h-3" />
-                                        )}
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <span className="text-text-muted/40">—</span>
-                                  )}
-                                </td>
-
-                                {/* Email */}
-                                <td className="py-3 px-4 font-mono">
-                                  {lead.email ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-cyan-400 text-[11px] truncate max-w-[120px]" title={lead.email}>
-                                        {lead.email}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => copyText(lead.email!, `email_${lead.id}`)}
-                                        className="p-1 hover:bg-surface-2 rounded text-text-muted hover:text-text text-[10px]"
-                                        title="Copy email"
-                                      >
-                                        {copiedId === `email_${lead.id}` ? (
-                                          <Check className="w-3 h-3 text-cyan-400" />
-                                        ) : (
-                                          <Copy className="w-3 h-3" />
-                                        )}
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <span className="text-text-muted/40">—</span>
-                                  )}
-                                </td>
-
-                                {/* Rating */}
-                                <td className="py-3 px-4">
-                                  {lead.rating ? (
-                                    <div className="flex items-center gap-1 font-semibold text-amber-400 text-[11px]">
-                                      <Star className="w-3.5 h-3.5 fill-amber-400" />
-                                      <span>{lead.rating}</span>
-                                      <span className="text-[10px] text-text-muted font-normal">
-                                        ({lead.reviewsCount})
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <span className="text-text-muted/40">—</span>
-                                  )}
-                                </td>
-
-                                {/* Presence */}
-                                <td className="py-3 px-4">
-                                  <span className="text-[10px] text-text-muted truncate max-w-[120px] block">
-                                    {lead.existingPresence || "None"}
-                                  </span>
-                                </td>
-
-                                {/* AI Opportunity Notes */}
-                                <td className="py-3 px-4">
-                                  <div className="p-2 rounded-xl bg-surface-2 border border-line text-[11px] text-text leading-tight">
-                                    {lead.notes}
-                                  </div>
-                                </td>
-
-                                {/* Quick WhatsApp / Outreach Action */}
-                                <td className="py-3 px-4 text-center">
-                                  {lead.phone ? (
+                              <td className="py-2.5 px-3">
+                                <div className="font-bold text-text truncate max-w-[200px]">
+                                  {lead.name}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  {lead.website ? (
                                     <a
-                                      href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, "")}?text=Hi%20${encodeURIComponent(lead.name)},%20I%20noticed%20your%20business%20in%20${encodeURIComponent(lead.city)}...`}
+                                      href={lead.website}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center justify-center p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 transition-colors"
-                                      title="Open WhatsApp Chat"
+                                      className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 truncate max-w-[160px]"
                                     >
-                                      <Send className="w-3.5 h-3.5" />
+                                      <Globe className="w-3 h-3 shrink-0" />
+                                      <span>Website</span>
                                     </a>
                                   ) : (
-                                    <span className="text-text-muted/30 text-xs">—</span>
+                                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rust/15 text-rust border border-rust/30">
+                                      No Website
+                                    </span>
                                   )}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                                  <span className="text-[10px] text-text-muted/60">•</span>
+                                  <span className="text-[10px] text-text-muted truncate">
+                                    {lead.source.split(" ")[0]}
+                                  </span>
+                                </div>
+                              </td>
 
-                  {/* Table Footer */}
-                  <div className="p-4 border-t border-line bg-surface-2/40 flex items-center justify-between text-xs text-text-muted">
-                    <span>
-                      Showing {filteredLeads.length} of {activeCampaign.results.length} extracted businesses
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <span>{selectedLeadIds.size} selected</span>
-                      {selectedLeadIds.size > 0 && (
-                        <button
-                          type="button"
-                          onClick={handlePushToTasks}
-                          className="font-bold text-gold hover:underline"
+                              <td className="py-2.5 px-3">
+                                <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-surface-2 border border-line text-text truncate block max-w-[130px]">
+                                  {lead.category}
+                                </span>
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <div className="text-text-muted text-[11px] truncate max-w-[180px]" title={lead.address}>
+                                  {lead.address}
+                                </div>
+                                <div className="text-[10px] text-text-muted/70 font-mono">
+                                  {lead.city}, {lead.postalCode}
+                                </div>
+                              </td>
+
+                              <td className="py-2.5 px-3 font-mono">
+                                {lead.phone ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <a
+                                      href={`tel:${lead.phone}`}
+                                      className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold text-[11px]"
+                                    >
+                                      {lead.phone}
+                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyText(lead.phone!, `phone_${lead.id}`)}
+                                      className="p-1 hover:bg-surface-2 rounded text-text-muted hover:text-text text-[10px]"
+                                      title="Copy phone"
+                                    >
+                                      {copiedId === `phone_${lead.id}` ? (
+                                        <Check className="w-3 h-3 text-emerald-500" />
+                                      ) : (
+                                        <Copy className="w-3 h-3" />
+                                      )}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-text-muted/40">—</span>
+                                )}
+                              </td>
+
+                              <td className="py-2.5 px-3 font-mono">
+                                {lead.email ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-cyan-600 dark:text-cyan-400 text-[11px] truncate max-w-[120px]" title={lead.email}>
+                                      {lead.email}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyText(lead.email!, `email_${lead.id}`)}
+                                      className="p-1 hover:bg-surface-2 rounded text-text-muted hover:text-text text-[10px]"
+                                      title="Copy email"
+                                    >
+                                      {copiedId === `email_${lead.id}` ? (
+                                        <Check className="w-3 h-3 text-cyan-500" />
+                                      ) : (
+                                        <Copy className="w-3 h-3" />
+                                      )}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-text-muted/40">—</span>
+                                )}
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                {lead.rating ? (
+                                  <div className="flex items-center gap-1 font-semibold text-amber-500 text-[11px]">
+                                    <Star className="w-3 h-3 fill-amber-500" />
+                                    <span>{lead.rating}</span>
+                                    <span className="text-[10px] text-text-muted font-normal">
+                                      ({lead.reviewsCount})
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-text-muted/40">—</span>
+                                )}
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <span className="text-[10px] text-text-muted truncate max-w-[120px] block">
+                                  {lead.existingPresence || "None"}
+                                </span>
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <div className="p-2 rounded-lg bg-surface-2 border border-line text-[11px] text-text leading-tight">
+                                  {lead.notes}
+                                </div>
+                              </td>
+
+                              <td className="py-2.5 px-3 text-center">
+                                {lead.phone ? (
+                                  <a
+                                    href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, "")}?text=Hi%20${encodeURIComponent(lead.name)},%20I%20noticed%20your%20business%20in%20${encodeURIComponent(lead.city)}...`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 transition-colors"
+                                    title="Open WhatsApp Chat"
+                                  >
+                                    <Send className="w-3.5 h-3.5" />
+                                  </a>
+                                ) : (
+                                  <span className="text-text-muted/30 text-xs">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="p-3 border-t border-line bg-surface-2/40 flex items-center justify-between text-xs text-text-muted">
+                  <span>
+                    Showing {filteredLeads.length} of {activeCampaign.results.length} businesses
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <span>{selectedLeadIds.size} selected</span>
+                    {selectedLeadIds.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={handlePushToTasks}
+                        className="font-bold text-gold hover:underline cursor-pointer"
+                      >
+                        Push Selected to Tasks
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* TAB 3: CAMPAIGN HISTORY & ARCHIVAL                             */}
+      {/* ============================================================== */}
+      {activeTab === "history" && (
+        <div className="space-y-5">
+          <div className="flex items-center justify-between pb-2 border-b border-line">
+            <div>
+              <h2 className="text-base font-extrabold text-text tracking-tight">Search History & Campaigns</h2>
+              <p className="text-xs text-text-muted">Revisit and export your generated data campaigns.</p>
+            </div>
+
+            {campaigns.length > 0 && (
+              <button
+                type="button"
+                onClick={() => exportAllCampaignsToExcel(campaigns)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xs transition-all btn-tactile cursor-pointer"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Export All to Excel</span>
+              </button>
+            )}
+          </div>
+
+          {campaigns.length === 0 ? (
+            <div className="text-center py-16 bg-surface border border-line rounded-2xl p-8 space-y-4">
+              <Search className="w-10 h-10 text-text-muted mx-auto" />
+              <h3 className="text-base font-bold text-text">No searches yet</h3>
+              <p className="text-xs text-text-muted">Start searching for businesses to see your history here.</p>
+              <button
+                type="button"
+                onClick={() => setActiveTab("search")}
+                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold btn-tactile"
+              >
+                Start a Search
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {campaigns.map(camp => (
+                <div
+                  key={camp.id}
+                  onClick={() => {
+                    setActiveCampaign(camp);
+                    setActiveTab("results");
+                  }}
+                  className="p-4 rounded-2xl bg-surface border border-line hover:border-indigo-500/50 shadow-xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between space-y-3 group"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25">
+                        {camp.requirement}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={e => handleDeleteCampaign(e, camp.id)}
+                        className="p-1 rounded text-text-muted/60 hover:text-rust transition-colors text-xs"
+                        title="Delete campaign"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <h3 className="text-sm font-bold text-text group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors mt-2">
+                      {camp.title}
+                    </h3>
+
+                    <p className="text-xs text-text-muted mt-1 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      <span className="truncate">{camp.location}</span>
+                    </p>
+
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {camp.businessTypes.slice(0, 3).map(bt => (
+                        <span
+                          key={bt}
+                          className="text-[9px] px-2 py-0.5 rounded bg-surface-2 border border-line text-text-muted"
                         >
-                          Push Selected to Tasks
-                        </button>
+                          {bt}
+                        </span>
+                      ))}
+                      {camp.businessTypes.length > 3 && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface-2 text-text-muted">
+                          +{camp.businessTypes.length - 3}
+                        </span>
                       )}
                     </div>
                   </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
 
-        {/* ============================================================== */}
-        {/* TAB 3: CAMPAIGN HISTORY & ARCHIVAL                             */}
-        {/* ============================================================== */}
-        {activeTab === "history" && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="flex items-center justify-between pb-2 border-b border-line">
-              <div>
-                <h2 className="text-xl font-extrabold tracking-tight">Search History & Campaigns</h2>
-                <p className="text-xs text-text-muted">Revisit and export your generated data campaigns.</p>
-              </div>
-
-              {campaigns.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => exportAllCampaignsToExcel(campaigns)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm transition-all"
-                >
-                  <FileSpreadsheet className="w-4 h-4" />
-                  <span>Export All to Excel</span>
-                </button>
-              )}
-            </div>
-
-            {campaigns.length === 0 ? (
-              <div className="text-center py-20 bg-surface border border-line rounded-3xl p-8 space-y-4">
-                <Search className="w-12 h-12 text-text-muted mx-auto" />
-                <h3 className="text-lg font-bold">No searches yet</h3>
-                <p className="text-xs text-text-muted">Start searching for businesses to see your history here.</p>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("search")}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold"
-                >
-                  Start a Search
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {campaigns.map(camp => (
-                  <div
-                    key={camp.id}
-                    onClick={() => {
-                      setActiveCampaign(camp);
-                      setActiveTab("results");
-                    }}
-                    className="p-5 rounded-3xl bg-surface border border-line hover:border-gold/50 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between space-y-4 group"
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                          {camp.requirement}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={e => handleDeleteCampaign(e, camp.id)}
-                          className="p-1 rounded text-text-muted/60 hover:text-rust transition-colors text-xs"
-                          title="Delete campaign"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      <h3 className="text-base font-bold text-text group-hover:text-gold transition-colors mt-2.5">
-                        {camp.title}
-                      </h3>
-
-                      <p className="text-xs text-text-muted mt-1 flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span className="truncate">{camp.location}</span>
-                      </p>
-
-                      <div className="flex flex-wrap gap-1 mt-2.5">
-                        {camp.businessTypes.slice(0, 3).map(bt => (
-                          <span
-                            key={bt}
-                            className="text-[10px] px-2 py-0.5 rounded bg-surface-2 border border-line text-text-muted"
-                          >
-                            {bt}
-                          </span>
-                        ))}
-                        {camp.businessTypes.length > 3 && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-text-muted">
-                            +{camp.businessTypes.length - 3}
-                          </span>
-                        )}
-                      </div>
+                  <div className="pt-2.5 border-t border-line/60 flex items-center justify-between">
+                    <div className="text-[11px] text-text-muted">
+                      <span className="font-bold text-text">{camp.results.length}</span> businesses •{" "}
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{camp.phoneCount}</span> phones
                     </div>
 
-                    <div className="pt-3 border-t border-line/60 flex items-center justify-between">
-                      <div className="text-[11px] text-text-muted">
-                        <span className="font-bold text-text">{camp.results.length}</span> businesses •{" "}
-                        <span className="font-bold text-emerald-400">{camp.phoneCount}</span> phones
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={e => {
-                            e.stopPropagation();
-                            exportLeadsToExcel(camp.results, `DataPal_${camp.title.replace(/\s+/g, "_")}.xls`, camp.title);
-                          }}
-                          className="p-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-line text-text-muted hover:text-gold transition-colors"
-                          title="Download Excel"
-                        >
-                          <FileSpreadsheet className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={e => {
-                            e.stopPropagation();
-                            exportLeadsToCSV(camp.results, `DataPal_${camp.title.replace(/\s+/g, "_")}.csv`);
-                          }}
-                          className="p-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-line text-text-muted hover:text-gold transition-colors"
-                          title="Download CSV"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          exportLeadsToExcel(camp.results, `DataPal_${camp.title.replace(/\s+/g, "_")}.xls`, camp.title);
+                        }}
+                        className="p-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-line text-text-muted hover:text-indigo-600 transition-colors"
+                        title="Download Excel"
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          exportLeadsToCSV(camp.results, `DataPal_${camp.title.replace(/\s+/g, "_")}.csv`);
+                        }}
+                        className="p-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-line text-text-muted hover:text-indigo-600 transition-colors"
+                        title="Download CSV"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-
-      {/* ============================================================== */}
-      {/* EXTRACTION PROGRESS MODAL                                      */}
-      {/* ============================================================== */}
-      {isExtracting && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-surface border border-line rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-center animate-scaleUp">
-            <div className="w-16 h-16 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto text-indigo-400">
-              <RefreshCw className="w-8 h-8 animate-spin" />
+                </div>
+              ))}
             </div>
+          )}
+        </div>
+      )}
 
-            <div className="space-y-1.5">
-              <h3 className="text-xl font-extrabold tracking-tight">Extracting Business Data</h3>
-              <p className="text-xs text-text-muted leading-relaxed font-mono">
-                {extractStatusText}
+      {/* ============================================================== */}
+      {/* PORTAL MODAL 1: EXTRACTION PROGRESS MODAL                      */}
+      {/* ============================================================== */}
+      <PortalModal isOpen={isExtracting} onClose={() => {}}>
+        <div className="max-w-md w-full bg-white dark:bg-[#0C1222] border border-slate-200 dark:border-white/10 rounded-2xl p-6 sm:p-7 shadow-2xl space-y-5 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto text-indigo-600 dark:text-indigo-400">
+            <RefreshCw className="w-7 h-7 animate-spin" />
+          </div>
+
+          <div className="space-y-1">
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Extracting Business Data
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-mono">
+              {extractStatusText}
+            </p>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="space-y-1.5">
+            <div className="w-full bg-slate-100 dark:bg-white/[0.06] rounded-full h-2 overflow-hidden border border-slate-200 dark:border-white/10">
+              <div
+                className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${extractProgress}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] text-slate-400 font-mono font-bold">
+              <span>Querying Directories</span>
+              <span>{extractProgress}%</span>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            Scanning directories, resolving contact numbers, and compiling high-priority outreach targets...
+          </p>
+        </div>
+      </PortalModal>
+
+      {/* ============================================================== */}
+      {/* PORTAL MODAL 2: DATA PAL API SETTINGS MODAL                   */}
+      {/* ============================================================== */}
+      <PortalModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)}>
+        <div className="max-w-lg w-full bg-white dark:bg-[#0C1222] border border-slate-200 dark:border-white/10 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5 relative">
+          <button
+            type="button"
+            onClick={() => setIsApiModalOpen(false)}
+            className="absolute top-4 right-4 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white"
+          >
+            ✕
+          </button>
+
+          <div className="flex items-center gap-3 pb-3 border-b border-slate-200 dark:border-white/10">
+            <div className="w-10 h-10 rounded-xl bg-gold/10 border border-gold/25 flex items-center justify-center text-gold shrink-0">
+              <Key className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                DataPal API Settings
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Connect your DataPal instance or API key
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3.5 text-xs">
+            <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-500/20 text-indigo-800 dark:text-indigo-300 leading-relaxed space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-indigo-700 dark:text-indigo-400">
+                <Info className="w-3.5 h-3.5 shrink-0" />
+                <span>API Connectivity & Live Scraping</span>
+              </div>
+              <p className="text-[11px]">
+                The frontend is fully operational. Connect your Google Places API Key to stream real-time local business listings, phone numbers, ratings, and addresses directly.
               </p>
             </div>
 
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="w-full bg-surface-2 rounded-full h-2.5 overflow-hidden border border-line">
-                <div
-                  className="bg-gradient-to-r from-indigo-500 to-violet-500 h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${extractProgress}%` }}
-                />
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block text-[10px]">
+                  Google Places API Key
+                </label>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">Recommended for Google Search</span>
               </div>
-              <div className="flex justify-between text-[10px] text-text-muted font-mono font-bold">
-                <span>Querying Directories</span>
-                <span>{extractProgress}%</span>
-              </div>
+              <input
+                type="password"
+                value={googlePlacesApiKeyInput}
+                onChange={e => setGooglePlacesApiKeyInput(e.target.value)}
+                placeholder="AIzaSyB... (Google Cloud Console Places API Key)"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+              />
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                You can save this key now or later. If empty, DataPal aggregates via high-accuracy multi-directory scrapers.
+              </p>
             </div>
 
-            <p className="text-[11px] text-text-muted/70">
-              Scanning directories, resolving contact numbers, and compiling high-priority outreach targets...
-            </p>
-          </div>
-        </div>
-      )}
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block text-[10px]">
+                DataPal Instance API Key (Optional)
+              </label>
+              <input
+                type="password"
+                value={apiKeyInput}
+                onChange={e => setApiKeyInput(e.target.value)}
+                placeholder="e.g. dp_live_9f81a7b6c5d4e3f2..."
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
 
-      {/* ============================================================== */}
-      {/* API KEY & INTEGRATION MODAL                                    */}
-      {/* ============================================================== */}
-      {isApiModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="max-w-lg w-full bg-surface border border-line rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-scaleUp relative">
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block text-[10px]">
+                DataPal API Endpoint URL
+              </label>
+              <input
+                type="text"
+                value={apiEndpointInput}
+                onChange={e => setApiEndpointInput(e.target.value)}
+                placeholder="https://data-pal.vercel.app/api"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            {apiSaveFeedback && (
+              <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-center font-bold text-xs">
+                {apiSaveFeedback}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-200 dark:border-white/10">
             <button
               type="button"
               onClick={() => setIsApiModalOpen(false)}
-              className="absolute top-5 right-5 p-1 rounded-full text-text-muted hover:text-text"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] cursor-pointer"
             >
-              ✕
+              Cancel
             </button>
-
-            <div className="flex items-center gap-3.5 pb-4 border-b border-line">
-              <div className="w-12 h-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shrink-0">
-                <Key className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold">DataPal API Settings</h3>
-                <p className="text-xs text-text-muted">Connect your DataPal instance or API key</p>
-              </div>
-            </div>
-
-            <div className="space-y-4 text-xs">
-              <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 leading-relaxed space-y-1">
-                <div className="font-bold flex items-center gap-1.5 text-indigo-400">
-                  <Info className="w-4 h-4 shrink-0" />
-                  <span>Frontend Ready for DataPal API</span>
-                </div>
-                <p className="text-[11px]">
-                  The frontend is completely built and wired up. You can use DataPal right now in high-fidelity mode, or paste your DataPal API Key below whenever you are ready to stream live production scraping directly.
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="font-bold text-text uppercase tracking-wider block text-[10px]">
-                  DataPal API Key
-                </label>
-                <input
-                  type="password"
-                  value={apiKeyInput}
-                  onChange={e => setApiKeyInput(e.target.value)}
-                  placeholder="e.g. dp_live_9f81a7b6c5d4e3f2..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-xs font-mono text-text focus:outline-none focus:border-gold/50"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="font-bold text-text uppercase tracking-wider block text-[10px]">
-                  DataPal API Endpoint URL
-                </label>
-                <input
-                  type="text"
-                  value={apiEndpointInput}
-                  onChange={e => setApiEndpointInput(e.target.value)}
-                  placeholder="https://data-pal.vercel.app/api"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-xs font-mono text-text focus:outline-none focus:border-gold/50"
-                />
-              </div>
-
-              {apiSaveFeedback && (
-                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-center font-bold text-xs">
-                  {apiSaveFeedback}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsApiModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-text-muted hover:text-text bg-surface-2"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveApiSettings}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-sm"
-              >
-                Save & Connect
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleSaveApiSettings}
+              className="px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-sm cursor-pointer"
+            >
+              Save & Connect
+            </button>
           </div>
         </div>
-      )}
+      </PortalModal>
     </div>
   );
 }

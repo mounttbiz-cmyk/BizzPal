@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   ArrowRight,
-  Sparkles,
+  Bot,
   Search,
   ChevronRight,
   Clock,
@@ -703,7 +703,7 @@ export default function ExecutivePlaybooksPage() {
                 className="text-xs font-semibold text-text-muted hover:text-text inline-flex items-center gap-1 p-1 rounded hover:bg-surface-2"
                 title="Consult AI Executive"
               >
-                <Sparkles className="w-3.5 h-3.5 text-brass" />
+                <Bot className="w-3.5 h-3.5 text-brass" />
                 <span className="text-[11px]">Consult AI</span>
               </Link>
             </div>
@@ -789,7 +789,7 @@ export default function ExecutivePlaybooksPage() {
                   href={`/chat?message=${encodeURIComponent(`Astra, let's execute the '${activePlaybook.title}' playbook for ${companyName}. Walk me through Phase 1 immediately.`)}`}
                   className="text-xs font-semibold text-brass hover:underline inline-flex items-center gap-1"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Bot className="w-3.5 h-3.5" />
                   <span>Launch in AI Workspace →</span>
                 </Link>
 

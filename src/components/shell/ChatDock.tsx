@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Send, Sparkles, Tag, ChevronDown, CheckCircle2, ArrowRight, Maximize2, Minimize2, MessageSquare } from "lucide-react";
+import { X, Send, BrainCircuit, Tag, ChevronDown, CheckCircle2, ArrowRight, Maximize2, Minimize2, MessageSquare } from "lucide-react";
 
 export interface ContextChip {
   id: string;
@@ -336,7 +336,7 @@ export function ChatDock({
 
         {isStreaming && (
           <div className="flex items-center gap-2 text-xs text-text-muted p-2 rounded-lg bg-surface-2 animate-pulse">
-            <Sparkles className="w-4 h-4 text-brass animate-spin" />
+            <BrainCircuit className="w-4 h-4 text-brass animate-pulse" />
             <span>Consulting Marcus (CFO) and verifying active ledger metrics…</span>
           </div>
         )}
