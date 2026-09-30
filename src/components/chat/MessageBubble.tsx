@@ -10,6 +10,7 @@ import {
   BrainCircuit,
   CheckCircle2,
   Clock,
+  FileText,
 } from "lucide-react";
 import { getAdvisorGreeting } from "@/lib/advisors";
 
@@ -58,16 +59,18 @@ export function MessageBubble({
         </div>
       )}
 
-      {/* Bubble Container */}
+      {/* Bubble Container: expands to use available width without awkward gaps */}
       <div
-        className={`flex flex-col min-w-0 max-w-[85%] sm:max-w-[80%] ${
-          isUser ? "items-end" : "items-start"
+        className={`flex flex-col min-w-0 ${
+          isUser
+            ? "items-end max-w-[85%] sm:max-w-[75%]"
+            : "items-start w-full max-w-full sm:max-w-[95%]"
         }`}
       >
         {/* Sender & Timestamp Row */}
         <div className="flex items-center gap-2 mb-1.5 px-1 text-xs">
           <span className="font-bold text-text text-[11px] sm:text-xs">{senderName}</span>
-          <span className="text-[10px] text-text-muted font-mono flex items-center gap-1">
+          <span className="text-[10px] text-text-muted font-sans flex items-center gap-1">
             <Clock className="w-2.5 h-2.5" />
             {message.timestamp}
           </span>
@@ -75,12 +78,47 @@ export function MessageBubble({
 
         {/* Message Card */}
         <div
-          className={`p-4 sm:p-5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
+          className={`w-full p-4 sm:p-5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
             isUser
               ? "bg-brass text-white font-medium rounded-tr-xs shadow-md"
               : "bg-surface-2/60 border border-line text-text rounded-tl-xs shadow-theme"
           }`}
         >
+          {/* Attached Files & Images */}
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2.5">
+              {message.attachments.map((att, idx) => (
+                <div
+                  key={idx}
+                  className={`flex items-center gap-2 p-2 rounded-xl border text-xs shadow-2xs ${
+                    isUser
+                      ? "bg-white/20 border-white/30 text-white"
+                      : "bg-surface border-line text-text"
+                  }`}
+                >
+                  {att.previewUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={att.previewUrl}
+                      alt={att.name}
+                      className="w-7 h-7 rounded-lg object-cover border border-line"
+                    />
+                  ) : (
+                    <FileText className={`w-4 h-4 ${isUser ? "text-white" : "text-brass"}`} />
+                  )}
+                  <div className="min-w-0 max-w-[180px]">
+                    <p className="truncate font-medium text-[11px]">{att.name}</p>
+                    <span className="text-[10px] opacity-80 font-sans">
+                      {att.size < 1024 * 1024
+                        ? `${(att.size / 1024).toFixed(1)} KB`
+                        : `${(att.size / (1024 * 1024)).toFixed(1)} MB`}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {isUser ? (
             <div className="whitespace-pre-wrap">{displayContent}</div>
           ) : (
@@ -101,7 +139,7 @@ export function MessageBubble({
                         <span>Committed to Ledger</span>
                       </span>
                     ) : (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface-2 border border-line text-text-muted font-mono font-semibold">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface-2 border border-line text-text-muted font-sans font-semibold">
                         Uncommitted
                       </span>
                     )}

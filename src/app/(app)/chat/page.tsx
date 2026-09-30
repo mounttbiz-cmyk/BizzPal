@@ -11,7 +11,7 @@ import {
   getStoredCustomAdvisors,
   saveStoredCustomAdvisors,
 } from "@/lib/advisors";
-import { AgentMeta, ChatMessage, CompanyProfile } from "@/components/chat/types";
+import { AgentMeta, ChatMessage, CompanyProfile, ChatAttachment } from "@/components/chat/types";
 import { AdvisorRoster } from "@/components/chat/AdvisorRoster";
 import { AdvisorHeader } from "@/components/chat/AdvisorHeader";
 import { MobileAdvisorStrip } from "@/components/chat/MobileAdvisorStrip";
@@ -416,9 +416,11 @@ export default function ChatWorkspacePage() {
     }
   };
 
-  const handleSendMessage = async (textToSend?: string) => {
-    const message = (textToSend || inputMessage).trim();
-    if (!message || isTyping) return;
+  const handleSendMessage = async (textToSend?: string, attachmentsToSend?: ChatAttachment[]) => {
+    const rawMessage = (textToSend || inputMessage).trim();
+    if ((!rawMessage && (!attachmentsToSend || attachmentsToSend.length === 0)) || isTyping) return;
+
+    const message = rawMessage || (attachmentsToSend?.length ? `[Attached ${attachmentsToSend.length} document/image]` : "");
 
     // Detect natural operational updates
     const detectedRecord = parseNaturalBusinessInput(message);
@@ -433,6 +435,7 @@ export default function ChatWorkspacePage() {
       content: message,
       structuredRecord: detectedRecord,
       recordCommitted: false,
+      attachments: attachmentsToSend,
     };
 
     setConversations(prev => ({
@@ -443,12 +446,17 @@ export default function ChatWorkspacePage() {
     if (!textToSend) setInputMessage("");
     setIsTyping(true);
 
+    const attachmentContext =
+      attachmentsToSend && attachmentsToSend.length > 0
+        ? `\n\n[User attached ${attachmentsToSend.length} file(s): ${attachmentsToSend.map(a => `${a.name} (${a.type})`).join(", ")}]`
+        : "";
+
     try {
       const resp = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message,
+          message: `${message}${attachmentContext}`,
           agentId: activeAgentId,
           agentName: activeAgent.name,
           agentRole: activeAgent.role,
@@ -640,7 +648,7 @@ export default function ChatWorkspacePage() {
           <Composer
             value={inputMessage}
             onChange={setInputMessage}
-            onSend={() => handleSendMessage()}
+            onSend={attachments => handleSendMessage(undefined, attachments)}
             activeAgent={activeAgent}
             isTyping={isTyping}
           />

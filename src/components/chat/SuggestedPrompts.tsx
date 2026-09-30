@@ -17,9 +17,9 @@ export function SuggestedPrompts({
   if (!prompts || prompts.length === 0) return null;
 
   return (
-    <div className="relative px-4 sm:px-6 pt-2 pb-1.5 border-b border-line/40 shrink-0">
-      {/* Container: wrapped chips or clean horizontal flow with no clipping */}
-      <div className="max-w-[820px] mx-auto w-full flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+    <div className="relative px-3 sm:px-6 lg:px-8 pt-2 pb-1.5 border-b border-line/40 shrink-0">
+      {/* Container: responsive width matching chat thread and composer */}
+      <div className="w-full max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
         <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider shrink-0 flex items-center gap-1.5 select-none">
           <Sparkles className="w-3 h-3 text-brass" />
           <span className="hidden sm:inline">Suggested:</span>

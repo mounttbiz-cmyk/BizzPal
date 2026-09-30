@@ -19,6 +19,13 @@ export interface AgentMeta {
   telemetryFeeds: string[];
 }
 
+export interface ChatAttachment {
+  name: string;
+  size: number;
+  type: string;
+  previewUrl?: string;
+}
+
 export interface ChatMessage {
   id: string;
   sender: "agent" | "user";
@@ -31,6 +38,7 @@ export interface ChatMessage {
   structuredRecord?: ExtractedBusinessRecord | null;
   recordCommitted?: boolean;
   nextSteps?: string[];
+  attachments?: ChatAttachment[];
 }
 
 export interface CompanyProfile {
