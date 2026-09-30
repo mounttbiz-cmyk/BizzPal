@@ -424,21 +424,21 @@ function DashboardContent() {
 
       {/* Daily Executive Check-in Banner / Status */}
       {featureFlags.enableDailyCheckin !== false && (
-        <div className="p-4 sm:p-5 rounded-2xl border border-line bg-surface shadow-theme flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden group">
+        <div className="p-4 sm:p-5 rounded-2xl border border-line dark:border-[#2D2722] bg-surface dark:bg-[#121016] card-sheen shadow-theme flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-amber-500/[0.04] to-transparent pointer-events-none" />
           <div className="flex items-start gap-3.5 relative z-10">
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                 checkinData.isCompletedToday
-                  ? "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400"
-                  : "bg-gold/15 text-gold"
+                  ? "bg-emerald-500/10 text-emerald-500 dark:bg-[#172220] dark:text-[#3FA96A]"
+                  : "bg-gold/15 text-gold dark:bg-[#18161D] dark:border dark:border-[#2D2722] dark:text-[#D9B44A]"
               }`}
             >
-              {checkinData.isCompletedToday ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+              {checkinData.isCompletedToday ? <CheckCircle2 className="w-5 h-5 text-emerald-500 dark:text-[#3FA96A]" /> : <Clock className="w-5 h-5 text-gold dark:text-[#D9B44A]" />}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-text">
+                <span className="text-xs font-bold text-text dark:text-[#EBE7DF]">
                   {checkinData.isCompletedToday
                     ? "Today's Executive Check-In Completed"
                     : "Daily Executive Pulse Check Pending"}
@@ -446,14 +446,14 @@ function DashboardContent() {
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${
                     checkinData.isCompletedToday
-                      ? "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400"
-                      : "bg-gold/15 text-gold"
+                      ? "bg-emerald-500/10 text-emerald-500 dark:bg-[#172220] dark:text-[#3FA96A] dark:border dark:border-[rgba(63,169,106,0.35)]"
+                      : "bg-gold/15 text-gold dark:bg-[#2B2219] dark:text-[#E0A62E] dark:border dark:border-[rgba(224,166,46,0.35)]"
                   }`}
                 >
                   {checkinData.isCompletedToday ? `● Synced (${checkinData.todayCheckin?.source || "web"})` : "⚡ 60s Required"}
                 </span>
               </div>
-              <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">
+              <p className="text-[11px] text-text-muted dark:text-[#97928E] mt-0.5 leading-relaxed">
                 {checkinData.isCompletedToday
                   ? `Executive agents (${advisorsSummary}) are calibrated with today's operational telemetry.`
                   : "Continuous data collection mode is active. Give your AI executive team today's quick 60-second update."}
@@ -466,7 +466,7 @@ function DashboardContent() {
             onClick={() => setIsCheckInModalOpen(true)}
             className={`px-4 py-2 rounded-xl text-xs font-semibold btn-tactile inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer relative z-10 ${
               checkinData.isCompletedToday
-                ? "bg-surface-2 text-text hover:bg-surface-2/80 border border-line"
+                ? "bg-surface-2 text-text hover:bg-surface-2/80 border border-line dark:bg-[#18161D] dark:border-[#2D2722] dark:text-[#EBE7DF] dark:hover:bg-[#1C1A22]"
                 : "btn-gold-gradient font-bold shadow-md hover:brightness-105 active:scale-[0.98]"
             }`}
           >
@@ -476,23 +476,23 @@ function DashboardContent() {
       )}
 
       {/* Top Header & Executive Command Center */}
-      <div className="p-6 sm:p-7 space-y-6 rounded-3xl bg-surface border border-line shadow-theme relative overflow-hidden">
+      <div className="p-6 sm:p-7 space-y-6 rounded-3xl bg-surface dark:bg-[#121016] border border-line dark:border-[#2D2722] card-sheen shadow-theme relative overflow-hidden">
         {/* Live Status Beacon & Timeframe Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-line relative z-10">
-          <div className="inline-flex items-center gap-2.5 text-xs text-text-muted">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-line dark:border-b-[#2D2722] relative z-10">
+          <div className="inline-flex items-center gap-2.5 text-xs text-text-muted dark:text-[#97928E]">
             <span className="beacon-dot" />
-            <span className="font-semibold text-text">Autonomous Intelligence Engine</span>
+            <span className="font-semibold text-text dark:text-[#EBE7DF]">Autonomous Intelligence Engine</span>
             {uploadedFileName && (
               <>
-                <span className="text-text-muted/40">•</span>
-                <span className="text-jade font-semibold">Custom Telemetry Synced</span>
-                <span className="text-text-muted/40">•</span>
-                <span className="text-text font-mono text-[11px]">{uploadedFileName}</span>
+                <span className="text-text-muted/40 dark:text-[#726C66]">•</span>
+                <span className="text-jade dark:text-[#3FA96A] font-semibold">Custom Telemetry Synced</span>
+                <span className="text-text-muted/40 dark:text-[#726C66]">•</span>
+                <span className="text-text dark:text-[#EBE7DF] font-mono text-[11px]">{uploadedFileName}</span>
               </>
             )}
           </div>
 
-          <div className="flex items-center gap-1 p-1 bg-surface-2 rounded-xl border border-line text-xs">
+          <div className="flex items-center gap-1 p-1 bg-surface-2 dark:bg-[#18161D] rounded-xl border border-line dark:border-[#2D2722] text-xs">
             {["Live Today", "7D Trend", "Month to Date", "Q3 Live"].map(tf => (
               <button
                 key={tf}
@@ -506,8 +506,8 @@ function DashboardContent() {
                 }}
                 className={`px-3 py-1 rounded-lg text-xs transition-all btn-tactile cursor-pointer ${
                   selectedTimeframe === tf
-                    ? "bg-surface text-text border border-line font-bold shadow-xs"
-                    : "text-text-muted hover:text-text hover:bg-surface/50"
+                    ? "bg-surface text-text border border-line font-bold shadow-xs dark:bg-[#121016] dark:text-[#EBE7DF] dark:border-[rgba(217,180,74,0.30)] dark:shadow-none"
+                    : "text-text-muted hover:text-text hover:bg-surface/50 dark:text-[#726C66] dark:hover:text-[#97928E] dark:hover:bg-[#1C1A22]"
                 }`}
               >
                 {tf}
@@ -520,20 +520,20 @@ function DashboardContent() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-text tracking-tight font-sans">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-text dark:text-[#EBE7DF] tracking-tight font-sans">
                 {companyName}
               </h1>
-              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-surface-2 text-text-muted border border-line font-semibold font-mono tracking-normal">
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-surface-2 dark:bg-[#18161D] text-text-muted dark:text-[#97928E] border border-line dark:border-[#2D2722] font-semibold font-mono tracking-normal">
                 {selectedIndustry.toUpperCase()} · Growth Plan
               </span>
               {uploadedFileName && (
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-jade/10 text-jade font-mono font-semibold inline-flex items-center gap-1.5 border border-jade/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-jade" />
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-jade/10 text-jade dark:bg-[#172220] dark:text-[#3FA96A] font-mono font-semibold inline-flex items-center gap-1.5 border border-jade/20 dark:border-[rgba(63,169,106,0.35)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-jade dark:bg-[#3FA96A]" />
                   Uploaded Data Active
                 </span>
               )}
             </div>
-            <p className="text-xs sm:text-sm text-text-muted mt-1.5 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-text-muted dark:text-[#97928E] mt-1.5 max-w-2xl leading-relaxed">
               Real-time enterprise dashboard synthesized by BizzPal AI. Cross-correlating cash reserves, unit economics, and operational playbooks.
             </p>
           </div>
@@ -554,17 +554,17 @@ function DashboardContent() {
             <button
               type="button"
               onClick={() => setIsUploadModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all btn-tactile cursor-pointer bg-surface-2 hover:bg-surface border border-line text-text"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all btn-tactile cursor-pointer bg-surface-2 hover:bg-surface border border-line text-text dark:bg-[#18161D] dark:border-[#2D2722] dark:text-[#EBE7DF] dark:hover:border-[rgba(217,180,74,0.45)] dark:hover:bg-[#1C1A22] [&>svg]:dark:text-[#D9B44A]"
             >
-              <UploadCloud className="w-3.5 h-3.5 text-text-muted" />
+              <UploadCloud className="w-3.5 h-3.5 text-text-muted dark:text-[#D9B44A]" />
               <span>Upload Business Data</span>
               {uploadedFileName && (
-                <span className="w-1.5 h-1.5 rounded-full bg-jade animate-pulse" title="Custom dataset active" />
+                <span className="w-1.5 h-1.5 rounded-full bg-jade dark:bg-[#3FA96A] animate-pulse" title="Custom dataset active" />
               )}
             </button>
 
             {/* Profile Switcher */}
-            <div className="flex items-center gap-1 p-1 bg-surface-2 rounded-xl border border-line">
+            <div className="flex items-center gap-1 p-1 bg-surface-2 dark:bg-[#18161D] rounded-xl border border-line dark:border-[#2D2722]">
               {[
                 { ind: "saas", mod: "subscription", label: "B2B SaaS" },
                 { ind: "d2c", mod: "one-time", label: "D2C Brand" },
@@ -598,8 +598,8 @@ function DashboardContent() {
                     }}
                     className={`px-3 py-1.5 text-xs rounded-lg transition-all btn-tactile ${
                       isActive
-                        ? "bg-surface text-text font-bold shadow-xs border border-line"
-                        : "text-text-muted hover:text-text hover:bg-surface/50"
+                        ? "bg-surface text-text font-bold shadow-xs border border-line dark:bg-[#121016] dark:text-[#EBE7DF] dark:border-[rgba(217,180,74,0.30)] dark:shadow-none"
+                        : "text-text-muted hover:text-text hover:bg-surface/50 dark:text-[#726C66] dark:hover:text-[#97928E] dark:hover:bg-[#1C1A22]"
                     }`}
                   >
                     {profile.label}
@@ -615,7 +615,7 @@ function DashboardContent() {
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all btn-tactile cursor-pointer ${
                 isEditingLayout
                   ? "btn-gold-gradient font-bold shadow-md"
-                  : "bg-surface-2 hover:bg-surface border border-line text-text-muted hover:text-text"
+                  : "bg-surface-2 hover:bg-surface border border-line text-text-muted hover:text-text dark:bg-[#18161D] dark:border-[#2D2722] dark:text-[#EBE7DF] dark:hover:border-[rgba(217,180,74,0.45)] dark:hover:bg-[#1C1A22] [&>svg]:dark:text-[#D9B44A]"
               }`}
             >
               <Sliders className="w-3.5 h-3.5" />
@@ -628,16 +628,16 @@ function DashboardContent() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 relative z-10">
           <Link
             href="/analytics"
-            className="p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line flex items-center justify-between transition-all duration-200 group cursor-pointer"
+            className="p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line dark:bg-[#18161D] dark:border-[#2D2722] dark:hover:border-[#41372A] dark:hover:bg-[#1C1A22] flex items-center justify-between transition-all duration-200 group cursor-pointer"
           >
             <div>
-              <span className="text-[11px] text-text-muted uppercase tracking-wider font-medium block group-hover:text-text transition-colors">Overall Health</span>
-              <span className="text-lg font-bold text-text font-mono mt-0.5 block">{overallHealthScore} / 100</span>
+              <span className="text-[11px] text-text-muted dark:text-[#726C66] uppercase tracking-wider font-medium block group-hover:text-text dark:group-hover:text-[#EBE7DF] transition-colors">Overall Health</span>
+              <span className="text-lg font-bold text-text dark:text-[#EBE7DF] font-mono num-tabular mt-0.5 block">{overallHealthScore} / 100</span>
             </div>
             <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold font-mono border ${
               overallHealthScore >= 75
-                ? "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/20"
-                : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                ? "bg-emerald-500/10 text-emerald-500 dark:bg-[#172220] dark:text-[#3FA96A] border-emerald-500/20 dark:border-[rgba(63,169,106,0.35)]"
+                : "bg-amber-500/10 text-amber-500 dark:bg-[#2B2219] dark:text-[#E0A62E] border-amber-500/20 dark:border-[rgba(224,166,46,0.35)]"
             }`}>
               {overallHealthScore >= 75 ? "Optimal" : "Monitor"}
             </span>
@@ -645,39 +645,43 @@ function DashboardContent() {
 
           <Link
             href="/simulator"
-            className="p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line flex items-center justify-between transition-all duration-200 group cursor-pointer"
+            className="p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line dark:bg-[#18161D] dark:border-[#2D2722] dark:hover:border-[#41372A] dark:hover:bg-[#1C1A22] flex items-center justify-between transition-all duration-200 group cursor-pointer"
           >
             <div>
-              <span className="text-[11px] text-text-muted uppercase tracking-wider font-medium block group-hover:text-text transition-colors">Liquid Runway</span>
-              <span className="text-lg font-bold text-text font-mono mt-0.5 block">{liquidRunwayMo} mo</span>
+              <span className="text-[11px] text-text-muted dark:text-[#726C66] uppercase tracking-wider font-medium block group-hover:text-text dark:group-hover:text-[#EBE7DF] transition-colors">Liquid Runway</span>
+              <span className="text-lg font-bold text-text dark:text-[#EBE7DF] font-mono num-tabular mt-0.5 block">{liquidRunwayMo} mo</span>
             </div>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-text-muted font-semibold font-mono border border-line">
+            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold font-mono border ${
+              Number(liquidRunwayMo) >= 6
+                ? "bg-surface-2 text-text-muted border border-line dark:bg-[#172220] dark:text-[#3FA96A] dark:border-[rgba(63,169,106,0.35)]"
+                : "bg-surface-2 text-text-muted border border-line dark:bg-[#2B2219] dark:text-[#E0A62E] dark:border-[rgba(224,166,46,0.35)]"
+            }`}>
               {Number(liquidRunwayMo) >= 6 ? "Safe Zone" : "Caution"}
             </span>
           </Link>
 
           <Link
             href="/tasks"
-            className="p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line flex items-center justify-between transition-all duration-200 group cursor-pointer"
+            className="p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line dark:bg-[#18161D] dark:border-[#2D2722] dark:hover:border-[#41372A] dark:hover:bg-[#1C1A22] flex items-center justify-between transition-all duration-200 group cursor-pointer"
           >
             <div>
-              <span className="text-[11px] text-text-muted uppercase tracking-wider font-medium block group-hover:text-text transition-colors">Execution Queue</span>
-              <span className="text-lg font-bold text-text font-mono mt-0.5 block">{activeTaskCount} Active</span>
+              <span className="text-[11px] text-text-muted dark:text-[#726C66] uppercase tracking-wider font-medium block group-hover:text-text dark:group-hover:text-[#EBE7DF] transition-colors">Execution Queue</span>
+              <span className="text-lg font-bold text-text dark:text-[#EBE7DF] font-mono num-tabular mt-0.5 block">{activeTaskCount} Active</span>
             </div>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-text-muted font-semibold font-mono border border-line">
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-text-muted font-semibold font-mono border border-line dark:bg-[#122128] dark:text-[#0E9CAE] dark:border-[rgba(14,156,174,0.35)]">
               On Schedule
             </span>
           </Link>
 
           <Link
             href="/gaps"
-            className="p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line flex items-center justify-between transition-all duration-200 group cursor-pointer"
+            className="p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line dark:bg-[#18161D] dark:border-[#2D2722] dark:hover:border-[#41372A] dark:hover:bg-[#1C1A22] flex items-center justify-between transition-all duration-200 group cursor-pointer"
           >
             <div>
-              <span className="text-[11px] text-text-muted uppercase tracking-wider font-medium block group-hover:text-text transition-colors">Bottleneck Gaps</span>
-              <span className="text-lg font-bold text-text font-mono mt-0.5 block">{bottleneckGapCount} Flagged</span>
+              <span className="text-[11px] text-text-muted dark:text-[#726C66] uppercase tracking-wider font-medium block group-hover:text-text dark:group-hover:text-[#EBE7DF] transition-colors">Bottleneck Gaps</span>
+              <span className="text-lg font-bold text-text dark:text-[#EBE7DF] font-mono num-tabular mt-0.5 block">{bottleneckGapCount} Flagged</span>
             </div>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-text-muted font-semibold font-mono border border-line">
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-text-muted font-semibold font-mono border border-line dark:bg-[rgba(217,180,74,0.10)] dark:text-[#D9B44A] dark:border-[rgba(217,180,74,0.35)]">
               Action Ready
             </span>
           </Link>
@@ -763,8 +767,8 @@ function DashboardContent() {
       {/* Dynamic Dashboard Grid (Masonry-style dense packing) */}
       <div className="pt-4 mt-2">
         <div className="flex items-center gap-2 mb-4 px-1">
-          <Layers className="w-4 h-4 text-gold" />
-          <h2 className="text-xs font-bold text-text uppercase tracking-wider font-sans">
+          <Layers className="w-4 h-4 text-gold dark:text-[#D9B44A]" />
+          <h2 className="text-xs font-bold text-text dark:text-[#EBE7DF] uppercase tracking-wider font-sans">
             Executive Operations & Active Tooling
           </h2>
         </div>

@@ -164,16 +164,16 @@ export function HealthScoreWidget({
   return (
     <ContainerTile span={2} id="widget_health_score">
       <div className="space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-line/60">
+        <div className="flex items-center justify-between pb-3 border-b border-line/60 dark:border-b-[#2D2722]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gold/10 border border-gold/25 flex items-center justify-center text-gold">
+            <div className="w-8 h-8 rounded-xl bg-gold/10 border border-gold/25 dark:bg-[#18161D] dark:border-[#2D2722] flex items-center justify-center text-gold dark:text-[#D9B44A]">
               <Activity className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-xs font-bold text-text uppercase tracking-wider font-sans">
+              <h2 className="text-xs font-bold text-text dark:text-[#EBE7DF] uppercase tracking-wider font-sans">
                 Corporate Health Score
               </h2>
-              <p className="text-[11px] text-text-muted">
+              <p className="text-[11px] text-text-muted dark:text-[#97928E]">
                 Deterministic telemetry synthesized across 5 operational vectors
               </p>
             </div>
@@ -184,6 +184,12 @@ export function HealthScoreWidget({
         <div className="flex flex-col @sm:flex-row items-center gap-6 py-4">
           <div className="relative flex items-center justify-center shrink-0">
             <svg className="w-28 h-28 transform -rotate-90">
+              <defs>
+                <linearGradient id="healthGoldArc" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#F0D98A" />
+                  <stop offset="100%" stopColor="#C9A24A" />
+                </linearGradient>
+              </defs>
               <circle
                 cx="56"
                 cy="56"
@@ -191,7 +197,7 @@ export function HealthScoreWidget({
                 stroke="currentColor"
                 strokeWidth="7"
                 fill="transparent"
-                className="text-surface-2"
+                className="text-surface-2 health-gauge-track dark:text-[#18161D]"
               />
               <circle
                 cx="56"
@@ -203,33 +209,33 @@ export function HealthScoreWidget({
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
                 fill="transparent"
-                className="transition-all duration-story ease-out-custom"
+                className="transition-all duration-story ease-out-custom health-gauge-arc"
               />
             </svg>
             <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-3xl sm:text-4xl font-black num-tabular text-text font-mono leading-none tracking-tight">
+              <span className="text-3xl sm:text-4xl font-black num-tabular text-text dark:text-[#EBE7DF] font-mono leading-none tracking-tight">
                 <AnimatedNumber value={String(displayScore)} />
               </span>
-              <span className="text-[10px] text-gold font-bold font-mono mt-1 uppercase tracking-wider">
+              <span className="text-[10px] text-gold dark:text-[#D9B44A] font-bold font-mono mt-1 uppercase tracking-wider">
                 {displayScore >= 80 ? "Optimal" : displayScore >= 65 ? "Stable" : "Calibrating"}
               </span>
             </div>
           </div>
 
           <div className="flex-1 space-y-2 text-center @sm:text-left">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 font-mono">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 dark:bg-[#172220] dark:text-[#3FA96A] font-mono">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>{isFresh ? "Baseline Initiated" : "+ Live Calibrated"}</span>
             </div>
-            <p className="text-xs text-text-muted leading-relaxed">
+            <p className="text-xs text-text-muted dark:text-[#97928E] leading-relaxed">
               Composite telemetry synthesized across cash runway, revenue per FTE, and operational benchmarks for {industryName}.
             </p>
           </div>
         </div>
 
         {/* Component Breakdown with Progress Bars */}
-        <div className="space-y-2 pt-3 border-t border-white/[0.05]">
-          <div className="flex items-center justify-between text-[10px] font-bold uppercase text-text-muted/80 px-1 tracking-widest font-mono">
+        <div className="space-y-2 pt-3 border-t border-white/[0.05] dark:border-t-[#2D2722]">
+          <div className="flex items-center justify-between text-[10px] font-bold uppercase text-text-muted/80 dark:text-[#726C66] px-1 tracking-widest font-mono">
             <span>Category Performance</span>
             <span>Weight</span>
           </div>
@@ -244,25 +250,27 @@ export function HealthScoreWidget({
                   onClick={() => setSelectedComponent(isSelected ? null : comp.key)}
                   className={`p-2.5 rounded-xl text-left transition-all btn-tactile ${
                     isSelected
-                      ? "bg-amber-400/15 border border-amber-400/40 shadow-xs"
-                      : "bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.04]"
+                      ? "bg-amber-400/15 border border-amber-400/40 dark:bg-[#1C1A22] dark:border-[rgba(217,180,74,0.45)] shadow-xs"
+                      : "bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.04] dark:bg-[#18161D] dark:border-[#2D2722] dark:hover:border-[#41372A] dark:hover:bg-[#1C1A22]"
                   }`}
                 >
-                  <div className="flex items-center justify-between text-[11px] text-text-muted">
+                  <div className="flex items-center justify-between text-[11px] text-text-muted dark:text-[#97928E]">
                     <span className="truncate font-medium">{comp.name}</span>
-                    <span className="font-mono text-[9px] text-text-muted/70">{comp.weight}</span>
+                    <span className="font-mono text-[9px] text-text-muted/70 dark:text-[#726C66]">{comp.weight}</span>
                   </div>
-                  <div className="text-sm sm:text-base font-black num-tabular text-text font-mono mt-1">
+                  <div className="text-sm sm:text-base font-black num-tabular text-text dark:text-[#EBE7DF] font-mono mt-1">
                     <AnimatedNumber value={String(comp.score)} />
                   </div>
-                  <div className="w-full h-1 bg-surface rounded-full overflow-hidden mt-1.5">
+                  <div className="w-full h-1 bg-surface dark:bg-[#121016] rounded-full overflow-hidden mt-1.5">
                     <div
                       className={`h-full rounded-full transition-all duration-slow ease-out-custom ${
-                        comp.score >= 80
-                          ? "bg-gradient-to-r from-gold-light to-gold"
+                        comp.score < 60
+                          ? "bg-gradient-to-r from-rust to-gold-dark dark:bg-[#E04A3C]"
+                          : comp.score >= 80
+                          ? "bg-gradient-to-r from-gold-light to-gold dark:bg-[#D9B44A]"
                           : comp.score >= 70
-                          ? "bg-gradient-to-r from-gold to-gold-dark"
-                          : "bg-gradient-to-r from-rust to-gold-dark"
+                          ? "bg-gradient-to-r from-gold to-gold-dark dark:bg-[#C9A24A]"
+                          : "bg-gradient-to-r from-rust to-gold-dark dark:bg-[#A8823A]"
                       }`}
                       style={{ width: `${comp.score}%` }}
                     />
@@ -274,19 +282,19 @@ export function HealthScoreWidget({
 
           {/* Expandable breakdown explanation */}
           {selectedComponent && (
-            <div className="mt-2 p-3 rounded-xl bg-surface-2/80 border border-gold/30 text-xs text-text animate-fade-in flex items-start justify-between gap-3">
+            <div className="mt-2 p-3 rounded-xl bg-surface-2/80 dark:bg-[#18161D] border border-gold/30 dark:border-[#2D2722] text-xs text-text dark:text-[#EBE7DF] animate-fade-in flex items-start justify-between gap-3">
               <div className="space-y-0.5">
-                <span className="font-bold text-gold font-mono text-[11px] uppercase tracking-wider block">
+                <span className="font-bold text-gold dark:text-[#D9B44A] font-mono text-[11px] uppercase tracking-wider block">
                   {components.find(c => c.key === selectedComponent)?.name} Analysis
                 </span>
-                <p className="text-text-muted text-xs leading-relaxed">
+                <p className="text-text-muted dark:text-[#97928E] text-xs leading-relaxed">
                   {components.find(c => c.key === selectedComponent)?.detail}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedComponent(null)}
-                className="text-[10px] px-2 py-0.5 rounded-lg bg-surface border border-line text-text-muted hover:text-text font-medium shrink-0"
+                className="text-[10px] px-2 py-0.5 rounded-lg bg-surface dark:bg-[#121016] border border-line dark:border-[#2D2722] text-text-muted dark:text-[#726C66] hover:text-text dark:hover:text-[#EBE7DF] font-medium shrink-0 cursor-pointer"
               >
                 Dismiss
               </button>

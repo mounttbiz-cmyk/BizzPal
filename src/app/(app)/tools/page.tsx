@@ -717,13 +717,13 @@ function ToolsContent() {
           onClick={() => setActiveToolId(null)}
         >
           <div
-            className="max-w-2xl w-full bg-white dark:bg-[#0C1222] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh] animate-scale-in"
+            className="max-w-2xl w-full bg-white dark:bg-[#121016] border border-slate-200 dark:border-[#2D2722] rounded-2xl shadow-2xl dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh] animate-scale-in"
             onClick={e => e.stopPropagation()}
           >
             {/* Pop-Up Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50/80 dark:bg-white/[0.02] shrink-0">
+            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-[#2D2722] flex items-center justify-between bg-slate-50/80 dark:bg-[#18161D] shrink-0">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 dark:bg-[#122128] dark:border-[rgba(14,156,174,0.30)] flex items-center justify-center text-cyan-600 dark:text-[#0E9CAE] shrink-0">
                   {activeTool.hasInteractiveCalculator ? (
                     <Calculator className="w-5 h-5" />
                   ) : (
@@ -732,16 +732,16 @@ function ToolsContent() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-[#EBE7DF] truncate">
                       {activeTool.name}
                     </h2>
                     {activeTool.badge && (
-                      <span className="text-[9px] px-2 py-0.5 rounded-md font-mono font-semibold uppercase bg-slate-100 dark:bg-white/[0.08] border border-slate-200 dark:border-white/10 text-cyan-700 dark:text-cyan-400 shrink-0">
+                      <span className="text-[9px] px-2 py-0.5 rounded-md font-mono font-semibold uppercase bg-slate-100 dark:bg-[#18161D] border border-slate-200 dark:border-[#2D2722] text-cyan-700 dark:text-[#0E9CAE] shrink-0">
                         {activeTool.badge}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                  <p className="text-[11px] text-slate-500 dark:text-[#97928E] truncate mt-0.5">
                     {activeTool.description}
                   </p>
                 </div>
@@ -750,18 +750,18 @@ function ToolsContent() {
               <button
                 type="button"
                 onClick={() => setActiveToolId(null)}
-                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer shrink-0 ml-2"
+                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 dark:text-[#726C66] dark:hover:text-[#EBE7DF] dark:hover:bg-[#1C1A22] transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer shrink-0 ml-2"
                 title="Close calculator (Esc)"
               >
                 <span className="hidden sm:inline">Close</span>
-                <kbd className="hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded bg-white dark:bg-white/[0.08] border border-slate-200 dark:border-white/10 font-mono text-slate-500 dark:text-slate-400">
+                <kbd className="hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded bg-white dark:bg-[#18161D] border border-slate-200 dark:border-[#2D2722] font-mono text-slate-500 dark:text-[#97928E]">
                   ESC
                 </kbd>
                 <X className="w-4 h-4" />
               </button>
             </div>
             {/* Scrollable Pop-Up Body */}
-            <div className="p-4 sm:p-6 overflow-y-auto space-y-5 bg-white dark:bg-[#0C1222]">
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-5 bg-white dark:bg-[#121016]">
               {!activeTool.hasInteractiveCalculator ? (
                 <div className="p-6 sm:p-8 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 text-center space-y-4">
                   <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 mx-auto">
@@ -779,7 +779,7 @@ function ToolsContent() {
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 text-left text-xs space-y-2 max-w-lg mx-auto">
+                  <div className="p-4 rounded-xl bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 text-left text-xs space-y-2 max-w-lg mx-auto">
                     <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                       <span>Tool Specifications</span>
                       <span className="font-mono text-cyan-600 dark:text-cyan-400">{activeTool.badge}</span>
@@ -863,7 +863,7 @@ function ToolsContent() {
                             Real-Time Profitability Output
                           </span>
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-3 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Gross Margin</div>
                               <div className="text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
                                 {grossMargin}%
@@ -872,7 +872,7 @@ function ToolsContent() {
                                 ₹{grossProfit.toLocaleString("en-IN")}
                               </div>
                             </div>
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-3 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Net Margin</div>
                               <div
                                 className={`text-base font-extrabold font-mono ${
@@ -951,14 +951,14 @@ function ToolsContent() {
                             Break-Even Solvency Requirement
                           </span>
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-3 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Target Deals / Units</div>
                               <div className="text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
                                 {breakevenUnits} contracts
                               </div>
                               <div className="text-[10px] text-slate-400 mt-0.5">per month</div>
                             </div>
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-3 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Required Revenue</div>
                               <div className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
                                 ₹{breakevenRevenue.toLocaleString("en-IN")}
@@ -1029,19 +1029,19 @@ function ToolsContent() {
                             Unit Acquisition & Lifetime Value
                           </span>
                           <div className="grid grid-cols-3 gap-2">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Blended CAC</div>
                               <div className="text-xs sm:text-sm font-extrabold text-rose-600 dark:text-rose-400 font-mono">
                                 ₹{calculatedCAC.toLocaleString("en-IN")}
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Customer LTV</div>
                               <div className="text-xs sm:text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
                                 ₹{calculatedLTV.toLocaleString("en-IN")}
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">LTV / CAC</div>
                               <div className="text-xs sm:text-sm font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
                                 {ltvToCacRatio}x
@@ -1113,14 +1113,14 @@ function ToolsContent() {
                             Runway & Liquidity Telemetry
                           </span>
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-3 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Net Monthly Cash Flow</div>
                               <div className={`text-base font-extrabold font-mono ${netCashFlow >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                                 {netCashFlow >= 0 ? `+₹${netCashFlow.toLocaleString("en-IN")}` : `-₹${Math.abs(netCashFlow).toLocaleString("en-IN")}`}
                               </div>
                               <div className="text-[10px] text-slate-400 mt-0.5">per month</div>
                             </div>
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-3 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Projected Runway</div>
                               <div className="text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
                                 {runwayMonths === "Profitable" ? "Infinite" : `${runwayMonths} Mo`}
@@ -1180,7 +1180,7 @@ function ToolsContent() {
                             Return on Investment Dynamics
                           </span>
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-3 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Net Annual ROI</div>
                               <div className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
                                 {roiPercentage}%
@@ -1189,7 +1189,7 @@ function ToolsContent() {
                                 +₹{netBenefit.toLocaleString("en-IN")}
                               </div>
                             </div>
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-3 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Payback Period</div>
                               <div className="text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
                                 {paybackMonths} Mo
@@ -1263,7 +1263,7 @@ function ToolsContent() {
                             Amortization & Debt Service Telemetry
                           </span>
                           <div className="grid grid-cols-2 gap-2.5">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Monthly EMI</div>
                               <div className="text-sm sm:text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
                                 ₹{emiMonthlyAmount.toLocaleString("en-IN")}
@@ -1272,7 +1272,7 @@ function ToolsContent() {
                                 {emiTenureMonths} installments
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Total Interest</div>
                               <div className="text-sm sm:text-base font-extrabold text-rose-600 dark:text-rose-400 font-mono">
                                 ₹{emiTotalInterest.toLocaleString("en-IN")}
@@ -1282,7 +1282,7 @@ function ToolsContent() {
                               </div>
                             </div>
                           </div>
-                          <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 text-xs flex items-center justify-between">
+                          <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 text-xs flex items-center justify-between">
                             <span className="text-slate-500 dark:text-slate-400 text-[11px]">Monthly Burn Impact:</span>
                             <span className="font-bold text-amber-500 font-mono text-[11px]">{emiBurnImpact}% of OPEX</span>
                           </div>
@@ -1383,7 +1383,7 @@ function ToolsContent() {
                             Tax Assessment & Compliance
                           </span>
                           <div className="grid grid-cols-2 gap-2.5">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Total GST</div>
                               <div className="text-sm sm:text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
                                 ₹{calculatedGST.toLocaleString("en-IN")}
@@ -1392,7 +1392,7 @@ function ToolsContent() {
                                 {!gstIsInterState ? `CGST ₹${gstCgst.toLocaleString("en-IN")} + SGST ₹${gstSgst.toLocaleString("en-IN")}` : `IGST ₹${gstIgst.toLocaleString("en-IN")}`}
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-500 dark:text-slate-400">Net Tax Payable (after ITC)</div>
                               <div className="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
                                 ₹{gstNetPayable.toLocaleString("en-IN")}
@@ -1494,24 +1494,24 @@ function ToolsContent() {
                             Working Capital & Cash Velocity
                           </span>
                           <div className="grid grid-cols-3 gap-2">
-                            <div className="p-2 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 text-center">
+                            <div className="p-2 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 text-center">
                               <div className="text-[9px] text-slate-400">DSO (Receivables)</div>
                               <div className="text-xs sm:text-sm font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">{wcDso} d</div>
                             </div>
-                            <div className="p-2 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 text-center">
+                            <div className="p-2 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 text-center">
                               <div className="text-[9px] text-slate-400">DIO (Inventory)</div>
                               <div className="text-xs sm:text-sm font-extrabold text-amber-500 font-mono">{wcDio} d</div>
                             </div>
-                            <div className="p-2 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 text-center">
+                            <div className="p-2 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 text-center">
                               <div className="text-[9px] text-slate-400">DPO (Payables)</div>
                               <div className="text-xs sm:text-sm font-extrabold text-emerald-500 font-mono">{wcDpo} d</div>
                             </div>
                           </div>
-                          <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
+                          <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
                             <span className="text-slate-500 text-[11px]">Cash Conversion Cycle (CCC):</span>
                             <span className="font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">{wcCcc} Days</span>
                           </div>
-                          <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
+                          <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
                             <span className="text-slate-500 text-[11px]">Trapped Working Capital:</span>
                             <span className="font-extrabold text-slate-900 dark:text-white font-mono">₹{wcTrappedCash.toLocaleString("en-IN")}</span>
                           </div>
@@ -1578,7 +1578,7 @@ function ToolsContent() {
                             Margin Erosion Diagnostics
                           </span>
                           <div className="grid grid-cols-2 gap-2.5">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-400">Discounted Price</div>
                               <div className="text-sm font-extrabold text-slate-900 dark:text-white font-mono">
                                 ₹{discDiscountedPrice.toLocaleString("en-IN")}
@@ -1587,7 +1587,7 @@ function ToolsContent() {
                                 Margin: {discNewMargin}% (was {discBaseMargin}%)
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-400">Extra Volume Needed</div>
                               <div className="text-sm font-extrabold text-amber-500 font-mono">
                                 +{discExtraVolumeNeeded}%
@@ -1673,14 +1673,14 @@ function ToolsContent() {
                             Retention & Expansion Benchmarks
                           </span>
                           <div className="grid grid-cols-2 gap-2.5">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-400">Net Revenue Retention</div>
                               <div className={`text-base font-extrabold font-mono ${Number(nrrPercentage) >= 100 ? "text-emerald-500" : "text-amber-500"}`}>
                                 {nrrPercentage}%
                               </div>
                               <div className="text-[10px] text-slate-400 mt-0.5">GRR: {nrrGrr}%</div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-400">Ending MRR</div>
                               <div className="text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
                                 ₹{nrrEndingMrr.toLocaleString("en-IN")}
@@ -1767,7 +1767,7 @@ function ToolsContent() {
                             True Headcount Economics
                           </span>
                           <div className="grid grid-cols-2 gap-2.5">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-400">Total Loaded Annual Cost</div>
                               <div className="text-sm font-extrabold text-slate-900 dark:text-white font-mono">
                                 ₹{empLoadedAnnual.toLocaleString("en-IN")}
@@ -1776,7 +1776,7 @@ function ToolsContent() {
                                 ₹{empLoadedMonthly.toLocaleString("en-IN")}/mo burn
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#18161D] dark:border-[#2D2722] border border-slate-200 dark:border-white/10 shadow-xs">
                               <div className="text-[10px] text-slate-400">Min Client Billing Rate</div>
                               <div className="text-sm font-extrabold text-emerald-500 font-mono">
                                 ₹{empBillingRate}/hr

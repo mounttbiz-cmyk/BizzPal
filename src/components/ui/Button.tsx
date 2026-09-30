@@ -22,16 +22,16 @@ const sizeClasses: Record<ButtonSize, string> = {
 const variantClasses: Record<ButtonVariant, string> = {
   // Primary: signature BizzPal champagne gold CTA
   primary:
-    "btn-gold-gradient font-bold shadow-md hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none",
-  // Secondary: 1px border, transparent/surface background, text-colored.
+    "btn-gold-gradient font-bold shadow-md hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none",
+  // Secondary: 1px border, background #18161D, border #2D2722, text #EBE7DF. Hover: border rgba(217,180,74,0.45), text #F0D98A
   secondary:
-    "bg-surface-2/60 border border-line hover:border-line-strong hover:bg-surface-2 text-text font-semibold disabled:opacity-50 disabled:pointer-events-none",
-  // Ghost: text-only, no border, subtle hover wash.
+    "bg-surface-2/60 border border-line hover:border-line-strong hover:bg-surface-2 text-text font-semibold dark:bg-[#18161D] dark:border-[#2D2722] dark:text-[#EBE7DF] dark:hover:border-[rgba(217,180,74,0.45)] dark:hover:text-[#F0D98A] disabled:opacity-40 disabled:pointer-events-none",
+  // Ghost: text-only, no border, text #97928E. Hover: background #1C1A22, text #EBE7DF
   ghost:
-    "bg-transparent border border-transparent hover:bg-surface-2 text-text-muted hover:text-text font-medium disabled:opacity-50 disabled:pointer-events-none",
-  // Danger: reserved for destructive actions (delete, reset).
+    "bg-transparent border border-transparent hover:bg-surface-2 text-text-muted hover:text-text font-medium dark:text-[#97928E] dark:hover:bg-[#1C1A22] dark:hover:text-[#EBE7DF] disabled:opacity-40 disabled:pointer-events-none",
+  // Danger: background #2B171B, border rgba(224,74,60,0.35), text #E04A3C
   danger:
-    "bg-transparent border border-transparent hover:bg-rust/10 text-text-muted hover:text-rust font-semibold disabled:opacity-50 disabled:pointer-events-none",
+    "bg-transparent border border-transparent hover:bg-rust/10 text-text-muted hover:text-rust font-semibold dark:bg-[#2B171B] dark:border-[rgba(224,74,60,0.35)] dark:text-[#E04A3C] disabled:opacity-40 disabled:pointer-events-none",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

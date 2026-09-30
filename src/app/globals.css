@@ -4,56 +4,128 @@
 @tailwind components;
 @tailwind utilities;
 
-:root, [data-theme="dark"] {
-  /* BizzPal Signature Champagne Gold & Warm Obsidian Palette */
-  --bg:          #08090C;   /* Deep luxury obsidian void */
-  --surface:     #0F1218;   /* Elevated warm obsidian surface */
-  --surface-2:   #161922;   /* Interactive slate layer */
-  --line:        rgba(255, 255, 255, 0.08);   /* Subtle neutral structural hairline */
-  --line-strong: rgba(255, 255, 255, 0.16);   /* Emphasized hairline */
-  --text:        #F8F9FA;   /* Crisp diamond white */
-  --text-muted:  #94A3B8;   /* Clean slate muted text */
+:root, [data-theme="dark"], .dark {
+  /* BizzPal Obsidian-Black & Metallic Gold Theme Tokens */
+  --bg:              #08070A;   /* App background */
+  --sidebar-bg:      #0B0A0E;   /* Sidebar background */
+  --surface:         #121016;   /* Card / panel surface */
+  --surface-2:       #18161D;   /* Raised / nested surface */
+  --surface-hover:   #1C1A22;   /* Hover surface */
+  --line:            #2D2722;   /* Default border (1px, on cards, inputs, dividers) */
+  --line-strong:     #41372A;   /* Strong border (hover and selected states) */
+  --line-gold:       rgba(217, 180, 74, 0.45); /* Gold border (active / focused) */
+  --text:            #EBE7DF;   /* Primary text (headings, values, main labels) */
+  --text-secondary:  #97928E;   /* Secondary text (descriptions, subtitles) */
+  --text-muted:      #726C66;   /* Muted text (uppercase section labels, placeholders, meta) */
   
-  /* Tasteful Champagne Gold & Luxury Brass — warm, rich, and balanced (NOT loud yellow/mustard) */
-  --gold:        #DFBA73;   /* Refined Metallic Champagne Gold */
-  --gold-light:  #F7ECD1;   /* Soft Champagne shimmer */
-  --gold-dark:   #A37C2C;   /* Burnished deep bronze gold */
-  --gold-glow:   rgba(223, 186, 115, 0.20);
-  --brass:       #DFBA73;   /* Warm luxury brass */
-  --brass-soft:  rgba(223, 186, 115, 0.12);
-  --cyan:        #38BDF8;   /* Crisp executive cyan */
-  --cyan-soft:   rgba(56, 189, 248, 0.08);
-  --violet:      #A78BFA;   /* Subtle executive violet */
-  --violet-soft: rgba(167, 139, 250, 0.08);
-  --jade:        #10B981;   /* Live operational emerald */
-  --rust:        #F43F5E;   /* Crimson alert */
-  --amber:       #F59E0B;   /* Warm amber */
-  --shadow:      0 12px 36px 0 rgba(0, 0, 0, 0.6);
-  --grid:        rgba(223, 186, 115, 0.02);
+  /* Gold */
+  --gold:            #D9B44A;   /* Gold (main accent) */
+  --gold-light:      #F0D98A;   /* Champagne (highlight) */
+  --gold-dark:       #A8823A;   /* Antique gold (secondary) */
+  --gold-text:       #0A0806;   /* Text on gold */
+  --gold-glow:       rgba(217, 180, 74, 0.45);
+  --brass:           #D9B44A;   /* Primary metallic gold */
+  --brass-soft:      rgba(217, 180, 74, 0.10);
+  
+  /* Status (always paired with icon or label) */
+  --jade:            #3FA96A;   /* Good / success */
+  --jade-bg:         #172220;
+  --amber:           #E0A62E;   /* Warning */
+  --amber-bg:        #2B2219;
+  --serious:         #E2701F;   /* Serious */
+  --rust:            #E04A3C;   /* Critical / error */
+  --rust-bg:         #2B171B;
+  --cyan:            #0E9CAE;   /* Info / live */
+  --cyan-bg:         #122128;
+  --cyan-soft:       rgba(14, 156, 174, 0.10);
+  --violet:          #8B7BE8;   /* Violet */
+  --violet-soft:     rgba(139, 123, 232, 0.10);
 
-  /* Motion tokens (§4.1) */
-  --dur-instant: 90ms;
-  --dur-fast:    150ms;
-  --dur-base:    240ms;
-  --dur-slow:    420ms;
-  --dur-story:   1200ms;
+  /* Shadows */
+  --shadow:          0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 20px 50px -30px rgba(0, 0, 0, 0.8);
+  --grid:            rgba(217, 180, 74, 0.02);
 
-  --ease-out:    cubic-bezier(.2,.8,.2,1);
-  --ease-in:     cubic-bezier(.4,0,1,1);
-  --ease-spring: cubic-bezier(.34,1.4,.64,1);
+  /* Motion tokens (§4.1 & Section 9) */
+  --dur-instant:     90ms;
+  --dur-fast:        150ms;
+  --dur-base:        240ms;
+  --dur-slow:        300ms;
+  --dur-story:       1200ms;
+
+  --ease-out:        cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in:         cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring:     cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* SHADCN VARIABLES (§3) */
+  --background: 260 18% 3%;
+  --foreground: 40 23% 90%;
+
+  --card: 260 16% 7%;
+  --card-foreground: 40 23% 90%;
+
+  --popover: 257 14% 10%;
+  --popover-foreground: 40 23% 90%;
+
+  --primary: 44 65% 57%;
+  --primary-foreground: 30 25% 3%;
+
+  --secondary: 257 14% 10%;
+  --secondary-foreground: 40 23% 90%;
+
+  --muted: 257 14% 10%;
+  --muted-foreground: 27 4% 57%;
+
+  --accent: 255 13% 12%;
+  --accent-foreground: 40 23% 90%;
+
+  --destructive: 5 73% 56%;
+  --destructive-foreground: 40 23% 90%;
+
+  --border: 27 14% 15%;
+  --input: 27 14% 15%;
+  --ring: 44 65% 57%;
+
+  --sidebar-background: 255 17% 5%;
+  --sidebar-foreground: 27 4% 57%;
+  --sidebar-primary: 44 65% 57%;
+  --sidebar-primary-foreground: 30 25% 3%;
+  --sidebar-accent: 255 13% 12%;
+  --sidebar-accent-foreground: 40 23% 90%;
+  --sidebar-border: 27 14% 15%;
+  --sidebar-ring: 44 65% 57%;
+
+  --chart-1: 42 56% 44%;
+  --chart-2: 215 77% 61%;
+  --chart-3: 348 59% 58%;
+  --chart-4: 249 70% 70%;
+  --chart-5: 23 64% 50%;
+
+  /* Chart series (§7) */
+  --chart-series-1: #B08B32;
+  --chart-series-2: #4E8FE8;
+  --chart-series-3: #D4566F;
+  --chart-series-4: #8B7BE8;
+  --chart-series-5: #D16E30;
+  --chart-series-6: #0E9CAE;
+  --chart-series-7: #2F7A45;
+  --chart-series-8: #B060C2;
 }
 
 [data-theme="light"] {
   --bg:          #F8FAFC;   /* Crisp neutral clean platinum */
   --surface:     #FFFFFF;   /* Pure crisp white card surface */
   --surface-2:   #F1F5F9;   /* Clean elevated surface */
+  --surface-hover: #F8FAFC;
   --line:        #E2E8F0;   /* Clean neutral slate border */
   --line-strong: #CBD5E1;   /* Defined border */
+  --line-gold:   rgba(155, 118, 36, 0.4);
   --text:        #0F172A;   /* Crisp deep obsidian slate text */
+  --text-secondary: #475569;
   --text-muted:  #64748B;   /* Slate neutral muted text */
   --gold:        #9B7624;   /* Refined antique champagne brass, readable & elegant */
   --gold-light:  #BD9946;
   --gold-dark:   #735411;
+  --gold-text:   #FFFFFF;
   --gold-glow:   rgba(155, 118, 36, 0.12);
   --brass:       #9B7624;
   --brass-soft:  rgba(155, 118, 36, 0.08);
@@ -66,6 +138,91 @@
   --amber:       #D97706;
   --shadow:      0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 20px rgba(0, 0, 0, 0.05);
   --grid:        #F1F5F9;
+}
+
+/* Dark mode body and selection */
+html.dark body,
+[data-theme="dark"] body {
+  background: #08070A !important;
+  color: #EBE7DF !important;
+}
+
+html.dark ::selection,
+[data-theme="dark"] ::selection {
+  background: #D9B44A !important;
+  color: #0A0806 !important;
+}
+
+/* Dark scrollbars: track #0B0A0E, thumb #2D2722, thumb hover #41372A */
+html.dark *,
+[data-theme="dark"] * {
+  scrollbar-color: #2D2722 #0B0A0E;
+}
+
+html.dark ::-webkit-scrollbar-track,
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #0B0A0E;
+}
+
+html.dark ::-webkit-scrollbar-thumb,
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #2D2722;
+  border-radius: 9999px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #41372A;
+}
+
+/* Ambient app background (subtle gold ambience behind everything) */
+html.dark body::before,
+[data-theme="dark"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(900px 600px at 70% -10%, rgba(217, 180, 74, 0.06), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Focus visible styling */
+.dark *:focus-visible,
+[data-theme="dark"] *:focus-visible {
+  outline: 2px solid #D9B44A !important;
+  outline-offset: 2px !important;
+}
+
+/* Form input tokens */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+.dark textarea,
+.dark select {
+  background-color: #18161D;
+  border-color: #2D2722;
+  color: #EBE7DF;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #726C66;
+}
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: rgba(217, 180, 74, 0.45) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(217, 180, 74, 0.12) !important;
+}
+
+/* Corporate Health Score Gauge Arc (§6) */
+html.dark .health-gauge-arc,
+[data-theme="dark"] .health-gauge-arc {
+  stroke: url(#healthGoldArc) !important;
+  filter: drop-shadow(0 0 10px rgba(217, 180, 74, 0.35)) !important;
+}
+
+html.dark .health-gauge-track,
+[data-theme="dark"] .health-gauge-track {
+  stroke: #18161D !important;
 }
 
 /* Sleek custom scrollbars matching BizzPal brass/slate design across the whole dashboard & website */
@@ -155,6 +312,46 @@ body, [data-surface] {
   color: #120E05 !important;
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
   box-shadow: 0 4px 14px -2px rgba(223, 186, 115, 0.3) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Dark mode primary gold button: §4 & §8 */
+html.dark .btn-gold-gradient,
+[data-theme="dark"] .btn-gold-gradient {
+  background-image: linear-gradient(135deg, #F7E7B4 0%, #E2C570 38%, #C9A24A 62%, #A9842F 100%) !important;
+  color: #0A0806 !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(217, 180, 74, 0.45) !important;
+  box-shadow: 0 10px 30px -8px rgba(217, 180, 74, 0.45) !important;
+  position: relative;
+  overflow: hidden;
+  transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+html.dark .btn-gold-gradient:hover,
+[data-theme="dark"] .btn-gold-gradient:hover {
+  box-shadow: 0 0 34px -8px rgba(217, 180, 74, 0.55) !important;
+  transform: translateY(-2px);
+}
+
+html.dark .btn-gold-gradient::after,
+[data-theme="dark"] .btn-gold-gradient::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  pointer-events: none;
+}
+
+html.dark .btn-gold-gradient:hover::after,
+[data-theme="dark"] .btn-gold-gradient:hover::after {
+  left: 150%;
+  transition: left 0.9s ease;
 }
 
 [data-theme="light"] .btn-gold-gradient {
@@ -162,6 +359,32 @@ body, [data-surface] {
   color: #FFFFFF !important;
   border: 1px solid rgba(155, 118, 36, 0.3) !important;
   box-shadow: 0 4px 12px -2px rgba(155, 118, 36, 0.25) !important;
+}
+
+/* Logo signature gradients (§4) */
+html.dark .logo-bizz,
+[data-theme="dark"] .logo-bizz {
+  background: linear-gradient(180deg, #FFFFFF 0%, #EFF3F9 26%, #B6BFCC 50%, #FAFCFF 61%, #CFD7E3 76%, #8C95A4 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  display: inline-block;
+}
+
+html.dark .logo-pal,
+[data-theme="dark"] .logo-pal {
+  background: linear-gradient(180deg, #FFF9E9 0%, #F6E2A8 26%, #C9A24A 50%, #FDF2D2 61%, #E2C274 76%, #8D6D28 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  display: inline-block;
+}
+
+html.dark .logo-tm,
+[data-theme="dark"] .logo-tm {
+  color: #D9B44A !important;
 }
 
 /* Tactile micro-interactions (§4.3) */
@@ -184,7 +407,8 @@ body, [data-surface] {
   }
 }
 
-/* Glassmorphic card styling — seamless, soft depth, no harsh borders */
+/* Glassmorphic & card surface sheen styling (§4 & §6) */
+.card-sheen,
 .glass-card {
   position: relative;
   background: rgba(13, 16, 23, 0.70);
@@ -193,6 +417,22 @@ body, [data-surface] {
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 1.25rem;
   box-shadow: 0 12px 36px -10px rgba(0, 0, 0, 0.45);
+}
+
+html.dark .card-sheen,
+[data-theme="dark"] .card-sheen,
+html.dark .glass-card,
+[data-theme="dark"] .glass-card {
+  background-color: #121016 !important;
+  background-image: linear-gradient(160deg, rgba(226, 196, 120, 0.05), rgba(255, 255, 255, 0.01)) !important;
+  border: 1px solid #2D2722 !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 20px 50px -30px rgba(0, 0, 0, 0.8) !important;
+  transition: border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+html.dark .card-sheen:hover,
+[data-theme="dark"] .card-sheen:hover {
+  border-color: #41372A !important;
 }
 
 [data-theme="light"] .glass-card {

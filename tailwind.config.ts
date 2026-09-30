@@ -22,9 +22,13 @@ const config: Config = {
     extend: {
       colors: {
         bg: "var(--bg)",
+        sidebar: {
+          bg: "var(--sidebar-bg)",
+        },
         surface: {
           DEFAULT: "var(--surface)",
           2: "var(--surface-2)",
+          hover: "var(--surface-hover)",
         },
         line: {
           DEFAULT: "var(--line)",
@@ -32,6 +36,7 @@ const config: Config = {
         },
         text: {
           DEFAULT: "var(--text)",
+          secondary: "var(--text-secondary)",
           muted: "var(--text-muted)",
         },
         brass: {
@@ -51,6 +56,7 @@ const config: Config = {
           DEFAULT: "var(--gold)",
           light: "var(--gold-light)",
           dark: "var(--gold-dark)",
+          text: "var(--gold-text)",
           glow: "var(--gold-glow)",
         },
         jade: "var(--jade)",

@@ -6,6 +6,7 @@ import { ProvenanceBadge, StatusBadge } from "../ui/Badge";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
 import { TrendingUp, TrendingDown, HelpCircle, MessageSquare, DollarSign, Clock, Users, Percent, BarChart2 } from "lucide-react";
 import Link from "next/link";
+import { useTheme } from "@/lib/theme/ThemeProvider";
 
 import { useBusinessDataSync } from "@/lib/upload/events";
 
@@ -18,6 +19,7 @@ interface KpiItem {
   sentiment: "positive" | "negative";
   basis: string;
   color: string;
+  darkColor: string;
   gradientId: string;
   icon: React.ReactNode;
   points: string;
@@ -26,6 +28,9 @@ interface KpiItem {
 }
 
 export function KpiGridWidget() {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   const [industryLabel, setIndustryLabel] = useState("Enterprise");
   const [monthlyRev, setMonthlyRev] = useState(0);
   const [annualRev, setAnnualRev] = useState(0);
@@ -122,8 +127,9 @@ export function KpiGridWidget() {
       sentiment: monthlyRev > 0 ? "positive" : "negative",
       basis: monthlyRev > 0 ? "active operating billings" : "awaiting billings",
       color: "#00D9FF",
+      darkColor: "#D9B44A",
       gradientId: "grad-mrr",
-      icon: <DollarSign className="w-4 h-4 text-cyan-400" />,
+      icon: <DollarSign className="w-4 h-4 text-cyan-400 dark:text-[#D9B44A]" />,
       points: sparklinePoints || "0,20 15,16 30,17 45,9 60,7 75,3",
       areaPoints: sparklinePoints ? `${sparklinePoints} 75,25 0,25` : "0,20 15,16 30,17 45,9 60,7 75,3 75,25 0,25",
       provenance: isUploaded ? "from_data" : "estimate",
@@ -137,8 +143,9 @@ export function KpiGridWidget() {
       sentiment: Number(runwayMonths) >= 6 || runwayMonths === "18+" ? "positive" : "negative",
       basis: burn > 0 ? `₹${burn.toLocaleString("en-IN")}/mo net burn` : "awaiting burn data",
       color: "#F59E0B",
+      darkColor: "#D16E30",
       gradientId: "grad-runway",
-      icon: <Clock className="w-4 h-4 text-amber-400" />,
+      icon: <Clock className="w-4 h-4 text-amber-400 dark:text-[#D16E30]" />,
       points: "0,19 15,18 30,14 45,13 60,9 75,5",
       areaPoints: "0,19 15,18 30,14 45,13 60,9 75,5 75,25 0,25",
       provenance: isUploaded ? "from_data" : "estimate",
@@ -152,8 +159,9 @@ export function KpiGridWidget() {
       sentiment: revPerHead > 0 ? "positive" : "negative",
       basis: effectiveTeam > 0 ? `${effectiveTeam} team members` : "awaiting headcount",
       color: "#8B5CF6",
+      darkColor: "#8B7BE8",
       gradientId: "grad-revhead",
-      icon: <Users className="w-4 h-4 text-violet-400" />,
+      icon: <Users className="w-4 h-4 text-violet-400 dark:text-[#8B7BE8]" />,
       points: "0,18 15,15 30,16 45,10 60,8 75,4",
       areaPoints: "0,18 15,15 30,16 45,10 60,8 75,4 75,25 0,25",
       provenance: isUploaded ? "from_data" : "estimate",
@@ -167,8 +175,9 @@ export function KpiGridWidget() {
       sentiment: grossMarginVal >= 50 ? "positive" : "negative",
       basis: grossMarginVal > 0 ? `tailored for ${industryLabel}` : "awaiting COGS data",
       color: "#10B981",
+      darkColor: "#3FA96A",
       gradientId: "grad-margin",
-      icon: <Percent className="w-4 h-4 text-emerald-400" />,
+      icon: <Percent className="w-4 h-4 text-emerald-400 dark:text-[#3FA96A]" />,
       points: "0,17 15,14 30,15 45,11 60,7 75,3",
       areaPoints: "0,17 15,14 30,15 45,11 60,7 75,3 75,25 0,25",
       provenance: isUploaded ? "from_data" : "estimate",
@@ -178,16 +187,16 @@ export function KpiGridWidget() {
   return (
     <ContainerTile span={4} id="widget_kpi_board">
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-line/60">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-line/60 dark:border-b-[#2D2722]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gold/15 border border-gold/30 flex items-center justify-center text-gold">
+            <div className="w-8 h-8 rounded-xl bg-gold/15 border border-gold/30 dark:bg-[#18161D] dark:border-[#2D2722] flex items-center justify-center text-gold dark:text-[#D9B44A]">
               <BarChart2 className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-xs font-bold text-text uppercase tracking-wider font-sans">
+              <h2 className="text-xs font-bold text-text dark:text-[#EBE7DF] uppercase tracking-wider font-sans">
                 Core Performance Indicators
               </h2>
-              <p className="text-[11px] text-text-muted">
+              <p className="text-[11px] text-text-muted dark:text-[#97928E]">
                 Continuous telemetry tailored for {industryLabel} in Indian Rupees (₹)
               </p>
             </div>
@@ -203,81 +212,94 @@ export function KpiGridWidget() {
 
         {/* 4-column KPI cards grid */}
         <div className="grid grid-cols-1 @sm:grid-cols-2 @lg:grid-cols-4 gap-3.5">
-          {kpis.map(kpi => (
-            <div
-              key={kpi.id}
-              className="p-4 rounded-xl bg-surface-2/50 border border-line hover:border-line-strong flex flex-col justify-between space-y-3 transition-all duration-200 group relative overflow-hidden"
-            >
-              {/* Top ambient color glow */}
+          {kpis.map(kpi => {
+            const activeColor = isDark ? kpi.darkColor : kpi.color;
+            const isPositive = kpi.sentiment === "positive";
+
+            return (
               <div
-                className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-10 pointer-events-none -mr-8 -mt-8"
-                style={{ backgroundColor: kpi.color }}
-              />
-
-              <div className="flex items-center gap-2.5 relative z-10 w-full min-w-0">
-                <div className="p-1.5 rounded-lg bg-surface/80 border border-line shrink-0">
-                  {kpi.icon}
-                </div>
-                <span className="text-xs text-text font-medium leading-snug">
-                  {kpi.label}
-                </span>
-              </div>
-
-              {/* Value and SVG Sparkline with Gradient Fill */}
-              <div className="flex items-end justify-between pt-1 relative z-10">
-                <div className="text-2xl sm:text-3xl font-extrabold num-tabular text-text tracking-tight font-mono">
-                  <AnimatedNumber value={kpi.value} />
-                </div>
-
-                {/* SVG Sparkline */}
-                <svg className="w-20 h-7 shrink-0 overflow-visible" viewBox="0 0 75 25">
-                  <defs>
-                    <linearGradient id={kpi.gradientId} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={kpi.color} stopOpacity="0.35" />
-                      <stop offset="100%" stopColor={kpi.color} stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <polygon
-                    points={kpi.areaPoints}
-                    fill={`url(#${kpi.gradientId})`}
-                  />
-                  <polyline
-                    points={kpi.points}
-                    fill="none"
-                    stroke={kpi.color}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-
-              {/* Delta & Basis with 'Discuss with AI' */}
-              <div className="flex items-center justify-between pt-2 border-t border-line/60 text-[11px] relative z-10">
+                key={kpi.id}
+                className="p-4 rounded-xl bg-surface-2/50 border border-line hover:border-line-strong dark:bg-[#18161D] dark:border-[#2D2722] dark:hover:border-[#41372A] dark:hover:bg-[#1C1A22] flex flex-col justify-between space-y-3 transition-all duration-200 group relative overflow-hidden"
+              >
+                {/* Top ambient color glow / faint tint fading into #18161D */}
                 <div
-                  className={`inline-flex items-center gap-1 font-semibold num-tabular ${
-                    kpi.sentiment === "positive" ? "text-jade" : "text-rust"
-                  }`}
-                >
-                  {kpi.direction === "up" ? (
-                    <TrendingUp className="w-3.5 h-3.5" />
-                  ) : (
-                    <TrendingDown className="w-3.5 h-3.5" />
-                  )}
-                  <span>{kpi.delta}</span>
-                  <span className="text-text-muted font-normal ml-0.5">{kpi.basis}</span>
+                  className="absolute top-0 right-0 w-32 h-32 pointer-events-none -mr-8 -mt-8 opacity-10 dark:opacity-100"
+                  style={{
+                    background: isDark
+                      ? `radial-gradient(circle at top right, ${kpi.darkColor}0F 0%, transparent 70%)`
+                      : kpi.color,
+                    filter: isDark ? "none" : "blur(24px)",
+                    borderRadius: "9999px",
+                  }}
+                />
+
+                <div className="flex items-center gap-2.5 relative z-10 w-full min-w-0">
+                  <div className="p-1.5 rounded-lg bg-surface/80 border border-line dark:bg-[#18161D] dark:border-[#2D2722] shrink-0">
+                    {kpi.icon}
+                  </div>
+                  <span className="text-xs text-text dark:text-[#EBE7DF] font-medium leading-snug">
+                    {kpi.label}
+                  </span>
                 </div>
 
-                <Link
-                  href="/chat"
-                  title="Ask Copilot about this metric"
-                  className="p-1 rounded-lg text-text-muted hover:text-gold hover:bg-surface-2 transition-colors btn-tactile cursor-pointer"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                </Link>
+                {/* Value and SVG Sparkline with Gradient Fill */}
+                <div className="flex items-end justify-between pt-1 relative z-10">
+                  <div className="text-2xl sm:text-3xl font-extrabold num-tabular text-text dark:text-[#EBE7DF] tracking-tight font-mono">
+                    <AnimatedNumber value={kpi.value} />
+                  </div>
+
+                  {/* SVG Sparkline */}
+                  <svg className="w-20 h-7 shrink-0 overflow-visible" viewBox="0 0 75 25">
+                    <defs>
+                      <linearGradient id={kpi.gradientId} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={activeColor} stopOpacity={isDark ? 0.15 : 0.35} />
+                        <stop offset="100%" stopColor={activeColor} stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <polygon
+                      points={kpi.areaPoints}
+                      fill={`url(#${kpi.gradientId})`}
+                    />
+                    <polyline
+                      points={kpi.points}
+                      fill="none"
+                      stroke={activeColor}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+
+                {/* Delta & Basis with 'Discuss with AI' */}
+                <div className="flex items-center justify-between pt-2 border-t border-line/60 dark:border-t-[#2D2722] text-[11px] relative z-10">
+                  <div
+                    className={`inline-flex items-center gap-1 font-semibold num-tabular ${
+                      isPositive
+                        ? "text-jade dark:text-[#3FA96A]"
+                        : "text-rust dark:text-[#E04A3C]"
+                    }`}
+                  >
+                    {kpi.direction === "up" ? (
+                      <TrendingUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <TrendingDown className="w-3.5 h-3.5" />
+                    )}
+                    <span>{kpi.delta}</span>
+                    <span className="text-text-muted dark:text-[#726C66] font-normal ml-0.5">{kpi.basis}</span>
+                  </div>
+
+                  <Link
+                    href="/chat"
+                    title="Ask Copilot about this metric"
+                    className="p-1 rounded-lg text-text-muted dark:text-[#726C66] hover:text-gold dark:hover:text-[#D9B44A] hover:bg-surface-2 dark:hover:bg-[#18161D] transition-colors btn-tactile cursor-pointer"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </ContainerTile>
