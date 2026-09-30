@@ -68,7 +68,7 @@ export default function App () {
       )}
       <Cursor />
       <Progress />
-      <Preloader done={ready} />
+      <Preloader done={ready} logoUrl={config.nav?.logoUrl} />
 
       <a href="#hero" className="btn skip">
         <span>Skip to content</span>

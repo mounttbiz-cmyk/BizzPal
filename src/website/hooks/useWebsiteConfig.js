@@ -19,6 +19,7 @@ export const DEFAULT_WEBSITE_STATE = {
   },
   nav: {
     brand: "BizzPal",
+    logoUrl: "/logo-icon.png",
     links: [
       { label: "About", href: "#about" },
       { label: "Intelligence", href: "#s03" },

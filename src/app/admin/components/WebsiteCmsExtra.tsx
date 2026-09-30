@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Globe, Plus, Trash2, Edit2, Save, Sparkles, Compass, Check, X } from "lucide-react";
+import { Globe, Plus, Trash2, Edit2, Save, Sparkles, Compass, Check, X, Image as ImageIcon, Upload, RotateCcw } from "lucide-react";
 
 interface WebsiteCmsExtraProps {
   config: any;
@@ -13,7 +13,8 @@ interface WebsiteCmsExtraProps {
 
 export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: WebsiteCmsExtraProps) {
   const nav = config?.nav || {
-    brand: "BIZZPAL",
+    brand: "BizzPal",
+    logoUrl: "/logo-icon.png",
     links: [
       { label: "About", href: "#about" },
       { label: "Intelligence", href: "#s03" },
@@ -22,8 +23,24 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
       { label: "Contact", href: "#contact" },
       { label: "Pricing", href: "/subscription" },
     ],
-    ctaText: "Start with BizzPal",
-    ctaHref: "/login",
+    ctaText: "Start a Conversation",
+    ctaHref: "#contact",
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUri = event.target?.result as string;
+      if (dataUri) {
+        onChange({
+          ...config,
+          nav: { ...nav, logoUrl: dataUri },
+        });
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const vision = config?.vision || {
@@ -90,7 +107,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
           <div>
             <h2 className="text-sm font-bold text-text">Website Navigation & Brand Identity</h2>
             <p className="text-xs text-text-muted mt-0.5">
-              Customize the logo text, navigation bar links, and top action button on the marketing website.
+              Customize the logo icon, brand wordmark, navigation links, and action button on the live website.
             </p>
           </div>
           <button
@@ -100,19 +117,124 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
             className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
-            <span>{saving ? "Saving..." : "Save Navigation Settings"}</span>
+            <span>{saving ? "Saving..." : "Save Brand Settings"}</span>
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-5 rounded-2xl bg-surface border border-line space-y-4 shadow-theme">
-            <h3 className="text-xs font-bold text-text uppercase tracking-wider font-mono">Brand & CTA</h3>
+            <h3 className="text-xs font-bold text-text uppercase tracking-wider font-mono flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-brass" />
+              Brand Logo & Identity
+            </h3>
+
+            {/* Live Logo Preview Box */}
+            <div className="p-4 rounded-xl bg-[#08070A] border border-[#D6B46A]/25 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src={nav.logoUrl || "/logo-icon.png"}
+                  alt={nav.brand || "BizzPal"}
+                  className="w-9 h-8 object-contain drop-shadow-[0_0_8px_rgba(217,180,74,0.45)]"
+                />
+                <span className="font-bold text-base tracking-tight">
+                  <span className="text-white">Bizz</span>
+                  <span className="text-[#D9B44A]">Pal</span>
+                  <span className="text-[#D9B44A] text-[10px] ml-0.5">™</span>
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-[#D6B46A] px-2 py-0.5 rounded-full bg-[#D6B46A]/10 border border-[#D6B46A]/20">
+                Live Preview
+              </span>
+            </div>
+
             <div className="space-y-3 text-xs">
+              {/* Presets & Upload */}
+              <div className="space-y-1.5">
+                <label className="font-semibold text-text">Logo Presets & Upload</label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        ...config,
+                        nav: { ...nav, logoUrl: "/logo-icon.png" },
+                      })
+                    }
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      (!nav.logoUrl || nav.logoUrl === "/logo-icon.png")
+                        ? "bg-brass/15 border-brass text-text"
+                        : "bg-surface-2 border-line text-text-muted hover:text-text"
+                    }`}
+                  >
+                    Official 3D Gold Icon
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        ...config,
+                        nav: { ...nav, logoUrl: "/bizzpal-brand-logo.png" },
+                      })
+                    }
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      nav.logoUrl === "/bizzpal-brand-logo.png"
+                        ? "bg-brass/15 border-brass text-text"
+                        : "bg-surface-2 border-line text-text-muted hover:text-text"
+                    }`}
+                  >
+                    Full Brand Lockup
+                  </button>
+                  <label className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-surface-2 border border-line text-text hover:border-brass cursor-pointer flex items-center gap-1.5">
+                    <Upload className="w-3 h-3 text-brass" />
+                    <span>Upload Image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  {nav.logoUrl && nav.logoUrl !== "/logo-icon.png" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onChange({
+                          ...config,
+                          nav: { ...nav, logoUrl: "/logo-icon.png" },
+                        })
+                      }
+                      className="px-2 py-1.5 rounded-lg text-xs text-text-muted hover:text-rose-500 border border-line bg-surface-2 flex items-center gap-1"
+                      title="Reset to default 3D gold icon"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Reset</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Logo URL Input */}
+              <div className="space-y-1">
+                <label className="font-semibold text-text">Logo Image URL / Path</label>
+                <input
+                  type="text"
+                  placeholder="/logo-icon.png or https://... or data:image/..."
+                  value={nav.logoUrl || "/logo-icon.png"}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      nav: { ...nav, logoUrl: e.target.value },
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-[11px]"
+                />
+              </div>
+
               <div className="space-y-1">
                 <label className="font-semibold text-text">Brand / Logo Text</label>
                 <input
                   type="text"
-                  value={nav.brand || "BIZZPAL"}
+                  value={nav.brand || "BizzPal"}
                   onChange={(e) =>
                     onChange({
                       ...config,
@@ -127,7 +249,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                 <label className="font-semibold text-text">Header CTA Button Text</label>
                 <input
                   type="text"
-                  value={nav.ctaText || "Start with BizzPal"}
+                  value={nav.ctaText || "Start a Conversation"}
                   onChange={(e) =>
                     onChange({
                       ...config,
@@ -142,7 +264,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                 <label className="font-semibold text-text">Header CTA Destination URL</label>
                 <input
                   type="text"
-                  value={nav.ctaHref || "/login"}
+                  value={nav.ctaHref || "#contact"}
                   onChange={(e) =>
                     onChange({
                       ...config,

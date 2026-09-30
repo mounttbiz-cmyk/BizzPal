@@ -789,6 +789,7 @@ export const DEFAULT_WEBSITE_CONFIG = {
   },
   nav: {
     brand: "BizzPal",
+    logoUrl: "/logo-icon.png",
     links: [
       { label: "About", href: "#about" },
       { label: "Intelligence", href: "#s03" },
