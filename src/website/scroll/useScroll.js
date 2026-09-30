@@ -66,9 +66,10 @@ export function useSmoothScroll ({ webgl }) {
         f.el.style.transform = `translate3d(0,${((1 - a) * 34).toFixed(1)}px,0) scale(${(0.985 + a * 0.015).toFixed(4)})`;
       }
 
-      if (visionSec && words.length) {
-        const vp = sectionProgress(visionSec), seg = 1 / words.length;
-        words.forEach((w, i) => {
+      const currentWords = words.length ? words : [...document.querySelectorAll('[data-word]')];
+      if (visionSec && currentWords.length) {
+        const vp = sectionProgress(visionSec), seg = 1 / currentWords.length;
+        currentWords.forEach((w, i) => {
           const local = (vp - i * seg) / seg;
           let a = 0, y = 0, sc = 1;
           if (local > -0.85 && local < 1.85) {
@@ -78,6 +79,7 @@ export function useSmoothScroll ({ webgl }) {
           }
           w.style.opacity = a.toFixed(3);
           w.style.transform = `translate3d(0,${y.toFixed(1)}px,0) scale(${sc.toFixed(3)})`;
+          w.style.filter = a > 0.02 ? `blur(${((1 - a) * 9).toFixed(1)}px)` : 'blur(9px)';
         });
       }
     }

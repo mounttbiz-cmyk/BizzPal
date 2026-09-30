@@ -21,7 +21,21 @@ export function Preloader ({ done }) {
 
   return (
     <div className={'pre' + (done ? ' done' : '')} role="status" aria-live="polite">
-      <div className="pre__mark" aria-hidden="true" />
+      <svg className="pre__mark-svg" viewBox="0 0 64 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <ellipse cx="32" cy="28" rx="26" ry="12" transform="rotate(-26 32 28)" stroke="url(#preGoldGrad)" strokeWidth="2.4" />
+        <ellipse cx="32" cy="28" rx="14" ry="14" stroke="url(#preGoldGrad)" strokeWidth="1.6" strokeDasharray="3 3" opacity="0.65" />
+        <circle cx="32" cy="28" r="5" fill="url(#preGoldGrad)" />
+        <circle cx="51" cy="19" r="3.2" fill="#F0D98A" />
+        <circle cx="13" cy="37" r="3" fill="#F0D98A" />
+        <circle cx="16" cy="16" r="2.2" fill="#F0D98A" />
+        <defs>
+          <linearGradient id="preGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#FFF9E9" />
+            <stop offset="50%" stopColor="#D9B44A" />
+            <stop offset="100%" stopColor="#A8823A" />
+          </linearGradient>
+        </defs>
+      </svg>
       <div className="wm">
         <span className="wm__a">Bizz</span>
         <span className="wm__b">Pal</span>
@@ -157,7 +171,21 @@ export function Nav ({ menuOpen, setMenuOpen, data }) {
     <>
       <header className="nav">
         <a className="brand" href="#hero" aria-label="BizzPal home">
-          <span className="brand__mark" aria-hidden="true" />
+          <svg className="brand__logo-icon" viewBox="0 0 38 34" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <ellipse cx="19" cy="17" rx="15" ry="7" transform="rotate(-26 19 17)" stroke="url(#goldLogoGrad)" strokeWidth="1.8" />
+            <ellipse cx="19" cy="17" rx="8" ry="8" stroke="url(#goldLogoGrad)" strokeWidth="1.2" strokeDasharray="2.5 2" opacity="0.65" />
+            <circle cx="19" cy="17" r="3" fill="url(#goldLogoGrad)" />
+            <circle cx="30" cy="11.5" r="2.2" fill="#F0D98A" />
+            <circle cx="8" cy="22.5" r="2" fill="#F0D98A" />
+            <circle cx="10" cy="10" r="1.5" fill="#F0D98A" />
+            <defs>
+              <linearGradient id="goldLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#FFF9E9" />
+                <stop offset="50%" stopColor="#D9B44A" />
+                <stop offset="100%" stopColor="#A8823A" />
+              </linearGradient>
+            </defs>
+          </svg>
           <span className="wm">
             <span className="wm__a">Bizz</span>
             <span className="wm__b">Pal</span>
