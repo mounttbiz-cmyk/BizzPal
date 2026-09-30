@@ -24,9 +24,9 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 /* -------------------------------------------------------------- backdrop */
 function Backdrop () {
   const uniforms = useMemo(() => ({
-    uTop: { value: new THREE.Color('#0B1020') },
-    uBot: { value: new THREE.Color('#05060A') },
-    uGlow: { value: new THREE.Color('#0E4E8C') },
+    uTop: { value: new THREE.Color('#12100B') },
+    uBot: { value: new THREE.Color('#08070A') },
+    uGlow: { value: new THREE.Color('#8C6A1E') },
     uGlowPos: { value: new THREE.Vector2(0.5, 0.55) },
     uRes: { value: new THREE.Vector2(1, 1) },
     uTime: { value: 0 },
@@ -112,13 +112,13 @@ function NeuralField ({ count, maxLines, connectDist }) {
   const pointUniforms = useMemo(() => ({
     uTime: { value: 0 }, uMorph: { value: 1 }, uSize: { value: 1 }, uDrift: { value: 0.55 },
     uEnergy: { value: 0 }, uPR: { value: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 1.5) },
-    uColA: { value: new THREE.Color('#00D9FF') }, uColB: { value: new THREE.Color('#6C5CE7') },
+    uColA: { value: new THREE.Color('#D9B44A') }, uColB: { value: new THREE.Color('#A8823A') },
     uOpacity: { value: 1 }, uFogN: { value: 60 }, uFogF: { value: 210 }
   }), []);
 
   const lineUniforms = useMemo(() => ({
     uTime: { value: 0 }, uMorph: { value: 1 }, uDrift: { value: 0.55 }, uEnergy: { value: 0 },
-    uColA: { value: new THREE.Color('#00D9FF') }, uColB: { value: new THREE.Color('#6C5CE7') },
+    uColA: { value: new THREE.Color('#D9B44A') }, uColB: { value: new THREE.Color('#A8823A') },
     uOpacity: { value: 0.07 }, uFogN: { value: 60 }, uFogF: { value: 210 }
   }), []);
 
@@ -181,7 +181,7 @@ function Core () {
   const group = useRef(), shell = useRef(), r1 = useRef(), r2 = useRef();
   const uniforms = useMemo(() => ({
     uColA: { value: new THREE.Color('#ffffff') },
-    uColB: { value: new THREE.Color('#00D9FF') },
+    uColB: { value: new THREE.Color('#D9B44A') },
     uOpacity: { value: 0.2 }, uScale: { value: 6 }, uTime: { value: 0 }
   }), []);
 
@@ -221,16 +221,16 @@ function Core () {
 
       <mesh ref={shell}>
         <icosahedronGeometry args={[3.1, 2]} />
-        <meshBasicMaterial color="#9fe9ff" wireframe transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial color="#f0d98a" wireframe transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
 
       <mesh ref={r1} rotation={[1.15, 0, 0]}>
         <torusGeometry args={[6.2, 0.028, 3, 160]} />
-        <meshBasicMaterial color="#7fdcff" transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial color="#d9b44a" transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
       <mesh ref={r2} rotation={[-0.7, 0.5, 0]}>
         <torusGeometry args={[8.4, 0.02, 3, 180]} />
-        <meshBasicMaterial color="#7fdcff" transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial color="#d9b44a" transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
     </group>
   );
@@ -271,7 +271,7 @@ export default function Experience ({ quality = 'high' }) {
       gl={{ antialias: !low, powerPreference: 'high-performance', stencil: false, alpha: false, depth: true }}
       camera={{ fov: 46, near: 0.5, far: 1400, position: [0, 0, 70] }}
       style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}
-      onCreated={({ gl }) => gl.setClearColor(0x03040a, 1)}
+      onCreated={({ gl }) => gl.setClearColor(0x04040a, 1)}
     >
       <Suspense fallback={null}>
         <Backdrop />
