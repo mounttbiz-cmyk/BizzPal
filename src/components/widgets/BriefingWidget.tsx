@@ -149,15 +149,15 @@ export function BriefingWidget({
               className="p-3.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.04] transition-colors space-y-1"
             >
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider font-mono">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider font-mono">
                   Capital Reserves & Buffer
                 </span>
               </div>
               <p className="text-xs text-text-muted leading-relaxed pl-5">
                 {cash > 0 || burn > 0 ? (
                   <>
-                    Net burn at <strong className="text-text font-bold">₹{burn.toLocaleString("en-IN")}</strong> against <strong className="text-text font-bold">₹{cash.toLocaleString("en-IN")}</strong> in bank reserves yields <strong className="text-emerald-400 font-bold">{runwayMonths} months</strong> of liquid runway.
+                    Net burn at <strong className="text-text font-bold">₹{burn.toLocaleString("en-IN")}</strong> against <strong className="text-text font-bold">₹{cash.toLocaleString("en-IN")}</strong> in bank reserves yields <strong className="text-emerald-700 dark:text-emerald-400 font-bold">{runwayMonths} months</strong> of liquid runway.
                   </>
                 ) : (
                   <>
@@ -174,8 +174,8 @@ export function BriefingWidget({
               className="p-3.5 rounded-xl bg-gold/[0.06] border border-gold/25 space-y-1"
             >
               <div className="flex items-center gap-2">
-                <Zap className="w-3.5 h-3.5 text-gold" />
-                <span className="text-[11px] font-bold text-gold uppercase tracking-wider font-mono">
+                <Zap className="w-3.5 h-3.5 text-amber-700 dark:text-gold" />
+                <span className="text-[11px] font-bold text-amber-900 dark:text-gold uppercase tracking-wider font-mono">
                   Strategic Directive (Immediate)
                 </span>
               </div>
@@ -194,7 +194,7 @@ export function BriefingWidget({
         <div className="pt-3 border-t border-line/60 flex items-center justify-between text-xs">
           <Link
             href="/chat"
-            className="inline-flex items-center gap-1.5 text-gold hover:brightness-110 font-semibold text-xs btn-tactile cursor-pointer group"
+            className="inline-flex items-center gap-1.5 text-amber-800 dark:text-gold hover:brightness-110 font-semibold text-xs btn-tactile cursor-pointer group"
           >
             <span>Ask {activeCeoName} to elaborate</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />

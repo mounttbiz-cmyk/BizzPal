@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,7 +10,7 @@
   --line:        rgba(255, 255, 255, 0.08);   /* Subtle neutral structural hairline */
   --line-strong: rgba(255, 255, 255, 0.16);   /* Emphasized hairline */
   --text:        #F8F9FA;   /* Crisp diamond white */
-  --text-muted:  #94A3B8;   /* Clean slate muted text */
+  --text-muted:  #94A3B8;   /* Slate 400 - high contrast against dark surface */
   
   /* Tasteful Champagne Gold & Luxury Brass — warm, rich, and balanced (NOT loud yellow/mustard) */
   --gold:        #DFBA73;   /* Refined Metallic Champagne Gold */
@@ -49,21 +47,21 @@
   --surface-2:   #F1F5F9;   /* Clean elevated surface */
   --line:        #E2E8F0;   /* Clean neutral slate border */
   --line-strong: #CBD5E1;   /* Defined border */
-  --text:        #0F172A;   /* Crisp deep obsidian slate text */
-  --text-muted:  #64748B;   /* Slate neutral muted text */
-  --gold:        #9B7624;   /* Refined antique champagne brass, readable & elegant */
-  --gold-light:  #BD9946;
-  --gold-dark:   #735411;
-  --gold-glow:   rgba(155, 118, 36, 0.12);
-  --brass:       #9B7624;
-  --brass-soft:  rgba(155, 118, 36, 0.08);
-  --cyan:        #0284C7;
-  --cyan-soft:   rgba(2, 132, 199, 0.06);
-  --violet:      #6366F1;
-  --violet-soft: rgba(99, 102, 241, 0.06);
-  --jade:        #059669;
-  --rust:        #E11D48;
-  --amber:       #D97706;
+  --text:        #0F172A;   /* Slate 900 - 16.5:1 contrast */
+  --text-muted:  #475569;   /* Slate 600 - 6.2:1 contrast against #F1F5F9 (WCAG AA compliant) */
+  --gold:        #855E0E;   /* Deep luxury brass gold - 5.4:1 contrast */
+  --gold-light:  #A1771B;
+  --gold-dark:   #684705;
+  --gold-glow:   rgba(133, 94, 14, 0.12);
+  --brass:       #855E0E;
+  --brass-soft:  rgba(133, 94, 14, 0.08);
+  --cyan:        #0369A1;   /* Sky/Cyan 700 - 5.5:1 contrast */
+  --cyan-soft:   rgba(3, 105, 161, 0.06);
+  --violet:      #5B21B6;   /* Violet 800 - 8.2:1 contrast */
+  --violet-soft: rgba(91, 33, 182, 0.06);
+  --jade:        #047857;   /* Emerald 700 - 5.2:1 contrast */
+  --rust:        #BE123C;   /* Rose 700 - 5.8:1 contrast */
+  --amber:       #B45309;   /* Amber 700 - 5.1:1 contrast */
   --shadow:      0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 20px rgba(0, 0, 0, 0.05);
   --grid:        #F1F5F9;
 }
@@ -105,7 +103,7 @@
 
 /* Base resets & Enterprise Typography */
 html {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg);
   color: var(--text);
   color-scheme: light dark;
@@ -119,7 +117,7 @@ body {
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Theme switch transition: §4.2 rule 7 - 150ms crossfade on background and border colors only */
@@ -206,34 +204,62 @@ body, [data-surface] {
   display: none;
 }
 
-/* Live beacon status animation */
-@keyframes beaconPulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-}
-
+/* Live beacon status animation — 100% GPU composited (transform + opacity only, zero box-shadow/repaint) */
 .beacon-dot {
+  position: relative;
   width: 7px;
   height: 7px;
   border-radius: 9999px;
   background-color: var(--jade);
-  animation: beaconPulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.beacon-dot::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 9999px;
+  background-color: inherit;
+  opacity: 0.75;
+  animation: beaconPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+@keyframes beaconPing {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  70%, 100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
 }
 
 /* Generic pulsing beacon that inherits its color from the element (bg-current),
    used by StatusBadge for non-jade tones (gold/amber/rust). */
-@keyframes beaconPulseCurrent {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 currentColor; opacity: 1; }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px transparent; opacity: 0.7; }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 transparent; opacity: 1; }
-}
-
 .beacon-dot-current {
+  position: relative;
   width: 7px;
   height: 7px;
   border-radius: 9999px;
-  animation: beaconPulseCurrent 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  background-color: currentColor;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.beacon-dot-current::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 9999px;
+  background-color: currentColor;
+  opacity: 0.75;
+  animation: beaconPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
 }
 
 /* Accessibility: Reduced motion baseline (§4.5) */

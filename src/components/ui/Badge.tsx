@@ -11,16 +11,31 @@ interface StatusBadgeProps {
 }
 
 const toneClasses: Record<StatusTone, { pill: string; dot: string }> = {
-  // green = live / verified
-  live: { pill: "bg-jade/10 text-jade", dot: "bg-jade" },
-  // gold = AI / autonomous
-  ai: { pill: "bg-gold/10 text-gold", dot: "bg-gold" },
+  // green = live / verified (emerald-800 on light = 6.8:1; emerald-300 on dark = 7.5:1)
+  live: {
+    pill: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20",
+    dot: "bg-emerald-600 dark:bg-emerald-400",
+  },
+  // gold = AI / autonomous (amber-900 on light = 6.5:1; amber-200 on dark = 8:1)
+  ai: {
+    pill: "bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/20",
+    dot: "bg-amber-600 dark:bg-gold",
+  },
   // amber = warning
-  warning: { pill: "bg-amber/10 text-amber", dot: "bg-amber" },
+  warning: {
+    pill: "bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/20",
+    dot: "bg-amber-600 dark:bg-amber-400",
+  },
   // red = critical
-  critical: { pill: "bg-rust/10 text-rust", dot: "bg-rust" },
+  critical: {
+    pill: "bg-rose-500/10 text-rose-800 dark:text-rose-300 border border-rose-500/20",
+    dot: "bg-rose-600 dark:bg-rust",
+  },
   // neutral = informational, no strong semantic color
-  neutral: { pill: "bg-white/[0.05] text-text-muted", dot: "bg-text-muted" },
+  neutral: {
+    pill: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-line",
+    dot: "bg-slate-500 dark:bg-slate-400",
+  },
 };
 
 /**
@@ -53,19 +68,19 @@ export function ProvenanceBadge({ type, citation }: ProvenanceBadgeProps) {
   const configs: Record<ProvenanceType, { label: string; className: string }> = {
     from_data: {
       label: "Verified Data",
-      className: "bg-jade/10 text-jade",
+      className: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20",
     },
     benchmark: {
       label: "Industry Benchmark",
-      className: "bg-gold/10 text-gold",
+      className: "bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/20",
     },
     estimate: {
       label: "BizzPal Estimate",
-      className: "bg-amber/10 text-amber",
+      className: "bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/20",
     },
     user: {
       label: "User Input",
-      className: "bg-white/[0.05] text-text-muted",
+      className: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-line",
     },
   };
 

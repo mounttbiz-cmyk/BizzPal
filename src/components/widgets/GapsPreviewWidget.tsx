@@ -113,7 +113,7 @@ export function GapsPreviewWidget() {
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold font-mono border ${
               topGaps.length > 0
                 ? "bg-rust/15 text-rust border-rust/30"
-                : "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                : "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30"
             }`}>
               {topGaps.length} {topGaps.length === 1 ? "Identified" : "Identified"}
             </span>
@@ -143,7 +143,7 @@ export function GapsPreviewWidget() {
                       className={`text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase font-mono tracking-wide shrink-0 ${
                         gap.severity === "critical"
                           ? "bg-rust/20 text-rust border border-rust/30"
-                          : "bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30"
+                          : "bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30"
                       }`}
                     >
                       {gap.severity}
@@ -156,7 +156,7 @@ export function GapsPreviewWidget() {
                       {gap.effort}
                     </span>
                     <span className="text-line-strong">·</span>
-                    <span className="text-cyan-600 dark:text-cyan-400 text-[10px] font-medium">{gap.category}</span>
+                    <span className="text-cyan-800 dark:text-cyan-400 text-[10px] font-medium">{gap.category}</span>
                   </div>
                 </div>
               ))

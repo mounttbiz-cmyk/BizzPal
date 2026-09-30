@@ -430,8 +430,8 @@ function DashboardContent() {
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                 checkinData.isCompletedToday
-                  ? "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400"
-                  : "bg-gold/15 text-gold"
+                  ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-400"
+                  : "bg-amber-500/15 text-amber-900 dark:text-gold"
               }`}
             >
               {checkinData.isCompletedToday ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
@@ -446,8 +446,8 @@ function DashboardContent() {
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${
                     checkinData.isCompletedToday
-                      ? "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400"
-                      : "bg-gold/15 text-gold"
+                      ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-400"
+                      : "bg-amber-500/15 text-amber-900 dark:text-amber-200 border border-amber-500/20"
                   }`}
                 >
                   {checkinData.isCompletedToday ? `● Synced (${checkinData.todayCheckin?.source || "web"})` : "⚡ 60s Required"}
@@ -507,7 +507,7 @@ function DashboardContent() {
                 className={`px-3 py-1 rounded-lg text-xs transition-all btn-tactile cursor-pointer ${
                   selectedTimeframe === tf
                     ? "bg-surface text-text border border-line font-bold shadow-xs"
-                    : "text-text-muted hover:text-text hover:bg-surface/50"
+                    : "text-slate-600 dark:text-slate-300 hover:text-text hover:bg-surface/50"
                 }`}
               >
                 {tf}
@@ -523,7 +523,7 @@ function DashboardContent() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-text tracking-tight font-sans">
                 {companyName}
               </h1>
-              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-surface-2 text-text-muted border border-line font-semibold font-mono tracking-normal">
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-surface-2 text-slate-700 dark:text-slate-300 border border-line font-semibold font-mono tracking-normal">
                 {selectedIndustry.toUpperCase()} · Growth Plan
               </span>
               {uploadedFileName && (
@@ -599,7 +599,7 @@ function DashboardContent() {
                     className={`px-3 py-1.5 text-xs rounded-lg transition-all btn-tactile ${
                       isActive
                         ? "bg-surface text-text font-bold shadow-xs border border-line"
-                        : "text-text-muted hover:text-text hover:bg-surface/50"
+                        : "text-slate-600 dark:text-slate-300 hover:text-text hover:bg-surface/50"
                     }`}
                   >
                     {profile.label}
@@ -615,7 +615,7 @@ function DashboardContent() {
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all btn-tactile cursor-pointer ${
                 isEditingLayout
                   ? "btn-gold-gradient font-bold shadow-md"
-                  : "bg-surface-2 hover:bg-surface border border-line text-text-muted hover:text-text"
+                  : "bg-surface-2 hover:bg-surface border border-line text-slate-700 dark:text-slate-300 hover:text-text"
               }`}
             >
               <Sliders className="w-3.5 h-3.5" />
@@ -636,8 +636,8 @@ function DashboardContent() {
             </div>
             <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold font-mono border ${
               overallHealthScore >= 75
-                ? "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/20"
-                : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-500/20"
+                : "bg-amber-500/10 text-amber-900 dark:text-amber-300 border-amber-500/20"
             }`}>
               {overallHealthScore >= 75 ? "Optimal" : "Monitor"}
             </span>
@@ -651,7 +651,7 @@ function DashboardContent() {
               <span className="text-[11px] text-text-muted uppercase tracking-wider font-medium block group-hover:text-text transition-colors">Liquid Runway</span>
               <span className="text-lg font-bold text-text font-mono mt-0.5 block">{liquidRunwayMo} mo</span>
             </div>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-text-muted font-semibold font-mono border border-line">
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-slate-700 dark:text-slate-300 font-semibold font-mono border border-line">
               {Number(liquidRunwayMo) >= 6 ? "Safe Zone" : "Caution"}
             </span>
           </Link>
@@ -664,7 +664,7 @@ function DashboardContent() {
               <span className="text-[11px] text-text-muted uppercase tracking-wider font-medium block group-hover:text-text transition-colors">Execution Queue</span>
               <span className="text-lg font-bold text-text font-mono mt-0.5 block">{activeTaskCount} Active</span>
             </div>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-text-muted font-semibold font-mono border border-line">
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-slate-700 dark:text-slate-300 font-semibold font-mono border border-line">
               On Schedule
             </span>
           </Link>
@@ -677,7 +677,7 @@ function DashboardContent() {
               <span className="text-[11px] text-text-muted uppercase tracking-wider font-medium block group-hover:text-text transition-colors">Bottleneck Gaps</span>
               <span className="text-lg font-bold text-text font-mono mt-0.5 block">{bottleneckGapCount} Flagged</span>
             </div>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-text-muted font-semibold font-mono border border-line">
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-slate-700 dark:text-slate-300 font-semibold font-mono border border-line">
               Action Ready
             </span>
           </Link>

@@ -61,7 +61,7 @@ export function SimulatorHighlightWidget() {
                 <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-sans">
                   {scenarioTitle}
                 </h2>
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 font-mono font-semibold">
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-mono font-semibold">
                   Monte Carlo (1,000 runs)
                 </span>
               </div>
@@ -90,8 +90,8 @@ export function SimulatorHighlightWidget() {
           {/* Fan Chart Preview */}
           <div className="p-4 rounded-xl bg-surface-2/50 border border-white/[0.07] @lg:col-span-2 space-y-2">
             <div className="flex items-center justify-between text-xs text-text-muted">
-              <span className="font-medium text-slate-200">Cumulative Net Cash Impact (12-Month Horizon)</span>
-              <span className="text-[10px] font-mono text-cyan-400 font-semibold">P10 — P50 — P90 Confidence Band</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200">Cumulative Net Cash Impact (12-Month Horizon)</span>
+              <span className="text-[10px] font-mono text-cyan-800 dark:text-cyan-300 font-semibold">P10 — P50 — P90 Confidence Band</span>
             </div>
 
             {/* SVG Visualizing Fan Band */}
@@ -138,7 +138,7 @@ export function SimulatorHighlightWidget() {
             <div className="flex items-center justify-between text-[11px] text-text-muted font-mono">
               <span>Mo 0 (Hire)</span>
               <span>Mo 4 (Ramp)</span>
-              <span className="text-jade font-semibold">Mo 7 (Breakeven)</span>
+              <span className="text-emerald-700 dark:text-jade font-semibold">Mo 7 (Breakeven)</span>
               <span>Mo 12 (+₹4.2L)</span>
             </div>
           </div>
@@ -152,13 +152,13 @@ export function SimulatorHighlightWidget() {
             </div>
 
             <div className="p-3 rounded-xl border border-cyan-400/50 bg-cyan-500/15 ring-1 ring-cyan-500/30 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 block font-mono">P50 Expected</span>
+              <span className="text-[10px] uppercase font-bold text-cyan-800 dark:text-cyan-300 block font-mono">P50 Expected</span>
               <span className="text-sm sm:text-base font-black num-tabular text-slate-900 dark:text-white font-mono block">+₹4.20L</span>
-              <span className="text-[10px] text-cyan-700 dark:text-cyan-300 block">Breakeven: Mo 7</span>
+              <span className="text-[10px] text-cyan-900 dark:text-cyan-300 block">Breakeven: Mo 7</span>
             </div>
 
             <div className="p-3 rounded-xl border border-jade/30 bg-jade/10 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-jade block font-mono">P90 Bull</span>
+              <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 block font-mono">P90 Bull</span>
               <span className="text-sm sm:text-base font-black num-tabular text-slate-900 dark:text-white font-mono block">+₹8.92L</span>
               <span className="text-[10px] text-text-muted block">Breakeven: Mo 5</span>
             </div>
@@ -172,7 +172,7 @@ export function SimulatorHighlightWidget() {
           </span>
           <Link
             href="/simulator"
-            className="inline-flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 font-semibold btn-tactile cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 font-semibold btn-tactile cursor-pointer"
           >
             <span>Launch Full Scenario Sandbox</span>
             <ArrowRight className="w-3.5 h-3.5" />

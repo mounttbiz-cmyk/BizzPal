@@ -116,7 +116,7 @@ export function TasksPreviewWidget() {
                 <Plus className="w-3 h-3" />
                 <span>Add Task</span>
               </button>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 font-semibold font-mono border border-cyan-500/30">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-semibold font-mono border border-cyan-500/30">
                 {tasks.filter(t => !t.completed).length} Pending
               </span>
             </div>
@@ -183,13 +183,13 @@ export function TasksPreviewWidget() {
                       {task.title}
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-[10px] text-text-muted mt-1.5 font-mono">
-                      <span className="px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/25 font-sans font-medium">
+                      <span className="px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border border-cyan-500/25 font-sans font-medium">
                         {task.owner}
                       </span>
                       <span className="text-line-strong">·</span>
-                      <span className="text-amber-600 dark:text-amber-400 font-medium font-sans">{task.due}</span>
+                      <span className="text-amber-800 dark:text-amber-300 font-medium font-sans">{task.due}</span>
                       <span className="text-line-strong">·</span>
-                      <span className="truncate text-text-muted/80">{task.source}</span>
+                      <span className="truncate text-text-muted">{task.source}</span>
                     </div>
                   </div>
                 </div>
@@ -201,7 +201,7 @@ export function TasksPreviewWidget() {
         <div className="pt-3 border-t border-white/[0.08]">
           <Link
             href="/tasks"
-            className="flex items-center justify-between text-xs text-cyan-400 hover:text-cyan-300 font-semibold btn-tactile group"
+            className="flex items-center justify-between text-xs text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 font-semibold btn-tactile group"
           >
             <span>View Kanban Board & Action Plans</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
