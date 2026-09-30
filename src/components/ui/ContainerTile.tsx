@@ -26,7 +26,7 @@ export function ContainerTile({
       id={id}
       className={`@container ${spanClasses[span] || "col-span-1"} ${className}`}
     >
-      <div className="h-full bg-surface card-sheen border border-line hover:border-line-strong dark:bg-[#121016] dark:border-[#2D2722] dark:hover:border-[#41372A] rounded-2xl p-5 sm:p-6 flex flex-col justify-between transition-all duration-200 shadow-theme">
+      <div className="h-full bg-surface border border-line hover:border-line-strong rounded-2xl p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 shadow-theme">
         {children}
       </div>
     </div>

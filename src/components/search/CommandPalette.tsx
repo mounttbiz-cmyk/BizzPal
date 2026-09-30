@@ -516,53 +516,53 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
   return createPortal(
     <div
-      className="fixed inset-0 m-0 z-[9999] bg-slate-900/60 dark:bg-[#040306]/75 backdrop-blur-[6px] flex items-start justify-center p-4 sm:pt-20 animate-fade-in"
+      className="fixed inset-0 m-0 z-[9999] bg-slate-900/60 dark:bg-black/85 backdrop-blur-md flex items-start justify-center p-4 sm:pt-20 animate-fade-in"
       style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
       onClick={onClose}
     >
       <div
-        className="max-w-2xl w-full bg-white dark:bg-[#121016] border border-slate-200 dark:border-[#2D2722] rounded-2xl shadow-2xl dark:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[85vh] animate-scale-in text-slate-900 dark:text-[#EBE7DF]"
+        className="max-w-2xl w-full bg-white dark:bg-[#0C1222] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[85vh] animate-scale-in text-slate-900 dark:text-slate-100"
         onClick={e => e.stopPropagation()}
       >
         {/* Top Search Input Box */}
-        <div className="p-4 border-b border-slate-200 dark:border-b-[#2D2722] flex items-center gap-3 bg-slate-50/80 dark:bg-[#18161D]">
-          <Search className="w-5 h-5 text-cyan-600 dark:text-[#D9B44A] shrink-0" />
+        <div className="p-4 border-b border-slate-200 dark:border-white/10 flex items-center gap-3 bg-slate-50/80 dark:bg-white/[0.02]">
+          <Search className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search tools, calculators, tasks, pages, metrics… (e.g. 'profit', 'breakeven')"
-            className="flex-1 bg-transparent border-0 text-slate-900 dark:text-[#EBE7DF] text-sm focus:outline-none placeholder:text-slate-400 dark:placeholder:text-[#726C66] font-medium"
+            className="flex-1 bg-transparent border-0 text-slate-900 dark:text-white text-sm focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 dark:text-[#726C66] dark:hover:text-[#EBE7DF] dark:hover:bg-[#1C1A22] text-xs transition-colors"
+              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 text-xs transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
           )}
-          <kbd className="hidden sm:inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-[#121016] border border-slate-200 dark:border-[#2D2722] text-slate-500 dark:text-[#97928E] font-mono font-semibold shadow-xs">
+          <kbd className="hidden sm:inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-mono font-semibold shadow-xs">
             ESC
           </kbd>
         </div>
 
         {/* Results List */}
-        <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-4 bg-white dark:bg-[#121016]">
+        <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-4 bg-white dark:bg-[#0C1222]">
           {flatItems.length === 0 ? (
-            <div className="py-16 text-center text-xs text-slate-500 dark:text-[#97928E] space-y-2">
-              <Search className="w-8 h-8 text-slate-300 dark:text-[#726C66] mx-auto" />
-              <p className="font-semibold text-slate-900 dark:text-[#EBE7DF]">No results found for &ldquo;{query}&rdquo;</p>
-              <p className="text-[11px] text-slate-500 dark:text-[#726C66]">Try searching for &ldquo;profit&rdquo;, &ldquo;breakeven&rdquo;, &ldquo;runway&rdquo;, &ldquo;tasks&rdquo;, or &ldquo;gaps&rdquo;.</p>
+            <div className="py-16 text-center text-xs text-slate-500 dark:text-slate-400 space-y-2">
+              <Search className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+              <p className="font-semibold text-slate-900 dark:text-white">No results found for &ldquo;{query}&rdquo;</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Try searching for &ldquo;profit&rdquo;, &ldquo;breakeven&rdquo;, &ldquo;runway&rdquo;, &ldquo;tasks&rdquo;, or &ldquo;gaps&rdquo;.</p>
             </div>
           ) : (
             groupedItems.map(group => (
               <div key={group.category} className="space-y-1.5">
-                <div className="px-3 text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-[#726C66] flex items-center justify-between">
+                <div className="px-3 text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-400 flex items-center justify-between">
                   <span>{group.category}</span>
-                  <span className="font-mono text-[9px] font-medium lowercase text-slate-400 dark:text-[#726C66]">
+                  <span className="font-mono text-[9px] font-medium lowercase text-slate-400 dark:text-slate-400">
                     {group.items.length} {group.items.length === 1 ? "result" : "results"}
                   </span>
                 </div>
@@ -581,33 +581,33 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                         onMouseEnter={() => setSelectedIndex(itemIndex)}
                         className={`px-3 py-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                           isSelected
-                            ? "bg-cyan-50/90 dark:bg-[#1C1A22] border-cyan-300 dark:border-[rgba(217,180,74,0.45)] shadow-xs"
-                            : "bg-slate-50/70 dark:bg-[#18161D] border-slate-200/60 dark:border-[#2D2722] hover:border-slate-300 dark:hover:border-[#41372A] hover:bg-slate-100/90 dark:hover:bg-[#1C1A22]"
+                            ? "bg-cyan-50/90 dark:bg-cyan-500/15 border-cyan-300 dark:border-cyan-500/40 shadow-xs"
+                            : "bg-slate-50/70 dark:bg-white/[0.03] border-slate-200/60 dark:border-transparent hover:border-slate-300 dark:hover:border-white/10 hover:bg-slate-100/90 dark:hover:bg-white/[0.06]"
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div
                             className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${
                               isSelected
-                                ? "bg-cyan-100 dark:bg-[#18161D] border-cyan-300 dark:border-[rgba(217,180,74,0.30)] text-cyan-700 dark:text-[#D9B44A]"
-                                : "bg-white dark:bg-[#121016] border-slate-200 dark:border-[#2D2722] text-slate-500 dark:text-[#97928E] shadow-xs"
+                                ? "bg-cyan-100 dark:bg-cyan-500/25 border-cyan-300 dark:border-cyan-500/50 text-cyan-700 dark:text-cyan-300"
+                                : "bg-white dark:bg-white/[0.05] border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 shadow-xs"
                             }`}
                           >
                             {item.icon}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className={`text-xs font-bold truncate ${isSelected ? "text-cyan-950 dark:text-[#D9B44A]" : "text-slate-900 dark:text-[#EBE7DF]"}`}>
+                              <span className={`text-xs font-bold truncate ${isSelected ? "text-cyan-950 dark:text-white" : "text-slate-900 dark:text-slate-100"}`}>
                                 {item.title}
                               </span>
                               {item.badge && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-semibold uppercase bg-slate-100 dark:bg-[#121016] border border-slate-200 dark:border-[#2D2722] text-cyan-700 dark:text-[#0E9CAE]">
+                                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-semibold uppercase bg-slate-100 dark:bg-white/[0.08] border border-slate-200 dark:border-white/10 text-cyan-700 dark:text-cyan-400">
                                   {item.badge}
                                 </span>
                               )}
                             </div>
                             {item.description && (
-                              <p className="text-[11px] text-slate-500 dark:text-[#97928E] truncate mt-0.5 max-w-md">
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-md">
                                 {item.description}
                               </p>
                             )}
@@ -616,13 +616,13 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
                         <div className="shrink-0 flex items-center gap-2">
                           {isSelected && (
-                            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-cyan-700 dark:text-[#D9B44A] font-mono font-medium">
+                            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-cyan-700 dark:text-cyan-400 font-mono font-medium">
                               Press <CornerDownLeft className="w-3 h-3" /> to open
                             </span>
                           )}
                           <ChevronRight
                             className={`w-4 h-4 transition-transform ${
-                              isSelected ? "text-cyan-600 dark:text-[#D9B44A] translate-x-0.5" : "text-slate-300 dark:text-[#726C66]"
+                              isSelected ? "text-cyan-600 dark:text-cyan-400 translate-x-0.5" : "text-slate-300 dark:text-slate-600"
                             }`}
                           />
                         </div>
@@ -636,24 +636,24 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         </div>
 
         {/* Bottom Keyboard Hint Bar */}
-        <div className="p-3 border-t border-slate-200 dark:border-t-[#2D2722] bg-slate-50/90 dark:bg-[#18161D] text-[11px] text-slate-500 dark:text-[#97928E] flex flex-wrap items-center justify-between gap-2 px-4">
+        <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50/90 dark:bg-white/[0.02] text-[11px] text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-2 px-4">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-[#121016] border border-slate-200 dark:border-[#2D2722] font-mono text-[9px] text-slate-600 dark:text-[#97928E] shadow-xs">↑</kbd>
-              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-[#121016] border border-slate-200 dark:border-[#2D2722] font-mono text-[9px] text-slate-600 dark:text-[#97928E] shadow-xs">↓</kbd>
+              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 font-mono text-[9px] text-slate-600 dark:text-slate-300 shadow-xs">↑</kbd>
+              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 font-mono text-[9px] text-slate-600 dark:text-slate-300 shadow-xs">↓</kbd>
               <span>to navigate</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-[#121016] border border-slate-200 dark:border-[#2D2722] font-mono text-[9px] text-slate-600 dark:text-[#97928E] shadow-xs">↵</kbd>
+              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 font-mono text-[9px] text-slate-600 dark:text-slate-300 shadow-xs">↵</kbd>
               <span>to select</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-[#121016] border border-slate-200 dark:border-[#2D2722] font-mono text-[9px] text-slate-600 dark:text-[#97928E] shadow-xs">esc</kbd>
+              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 font-mono text-[9px] text-slate-600 dark:text-slate-300 shadow-xs">esc</kbd>
               <span>to close</span>
             </span>
           </div>
 
-          <span className="text-[10px] text-slate-400 dark:text-[#726C66] font-mono">
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
             {query ? `Filter active` : `Search across all tools & pages`}
           </span>
         </div>

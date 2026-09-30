@@ -11,16 +11,16 @@ interface StatusBadgeProps {
 }
 
 const toneClasses: Record<StatusTone, { pill: string; dot: string }> = {
-  // green = live / verified (e.g. LIVE FEED, LIVE STREAM)
-  live: { pill: "bg-jade/10 text-jade dark:bg-[#172220] dark:text-[#3FA96A] dark:border dark:border-[rgba(63,169,106,0.35)]", dot: "bg-jade dark:bg-[#3FA96A]" },
-  // gold = AI / autonomous (e.g. AUTONOMOUS tag: text #D9B44A with a gold dot)
-  ai: { pill: "bg-gold/10 text-gold dark:bg-[rgba(217,180,74,0.10)] dark:text-[#D9B44A] dark:border dark:border-[rgba(217,180,74,0.35)]", dot: "bg-gold dark:bg-[#D9B44A]" },
+  // green = live / verified
+  live: { pill: "bg-jade/10 text-jade", dot: "bg-jade" },
+  // gold = AI / autonomous
+  ai: { pill: "bg-gold/10 text-gold", dot: "bg-gold" },
   // amber = warning
-  warning: { pill: "bg-amber/10 text-amber dark:bg-[#2B2219] dark:text-[#E0A62E] dark:border dark:border-[rgba(224,166,46,0.35)]", dot: "bg-amber dark:bg-[#E0A62E]" },
+  warning: { pill: "bg-amber/10 text-amber", dot: "bg-amber" },
   // red = critical
-  critical: { pill: "bg-rust/10 text-rust dark:bg-[#2B171B] dark:text-[#E04A3C] dark:border dark:border-[rgba(224,74,60,0.35)]", dot: "bg-rust dark:bg-[#E04A3C]" },
+  critical: { pill: "bg-rust/10 text-rust", dot: "bg-rust" },
   // neutral = informational, no strong semantic color
-  neutral: { pill: "bg-white/[0.05] text-text-muted dark:bg-[#18161D] dark:text-[#97928E] dark:border dark:border-[#2D2722]", dot: "bg-text-muted dark:bg-[#97928E]" },
+  neutral: { pill: "bg-white/[0.05] text-text-muted", dot: "bg-text-muted" },
 };
 
 /**
@@ -53,19 +53,19 @@ export function ProvenanceBadge({ type, citation }: ProvenanceBadgeProps) {
   const configs: Record<ProvenanceType, { label: string; className: string }> = {
     from_data: {
       label: "Verified Data",
-      className: "bg-jade/10 text-jade dark:bg-[#172220] dark:text-[#3FA96A] dark:border dark:border-[rgba(63,169,106,0.35)]",
+      className: "bg-jade/10 text-jade",
     },
     benchmark: {
       label: "Industry Benchmark",
-      className: "bg-gold/10 text-gold dark:bg-[rgba(217,180,74,0.10)] dark:text-[#D9B44A] dark:border dark:border-[rgba(217,180,74,0.35)]",
+      className: "bg-gold/10 text-gold",
     },
     estimate: {
       label: "BizzPal Estimate",
-      className: "bg-amber/10 text-amber dark:bg-[#2B2219] dark:text-[#E0A62E] dark:border dark:border-[rgba(224,166,46,0.35)]",
+      className: "bg-amber/10 text-amber",
     },
     user: {
       label: "User Input",
-      className: "bg-white/[0.05] text-text-muted dark:bg-[#18161D] dark:text-[#97928E] dark:border dark:border-[#2D2722]",
+      className: "bg-white/[0.05] text-text-muted",
     },
   };
 

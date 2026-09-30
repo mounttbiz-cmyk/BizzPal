@@ -21,7 +21,7 @@ export function MobileHeader({
   const { resolvedTheme, cycleTheme } = useTheme();
 
   return (
-    <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 h-14 bg-surface/95 dark:bg-[#0B0A0E] backdrop-blur-xl border-b border-line dark:border-b-[#2D2722] pt-[env(safe-area-inset-top)]">
+    <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 h-14 bg-surface/95 backdrop-blur-xl border-b border-line pt-[env(safe-area-inset-top)]">
       <Link href="/dashboard" className="flex items-center gap-2.5">
         <div className="w-8 h-8 flex items-center justify-center shrink-0">
           <Image
@@ -34,9 +34,9 @@ export function MobileHeader({
         </div>
         <div className="flex flex-col">
           <span className="font-black text-sm tracking-tight text-text leading-tight font-sans flex items-center">
-            <span className="logo-bizz">Bizz</span>
+            <span>Bizz</span>
             <span
-              className="font-black ml-0.5 logo-pal"
+              className="font-black ml-0.5"
               style={{
                 background: "linear-gradient(135deg, #F7ECD1 0%, #DFBA73 50%, #A37C2C 100%)",
                 WebkitBackgroundClip: "text",
@@ -47,9 +47,9 @@ export function MobileHeader({
             >
               Pal
             </span>
-            <span className="text-[9px] text-gold/80 dark:text-[#D9B44A] font-bold ml-0.5 -mt-1">™</span>
+            <span className="text-[9px] text-gold/80 font-bold ml-0.5 -mt-1">™</span>
           </span>
-          <span className="text-[10px] text-text-muted dark:text-[#97928E] leading-tight truncate max-w-[120px]">
+          <span className="text-[10px] text-text-muted leading-tight truncate max-w-[120px]">
             {companyName}
           </span>
         </div>
@@ -60,7 +60,7 @@ export function MobileHeader({
           <button
             type="button"
             onClick={onOpenSearch}
-            className="w-8 h-8 rounded-xl flex items-center justify-center border border-line dark:border-[#2D2722] bg-surface-2/80 dark:bg-[#18161D] text-text-muted dark:text-[#726C66] hover:text-gold dark:hover:text-[#D9B44A] btn-tactile cursor-pointer"
+            className="w-8 h-8 rounded-xl flex items-center justify-center border border-line bg-surface-2/80 text-text-muted hover:text-gold btn-tactile"
             aria-label="Open search"
           >
             <Search className="w-3.5 h-3.5" />
@@ -71,10 +71,10 @@ export function MobileHeader({
           <button
             type="button"
             onClick={onOpenChat}
-            className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gold/15 dark:bg-[rgba(217,180,74,0.15)] text-gold dark:text-[#D9B44A] border border-gold/40 dark:border-[rgba(217,180,74,0.30)] btn-tactile cursor-pointer"
+            className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gold/15 text-gold border border-gold/40 btn-tactile"
             aria-label="Open AI Workspace"
           >
-            <BrainCircuit className="w-3.5 h-3.5 text-gold dark:text-[#D9B44A]" />
+            <BrainCircuit className="w-3.5 h-3.5 text-gold" />
             <span>Copilot</span>
           </button>
         )}
@@ -83,10 +83,10 @@ export function MobileHeader({
           type="button"
           onClick={cycleTheme}
           aria-label="Cycle theme"
-          className="w-8 h-8 rounded-xl flex items-center justify-center border border-line dark:border-[#2D2722] bg-surface-2/80 dark:bg-[#18161D] text-text-muted dark:text-[#726C66] hover:text-text dark:hover:text-[#EBE7DF] btn-tactile cursor-pointer"
+          className="w-8 h-8 rounded-xl flex items-center justify-center border border-line bg-surface-2/80 text-text-muted hover:text-text btn-tactile"
         >
           {resolvedTheme === "dark" ? (
-            <Moon className="w-3.5 h-3.5 text-gold dark:text-[#D9B44A]" />
+            <Moon className="w-3.5 h-3.5 text-gold" />
           ) : (
             <Sun className="w-3.5 h-3.5 text-gold" />
           )}

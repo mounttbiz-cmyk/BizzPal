@@ -96,36 +96,36 @@ export function GapsPreviewWidget() {
     <ContainerTile span={2} id="widget_top_gaps">
       <div className="flex flex-col h-full justify-between space-y-4">
         <div>
-          <div className="flex items-center justify-between pb-3 border-b border-line dark:border-b-[#2D2722]">
+          <div className="flex items-center justify-between pb-3 border-b border-line">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 dark:bg-[#2B2219] dark:border-[#2D2722] flex items-center justify-center text-amber-500 dark:text-[#E0A62E]">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500">
                 <AlertTriangle className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-xs font-bold text-slate-900 dark:text-[#EBE7DF] uppercase tracking-wider font-sans">
+                <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-sans">
                   Priority Gaps & Bottlenecks
                 </h2>
-                <span className="text-[10px] text-text-muted dark:text-[#97928E]">
+                <span className="text-[10px] text-text-muted">
                   AI diagnostic engine continuous watch
                 </span>
               </div>
             </div>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold font-mono border ${
               topGaps.length > 0
-                ? "bg-rust/15 text-rust border-rust/30 dark:bg-[#2B171B] dark:text-[#E04A3C] dark:border-[rgba(224,74,60,0.35)]"
-                : "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 dark:bg-[#172220] dark:text-[#3FA96A] dark:border-[rgba(63,169,106,0.35)]"
+                ? "bg-rust/15 text-rust border-rust/30"
+                : "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
             }`}>
-              {topGaps.length} Identified
+              {topGaps.length} {topGaps.length === 1 ? "Identified" : "Identified"}
             </span>
           </div>
 
           <div className="space-y-2.5 pt-3">
             {topGaps.length === 0 ? (
-              <div className="p-4 rounded-xl bg-surface-2/30 dark:bg-[#18161D] border border-line dark:border-[#2D2722] text-center space-y-1.5">
-                <div className="text-xs font-semibold text-text dark:text-[#EBE7DF]">
+              <div className="p-4 rounded-xl bg-surface-2/30 border border-line text-center space-y-1.5">
+                <div className="text-xs font-semibold text-text">
                   No Critical Bottlenecks Flagged
                 </div>
-                <p className="text-[11px] text-text-muted dark:text-[#97928E] leading-relaxed">
+                <p className="text-[11px] text-text-muted leading-relaxed">
                   Enterprise telemetry is clear. Autonomous watchdogs are monitoring cash runway, revenue concentration, and pipeline velocity.
                 </p>
               </div>
@@ -133,30 +133,30 @@ export function GapsPreviewWidget() {
               topGaps.map(gap => (
                 <div
                   key={gap.id}
-                  className="p-3 rounded-xl bg-surface-2/40 border border-line hover:border-line-strong hover:bg-surface-2/70 dark:bg-[#18161D] dark:border-[#2D2722] dark:hover:border-[#41372A] dark:hover:bg-[#1C1A22] transition-all space-y-1.5 group cursor-pointer"
+                  className="p-3 rounded-xl bg-surface-2/40 border border-line hover:border-line-strong hover:bg-surface-2/70 transition-all space-y-1.5 group cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-2.5">
-                    <span className="text-xs font-semibold text-text dark:text-[#EBE7DF] leading-snug group-hover:text-brass dark:group-hover:text-[#D9B44A] transition-colors">
+                    <span className="text-xs font-semibold text-text leading-snug group-hover:text-brass transition-colors">
                       {gap.title}
                     </span>
                     <span
                       className={`text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase font-mono tracking-wide shrink-0 ${
                         gap.severity === "critical"
-                          ? "bg-rust/20 text-rust border border-rust/30 dark:bg-[#2B171B] dark:text-[#E04A3C] dark:border-[rgba(224,74,60,0.35)]"
-                          : "bg-amber-500/20 text-amber-600 dark:text-[#E0A62E] border border-amber-500/30 dark:bg-[#2B2219] dark:border-transparent"
+                          ? "bg-rust/20 text-rust border border-rust/30"
+                          : "bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30"
                       }`}
                     >
                       {gap.severity}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] text-text-muted dark:text-[#97928E]">
-                    <span className="font-mono text-text dark:text-[#97928E] font-medium">{gap.impact}</span>
-                    <span className="text-line-strong dark:text-[#2D2722]">·</span>
-                    <span className="px-1.5 py-0.2 rounded bg-surface border border-line dark:bg-[#18161D] dark:border-[#2D2722] dark:text-[#97928E] text-[10px] capitalize font-medium">
+                  <div className="flex items-center gap-2 text-[11px] text-text-muted">
+                    <span className="font-mono text-text font-medium">{gap.impact}</span>
+                    <span className="text-line-strong">·</span>
+                    <span className="px-1.5 py-0.2 rounded bg-surface border border-line text-[10px] capitalize font-medium">
                       {gap.effort}
                     </span>
-                    <span className="text-line-strong dark:text-[#2D2722]">·</span>
-                    <span className="text-cyan-600 dark:text-[#0E9CAE] text-[10px] font-medium">{gap.category}</span>
+                    <span className="text-line-strong">·</span>
+                    <span className="text-cyan-600 dark:text-cyan-400 text-[10px] font-medium">{gap.category}</span>
                   </div>
                 </div>
               ))
@@ -164,10 +164,10 @@ export function GapsPreviewWidget() {
           </div>
         </div>
 
-        <div className="pt-3 border-t border-white/[0.08] dark:border-t-[#2D2722]">
+        <div className="pt-3 border-t border-white/[0.08]">
           <Link
             href="/gaps"
-            className="flex items-center justify-between text-xs text-cyan-400 dark:text-[#0E9CAE] hover:text-cyan-300 dark:hover:text-[#0E9CAE]/80 font-semibold btn-tactile group"
+            className="flex items-center justify-between text-xs text-cyan-400 hover:text-cyan-300 font-semibold btn-tactile group"
           >
             <span>Open Gap Register & Solutions Playbooks</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />

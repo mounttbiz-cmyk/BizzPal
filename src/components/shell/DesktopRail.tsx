@@ -107,7 +107,7 @@ export function DesktopRail({
   }, [navItems]);
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 h-screen fixed inset-y-0 left-0 bg-surface/95 dark:bg-[#0B0A0E] backdrop-blur-2xl border-r border-line dark:border-r-[#2D2722] select-none z-30 transition-colors">
+    <aside className="hidden lg:flex flex-col w-64 h-screen fixed inset-y-0 left-0 bg-surface/95 backdrop-blur-2xl border-r border-line select-none z-30 transition-colors">
       {/* Quick Business Input Modal */}
       <QuickBusinessInputModal
         isOpen={isQuickInputOpen}
@@ -115,7 +115,7 @@ export function DesktopRail({
       />
 
       {/* Brand Header */}
-      <div className="p-4 border-b border-line dark:border-b-[#2D2722]">
+      <div className="p-4 border-b border-line">
         <Link href="/dashboard" className="flex items-center gap-3 group">
           <div className="w-9 h-9 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
             <Image
@@ -129,9 +129,9 @@ export function DesktopRail({
           </div>
           <div className="min-w-0 flex-1">
             <div className="font-black text-lg tracking-tight text-text font-sans flex items-center leading-none">
-              <span className="logo-bizz">Bizz</span>
+              <span>Bizz</span>
               <span
-                className="font-black ml-0.5 logo-pal"
+                className="font-black ml-0.5"
                 style={{
                   background: "linear-gradient(135deg, #F7ECD1 0%, #DFBA73 50%, #A37C2C 100%)",
                   WebkitBackgroundClip: "text",
@@ -142,9 +142,9 @@ export function DesktopRail({
               >
                 Pal
               </span>
-              <span className="text-[10px] text-gold/80 dark:text-[#D9B44A] font-bold ml-1 -mt-2">™</span>
+              <span className="text-[10px] text-gold/80 font-bold ml-1 -mt-2">™</span>
             </div>
-            <p className="text-[11px] text-text-muted dark:text-[#97928E] truncate max-w-[180px] font-medium mt-0.5">
+            <p className="text-[11px] text-text-muted truncate max-w-[180px] font-medium mt-0.5">
               {companyName}
             </p>
           </div>
@@ -156,13 +156,13 @@ export function DesktopRail({
         <button
           type="button"
           onClick={onOpenSearch}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-surface-2 dark:bg-[#121016] border border-line dark:border-[#2D2722] text-text-muted dark:text-[#726C66] hover:text-text dark:hover:text-[#EBE7DF] hover:border-line-strong dark:hover:border-[#41372A] focus:outline-none dark:focus:border-[rgba(217,180,74,0.45)] dark:focus:ring-3 dark:focus:ring-[rgba(217,180,74,0.12)] transition-all text-xs group cursor-pointer"
+          className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-surface-2 border border-line text-text-muted hover:text-text hover:border-line-strong transition-all text-xs group cursor-pointer"
         >
           <div className="flex items-center gap-2 min-w-0">
-            <Search className="w-3.5 h-3.5 text-text-muted dark:text-[#726C66] group-hover:text-gold dark:group-hover:text-[#D9B44A] transition-colors shrink-0" />
-            <span className="text-[11px] font-medium truncate dark:text-[#726C66]">Search tools, pages…</span>
+            <Search className="w-3.5 h-3.5 text-text-muted group-hover:text-gold transition-colors shrink-0" />
+            <span className="text-[11px] font-medium truncate">Search tools, pages…</span>
           </div>
-          <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-surface dark:bg-[#18161D] border border-line dark:border-[#2D2722] text-text-muted dark:text-[#97928E] font-mono font-semibold shrink-0">
+          <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-surface border border-line text-text-muted font-mono font-semibold shrink-0">
             ⌘K
           </kbd>
         </button>
@@ -176,7 +176,7 @@ export function DesktopRail({
 
           return (
             <div key={group.key} className="space-y-1">
-              <div className="px-3 text-[10px] uppercase font-bold tracking-widest text-text-muted/70 dark:text-[#726C66] font-mono">
+              <div className="px-3 text-[10px] uppercase font-bold tracking-widest text-text-muted/70 font-mono">
                 {group.label}
               </div>
               <nav className="space-y-0.5">
@@ -204,13 +204,13 @@ export function DesktopRail({
                         key={item.id}
                         type="button"
                         onClick={() => setLockedItem(item)}
-                        className="w-full relative flex items-center justify-between pl-3.5 pr-3 py-2 rounded-xl text-xs font-medium text-text-muted/50 dark:text-[#726C66]/60 hover:text-text-muted dark:hover:text-[#97928E] hover:bg-white/[0.02] dark:hover:bg-[#1C1A22] transition-all cursor-pointer"
+                        className="w-full relative flex items-center justify-between pl-3.5 pr-3 py-2 rounded-xl text-xs font-medium text-text-muted/50 hover:text-text-muted hover:bg-white/[0.02] transition-all cursor-pointer"
                       >
                         <div className="flex items-center gap-2.5">
-                          <DynamicIcon name={item.icon} className="w-4 h-4 text-text-muted/50 dark:text-[#726C66]/60" />
+                          <DynamicIcon name={item.icon} className="w-4 h-4 text-text-muted/50" />
                           <span>{item.label}</span>
                         </div>
-                        <Lock className="w-3 h-3 text-text-muted/50 dark:text-[#726C66]/60 shrink-0" />
+                        <Lock className="w-3 h-3 text-text-muted/50 shrink-0" />
                       </button>
                     );
                   }
@@ -221,28 +221,28 @@ export function DesktopRail({
                       href={item.href}
                       className={`relative flex items-center justify-between pl-3.5 pr-3 py-2 rounded-xl text-xs font-medium transition-all btn-tactile ${
                         isActive
-                          ? "bg-gold/10 text-gold font-semibold border border-gold/25 shadow-xs dark:bg-[rgba(217,180,74,0.10)] dark:text-[#D9B44A] dark:border-[rgba(217,180,74,0.22)]"
-                          : "text-text-muted hover:text-text hover:bg-surface-2/60 dark:text-[#97928E] dark:hover:text-[#EBE7DF] dark:hover:bg-[#1C1A22]"
+                          ? "bg-gold/10 text-gold font-semibold border border-gold/25 shadow-xs"
+                          : "text-text-muted hover:text-text hover:bg-surface-2/60"
                       }`}
                     >
                       {isActive && (
                         <span
-                          className="absolute left-0 top-2 bottom-2 w-[2.5px] rounded-r-full bg-gold dark:bg-[#D9B44A]"
+                          className="absolute left-0 top-2 bottom-2 w-[2.5px] rounded-r-full bg-gold"
                           aria-hidden="true"
                         />
                       )}
                       <div className="flex items-center gap-2.5">
                         <DynamicIcon
                           name={item.icon}
-                          className={`w-4 h-4 ${isActive ? "text-gold dark:text-[#D9B44A]" : "text-text-muted group-hover:text-text dark:text-[#97928E] dark:group-hover:text-[#EBE7DF]"}`}
+                          className={`w-4 h-4 ${isActive ? "text-gold" : "text-text-muted group-hover:text-text"}`}
                         />
                         <span>{item.label}</span>
                       </div>
                       {item.badge && (
                         <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-mono font-semibold ${
                           isActive
-                            ? "bg-gold/15 text-gold border border-gold/30 dark:bg-[rgba(217,180,74,0.15)] dark:border-[rgba(217,180,74,0.30)] dark:text-[#D9B44A]"
-                            : "bg-surface-2 border border-line text-text-muted dark:bg-[#18161D] dark:border-[#2D2722] dark:text-[#97928E]"
+                            ? "bg-gold/15 text-gold border border-gold/30"
+                            : "bg-surface-2 border border-line text-text-muted"
                         }`}>
                           {item.badge}
                         </span>
@@ -257,7 +257,7 @@ export function DesktopRail({
       </div>
 
       {/* Footer Controls & User Menu */}
-      <div className="p-3 border-t border-line dark:border-t-[#2D2722] space-y-3 bg-surface/90 dark:bg-[#0B0A0E] transition-colors">
+      <div className="p-3 border-t border-line space-y-3 bg-surface/90 transition-colors">
         <Button
           type="button"
           variant="primary"
@@ -270,25 +270,25 @@ export function DesktopRail({
         </Button>
 
         <div>
-          <div className="text-[10px] uppercase font-bold tracking-widest text-text-muted dark:text-[#726C66] mb-1.5 px-1 font-mono">
+          <div className="text-[10px] uppercase font-bold tracking-widest text-text-muted mb-1.5 px-1">
             Appearance
           </div>
           <ThemeSwitch />
         </div>
 
         {/* User profile & logout */}
-        <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-2 dark:bg-[#121016] border border-line dark:border-[#2D2722] text-xs">
+        <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-2 border border-line text-xs">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="relative">
-              <div className="w-8 h-8 rounded-full bg-gold/10 border border-gold/30 text-gold dark:bg-[#18161D] dark:border-[#2D2722] dark:text-[#D9B44A] font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gold/10 border border-gold/30 text-gold font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
                 {initials}
               </div>
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#3FA96A] ring-2 ring-surface dark:ring-[#121016]" />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-surface" />
             </div>
             <div className="truncate">
-              <div className="font-semibold text-text dark:text-[#EBE7DF] truncate">{companyName}</div>
-              <div className="text-[10px] text-text-muted dark:text-[#97928E] flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-emerald-500 dark:text-[#3FA96A] shrink-0" />
+              <div className="font-semibold text-text truncate">{companyName}</div>
+              <div className="text-[10px] text-text-muted flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-emerald-500 dark:text-emerald-400 shrink-0" />
                 <span className="truncate">{planBadgeLabel}</span>
               </div>
             </div>
@@ -297,7 +297,7 @@ export function DesktopRail({
             type="button"
             onClick={handleLogout}
             title="Sign Out"
-            className="p-1.5 rounded-lg text-text-muted dark:text-[#726C66] hover:text-rose-500 dark:hover:text-[#EBE7DF] hover:bg-surface dark:hover:bg-[#1C1A22] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-text-muted hover:text-rose-500 dark:hover:text-rose-400 hover:bg-surface transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
           </button>
