@@ -21,7 +21,12 @@ export function Preloader ({ done }) {
 
   return (
     <div className={'pre' + (done ? ' done' : '')} role="status" aria-live="polite">
-      <div className="pre__word">BIZZPAL</div>
+      <div className="pre__mark" aria-hidden="true" />
+      <div className="wm">
+        <span className="wm__a">Bizz</span>
+        <span className="wm__b">Pal</span>
+        <span className="wm__tm">&trade;</span>
+      </div>
       <div className="pre__track"><span className="pre__fill" style={{ width: pct + '%' }} /></div>
       <div className="pre__pct">{String(pct).padStart(2, '0')}</div>
     </div>
@@ -142,20 +147,22 @@ export function Nav ({ menuOpen, setMenuOpen, data }) {
     return () => removeEventListener('keydown', esc);
   }, [menuOpen, setMenuOpen]);
 
-  const brand = data?.brand || 'BIZZPAL';
+  const brand = data?.brand || 'BizzPal';
   const rawLinks = data?.links || DEFAULT_NAV_LINKS;
   const links = rawLinks.map(l => Array.isArray(l) ? { label: l[0], href: l[1] } : l);
-  const ctaText = data?.ctaText || 'Start with BizzPal';
-  const ctaHref = data?.ctaHref || DASHBOARD_URL;
+  const ctaText = data?.ctaText || 'Start a Conversation';
+  const ctaHref = data?.ctaHref || '#contact';
 
   return (
     <>
       <header className="nav">
-        <a className="brand" href="#hero" aria-label={`${brand} home`}>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 19V5l14 14V5" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          {brand}
+        <a className="brand" href="#hero" aria-label="BizzPal home">
+          <span className="brand__mark" aria-hidden="true" />
+          <span className="wm">
+            <span className="wm__a">Bizz</span>
+            <span className="wm__b">Pal</span>
+            <span className="wm__tm">&trade;</span>
+          </span>
         </a>
 
         <nav className="nav__links" aria-label="Primary">

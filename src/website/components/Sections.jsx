@@ -36,28 +36,32 @@ export function AnnouncementBanner({ data }) {
 
 /* ------------------------------------------------------------------- hero */
 export function Hero({ ready, data }) {
-  const word = data?.word || 'BIZZPAL';
-  const eyebrow = data?.eyebrow || 'Artificial Intelligence · BizzPal.in';
-  const subtitle = data?.subtitle || 'Intelligence. Engineered for Tomorrow.';
+  const eyebrow = data?.eyebrow || 'Artificial Intelligence · For Business';
+  const subtitle = data?.subtitle || 'Your Business. Powered by Intelligence.';
   const primaryCtaText = data?.primaryCtaText || 'Explore BizzPal';
   const primaryCtaHref = data?.primaryCtaHref || '#s01';
   const secondaryCtaText = data?.secondaryCtaText || 'Discover Our Intelligence';
   const secondaryCtaHref = data?.secondaryCtaHref || '#s03';
 
   return (
-    <section id="hero" className="story" aria-label="BizzPal — Intelligence engineered for tomorrow">
+    <section id="hero" className="story" aria-label="BizzPal — Your AI Business Partner">
       <div className="pin">
         <div className="wrap hero__inner">
-          <p className={'eyebrow rv' + (ready ? ' in' : '')} data-d="1">{eyebrow}</p>
+          <p className={'eyebrow eyebrow--both rv' + (ready ? ' in' : '')} data-d="1">{eyebrow}</p>
 
-          <h1 className={'hero__mark' + (ready ? ' in' : '')} aria-label={word}>
-            {[...word].map((ch, i) => (
-              <span key={i} className="ch" aria-hidden="true" style={{ transitionDelay: `${0.3 + i * 0.055}s` }}>{ch}</span>
-            ))}
+          <h1 className={'hero__mark' + (ready ? ' in' : '')} aria-label="BizzPal™">
+            <span className="ch ch--s" aria-hidden="true" style={{ transitionDelay: '0.30s' }}>B</span>
+            <span className="ch ch--s" aria-hidden="true" style={{ transitionDelay: '0.355s' }}>i</span>
+            <span className="ch ch--s" aria-hidden="true" style={{ transitionDelay: '0.41s' }}>z</span>
+            <span className="ch ch--s" aria-hidden="true" style={{ transitionDelay: '0.465s' }}>z</span>
+            <span className="ch ch--g" aria-hidden="true" style={{ transitionDelay: '0.52s' }}>P</span>
+            <span className="ch ch--g" aria-hidden="true" style={{ transitionDelay: '0.575s' }}>a</span>
+            <span className="ch ch--g" aria-hidden="true" style={{ transitionDelay: '0.63s' }}>l</span>
+            <span className="ch ch--tm" aria-hidden="true" style={{ transitionDelay: '0.685s' }}>&trade;</span>
           </h1>
 
           <p className={'hero__sub rv' + (ready ? ' in' : '')} data-d="4">
-            {subtitle}
+            Your Business. <em>Powered by Intelligence.</em>
           </p>
 
           <div className={'hero__cta rv' + (ready ? ' in' : '')} data-d="5">
@@ -383,13 +387,12 @@ export const Vision = ({ data }) => {
 /* ---------------------------------------------------------------- contact */
 export function Contact({ data }) {
   const [email, setEmail] = useState('');
-  const [note, setNote] = useState(data?.note || 'Enter your email to begin your executive onboarding.');
+  const [note, setNote] = useState(data?.note || 'Opens your mail app — nothing is stored on this page.');
   const [alert, setAlert] = useState(false);
 
-  const eyebrow = data?.eyebrow || 'Start with BizzPal';
+  const eyebrow = data?.eyebrow || 'Contact';
   const headline = data?.headline || 'Ready to build\nwhat’s next?';
-  const ctaText = data?.ctaText || 'Start with BizzPal';
-  const ctaHref = data?.ctaHref || DASHBOARD_URL;
+  const ctaText = data?.ctaText || 'Start a Conversation';
   const contactInfo = {
     email: data?.email || DEFAULT_CONTACT.email,
     site: data?.site || DEFAULT_CONTACT.site,
@@ -400,15 +403,18 @@ export function Contact({ data }) {
   const submit = e => {
     e.preventDefault();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setNote('Please enter a valid business email address.'); setAlert(true); return;
+      setNote('Please enter a valid email address.'); setAlert(true); return;
     }
-    const dest = ctaHref.includes('?') ? `${ctaHref}&email=${encodeURIComponent(email.trim())}` : `${ctaHref}?email=${encodeURIComponent(email.trim())}`;
-    window.location.href = dest;
+    const to = contactInfo.email || 'hello@bizzpal.in';
+    const subject = encodeURIComponent('Starting a conversation with BizzPal');
+    const body = encodeURIComponent(`Hi BizzPal,\n\nI'd like to talk about a project.\n\nMy email: ${email.trim()}\n\n`);
+    window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+    setNote('Opening your mail app…'); setAlert(false);
   };
 
-  const social = (label, url) => url
+  const social = (label, url) => url && !url.includes('placeholder')
     ? <a className="crow" key={label} href={url} target="_blank" rel="noopener"><span className="crow__v">{label}</span><span className="crow__k">Social</span></a>
-    : <span className="crow" key={label}><span className="crow__v">{label} <span className="ph">add link</span></span><span className="crow__k">Social</span></span>;
+    : <span className="crow" key={label}><span className="crow__v">{label} <span className="ph">ADD LINK</span></span><span className="crow__k">Social</span></span>;
 
   return (
     <section id="contact" aria-labelledby="contact-h">
@@ -416,11 +422,11 @@ export function Contact({ data }) {
         <div className="contact__grid">
           <div>
             <p className="eyebrow rv">{eyebrow}</p>
-            <h2 className="h-xl rv" id="contact-h" data-d="1" style={{ whiteSpace: 'pre-line' }}>{headline}</h2>
+            <h2 className="h-xl rv" id="contact-h" data-d="1" style={{ whiteSpace: 'pre-line', color: '#FFFFFF' }}>{headline}</h2>
             <form className="field rv" data-d="2" onSubmit={submit} noValidate>
               <label htmlFor="email" style={{ position: 'absolute', left: -9999 }}>Your email address</label>
               <input
-                id="email" type="email" name="email" placeholder="founder@company.com"
+                id="email" type="email" name="email" placeholder="your@email.com"
                 autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required
               />
               <button type="submit" aria-label={ctaText}>
@@ -432,11 +438,6 @@ export function Contact({ data }) {
             <p className="small rv" data-d="3" style={{ marginTop: 14, fontSize: 12.5, color: alert ? '#f87171' : 'var(--ink-faint)' }}>
               {note}
             </p>
-            <div className="rv" data-d="4" style={{ marginTop: 20 }}>
-              <MagneticButton className="btn--solid btn--lg" href={ctaHref}>
-                <span>{ctaText}</span><span className="btn__ar" aria-hidden="true">→</span>
-              </MagneticButton>
-            </div>
           </div>
 
           <div className="rv" data-d="2">
@@ -456,14 +457,17 @@ export function Contact({ data }) {
   );
 }
 
-export const Footer = ({ data }) => {
-  const copyright = data?.copyright || `© ${new Date().getFullYear()} BizzPal`;
-  const tagline = data?.tagline || 'BizzPal — Intelligence in Motion';
+export const Footer = () => {
   return (
     <footer>
       <div className="wrap foot">
-        <span>{copyright}</span>
-        <span>{tagline}</span>
+        <span>© 2026 BizzPal</span>
+        <span>
+          <span className="wm wm--sm">
+            <span className="wm__a">Bizz</span><span className="wm__b">Pal</span><span className="wm__tm">&trade;</span>
+          </span>
+          &nbsp;&mdash;&nbsp;Your AI Business Partner
+        </span>
         <a href="#hero">Back to top ↑</a>
       </div>
     </footer>

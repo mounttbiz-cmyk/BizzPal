@@ -788,7 +788,7 @@ export const DEFAULT_WEBSITE_CONFIG = {
     footer: { enabled: true, title: "Site Footer" },
   },
   nav: {
-    brand: "BIZZPAL",
+    brand: "BizzPal",
     links: [
       { label: "About", href: "#about" },
       { label: "Intelligence", href: "#s03" },
@@ -797,8 +797,8 @@ export const DEFAULT_WEBSITE_CONFIG = {
       { label: "Contact", href: "#contact" },
       { label: "Pricing", href: "/subscription" },
     ],
-    ctaText: "Start with BizzPal",
-    ctaHref: "/login",
+    ctaText: "Start a Conversation",
+    ctaHref: "#contact",
   },
   vision: {
     label: "The next interface is intelligence",
@@ -811,9 +811,9 @@ export const DEFAULT_WEBSITE_CONFIG = {
     linkUrl: "#s01",
   },
   hero: {
-    eyebrow: "Artificial Intelligence · BizzPal.in",
-    word: "BIZZPAL",
-    subtitle: "Intelligence. Engineered for Tomorrow.",
+    eyebrow: "Artificial Intelligence · For Business",
+    word: "BizzPal™",
+    subtitle: "Your Business. Powered by Intelligence.",
     primaryCtaText: "Explore BizzPal",
     primaryCtaHref: "#s01",
     secondaryCtaText: "Discover Our Intelligence",
@@ -885,11 +885,11 @@ export const DEFAULT_WEBSITE_CONFIG = {
     ],
   },
   contact: {
-    eyebrow: "Start with BizzPal",
-    headline: "Ready to build what's next?",
-    note: "Enter your email to begin your executive onboarding.",
-    ctaText: "Start with BizzPal",
-    ctaHref: "/login",
+    eyebrow: "Contact",
+    headline: "Ready to build\nwhat’s next?",
+    note: "Opens your mail app — nothing is stored on this page.",
+    ctaText: "Start a Conversation",
+    ctaHref: "#contact",
     email: "hello@bizzpal.in",
     site: "bizzpal.in",
     linkedin: "https://linkedin.com/company/bizzpal",
@@ -897,7 +897,7 @@ export const DEFAULT_WEBSITE_CONFIG = {
   },
   footer: {
     copyright: "© 2026 BizzPal",
-    tagline: "BizzPal — Intelligence in Motion",
+    tagline: "BizzPal™ — Your AI Business Partner",
   },
 };
 
