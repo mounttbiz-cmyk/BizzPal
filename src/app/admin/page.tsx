@@ -43,6 +43,7 @@ import { WidgetDef } from "@/config/schemas/widget";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { StatusBadge } from "@/components/ui/Badge";
+import { DataPalFeatureFlagsSection } from "@/components/admin/DataPalFeatureFlagsSection";
 import { TenantsManager } from "./components/TenantsManager";
 import { UsersManager } from "./components/UsersManager";
 import { PricingManager } from "./components/PricingManager";
@@ -2241,6 +2242,9 @@ export default function AdminPage() {
               );
             })}
           </div>
+
+          {/* DataPal Extraction Engine Features */}
+          <DataPalFeatureFlagsSection />
         </div>
       )}
 
