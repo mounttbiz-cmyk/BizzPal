@@ -18,7 +18,7 @@ import { MobileAdvisorStrip } from "@/components/chat/MobileAdvisorStrip";
 import { ChatThread } from "@/components/chat/ChatThread";
 import { SuggestedPrompts } from "@/components/chat/SuggestedPrompts";
 import { Composer } from "@/components/chat/Composer";
-import { ChatHistoryDrawer } from "@/components/chat/ChatHistoryDrawer";
+import { ChatHistoryDrawer, ChatHistoryPanel } from "@/components/chat/ChatHistoryDrawer";
 import { BrainCircuit, Building2, MessageSquare } from "lucide-react";
 
 const EXECUTIVE_AGENTS: AgentMeta[] = [
@@ -155,7 +155,7 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
     role: "Strategy AI",
     avatar: "Compass",
     badge: "Moats & Expansion",
-    color: "text-orange-500 bg-orange-500/10 border-orange-500/30",
+    color: "text-orange-500 bg-orange-500/10 border-orange-400/30",
     summary: "Defensibility analysis, competitive moats, market expansion playbooks, and strategic partnerships.",
     quickTools: [
       { name: "Market Entry Simulator", href: "/tools?tool=market_entry" },
@@ -214,16 +214,26 @@ export default function ChatWorkspacePage() {
   // Initial seed conversations for each agent
   const [conversations, setConversations] = useState<Record<string, ChatMessage[]>>(() => {
     const initConvs: Record<string, ChatMessage[]> = {};
+    const initialCustom = getStoredCustomAdvisors();
     for (const agent of EXECUTIVE_AGENTS) {
+      const custom = initialCustom[agent.id];
+      const effAgent = custom
+        ? {
+            ...agent,
+            name: custom.name?.trim() || agent.name,
+            avatar: custom.avatar || agent.avatar,
+          }
+        : agent;
+
       initConvs[agent.id] = [
         {
           id: `msg_init_${agent.id}`,
           sender: "agent",
           agentId: agent.id,
-          agentName: `${agent.name} (${agent.role})`,
-          avatar: agent.avatar,
+          agentName: `${effAgent.name} (${effAgent.role})`,
+          avatar: effAgent.avatar,
           timestamp: "Just now",
-          content: getAdvisorGreeting(agent),
+          content: getAdvisorGreeting(effAgent),
           provider: "bizzpal-ai",
           nextSteps:
             agent.id === "ceo"
@@ -635,10 +645,23 @@ export default function ChatWorkspacePage() {
             isTyping={isTyping}
           />
         </main>
+
+        {/* Desktop Chat History Panel (Inline, non-dimming) */}
+        {isHistoryOpen && (
+          <ChatHistoryPanel
+            messages={currentMessages}
+            activeAgent={activeAgent}
+            onCustomizeAgent={setEditingAgent}
+            onClose={() => setIsHistoryOpen(false)}
+            onSelectMessage={msgId => {
+              document.getElementById(msgId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+          />
+        )}
       </div>
 
       {/* ============================================================ */}
-      {/* 4. CHAT HISTORY DRAWER (Collapsible right panel) */}
+      {/* 4. MOBILE / TABLET OVERLAY CHAT HISTORY DRAWER (< 1280px) */}
       {/* ============================================================ */}
       <ChatHistoryDrawer
         isOpen={isHistoryOpen}

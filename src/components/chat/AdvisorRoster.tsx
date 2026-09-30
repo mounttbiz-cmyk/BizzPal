@@ -134,7 +134,7 @@ export function AdvisorRoster({
             <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
               Executive Roster
             </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+            <span className="text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
               {agents.length} Active
             </span>
           </div>
@@ -161,7 +161,7 @@ export function AdvisorRoster({
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Filter advisors…"
             aria-label="Filter advisors by name or role"
-            className="w-full pl-8.5 pr-8 py-2 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-brass focus:border-brass transition-all"
+            className="w-full pl-9 pr-8 py-2 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-brass focus:border-brass transition-all"
           />
           {searchTerm && (
             <button
