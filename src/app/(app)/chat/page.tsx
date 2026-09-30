@@ -20,15 +20,19 @@ import {
   CheckCircle2,
   Sliders,
   ChevronRight,
+  ChevronDown,
   Bot,
   PanelRightClose,
   PanelRightOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   Clock,
   Info,
   MessageSquare,
   Pencil,
   User,
+  X,
 } from "lucide-react";
 import { parseNaturalBusinessInput, ExtractedBusinessRecord } from "@/lib/intake/nlpParser";
 import { emitBusinessDataUpdated } from "@/lib/upload/events";
@@ -225,7 +229,10 @@ export default function ChatWorkspacePage() {
   const [activeAgentId, setActiveAgentId] = useState<string>("ceo");
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [showDossier, setShowDossier] = useState(true);
+  const [showRoster, setShowRoster] = useState(true);
+  const [isMobileRosterOpen, setIsMobileRosterOpen] = useState(false);
+  const [showDossier, setShowDossier] = useState(false);
+  const [isMobileHistoryOpen, setIsMobileHistoryOpen] = useState(false);
   const [searchRoster, setSearchRoster] = useState("");
   const [companyProfile, setCompanyProfile] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -558,197 +565,334 @@ export default function ChatWorkspacePage() {
   );
 
   return (
-    <div className="h-[calc(100vh-5.5rem)] flex flex-col space-y-3 animate-fade-in">
+    <div className="h-[calc(100dvh-5.5rem)] md:h-[calc(100vh-5.5rem)] flex flex-col space-y-2.5 sm:space-y-3 animate-fade-in relative">
       {/* Top Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-line shrink-0">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-line shrink-0">
+        <div className="flex items-center justify-between sm:justify-start gap-2.5 w-full sm:w-auto">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+            {/* Desktop Roster Collapse/Expand Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowRoster(prev => !prev)}
+              className="hidden lg:flex p-1.5 rounded-lg bg-surface border border-line hover:border-line-strong text-text-muted hover:text-text transition-colors btn-tactile cursor-pointer"
+              title={showRoster ? "Collapse Roster to Icon Rail" : "Expand Full Roster"}
+            >
+              {showRoster ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4 text-cyan-400" />}
+            </button>
+
+            {/* Mobile Roster Trigger Button */}
+            <button
+              type="button"
+              onClick={() => setIsMobileRosterOpen(true)}
+              className="lg:hidden flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text hover:bg-surface transition-colors cursor-pointer"
+            >
+              <AgentAvatarIcon iconName={activeAgent.avatar} className="w-4 h-4 text-brass" />
+              <span className="truncate max-w-[120px]">{activeAgent.name}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-text-muted" />
+            </button>
+
+            <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 hidden sm:flex items-center justify-center text-cyan-400 shrink-0">
               <BrainCircuit className="w-4 h-4" />
             </div>
-            <h1 className="text-base sm:text-lg font-bold text-text font-sans">AI Executive Suite</h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 font-bold uppercase tracking-wider font-mono">
-              7 Autonomous Advisors
-            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm sm:text-base font-bold text-text font-sans">AI Executive Suite</h1>
+                <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border border-cyan-500/30 font-bold uppercase tracking-wider font-mono">
+                  7 Advisors
+                </span>
+              </div>
+            </div>
           </div>
-          <p className="text-[11px] text-text-muted mt-1 font-medium">
-            Converse directly with specialized AI executive agents ({effectiveAgents.slice(0, 4).map(a => `${a.role.replace(" AI", "")} ${a.name}`).join(", ")}) to audit decisions and execute playbooks.
-          </p>
+
+          {/* Mobile History Button (Visible in Top Row on Mobile) */}
+          <button
+            type="button"
+            onClick={() => setIsMobileHistoryOpen(true)}
+            className="xl:hidden flex items-center gap-1 px-2.5 py-1 rounded-xl bg-surface-2 border border-line text-xs font-medium text-text-muted hover:text-text cursor-pointer"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[10px] font-mono">{currentMessages.length}</span>
+          </button>
         </div>
 
-        {/* Company Telemetry Header Badge */}
-        <div className="flex items-center gap-3 text-xs bg-surface-2/60 border border-line px-3 py-1.5 rounded-xl text-text-muted shrink-0">
-          <div className="flex items-center gap-1.5 font-semibold text-text">
-            <Building2 className="w-3.5 h-3.5 text-brass" />
-            <span>{companyProfile?.name || "My Enterprise"}</span>
+        {/* Header Right: Telemetry & Desktop History Button */}
+        <div className="hidden sm:flex items-center justify-end gap-2 text-xs shrink-0">
+          {/* Company Telemetry Header Badge */}
+          <div className="flex items-center gap-2.5 text-xs bg-surface-2/60 border border-line px-3 py-1.5 rounded-xl text-text-muted shrink-0">
+            <div className="flex items-center gap-1.5 font-semibold text-text">
+              <Building2 className="w-3.5 h-3.5 text-brass" />
+              <span className="truncate max-w-[140px] lg:max-w-none">{companyProfile?.name || "My Enterprise"}</span>
+            </div>
+            <span>·</span>
+            <span className="font-mono text-[11px] text-emerald-800 dark:text-emerald-400 font-semibold">
+              ₹{Number(companyProfile?.revenue || 0).toLocaleString("en-IN")}/mo
+            </span>
+            <span>·</span>
+            <span className="text-[11px] font-mono text-cyan-800 dark:text-cyan-300">
+              Runway {companyProfile?.burn && companyProfile?.cash ? (companyProfile.cash / companyProfile.burn).toFixed(1) : (companyProfile?.cash ? "18+" : "0.0")}mo
+            </span>
           </div>
-          <span>·</span>
-          <span className="font-mono text-[11px] text-jade">
-            ₹{Number(companyProfile?.revenue || 0).toLocaleString("en-IN")}/mo
-          </span>
-          <span>·</span>
-          <span className="text-[11px] font-mono text-cyan-400">
-            Runway {companyProfile?.burn && companyProfile?.cash ? (companyProfile.cash / companyProfile.burn).toFixed(1) : (companyProfile?.cash ? "18+" : "0.0")}mo
-          </span>
+
+          {/* Desktop History Button */}
+          <button
+            type="button"
+            onClick={() => setShowDossier(prev => !prev)}
+            className={`hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all btn-tactile cursor-pointer ${
+              showDossier
+                ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-xs"
+                : "bg-surface-2 border border-line text-text-muted hover:text-text hover:bg-surface"
+            }`}
+            title="Toggle Chat History"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
+            <span>History</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-surface border border-line text-text">
+              {currentMessages.length}
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* Main Workspace Layout (2 or 3 Columns) */}
+      {/* Mobile/Tablet Horizontal Quick Switcher Carousel */}
+      <div className="lg:hidden flex items-center gap-1.5 overflow-x-auto pb-1 shrink-0 no-scrollbar -mx-1 px-1">
+        {effectiveAgents.map(agent => {
+          const isActive = agent.id === activeAgentId;
+          return (
+            <button
+              key={agent.id}
+              type="button"
+              onClick={() => setActiveAgentId(agent.id)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium shrink-0 border transition-all cursor-pointer ${
+                isActive
+                  ? "bg-cyan-500/15 border-cyan-500/50 text-text font-bold shadow-xs ring-1 ring-cyan-500/30"
+                  : "bg-surface-2/60 border-line text-text-muted hover:text-text"
+              }`}
+            >
+              <AgentAvatarIcon iconName={agent.avatar} className="w-3.5 h-3.5 text-brass" />
+              <span>{agent.name}</span>
+              <span className={`text-[9px] px-1 py-0.2 rounded uppercase font-mono ${agent.color}`}>
+                {agent.role.replace(" AI", "")}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Main Workspace Layout */}
       <div className="flex-1 flex gap-3 min-h-0 overflow-hidden">
         {/* ============================================================ */}
-        {/* LEFT COLUMN: EXECUTIVE AI DIRECTORY / ROSTER */}
+        {/* LEFT COLUMN: EXECUTIVE AI DIRECTORY / ROSTER (DESKTOP) */}
         {/* ============================================================ */}
-        <aside className="w-64 lg:w-72 shrink-0 bg-surface border border-line rounded-2xl flex flex-col overflow-hidden shadow-theme">
-          {/* Roster Search / Header */}
-          <div className="p-3 border-b border-line bg-surface-2/40 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                Executive Roster
-              </span>
-              <span className="text-[10px] font-mono text-cyan-400">7 Active</span>
+        {/* 1. Desktop Expanded Sidebar */}
+        {showRoster && (
+          <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 bg-surface border border-line rounded-2xl flex-col overflow-hidden shadow-theme animate-fade-in">
+            {/* Roster Search / Header */}
+            <div className="p-3 border-b border-line bg-surface-2/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                  Executive Roster
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono text-cyan-400">7 Active</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowRoster(false)}
+                    className="p-1 rounded-md text-text-muted hover:text-text hover:bg-surface border border-transparent hover:border-line transition-colors cursor-pointer"
+                    title="Collapse to Icon Rail"
+                  >
+                    <PanelLeftClose className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchRoster}
+                  onChange={e => setSearchRoster(e.target.value)}
+                  placeholder="Filter advisors…"
+                  className="w-full pl-8 pr-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                />
+              </div>
             </div>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchRoster}
-                onChange={e => setSearchRoster(e.target.value)}
-                placeholder="Filter advisors…"
-                className="w-full pl-8 pr-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-              />
-            </div>
-          </div>
 
-          {/* Roster List */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {filteredAgents.map(agent => {
-              const isActive = agent.id === activeAgentId;
-
-              return (
-                <button
-                  key={agent.id}
-                  type="button"
-                  onClick={() => setActiveAgentId(agent.id)}
-                  className={`w-full p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
-                    isActive
-                      ? "bg-cyan-500/10 border-cyan-500/40 text-text shadow-sm"
-                      : "bg-transparent border-transparent hover:bg-surface-2/60 hover:border-line text-text-muted hover:text-text"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="relative shrink-0">
-                      <div className="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-text group-hover:text-brass shadow-sm transition-colors">
-                        <AgentAvatarIcon iconName={agent.avatar} className="w-4 h-4" />
+            {/* Roster List */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {filteredAgents.map(agent => {
+                const isActive = agent.id === activeAgentId;
+                return (
+                  <button
+                    key={agent.id}
+                    type="button"
+                    onClick={() => setActiveAgentId(agent.id)}
+                    className={`w-full p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2.5 group ${
+                      isActive
+                        ? "bg-cyan-500/10 border-cyan-500/40 text-text shadow-sm"
+                        : "bg-transparent border-transparent hover:bg-surface-2/60 hover:border-line text-text-muted hover:text-text"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="relative shrink-0">
+                        <div className="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-text group-hover:text-brass shadow-sm transition-colors">
+                          <AgentAvatarIcon iconName={agent.avatar} className="w-4 h-4" />
+                        </div>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-surface animate-pulse" />
                       </div>
-                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-surface animate-pulse" />
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-text truncate">
+                            {agent.name}
+                          </span>
+                          <span
+                            className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold uppercase border ${agent.color}`}
+                          >
+                            {agent.role.replace(" AI", "")}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-text-muted truncate mt-0.5">
+                          {agent.badge}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-text truncate">
-                          {agent.name}
-                        </span>
-                        <span
-                          className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold uppercase border ${agent.color}`}
-                        >
-                          {agent.role.replace(" AI", "")}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-text-muted truncate mt-0.5">
-                        {agent.badge}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={e => {
-                        e.stopPropagation();
-                        setEditingAgent(agent);
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === "Enter" || e.key === " ") {
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={e => {
                           e.stopPropagation();
                           setEditingAgent(agent);
-                        }
-                      }}
-                      title={`Customize ${agent.name} (name & icon)`}
-                      className="p-1 rounded-md text-text-muted/60 hover:text-brass hover:bg-surface-2 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </span>
-                    <ChevronRight
-                      className={`w-4 h-4 shrink-0 transition-transform ${
-                        isActive ? "text-cyan-400 translate-x-0.5" : "text-text-muted/40"
-                      }`}
-                    />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.stopPropagation();
+                            setEditingAgent(agent);
+                          }
+                        }}
+                        title={`Customize ${agent.name} (name & icon)`}
+                        className="p-1 rounded-md text-text-muted/60 hover:text-brass hover:bg-surface-2 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </span>
+                      <ChevronRight
+                        className={`w-4 h-4 shrink-0 transition-transform ${
+                          isActive ? "text-cyan-400 translate-x-0.5" : "text-text-muted/40"
+                        }`}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* Bottom Controls */}
-          <div className="p-3 border-t border-line bg-surface-2/40 flex items-center justify-between text-xs">
-            <span className="text-[11px] text-text-muted">Direct Session</span>
+            {/* Bottom Controls */}
+            <div className="p-3 border-t border-line bg-surface-2/40 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-text-muted">Direct Session</span>
+              <button
+                type="button"
+                onClick={handleResetConversation}
+                title="Reset current conversation thread"
+                className="px-2 py-1 rounded-lg bg-surface border border-line text-[10px] text-text-muted hover:text-text hover:border-line-strong flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
+              </button>
+            </div>
+          </aside>
+        )}
+
+        {/* 2. Desktop Collapsed Icon Rail */}
+        {!showRoster && (
+          <aside className="hidden lg:flex w-16 shrink-0 bg-surface border border-line rounded-2xl flex-col items-center py-3 justify-between shadow-theme transition-all duration-200">
+            <div className="flex flex-col items-center gap-2 w-full px-2">
+              <button
+                type="button"
+                onClick={() => setShowRoster(true)}
+                className="w-10 h-10 rounded-xl bg-surface-2/60 border border-line hover:border-cyan-500/40 text-text-muted hover:text-cyan-400 flex items-center justify-center transition-colors mb-2 cursor-pointer"
+                title="Expand Executive Roster"
+              >
+                <PanelLeftOpen className="w-4 h-4" />
+              </button>
+
+              {effectiveAgents.map(agent => {
+                const isActive = agent.id === activeAgentId;
+                return (
+                  <button
+                    key={agent.id}
+                    type="button"
+                    onClick={() => setActiveAgentId(agent.id)}
+                    className={`relative w-10 h-10 rounded-xl flex items-center justify-center border transition-all cursor-pointer group ${
+                      isActive
+                        ? "bg-cyan-500/20 border-cyan-500 text-cyan-400 ring-2 ring-cyan-500/20 shadow-xs"
+                        : "bg-surface-2/40 border-transparent hover:border-line text-text-muted hover:text-text hover:bg-surface-2"
+                    }`}
+                    title={`${agent.name} (${agent.role}) - ${agent.badge}`}
+                  >
+                    <AgentAvatarIcon iconName={agent.avatar} className="w-4 h-4" />
+                    {isActive && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-surface" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
             <button
               type="button"
               onClick={handleResetConversation}
-              title="Reset current conversation thread"
-              className="px-2 py-1 rounded-lg bg-surface border border-line text-[10px] text-text-muted hover:text-text hover:border-line-strong flex items-center gap-1 cursor-pointer transition-colors"
+              title="Reset conversation"
+              className="w-9 h-9 rounded-xl bg-surface-2/60 border border-line text-text-muted hover:text-text flex items-center justify-center transition-colors cursor-pointer"
             >
-              <RotateCcw className="w-3 h-3" />
-              <span>Reset</span>
+              <RotateCcw className="w-3.5 h-3.5" />
             </button>
-          </div>
-        </aside>
+          </aside>
+        )}
 
         {/* ============================================================ */}
         {/* CENTER COLUMN: ACTIVE EXECUTIVE DESK & CHAT STREAM */}
         {/* ============================================================ */}
         <section className="flex-1 flex flex-col bg-surface border border-line rounded-2xl overflow-hidden shadow-theme min-w-0">
           {/* Active Desk Header */}
-          <div className="p-3 sm:px-4 border-b border-line bg-surface-2/40 flex items-center justify-between gap-3 shrink-0">
+          <div className="p-3 sm:px-5 border-b border-line bg-surface-2/40 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center text-brass shrink-0 shadow-sm">
                 <AgentAvatarIcon iconName={activeAgent.avatar} className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-bold text-text">
+                  <span className="text-xs sm:text-sm font-bold text-text truncate">
                     {activeAgent.name} ({activeAgent.role})
+                  </span>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 font-mono font-semibold uppercase flex items-center gap-1 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Live Desk</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => setEditingAgent(activeAgent)}
                     title="Customize Name & Symbol"
-                    className="px-2 py-0.5 rounded-md bg-surface border border-line hover:border-brass/40 hover:bg-surface-2 text-text-muted hover:text-brass text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                    className="px-2 py-0.5 rounded-md bg-surface border border-line hover:border-brass/40 hover:bg-surface-2 text-text-muted hover:text-brass text-[10px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs shrink-0"
                   >
                     <Pencil className="w-2.5 h-2.5 text-brass" />
-                    <span>Customize Name & Icon</span>
+                    <span>Customize</span>
                   </button>
-                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono font-semibold uppercase flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Live Desk</span>
-                  </span>
                 </div>
-                <p className="text-[11px] text-text-muted truncate mt-0.5">
+                <p className="text-[11px] text-text-muted truncate mt-0.5 max-w-xl">
                   {activeAgent.summary}
                 </p>
               </div>
             </div>
 
             {/* Header Right Actions */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               {/* Quick Tools Launchers */}
               <div className="hidden lg:flex items-center gap-1.5">
                 {activeAgent.quickTools.map((tool, idx) => (
                   <Link
                     key={idx}
                     href={tool.href}
-                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-2 border border-line text-text hover:text-cyan-400 hover:border-cyan-500/30 transition-all inline-flex items-center gap-1"
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-2 border border-line text-text hover:text-cyan-700 dark:hover:text-cyan-400 hover:border-cyan-500/30 transition-all inline-flex items-center gap-1 shadow-2xs"
                   >
                     <span>{tool.name}</span>
                     <ArrowRight className="w-2.5 h-2.5 text-text-muted" />
@@ -756,7 +900,7 @@ export default function ChatWorkspacePage() {
                 ))}
               </div>
 
-              {/* Show Chat History button (when history is collapsed) */}
+              {/* Show Chat History button (when history is collapsed on desktop) */}
               {!showDossier && (
                 <button
                   type="button"
@@ -772,219 +916,223 @@ export default function ChatWorkspacePage() {
           </div>
 
           {/* Conversation Stream */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-            {currentMessages.map(msg => {
-              const isUser = msg.sender === "user";
-              const msgAgent = effectiveAgents.find(a => a.id === msg.agentId) || activeAgent;
-              const displaySenderName = isUser ? msg.agentName : `${msgAgent.name} (${msgAgent.role})`;
-              const displayAvatar = isUser ? "User" : (activeAgent.id === msg.agentId ? activeAgent.avatar : msgAgent.avatar);
-              const displayContent = isUser
-                ? msg.content
-                : (msg.id.startsWith("msg_init_")
-                    ? getAdvisorGreeting(msgAgent, companyProfile)
-                    : msg.content
-                        .replace(/\bAstra, your CEO AI\b/gi, `${msgAgent.name}, your ${msgAgent.role}`)
-                        .replace(/\bI am Astra\b/gi, `I am ${msgAgent.name}`)
-                        .replace(/\bAstra\b/g, msgAgent.name)
-                  );
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4">
+            <div className="max-w-4xl mx-auto w-full space-y-4">
+              {currentMessages.map(msg => {
+                const isUser = msg.sender === "user";
+                const msgAgent = effectiveAgents.find(a => a.id === msg.agentId) || activeAgent;
+                const displaySenderName = isUser ? msg.agentName : `${msgAgent.name} (${msgAgent.role})`;
+                const displayAvatar = isUser ? "User" : (activeAgent.id === msg.agentId ? activeAgent.avatar : msgAgent.avatar);
+                const displayContent = isUser
+                  ? msg.content
+                  : (msg.id.startsWith("msg_init_")
+                      ? getAdvisorGreeting(msgAgent, companyProfile)
+                      : msg.content
+                          .replace(/\bAstra, your CEO AI\b/gi, `${msgAgent.name}, your ${msgAgent.role}`)
+                          .replace(/\bI am Astra\b/gi, `I am ${msgAgent.name}`)
+                          .replace(/\bAstra\b/g, msgAgent.name)
+                    );
 
-              return (
-                <div
-                  key={msg.id}
-                  id={msg.id}
-                  className={`flex gap-3 max-w-3xl scroll-mt-4 ${isUser ? "ml-auto flex-row-reverse" : "mr-auto"}`}
-                >
+                return (
                   <div
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0 border mt-0.5 shadow-sm ${
-                      isUser
-                        ? "bg-brass text-white border-brass"
-                        : "bg-surface-2 border-line text-brass"
-                    }`}
+                    key={msg.id}
+                    id={msg.id}
+                    className={`flex gap-2.5 sm:gap-3 max-w-3xl scroll-mt-4 ${isUser ? "ml-auto flex-row-reverse" : "mr-auto"}`}
                   >
-                    {isUser ? (
-                      <User className="w-4 h-4 text-white" />
-                    ) : (
-                      <AgentAvatarIcon
-                        iconName={displayAvatar}
-                        className="w-4 h-4"
-                      />
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5 max-w-2xl min-w-0">
-                    <div className={`flex items-center gap-2 text-[10px] ${isUser ? "justify-end" : ""}`}>
-                      <span className="font-bold text-text">{displaySenderName}</span>
-                      <span className="text-text-muted">{msg.timestamp}</span>
-                    </div>
-
                     <div
-                      className={`p-4 rounded-2xl text-xs leading-relaxed shadow-sm ${
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0 border mt-0.5 shadow-sm ${
                         isUser
-                          ? "bg-brass text-white font-medium rounded-tr-none shadow-md"
-                          : "bg-surface-2/70 border border-line text-text rounded-tl-none"
+                          ? "bg-brass text-white border-brass"
+                          : "bg-surface-2 border-line text-brass"
                       }`}
                     >
                       {isUser ? (
-                        <div className="whitespace-pre-wrap">{displayContent}</div>
+                        <User className="w-4 h-4 text-white" />
                       ) : (
-                        <ChatMarkdown content={displayContent} />
-                      )}
-
-                      {/* Structured Day-to-Day Input Card */}
-                      {msg.structuredRecord && (
-                        <div className="mt-3 p-3.5 rounded-xl bg-surface border border-brass/40 text-text space-y-2.5 shadow-sm text-left">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-brass flex items-center gap-1.5">
-                              <BrainCircuit className="w-3 h-3 text-brass" />
-                              <span>Day-to-Day Operational Update Detected</span>
-                            </span>
-                            {msg.recordCommitted ? (
-                              <span className="text-[10px] px-2 py-0.2 rounded-full bg-jade/15 border border-jade/30 text-jade font-bold flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" />
-                                <span>Committed to Ledger</span>
-                              </span>
-                            ) : (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-surface-2 border border-line text-text-muted font-mono font-semibold">
-                                Uncommitted
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                            {msg.structuredRecord.dailyOrders !== undefined && (
-                              <div className="p-2 rounded-lg bg-surface-2/60 border border-line">
-                                <span className="text-[10px] text-text-muted block">Orders</span>
-                                <span className="text-xs font-bold text-text">{msg.structuredRecord.dailyOrders}</span>
-                              </div>
-                            )}
-                            {msg.structuredRecord.dailyRevenue !== undefined && (
-                              <div className="p-2 rounded-lg bg-surface-2/60 border border-line">
-                                <span className="text-[10px] text-text-muted block">Revenue</span>
-                                <span className="text-xs font-bold text-jade">₹{msg.structuredRecord.dailyRevenue.toLocaleString("en-IN")}</span>
-                              </div>
-                            )}
-                            {msg.structuredRecord.dailyExpenses !== undefined && (
-                              <div className="p-2 rounded-lg bg-surface-2/60 border border-line">
-                                <span className="text-[10px] text-text-muted block">Expenses / Burn</span>
-                                <span className="text-xs font-bold text-amber">₹{msg.structuredRecord.dailyExpenses.toLocaleString("en-IN")}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {!msg.recordCommitted && (
-                            <div className="pt-1 flex justify-end">
-                              <button
-                                type="button"
-                                onClick={() => handleCommitRecordFromChat(msg.structuredRecord!, msg.id)}
-                                className="px-3.5 py-1.5 rounded-lg bg-brass text-white text-[11px] font-bold hover:brightness-110 btn-tactile inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Confirm & Record to Business Ledger</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Interactive Action Playbooks */}
-                      {msg.nextSteps && msg.nextSteps.length > 0 && (
-                        <div className="mt-3 pt-2.5 border-t border-line/60 space-y-1.5">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-jade" />
-                            <span>Recommended Action Playbooks:</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {msg.nextSteps.map((step, sIdx) => (
-                              <button
-                                key={sIdx}
-                                type="button"
-                                onClick={() => handleSendMessage(step)}
-                                className="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-cyan-500/40 text-text cursor-pointer hover:text-cyan-400 transition-all btn-tactile"
-                              >
-                                → {step}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <AgentAvatarIcon
+                          iconName={displayAvatar}
+                          className="w-4 h-4"
+                        />
                       )}
                     </div>
+
+                    <div className="space-y-1.5 max-w-2xl min-w-0">
+                      <div className={`flex items-center gap-2 text-[10px] ${isUser ? "justify-end" : ""}`}>
+                        <span className="font-bold text-text">{displaySenderName}</span>
+                        <span className="text-text-muted">{msg.timestamp}</span>
+                      </div>
+
+                      <div
+                        className={`p-3.5 sm:p-4 rounded-2xl text-xs leading-relaxed shadow-sm ${
+                          isUser
+                            ? "bg-brass text-white font-medium rounded-tr-none shadow-md"
+                            : "bg-surface-2/70 border border-line text-text rounded-tl-none"
+                        }`}
+                      >
+                        {isUser ? (
+                          <div className="whitespace-pre-wrap">{displayContent}</div>
+                        ) : (
+                          <ChatMarkdown content={displayContent} />
+                        )}
+
+                        {/* Structured Day-to-Day Input Card */}
+                        {msg.structuredRecord && (
+                          <div className="mt-3 p-3.5 rounded-xl bg-surface border border-brass/40 text-text space-y-2.5 shadow-sm text-left">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-brass flex items-center gap-1.5">
+                                <BrainCircuit className="w-3 h-3 text-brass" />
+                                <span>Day-to-Day Operational Update Detected</span>
+                              </span>
+                              {msg.recordCommitted ? (
+                                <span className="text-[10px] px-2 py-0.2 rounded-full bg-jade/15 border border-jade/30 text-jade font-bold flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>Committed to Ledger</span>
+                                </span>
+                              ) : (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-surface-2 border border-line text-text-muted font-mono font-semibold">
+                                  Uncommitted
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                              {msg.structuredRecord.dailyOrders !== undefined && (
+                                <div className="p-2 rounded-lg bg-surface-2/60 border border-line">
+                                  <span className="text-[10px] text-text-muted block">Orders</span>
+                                  <span className="text-xs font-bold text-text">{msg.structuredRecord.dailyOrders}</span>
+                                </div>
+                              )}
+                              {msg.structuredRecord.dailyRevenue !== undefined && (
+                                <div className="p-2 rounded-lg bg-surface-2/60 border border-line">
+                                  <span className="text-[10px] text-text-muted block">Revenue</span>
+                                  <span className="text-xs font-bold text-jade">₹{msg.structuredRecord.dailyRevenue.toLocaleString("en-IN")}</span>
+                                </div>
+                              )}
+                              {msg.structuredRecord.dailyExpenses !== undefined && (
+                                <div className="p-2 rounded-lg bg-surface-2/60 border border-line">
+                                  <span className="text-[10px] text-text-muted block">Expenses / Burn</span>
+                                  <span className="text-xs font-bold text-amber">₹{msg.structuredRecord.dailyExpenses.toLocaleString("en-IN")}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {!msg.recordCommitted && (
+                              <div className="pt-1 flex justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => handleCommitRecordFromChat(msg.structuredRecord!, msg.id)}
+                                  className="px-3.5 py-1.5 rounded-lg bg-brass text-white text-[11px] font-bold hover:brightness-110 btn-tactile inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Confirm & Record to Business Ledger</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Interactive Action Playbooks */}
+                        {msg.nextSteps && msg.nextSteps.length > 0 && (
+                          <div className="mt-3 pt-2.5 border-t border-line/60 space-y-1.5">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-jade" />
+                              <span>Recommended Action Playbooks:</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {msg.nextSteps.map((step, sIdx) => (
+                                <button
+                                  key={sIdx}
+                                  type="button"
+                                  onClick={() => handleSendMessage(step)}
+                                  className="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-cyan-500/40 text-text cursor-pointer hover:text-cyan-400 transition-all btn-tactile"
+                                >
+                                  → {step}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {isTyping && (
+                <div className="flex gap-2.5 sm:gap-3 mr-auto max-w-lg">
+                  <div className="w-8 h-8 rounded-xl bg-surface-2 border border-line flex items-center justify-center text-brass shrink-0 shadow-sm">
+                    <AgentAvatarIcon iconName={activeAgent.avatar} className="w-4 h-4" />
+                  </div>
+                  <div className="p-3 sm:p-3.5 rounded-2xl bg-surface-2 border border-line text-xs rounded-tl-none flex items-center gap-2.5 text-text-muted">
+                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                    <span>{activeAgent.name} is synthesizing verified business telemetry…</span>
                   </div>
                 </div>
-              );
-            })}
-
-            {isTyping && (
-              <div className="flex gap-3 mr-auto max-w-lg">
-                <div className="w-8 h-8 rounded-xl bg-surface-2 border border-line flex items-center justify-center text-brass shrink-0 shadow-sm">
-                  <AgentAvatarIcon iconName={activeAgent.avatar} className="w-4 h-4" />
-                </div>
-                <div className="p-3.5 rounded-2xl bg-surface-2 border border-line text-xs rounded-tl-none flex items-center gap-2.5 text-text-muted">
-                  <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                  <span>{activeAgent.name} is synthesizing verified business telemetry…</span>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
+              )}
+              <div ref={messagesEndRef} />
+            </div>
           </div>
 
           {/* Pinned Bottom Input & Prompt Suggestions Dock */}
-          <div className="border-t border-line bg-surface shrink-0">
-            {/* Prompt Suggestions Carousel */}
-            <div className="px-4 py-2 border-b border-line/50 bg-surface-2/30 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
-              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider shrink-0 flex items-center gap-1">
-                <BrainCircuit className="w-3 h-3 text-cyan-400" />
-                <span>Suggested:</span>
-              </span>
-              {activeAgent.promptSuggestions.map((prompt, pIdx) => (
-                <button
-                  key={pIdx}
-                  type="button"
-                  onClick={() => handleSendMessage(prompt)}
-                  className="shrink-0 px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-cyan-500/30 text-[11px] text-text-muted hover:text-text cursor-pointer transition-all"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-
-            {/* Input Bar */}
-            <div className="p-3 sm:p-4">
-              <form
-                onSubmit={e => {
-                  e.preventDefault();
-                  handleSendMessage();
-                }}
-                className="flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  value={inputMessage}
-                  onChange={e => setInputMessage(e.target.value)}
-                  placeholder={`Ask ${activeAgent.name} (${activeAgent.role}) about strategy, runway, financial models, or execution…`}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
-                />
-                <button
-                  type="submit"
-                  disabled={!inputMessage.trim() || isTyping}
-                  className="px-4 py-2.5 rounded-xl bg-brass text-white text-xs font-bold shadow-md hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed btn-tactile inline-flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
-                >
-                  <span>Send</span>
-                  <Send className="w-3.5 h-3.5" />
-                </button>
-              </form>
-              <div className="mt-1.5 flex items-center justify-between text-[10px] text-text-muted px-1">
-                <span className="flex items-center gap-1">
-                  <Info className="w-3 h-3 text-cyan-400" />
-                  <span>Verified company ledger & telemetry synced</span>
+          <div className="border-t border-line bg-surface/95 backdrop-blur-md shrink-0">
+            <div className="max-w-4xl mx-auto w-full">
+              {/* Prompt Suggestions Carousel */}
+              <div className="px-3 sm:px-4 py-2 border-b border-line/40 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
+                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider shrink-0 flex items-center gap-1">
+                  <BrainCircuit className="w-3 h-3 text-cyan-400" />
+                  <span>Suggested:</span>
                 </span>
-                <span className="font-mono">Press ↵ to send</span>
+                {activeAgent.promptSuggestions.map((prompt, pIdx) => (
+                  <button
+                    key={pIdx}
+                    type="button"
+                    onClick={() => handleSendMessage(prompt)}
+                    className="shrink-0 px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-cyan-500/30 text-[11px] text-text-muted hover:text-text cursor-pointer transition-all"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+
+              {/* Input Bar */}
+              <div className="p-3 sm:p-4">
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={e => setInputMessage(e.target.value)}
+                    placeholder={`Ask ${activeAgent.name} (${activeAgent.role}) about strategy, runway, financial models, or execution…`}
+                    className="flex-1 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-surface-2 border border-line text-xs sm:text-sm text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!inputMessage.trim() || isTyping}
+                    className="px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-brass text-white text-xs sm:text-sm font-bold shadow-md hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed btn-tactile inline-flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
+                  >
+                    <span>Send</span>
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+                <div className="mt-1.5 flex items-center justify-between text-[10px] text-text-muted px-1">
+                  <span className="flex items-center gap-1 truncate">
+                    <Info className="w-3 h-3 text-cyan-400 shrink-0" />
+                    <span className="truncate">Verified company ledger & telemetry synced</span>
+                  </span>
+                  <span className="font-mono hidden sm:inline shrink-0">Press ↵ to send</span>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         {/* ============================================================ */}
-        {/* RIGHT COLUMN: CHAT HISTORY */}
+        {/* RIGHT COLUMN: CHAT HISTORY (DESKTOP) */}
         {/* ============================================================ */}
         {showDossier && (
           <aside className="hidden xl:flex w-72 lg:w-80 shrink-0 bg-surface border border-line rounded-2xl flex-col overflow-y-auto p-4 shadow-theme space-y-3 animate-fade-in">
@@ -993,18 +1141,18 @@ export default function ChatWorkspacePage() {
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-cyan-400" />
                 <span className="text-xs font-bold text-text font-sans">Chat History</span>
-                <button
-                  type="button"
-                  onClick={() => setShowDossier(false)}
-                  title="Hide Chat History"
-                  className="p-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 border border-transparent hover:border-line transition-all cursor-pointer"
-                >
-                  <PanelRightClose className="w-3.5 h-3.5" />
-                </button>
+                <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded bg-surface-2 border border-line text-text-muted uppercase">
+                  {currentMessages.length} msgs
+                </span>
               </div>
-              <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded bg-surface-2 border border-line text-text-muted uppercase">
-                {currentMessages.length} msgs
-              </span>
+              <button
+                type="button"
+                onClick={() => setShowDossier(false)}
+                title="Hide Chat History"
+                className="p-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 border border-transparent hover:border-line transition-all cursor-pointer"
+              >
+                <PanelRightClose className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {/* Active Advisor Profile & Customize Shortcut */}
@@ -1056,7 +1204,7 @@ export default function ChatWorkspacePage() {
                       onClick={() => {
                         document.getElementById(msg.id)?.scrollIntoView({ behavior: "smooth", block: "center" });
                       }}
-                      className="w-full text-left p-2.5 rounded-xl bg-surface-2/40 hover:bg-surface-2 border border-line hover:border-cyan-500/30 transition-all group"
+                      className="w-full text-left p-2.5 rounded-xl bg-surface-2/40 hover:bg-surface-2 border border-line hover:border-cyan-500/30 transition-all group cursor-pointer"
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <span className={`text-[10px] font-bold uppercase tracking-wide ${isUser ? "text-brass" : "text-cyan-400"}`}>
@@ -1078,6 +1226,175 @@ export default function ChatWorkspacePage() {
           </aside>
         )}
       </div>
+
+      {/* ============================================================ */}
+      {/* MOBILE DRAWER: EXECUTIVE ROSTER */}
+      {/* ============================================================ */}
+      {isMobileRosterOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsMobileRosterOpen(false)}
+          />
+          <div className="relative w-80 max-w-[85vw] h-full bg-surface border-r border-line p-4 flex flex-col shadow-2xl z-10 animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-line">
+              <div className="flex items-center gap-2">
+                <BrainCircuit className="w-4 h-4 text-cyan-400" />
+                <h2 className="text-sm font-bold text-text">Executive Team</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileRosterOpen(false)}
+                className="p-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="py-2.5">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchRoster}
+                  onChange={e => setSearchRoster(e.target.value)}
+                  placeholder="Search advisors..."
+                  className="w-full pl-8 pr-2.5 py-1.5 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-1.5 pr-0.5">
+              {filteredAgents.map(agent => {
+                const isActive = agent.id === activeAgentId;
+                return (
+                  <button
+                    key={agent.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveAgentId(agent.id);
+                      setIsMobileRosterOpen(false);
+                    }}
+                    className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2.5 cursor-pointer ${
+                      isActive
+                        ? "bg-cyan-500/10 border-cyan-500/40 text-text shadow-sm"
+                        : "bg-surface-2/30 border-line text-text-muted hover:text-text hover:bg-surface-2"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-text shrink-0">
+                        <AgentAvatarIcon iconName={agent.avatar} className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-text truncate">{agent.name}</span>
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold uppercase border ${agent.color}`}>
+                            {agent.role.replace(" AI", "")}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-text-muted truncate mt-0.5">{agent.badge}</p>
+                      </div>
+                    </div>
+                    <ChevronRight className={`w-4 h-4 shrink-0 ${isActive ? "text-cyan-400" : "text-text-muted/40"}`} />
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="pt-3 border-t border-line flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingAgent(activeAgent);
+                  setIsMobileRosterOpen(false);
+                }}
+                className="text-xs text-brass hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Pencil className="w-3 h-3" />
+                <span>Customize AI Name</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleResetConversation}
+                className="px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-xs text-text-muted hover:text-text flex items-center gap-1 cursor-pointer"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MOBILE DRAWER: CHAT HISTORY */}
+      {/* ============================================================ */}
+      {isMobileHistoryOpen && (
+        <div className="fixed inset-0 z-50 xl:hidden flex justify-end">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsMobileHistoryOpen(false)}
+          />
+          <div className="relative w-80 max-w-[85vw] h-full bg-surface border-l border-line p-4 flex flex-col shadow-2xl z-10 animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-line">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-cyan-400" />
+                <h2 className="text-sm font-bold text-text">Chat History</h2>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface-2 border border-line text-text-muted">
+                  {currentMessages.length} msgs
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileHistoryOpen(false)}
+                className="p-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto py-3 space-y-2">
+              {currentMessages.length === 0 ? (
+                <p className="text-xs text-text-muted p-3 rounded-xl bg-surface-2 border border-line">
+                  No messages yet with {activeAgent.name}.
+                </p>
+              ) : (
+                currentMessages.map(msg => {
+                  const isUser = msg.sender === "user";
+                  const msgAgent = effectiveAgents.find(a => a.id === msg.agentId) || activeAgent;
+                  const preview = (
+                    isUser
+                      ? msg.content
+                      : (msg.id.startsWith("msg_init_")
+                          ? getAdvisorGreeting(msgAgent, companyProfile)
+                          : msg.content)
+                  ).replace(/\s+/g, " ").trim();
+
+                  return (
+                    <button
+                      key={msg.id}
+                      type="button"
+                      onClick={() => {
+                        document.getElementById(msg.id)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        setIsMobileHistoryOpen(false);
+                      }}
+                      className="w-full text-left p-2.5 rounded-xl bg-surface-2/40 hover:bg-surface-2 border border-line transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className={`text-[10px] font-bold uppercase ${isUser ? "text-brass" : "text-cyan-400"}`}>
+                          {isUser ? "You" : msgAgent.name}
+                        </span>
+                        <span className="text-[9px] text-text-muted font-mono">{msg.timestamp}</span>
+                      </div>
+                      <p className="text-[11px] text-text-muted line-clamp-2">{preview}</p>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Customize Advisor Modal */}
       {editingAgent && (
