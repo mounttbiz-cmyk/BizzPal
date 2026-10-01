@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { NavItem } from "@/config/schemas/nav";
 import { DynamicIcon } from "./DynamicIcon";
 import { ThemeSwitch } from "./ThemeSwitch";
-import { ShieldCheck, ChevronRight, LogOut, Sliders, Search, Sparkles, Lock } from "lucide-react";
+import { ShieldCheck, ChevronRight, LogOut, Sliders, Search, Lock } from "lucide-react";
 import { QuickBusinessInputModal } from "../intake/QuickBusinessInputModal";
 import { WEBSITE_URL } from "@/config/urls";
 import { auth } from "@/lib/firebase/config";

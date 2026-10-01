@@ -11,7 +11,6 @@ import {
   AlertCircle,
   ChevronDown,
   User,
-  Sparkles,
   ArrowRight,
   RotateCw,
   Trash2

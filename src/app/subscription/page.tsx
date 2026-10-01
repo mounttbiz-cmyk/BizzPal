@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Check, ArrowRight, Sparkles, CheckCircle2, X, Building2, Zap, Crown, Tag } from "lucide-react";
+import { Check, ArrowRight, CheckCircle2, X, Building2, Zap, Crown, Tag } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
@@ -234,7 +234,7 @@ export default function SubscriptionPage() {
       {/* Toast */}
       {toast && (
         <div className="fixed top-6 right-6 z-50 p-4 rounded-xl bg-surface border border-brass/40 shadow-2xl text-xs font-semibold text-text flex items-center gap-2 animate-fade-in ring-1 ring-brass/20">
-          <Sparkles className="w-4 h-4 text-brass" />
+          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           <span>{toast}</span>
         </div>
       )}

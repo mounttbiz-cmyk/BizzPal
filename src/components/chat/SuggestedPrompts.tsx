@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 
 interface SuggestedPromptsProps {
   prompts: string[];
@@ -21,7 +21,7 @@ export function SuggestedPrompts({
       {/* Container: responsive width matching chat thread and composer */}
       <div className="w-full max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
         <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider shrink-0 flex items-center gap-1.5 select-none">
-          <Sparkles className="w-3 h-3 text-brass" />
+          <Lightbulb className="w-3 h-3 text-brass" />
           <span className="hidden sm:inline">Suggested:</span>
         </span>
 

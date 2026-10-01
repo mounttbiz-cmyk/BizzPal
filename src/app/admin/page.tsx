@@ -2524,7 +2524,7 @@ export default function AdminPage() {
                     className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono"
                   >
                     <option value="LayoutDashboard">LayoutDashboard</option>
-                    <option value="Sparkles">Sparkles</option>
+                    <option value="Zap">Zap</option>
                     <option value="Compass">Compass</option>
                     <option value="TrendingUp">TrendingUp</option>
                     <option value="Wrench">Wrench</option>

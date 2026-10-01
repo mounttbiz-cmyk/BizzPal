@@ -17,7 +17,6 @@ import {
   Dumbbell,
   GraduationCap,
   Truck,
-  Sparkles,
   CheckCheck,
 } from "lucide-react";
 import { BUSINESS_CATEGORIES } from "@/lib/datapal/constants";

@@ -6,7 +6,6 @@ import {
   Check,
   Lock,
   ExternalLink,
-  Sparkles,
   AlertCircle,
   KeyRound,
   ShieldCheck,

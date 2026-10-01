@@ -27,7 +27,6 @@ import {
   CornerDownLeft,
   X,
   Clock,
-  Sparkles,
   ChevronRight,
   Database
 } from "lucide-react";

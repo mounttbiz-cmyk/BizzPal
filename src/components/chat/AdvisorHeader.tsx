@@ -9,7 +9,7 @@ import {
   MessageSquare,
   ChevronDown,
   ArrowRight,
-  Sparkles,
+  Wrench,
   ExternalLink,
 } from "lucide-react";
 
@@ -129,7 +129,7 @@ export function AdvisorHeader({
             aria-haspopup="true"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface border border-line hover:border-line-strong text-xs font-semibold text-text hover:text-brass transition-all cursor-pointer shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass"
           >
-            <Sparkles className="w-3.5 h-3.5 text-brass" />
+            <Wrench className="w-3.5 h-3.5 text-brass" />
             <span>Tools</span>
             <ChevronDown
               className={`w-3.5 h-3.5 text-text-muted transition-transform duration-200 ${

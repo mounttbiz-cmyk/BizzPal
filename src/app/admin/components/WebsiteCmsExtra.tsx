@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Globe, Plus, Trash2, Edit2, Save, Sparkles, Compass, Check, X, Image as ImageIcon, Upload, RotateCcw } from "lucide-react";
+import { Globe, Plus, Trash2, Edit2, Save, Compass, Check, X, Image as ImageIcon, Upload, RotateCcw } from "lucide-react";
 
 interface WebsiteCmsExtraProps {
   config: any;

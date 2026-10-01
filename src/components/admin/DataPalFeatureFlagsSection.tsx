@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sliders, Sparkles, Filter, Database, Check } from "lucide-react";
+import { Sliders, Target, Filter, Database, Check } from "lucide-react";
 import {
   DataPalFeatureFlags,
   DEFAULT_DATAPAL_FEATURE_FLAGS,
@@ -50,7 +50,7 @@ export function DataPalFeatureFlagsSection() {
       key: "datapal.aiMatcher.enabled",
       title: "AI Smart Matcher & Pitch Analyzer",
       desc: "Displays a slim banner at the top of DataPal Search tab opening an intelligent side drawer to parse service offerings into target categories.",
-      icon: Sparkles,
+      icon: Target,
     },
   ];
 

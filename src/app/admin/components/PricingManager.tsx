@@ -8,7 +8,6 @@ import {
   Edit2,
   Trash2,
   Check,
-  Sparkles,
   Save,
   X,
   RotateCcw,

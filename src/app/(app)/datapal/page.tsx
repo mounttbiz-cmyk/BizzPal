@@ -18,7 +18,7 @@ import {
   Check,
   Send,
   Trash2,
-  Sparkles,
+  Target,
   ChevronDown,
   ChevronUp,
   Layers,
@@ -509,7 +509,7 @@ export default function DataPalPage() {
           {aiMatcherEnabled && (
             <div className="p-3 sm:p-4 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2.5 min-w-0">
-                <Sparkles className="w-4 h-4 text-brass shrink-0" />
+                <Target className="w-4 h-4 text-brass shrink-0" />
                 <span className="text-text font-semibold truncate">
                   AI Smart Matcher: Automatically configure target categories from your service pitch or brochure.
                 </span>

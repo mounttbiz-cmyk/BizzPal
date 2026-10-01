@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Lock, X, Sparkles } from "lucide-react";
+import { Lock, X, ArrowUpRight } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
 
 interface UpgradeModalProps {
@@ -83,7 +83,7 @@ export function UpgradeModal({ featureLabel, requiredPlan, onClose }: UpgradeMod
             href="/subscription"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold btn-tactile"
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <ArrowUpRight className="w-3.5 h-3.5" />
             View Plans
           </Link>
         </div>

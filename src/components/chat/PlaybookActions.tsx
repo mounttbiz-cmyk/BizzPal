@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Play, ArrowRight, CheckSquare, Sparkles } from "lucide-react";
+import { Play, ArrowRight, CheckSquare, BookOpen } from "lucide-react";
 
 interface PlaybookActionsProps {
   playbooks?: string[];
@@ -19,7 +19,7 @@ export function PlaybookActions({
   return (
     <div className="mt-4 pt-3.5 border-t border-line/50 space-y-2.5">
       <div className="text-[11px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
-        <Sparkles className="w-3.5 h-3.5 text-brass" />
+        <BookOpen className="w-3.5 h-3.5 text-brass" />
         <span>Recommended Playbooks</span>
       </div>
 

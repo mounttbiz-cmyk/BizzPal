@@ -7,7 +7,7 @@ import {
   Phone,
   Check,
   Save,
-  Sparkles,
+  RefreshCw,
   AlertCircle,
   Palette,
   Building2
@@ -237,7 +237,7 @@ export default function SettingsToolsPage() {
             {/* Explanation box */}
             <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-text space-y-1">
               <div className="font-bold text-cyan-400 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
+                <RefreshCw className="w-3.5 h-3.5" />
                 <span>Automatic Data Sync vs Daily Check-in</span>
               </div>
               <p className="text-[11px] text-text-muted leading-relaxed">

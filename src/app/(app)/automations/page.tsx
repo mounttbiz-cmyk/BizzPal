@@ -13,7 +13,6 @@ import {
   ShieldAlert,
   Bell,
   Sliders,
-  Sparkles,
   ArrowRight,
   X
 } from "lucide-react";

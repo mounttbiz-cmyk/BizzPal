@@ -7,7 +7,6 @@ import {
   Building2,
   CheckCircle2,
   ArrowRight,
-  Sparkles,
   Database,
   Layers,
   Target,
@@ -1944,7 +1943,7 @@ export default function OnboardingPage() {
               <div className="space-y-5">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brass-soft border border-brass/30 text-brass text-[10px] font-bold uppercase tracking-wider mb-2">
-                    <Sparkles className="w-3 h-3" />
+                    <Globe className="w-3.5 h-3.5" />
                     <span>AI Website Intelligence Extraction</span>
                   </div>
                   <h1 className="text-lg sm:text-xl font-bold text-text tracking-tight font-sans">
@@ -2327,15 +2326,15 @@ export default function OnboardingPage() {
 
                   {/* Quick Connect All Handshake Banner */}
                   {!allConnected && (
-                    <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-brass/10 via-surface-2 to-emerald-500/10 border border-brass/25 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="p-4 sm:p-5 rounded-2xl bg-surface-2 border border-line shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-3.5">
-                        <div className="w-11 h-11 rounded-xl bg-brass/15 text-brass border border-brass/30 flex items-center justify-center shrink-0 shadow-inner">
-                          <Zap className="w-5 h-5 fill-current" />
+                        <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center shrink-0 shadow-2xs">
+                          <Zap className="w-5 h-5 text-brass" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs sm:text-sm font-bold text-text block">One-Click Multi-Platform Handshake</span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass/15 text-brass font-mono font-bold uppercase tracking-wider">Fast Track</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface border border-line text-text-muted font-mono font-bold uppercase tracking-wider">Fast Track</span>
                           </div>
                           <span className="text-xs text-text-muted mt-0.5 block leading-relaxed">
                             Fast-track batch authorization for all {selectedTools.length} selected enterprise connectors.
@@ -2346,7 +2345,7 @@ export default function OnboardingPage() {
                         type="button"
                         disabled={isAuthorizingAll}
                         onClick={handleConnectAllTools}
-                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-brass to-brass/90 text-white font-bold text-xs shadow-md hover:brightness-110 btn-tactile cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 shrink-0"
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-brass text-white font-bold text-xs shadow-xs hover:opacity-90 active:scale-95 cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 shrink-0 transition-all"
                       >
                         {isAuthorizingAll ? (
                           <>
@@ -2355,7 +2354,7 @@ export default function OnboardingPage() {
                           </>
                         ) : (
                           <>
-                            <Sparkles className="w-4 h-4" />
+                            <Zap className="w-4 h-4 fill-current" />
                             <span>Authorize All Connectors</span>
                           </>
                         )}
@@ -2489,7 +2488,7 @@ export default function OnboardingPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleOpenRealAuth(toolId)}
-                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#0064E0] to-[#0081FB] text-white hover:brightness-110 font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0064E0] text-white hover:bg-[#0052b8] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
                                   >
                                     <ToolLogo toolId="meta" size={16} />
                                     <span>Connect Meta Business</span>

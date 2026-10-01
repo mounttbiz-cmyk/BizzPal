@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Bot, Sparkles, X, Upload, CheckCircle2, ArrowRight } from "lucide-react";
+import { Bot, Target, X, Upload, CheckCircle2, ArrowRight } from "lucide-react";
 
 interface AiMatcherDrawerProps {
   isOpen: boolean;
@@ -130,7 +130,7 @@ export function AiMatcherDrawer({
             onClick={handleAnalyze}
             className="w-full py-2.5 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 disabled:opacity-50 cursor-pointer shadow-xs flex items-center justify-center gap-2"
           >
-            <Sparkles className="w-4 h-4 text-white" />
+            <Target className="w-4 h-4 text-white" />
             <span>{isAnalyzing ? "Analyzing Pitch…" : "Analyze Pitch & Match Niches"}</span>
           </button>
 

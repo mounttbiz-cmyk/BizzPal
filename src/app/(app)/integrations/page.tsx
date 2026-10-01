@@ -9,7 +9,7 @@ import {
   ExternalLink,
   Shield,
   ArrowRight,
-  Sparkles,
+  Bot,
   Search,
   Plus,
   Zap,
@@ -925,7 +925,7 @@ export default function IntegrationsPage() {
                 <ul className="space-y-1.5 text-[11px]">
                   {inspectItem.usedBy.map((consumer, i) => (
                     <li key={i} className="flex items-center gap-1.5 text-text">
-                      <Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />
+                      <Bot className="w-3 h-3 text-cyan-400 shrink-0" />
                       <span>{consumer}</span>
                     </li>
                   ))}

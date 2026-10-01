@@ -1501,7 +1501,7 @@ export const BUSINESS_CATEGORIES: BusinessCategory[] = [
   {
     id: "fitness_beauty",
     name: "Fitness, Beauty & Wellness",
-    icon: "Sparkles",
+    icon: "Dumbbell",
     subcategories: [
       "Gyms & Fitness Centers",
       "Yoga & Pilates Studios",

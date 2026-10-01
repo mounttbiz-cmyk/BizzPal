@@ -18,7 +18,6 @@ import {
   Trash2,
   AlertTriangle,
   ShieldCheck,
-  Sparkles,
   Palette,
   Layers,
   X,

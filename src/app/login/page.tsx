@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
   ArrowRight,
-  Sparkles,
   Lock,
   KeyRound,
   Building2,

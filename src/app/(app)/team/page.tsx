@@ -12,7 +12,6 @@ import {
   Lock,
   Search,
   Sliders,
-  Sparkles,
   FileText,
   AlertTriangle,
   Trash2,
