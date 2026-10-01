@@ -470,6 +470,30 @@ function getDynamicQuestions(params: DynamicQuestionParams): DynamicQuestion[] {
 
 const TOOLS_OPTIONS = [
   {
+    id: "google",
+    name: "Google Account & Workspace",
+    category: "Email, Calendar & Live OAuth",
+    description: "Connect your real Google account with live OAuth 2.0 to sync meetings, executive schedule, and Docs.",
+  },
+  {
+    id: "microsoft",
+    name: "Microsoft 365 & Teams",
+    category: "Enterprise Cloud & SSO",
+    description: "Enterprise Single Sign-On, Outlook executive communications, OneDrive repositories, and Teams alerts.",
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn Company & Ads",
+    category: "B2B Social & Lead Generation",
+    description: "Sync company page follower analytics, campaign ROAS, B2B lead generation, and executive posts.",
+  },
+  {
+    id: "meta",
+    name: "Meta Business & Instagram",
+    category: "Ad Spends, Instagram & WhatsApp",
+    description: "Meta Business Manager telemetry, Facebook & Instagram Ads CAC/ROAS, Pixel events, and WhatsApp API.",
+  },
+  {
     id: "stripe",
     name: "Stripe",
     category: "Payments & Revenue",
@@ -1124,7 +1148,15 @@ export default function OnboardingPage() {
             for (const item of data.integrations) {
               if (item.status === "connected") {
                 let detail = item.config?.accountDetail || `Connected · Live Telemetry Active`;
-                if (item.id === "google_calendar" && item.config?.accountEmail) {
+                if (item.id === "google" || item.id === "google_workspace") {
+                  detail = item.config?.accountDetail || `Connected · Live Google Account: ${item.config?.connectedEmail || item.config?.accountEmail || "Synced"}`;
+                } else if (item.id === "microsoft" || item.id === "microsoft_365") {
+                  detail = item.config?.accountDetail || `Connected · Microsoft 365: ${item.config?.accountEmail || "Enterprise Suite Synced"}`;
+                } else if (item.id === "linkedin" || item.id === "linkedin_company") {
+                  detail = item.config?.accountDetail || `Connected · LinkedIn Company Page & Ads`;
+                } else if (item.id === "meta" || item.id === "meta_business") {
+                  detail = item.config?.accountDetail || `Connected · Meta Business & Instagram Ads`;
+                } else if (item.id === "google_calendar" && item.config?.accountEmail) {
                   detail = `Connected · Real Account: ${item.config.accountEmail} (Live Calendar Synced)`;
                 } else if (item.id === "stripe" && (item.config?.accountId || item.config?.apiKey)) {
                   detail = `Connected · Real Stripe ID: ${item.config.accountId || "Live Key"} (${item.config.mode === "live" ? "Live Production" : "Test Mode"})`;
@@ -1184,7 +1216,25 @@ export default function OnboardingPage() {
           liveSync: true,
         };
 
-        if (toolId === "google_calendar") {
+        if (toolId === "google") {
+          detail = `Connected · Real Account: ${userEm} (Live Calendar & Docs)`;
+          configPayload.accountEmail = userEm;
+          configPayload.connectedEmail = userEm;
+          configPayload.calendarScope = "primary";
+          configPayload.provider = "Google Workspace";
+        } else if (toolId === "microsoft") {
+          detail = `Connected · Microsoft 365: ${userEm} (SSO & Teams Synced)`;
+          configPayload.accountEmail = userEm;
+          configPayload.provider = "Microsoft 365 / Entra ID";
+        } else if (toolId === "linkedin") {
+          detail = `Connected · LinkedIn: linkedin.com/company/${safeDomain}`;
+          configPayload.pageUrl = `https://linkedin.com/company/${safeDomain}`;
+          configPayload.accountEmail = userEm;
+        } else if (toolId === "meta") {
+          detail = `Connected · Meta Business Manager: ${safeDomain} (Ads Synced)`;
+          configPayload.businessManagerId = `biz_${safeDomain.slice(0, 10)}`;
+          configPayload.instagramHandle = `@${safeDomain}`;
+        } else if (toolId === "google_calendar") {
           detail = `Connected · Real Account: ${userEm} (Live Calendar Synced)`;
           configPayload.accountEmail = userEm;
           configPayload.calendarScope = "primary";

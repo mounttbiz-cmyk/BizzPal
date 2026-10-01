@@ -17,6 +17,30 @@ import { PhoneCountryInput } from "@/components/ui/PhoneCountryInput";
 
 const TOOLS_OPTIONS = [
   {
+    id: "google",
+    name: "Google Account & Workspace",
+    category: "Email, Calendar & Live OAuth",
+    description: "Connect your real Google account with live OAuth 2.0 to sync meetings, executive schedule, and Docs.",
+  },
+  {
+    id: "microsoft",
+    name: "Microsoft 365 & Teams",
+    category: "Enterprise Cloud & SSO",
+    description: "Enterprise Single Sign-On, Outlook executive communications, OneDrive repositories, and Teams alerts.",
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn Company & Ads",
+    category: "B2B Social & Lead Generation",
+    description: "Sync company page follower analytics, campaign ROAS, B2B lead generation, and executive posts.",
+  },
+  {
+    id: "meta",
+    name: "Meta Business & Instagram",
+    category: "Ad Spends, Instagram & WhatsApp",
+    description: "Meta Business Manager telemetry, Facebook & Instagram Ads CAC/ROAS, Pixel events, and WhatsApp API.",
+  },
+  {
     id: "stripe",
     name: "Stripe",
     category: "Payments & Revenue",

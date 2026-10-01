@@ -108,12 +108,17 @@ export async function POST(req: Request) {
           );
         } else {
           const toolNames: Record<string, { name: string; category: string }> = {
+            google: { name: "Google Account & Workspace", category: "business" },
+            google_calendar: { name: "Google Calendar", category: "business" },
+            google_workspace: { name: "Google Workspace", category: "business" },
+            microsoft: { name: "Microsoft 365 & Teams", category: "business" },
+            microsoft_365: { name: "Microsoft 365 & Teams", category: "business" },
+            linkedin: { name: "LinkedIn Company & Ads", category: "business" },
+            meta: { name: "Meta Business & Instagram", category: "business" },
             stripe: { name: "Stripe", category: "business" },
             slack: { name: "Slack", category: "business" },
             zoho_books: { name: "Zoho Books / QuickBooks", category: "business" },
-            google_calendar: { name: "Google Calendar", category: "business" },
             help_desk: { name: "Help Desk (Zendesk / Freshdesk)", category: "business" },
-            google_workspace: { name: "Google Workspace", category: "business" },
             zoom: { name: "Zoom", category: "business" },
             notion: { name: "Notion", category: "data" },
             github: { name: "GitHub", category: "automation" },
@@ -136,11 +141,11 @@ export async function POST(req: Request) {
           );
         }
 
-        // If connecting tool, also update connected_tools in business record if not already present
-        if (status === "connected") {
-          const biz = db.prepare("SELECT connected_tools FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID) as any;
-          if (biz) {
-            const tools: string[] = biz.connected_tools ? JSON.parse(biz.connected_tools) : [];
+        // If connecting or disconnecting tool, update connected_tools in business record
+        const biz = db.prepare("SELECT connected_tools FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID) as any;
+        if (biz) {
+          let tools: string[] = biz.connected_tools ? JSON.parse(biz.connected_tools) : [];
+          if (status === "connected") {
             if (!tools.includes(toolKey)) {
               tools.push(toolKey);
               db.prepare("UPDATE businesses SET connected_tools = ?, no_integrations = 0, updated_at = ? WHERE id = ?").run(
@@ -149,6 +154,13 @@ export async function POST(req: Request) {
                 DEFAULT_BUSINESS_ID
               );
             }
+          } else if (status === "not_connected") {
+            tools = tools.filter(t => t !== toolKey);
+            db.prepare("UPDATE businesses SET connected_tools = ?, updated_at = ? WHERE id = ?").run(
+              JSON.stringify(tools),
+              now,
+              DEFAULT_BUSINESS_ID
+            );
           }
         }
 

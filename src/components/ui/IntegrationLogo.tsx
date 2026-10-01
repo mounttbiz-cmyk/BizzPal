@@ -2,6 +2,7 @@ import React from "react";
 
 export function IntegrationLogo({ id, className = "w-7 h-7" }: { id: string; className?: string }) {
   switch (id) {
+    case "google":
     case "google_workspace":
       return (
         <svg className={className} viewBox="0 0 24 24" fill="none">
@@ -24,6 +25,7 @@ export function IntegrationLogo({ id, className = "w-7 h-7" }: { id: string; cla
         </svg>
       );
 
+    case "microsoft":
     case "microsoft_365":
       return (
         <svg className={className} viewBox="0 0 24 24" fill="none">
@@ -31,6 +33,31 @@ export function IntegrationLogo({ id, className = "w-7 h-7" }: { id: string; cla
           <rect x="13" y="1" width="10" height="10" rx="1" fill="#7FBA00" />
           <rect x="1" y="13" width="10" height="10" rx="1" fill="#00A4EF" />
           <rect x="13" y="13" width="10" height="10" rx="1" fill="#FFB900" />
+        </svg>
+      );
+
+    case "linkedin":
+    case "linkedin_company":
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none">
+          <rect width="24" height="24" rx="5" fill="#0A66C2" />
+          <path
+            d="M8.8 8.3a1.4 1.4 0 1 1-2.8 0 1.4 1.4 0 0 1 2.8 0zM6.2 10.5h2.4V18H6.2v-7.5zm3.8 0h2.3v1h.1c.3-.6 1.1-1.2 2.3-1.2 2.5 0 2.9 1.6 2.9 3.7V18h-2.4v-3.4c0-.8 0-1.9-1.1-1.9-1.1 0-1.3.9-1.3 1.8V18H10v-7.5z"
+            fill="#FFFFFF"
+          />
+        </svg>
+      );
+
+    case "meta":
+    case "meta_business":
+    case "facebook":
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none">
+          <rect width="24" height="24" rx="5" fill="#0064E0" />
+          <path
+            d="M12 14c-1.4 2-2.7 3.1-4.3 3.1-2.5 0-4.4-2.1-4.4-5.1s1.9-5.1 4.4-5.1c1.6 0 2.9 1.1 4.3 3.1 1.4-2 2.7-3.1 4.3-3.1 2.5 0 4.4 2.1 4.4 5.1s-1.9 5.1-4.4 5.1c-1.6 0-2.9-1.1-4.3-3.1zm-4.3 1.4c1.4 0 2.6-1.3 3.4-2.9l-.8-1.1c-.7 1.2-1.6 2.1-2.6 2.1-1.3 0-2.4-1.2-2.4-3.2 0-2 1.1-3.2 2.4-3.2 1 0 1.9.9 2.6 2.1l.8-1.1c-.8-1.6-2-2.9-3.4-2.9-2.5 0-4.2 2.2-4.2 5.1s1.7 5.2 4.2 5.2zm8.6 0c2.5 0 4.2-2.2 4.2-5.1s-1.7-5.1-4.2-5.1c-1.4 0-2.6 1.3-3.4 2.9l.8 1.1c.7-1.2 1.6-2.1 2.6-2.1 1.3 0 2.4 1.2 2.4 3.2 0 2-1.1 3.2-2.4 3.2-1 0-1.9-.9-2.6-2.1l-.8 1.1c.8 1.6 2 2.9 3.4 2.9z"
+            fill="#FFFFFF"
+          />
         </svg>
       );
 

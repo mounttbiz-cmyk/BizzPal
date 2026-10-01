@@ -10,6 +10,96 @@ export function ToolLogo({ toolId, className = "", size = 24 }: ToolLogoProps) {
   const pixelSize = `${size}px`;
 
   switch (toolId) {
+    case "google":
+    case "google_workspace":
+      // Official Google 4-Color 'G' Logo
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 40 40"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={`shrink-0 rounded-lg bg-surface border border-line p-1 shadow-sm ${className}`}
+        >
+          <path
+            d="M32.56 20.25c0-.78-.07-1.53-.2-2.25H20v4.26h7.05c-.3 1.63-1.24 3.01-2.63 3.94v3.29h4.25c2.49-2.29 3.89-5.67 3.89-9.24z"
+            fill="#4285F4"
+          />
+          <path
+            d="M20 33c3.51 0 6.46-1.16 8.61-3.15l-4.25-3.29c-1.18.79-2.69 1.26-4.36 1.26-3.35 0-6.19-2.26-7.2-5.31H8.38v3.39C10.53 30.16 14.93 33 20 33z"
+            fill="#34A853"
+          />
+          <path
+            d="M12.8 22.51c-.26-.78-.4-1.61-.4-2.51s.14-1.73.4-2.51V14.1H8.38A12.98 12.98 0 0 0 7 20c0 2.09.5 4.07 1.38 5.9l4.42-3.39z"
+            fill="#FBBC05"
+          />
+          <path
+            d="M20 12.18c1.91 0 3.63.66 4.98 1.94l3.73-3.73C26.45 8.31 23.51 7 20 7 14.93 7 10.53 9.84 8.38 14.1l4.42 3.39c1.01-3.05 3.85-5.31 7.2-5.31z"
+            fill="#EA4335"
+          />
+        </svg>
+      );
+
+    case "microsoft":
+    case "microsoft_365":
+      // Official Microsoft 4-Color Quadrant Logo
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 40 40"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={`shrink-0 rounded-lg bg-surface border border-line p-1 shadow-sm ${className}`}
+        >
+          <rect x="7" y="7" width="12" height="12" rx="1.5" fill="#F25022" />
+          <rect x="21" y="7" width="12" height="12" rx="1.5" fill="#7FBA00" />
+          <rect x="7" y="21" width="12" height="12" rx="1.5" fill="#00A4EF" />
+          <rect x="21" y="21" width="12" height="12" rx="1.5" fill="#FFB900" />
+        </svg>
+      );
+
+    case "linkedin":
+    case "linkedin_company":
+      // Official LinkedIn Brand Logo
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 40 40"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={`shrink-0 rounded-lg shadow-sm ${className}`}
+        >
+          <rect width="40" height="40" rx="8" fill="#0A66C2" />
+          <path
+            d="M14.6 13.8a2.3 2.3 0 1 1-4.6 0 2.3 2.3 0 0 1 4.6 0zM10.3 17.5h4v12.2h-4V17.5zm6.3 0h3.8v1.7h.1c.5-1 1.9-2.1 3.8-2.1 4.1 0 4.8 2.7 4.8 6.2v6.4h-4v-5.7c0-1.4 0-3.1-1.9-3.1-1.9 0-2.2 1.5-2.2 3v5.8h-4V17.5z"
+            fill="#FFFFFF"
+          />
+        </svg>
+      );
+
+    case "meta":
+    case "meta_business":
+    case "facebook":
+      // Official Meta Infinity Logo
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 40 40"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={`shrink-0 rounded-lg bg-[#0064E0] p-1 shadow-sm ${className}`}
+        >
+          <path
+            d="M20 23.3c-2.3 3.3-4.5 5.2-7.1 5.2-4.2 0-7.4-3.5-7.4-8.5s3.2-8.5 7.4-8.5c2.6 0 4.8 1.9 7.1 5.2 2.3-3.3 4.5-5.2 7.1-5.2 4.2 0 7.4 3.5 7.4 8.5s-3.2 8.5-7.4 8.5c-2.6 0-4.8-1.9-7.1-5.2zm-7.1 2.3c2.4 0 4.3-2.1 5.7-4.8l-1.3-1.8c-1.2 2-2.7 3.5-4.4 3.5-2.2 0-4-2-4-5.4 0-3.4 1.8-5.4 4-5.4 1.7 0 3.2 1.5 4.4 3.5l1.3-1.8c-1.4-2.7-3.3-4.8-5.7-4.8-4.1 0-7 3.7-7 8.5s2.9 8.5 7 8.5zm14.2 0c4.1 0 7-3.7 7-8.5s-2.9-8.5-7-8.5c-2.4 0-4.3 2.1-5.7 4.8l1.3 1.8c1.2-2 2.7-3.5 4.4-3.5 2.2 0 4 2 4 5.4 0 3.4-1.8 5.4-4 5.4-1.7 0-3.2-1.5-4.4-3.5l-1.3 1.8c1.4 2.7 3.3 4.8 5.7 4.8z"
+            fill="#FFFFFF"
+          />
+        </svg>
+      );
+
     case "stripe":
       // Official Stripe Logo Glyph
       return (

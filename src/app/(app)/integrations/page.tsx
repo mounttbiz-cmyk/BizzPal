@@ -30,6 +30,7 @@ import { isFirebaseConfigured, firebaseConfig } from "@/lib/firebase/config";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { IntegrationAppViewerModal } from "@/components/integrations/IntegrationAppViewerModal";
+import { RealToolAuthModal } from "@/components/tools/RealToolAuthModal";
 
 interface IntegrationItem {
   id: string;
@@ -54,7 +55,47 @@ interface StripeEvent {
 }
 
 const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
-  // 1. Core Business Tools
+  // 1. Core Business & Cloud Tools
+  {
+    id: "google",
+    name: "Google Account & Workspace",
+    category: "business",
+    tagline: "Live Google OAuth 2.0 integration for real executive calendar telemetry, Gmail briefings, and Drive synchronization.",
+    services: ["Google OAuth 2.0", "Google Calendar API", "Executive Workload Diagnostics", "Google Drive"],
+    permissions: ["Read authorized executive Google Profile", "Read executive calendar meetings & focus blocks"],
+    usedBy: ["CEO AI (Astra)", "Executive Workload Analyzer", "Operations AI", "Daily Check-In Filter"],
+    configSummary: "Live OAuth connection active with instant profile synchronization.",
+  },
+  {
+    id: "microsoft_365",
+    name: "Microsoft 365 & Teams",
+    category: "business",
+    tagline: "Enterprise Single Sign-On, Outlook executive communications, OneDrive repositories, and Teams alerts bot.",
+    services: ["Entra ID SSO", "Outlook Calendar Telemetry", "Teams Briefings Bot"],
+    permissions: ["Single sign-on authentication", "Post alerts to #executive-briefings"],
+    usedBy: ["Operations AI", "CEO AI (Astra)", "Marcus (CFO AI)"],
+    configSummary: "Microsoft 365 Entra ID connection active.",
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn Company & Ads",
+    category: "business",
+    tagline: "Sync company page follower analytics, campaign ROAS, B2B lead generation, and executive thought leadership.",
+    services: ["Company Page Analytics", "Campaign Manager API", "Lead Gen Forms"],
+    permissions: ["Read follower growth & post metrics", "Extract ad campaign ROAS"],
+    usedBy: ["Marketing AI (Elena)", "Sales AI (Vikram)", "CEO AI (Astra)"],
+    configSummary: "LinkedIn Marketing Developer link active.",
+  },
+  {
+    id: "meta",
+    name: "Meta Business & Instagram",
+    category: "business",
+    tagline: "Meta Business Suite telemetry, Facebook & Instagram Ads CAC/ROAS, Pixel events, and WhatsApp API.",
+    services: ["Marketing API", "Instagram Graph API", "WhatsApp Business Cloud"],
+    permissions: ["Read ad spend & campaign metrics", "Read WhatsApp conversation threads"],
+    usedBy: ["Marketing AI (Elena)", "Growth AI", "Daily Check-In Filter"],
+    configSummary: "Meta Graph API token active.",
+  },
   {
     id: "stripe",
     name: "Stripe",
@@ -219,6 +260,9 @@ export default function IntegrationsPage() {
   const [stripeTestingWebhook, setStripeTestingWebhook] = useState<boolean>(false);
   const [stripeSuccessMsg, setStripeSuccessMsg] = useState<string>("");
 
+  // Real Tool Credentials Modal State (Google Live OAuth, Microsoft, LinkedIn, Meta, etc.)
+  const [authModalTool, setAuthModalTool] = useState<IntegrationItem | null>(null);
+
   // Generic Modal State (for Slack, Zoho, GCal, HelpDesk)
   const [genericCredential, setGenericCredential] = useState<string>("");
   const [genericSaving, setGenericSaving] = useState<boolean>(false);
@@ -229,7 +273,8 @@ export default function IntegrationsPage() {
     if (stripeModalOpen) setStripeModalOpen(false);
     if (genericModalItem) setGenericModalItem(null);
     if (inspectItem) setInspectItem(null);
-  }, Boolean(viewerItem || stripeModalOpen || genericModalItem || inspectItem));
+    if (authModalTool) setAuthModalTool(null);
+  }, Boolean(viewerItem || stripeModalOpen || genericModalItem || inspectItem || authModalTool));
 
   // Load real state from backend database
   const loadIntegrations = async () => {
@@ -564,20 +609,39 @@ export default function IntegrationsPage() {
                   <ChevronRight className="w-3 h-3" />
                 </button>
 
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setViewerItem(item);
-                  }}
-                  className={`text-[10px] font-bold px-2.5 py-1 rounded-md border btn-tactile cursor-pointer ${
-                    item.status === "connected"
-                      ? "bg-surface-2 border-line text-text-muted hover:text-text"
-                      : "bg-brass text-white border-brass hover:brightness-110"
-                  }`}
-                >
-                  {item.status === "connected" ? "View App Details" : "Connect Live"}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {item.status === "connected" && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAuthModalTool(item);
+                      }}
+                      title="Manage real credentials"
+                      className="p-1 rounded-md text-text-muted hover:text-text hover:bg-surface-2 border border-transparent hover:border-line text-[10px] cursor-pointer"
+                    >
+                      <Lock className="w-3 h-3" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (item.status === "connected") {
+                        setViewerItem(item);
+                      } else {
+                        setAuthModalTool(item);
+                      }
+                    }}
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-md border btn-tactile cursor-pointer ${
+                      item.status === "connected"
+                        ? "bg-surface-2 border-line text-text-muted hover:text-text"
+                        : "bg-brass text-white border-brass hover:brightness-110"
+                    }`}
+                  >
+                    {item.status === "connected" ? "View App Details" : "Connect Live"}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -912,6 +976,31 @@ export default function IntegrationsPage() {
           if (viewerItem) {
             setViewerItem(prev => prev ? { ...prev, status: newStatus as any } : null);
           }
+        }}
+      />
+
+      {/* REAL TOOL AUTH & CREDENTIALS MODAL (Google Live OAuth, Microsoft, LinkedIn, Meta, etc.) */}
+      <RealToolAuthModal
+        isOpen={Boolean(authModalTool)}
+        onClose={() => setAuthModalTool(null)}
+        toolId={authModalTool?.id || null}
+        toolName={authModalTool?.name || "Tool"}
+        currentUserEmail={currentUserEmail}
+        companyName={companyName}
+        currentAuthState={
+          authModalTool
+            ? {
+                status: authModalTool.status === "connected" ? "connected" : "idle",
+              }
+            : undefined
+        }
+        onConnectSuccess={async () => {
+          await loadIntegrations();
+          setAuthModalTool(null);
+        }}
+        onDisconnect={async () => {
+          await loadIntegrations();
+          setAuthModalTool(null);
         }}
       />
     </div>
