@@ -274,14 +274,10 @@ export function AppShell({
           type="button"
           onClick={() => setChatOpen(true)}
           aria-label="Open AI Workspace"
-          className={`fixed z-40 flex items-center gap-2.5 rounded-full btn-gold-gradient shadow-2xl hover:scale-105 active:scale-95 transition-all text-xs font-bold font-sans cursor-pointer group ${
-            pathname === "/datapal"
-              ? "bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 left-4 sm:left-6 md:left-24 lg:left-72 px-3 py-2 sm:px-4 sm:py-2.5"
-              : "bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-4 sm:right-6 px-3.5 py-2 sm:px-4 sm:py-2.5"
-          }`}
+          className="fixed z-40 flex items-center gap-2.5 rounded-full btn-gold-gradient shadow-2xl hover:scale-105 active:scale-95 transition-all text-xs font-bold font-sans cursor-pointer group bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-4 sm:right-6 px-3.5 py-2 sm:px-4 sm:py-2.5"
         >
           <MessageSquare className="w-4 h-4 text-[#120E05] group-hover:rotate-6 transition-transform" />
-          <span className={`font-bold tracking-wide text-[#120E05] ${pathname === "/datapal" ? "hidden sm:inline" : ""}`}>
+          <span className="font-bold tracking-wide text-[#120E05]">
             Ask Executive AI
           </span>
         </button>

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles, AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
+import { Database, AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
 import { CountryFlag } from "./CountryOption";
 
 interface ReviewGenerateCardProps {
@@ -146,7 +146,7 @@ export function ReviewGenerateCard({
             </>
           ) : (
             <>
-              <Sparkles className="w-4 h-4 text-white" />
+              <Database className="w-4 h-4 text-white" />
               <span>Generate Data</span>
               <ArrowRight className="w-4 h-4 text-white" />
             </>
