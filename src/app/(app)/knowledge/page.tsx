@@ -251,6 +251,41 @@ export default function KnowledgeHubPage() {
     },
   ]);
 
+  // Fetch live news from Google RSS API
+  const fetchLiveNews = async (showToast = false) => {
+    setIsRefreshingNews(true);
+    try {
+      const res = await fetch("/api/news?category=all&limit=6", {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.news) && data.news.length > 0) {
+        setNewsList(data.news);
+        try {
+          localStorage.setItem("bizzpal_business_news", JSON.stringify(data.news));
+        } catch {}
+        if (showToast) {
+          setToastMessage(
+            `Live market intelligence refreshed — ${data.news.length} stories from ${data.sources} feeds!`
+          );
+          setTimeout(() => setToastMessage(null), 4000);
+        }
+      } else if (showToast) {
+        setToastMessage("News feeds returned no new items. Showing cached data.");
+        setTimeout(() => setToastMessage(null), 4000);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch live news, using fallback:", err);
+      if (showToast) {
+        setToastMessage("Could not reach news feeds. Showing cached intelligence.");
+        setTimeout(() => setToastMessage(null), 4000);
+      }
+    } finally {
+      setIsRefreshingNews(false);
+    }
+  };
+
   useEffect(() => {
     try {
       const savedProfile = localStorage.getItem("bizzpal_business_profile");
@@ -275,15 +310,13 @@ export default function KnowledgeHubPage() {
         }
       }
     } catch (e) {}
+
+    // Auto-fetch live news on mount
+    fetchLiveNews(false);
   }, []);
 
   const handleRefreshNews = () => {
-    setIsRefreshingNews(true);
-    setTimeout(() => {
-      setIsRefreshingNews(false);
-      setToastMessage("Live market intelligence & economic telemetry refreshed from global feeds!");
-      setTimeout(() => setToastMessage(null), 4000);
-    }, 700);
+    fetchLiveNews(true);
   };
 
   const handleAddDoc = (e: React.FormEvent) => {

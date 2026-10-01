@@ -371,7 +371,7 @@ export const Vision = ({ data }) => {
   const label = data?.label || 'The next interface is intelligence';
 
   return (
-    <section id="vision" aria-labelledby="vision-h">
+    <section id="vision" className="story" aria-labelledby="vision-h">
       <div className="pin">
         <div className="wrap" style={{ position: 'relative', height: '100%' }}>
           <p className="vision__label" id="vision-h">{label}</p>
