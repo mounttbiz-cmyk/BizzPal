@@ -59,22 +59,10 @@ const TOOLS_OPTIONS = [
     description: "P&L synchronization, vendor expenses, GST reconciliation, and burn tracking.",
   },
   {
-    id: "google_calendar",
-    name: "Google Calendar",
-    category: "Meetings & Workload",
-    description: "Meeting load telemetry, client discovery calls, and executive time-burn diagnostics.",
-  },
-  {
     id: "help_desk",
     name: "Help Desk (Zendesk / Freshdesk)",
     category: "Support & Customer Health",
     description: "Escalated ticket volume, SLA response times, and customer churn indicators.",
-  },
-  {
-    id: "none",
-    name: "None of the above / I don't use any of these",
-    category: "Manual Data Collection Mode",
-    description: "Zero integrations required. We will collect your daily pulse via a 60-second in-app or WhatsApp check-in.",
   },
 ];
 

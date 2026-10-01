@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ArrowRight,
   Sparkles,
+  Database,
   Layers,
   Target,
   Users,
@@ -512,22 +513,10 @@ const TOOLS_OPTIONS = [
     description: "P&L synchronization, vendor expenses, GST reconciliation, and burn tracking.",
   },
   {
-    id: "google_calendar",
-    name: "Google Calendar",
-    category: "Meetings & Workload",
-    description: "Meeting load telemetry, client discovery calls, and executive time-burn diagnostics.",
-  },
-  {
     id: "help_desk",
     name: "Help Desk (Zendesk / Freshdesk)",
     category: "Support & Customer Health",
     description: "Escalated ticket volume, SLA response times, and customer churn indicators.",
-  },
-  {
-    id: "none",
-    name: "None of the above / I don't use any of these",
-    category: "Manual Data Collection Mode",
-    description: "Zero integrations required. We will collect your daily pulse via a 60-second in-app or WhatsApp check-in.",
   },
 ];
 
@@ -2169,14 +2158,14 @@ export default function OnboardingPage() {
                     Connect your business tools
                   </h1>
                   <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                    Select the platforms and systems your company already uses. You can select multiple tools, or choose none to use automated daily check-ins.
+                    Select the platforms and systems your company already uses. You can select multiple tools, or proceed to continue setup.
                   </p>
                 </div>
 
                 {/* Multi-Select Tools Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {TOOLS_OPTIONS.map(tool => {
-                    const isSelected = tool.id === "none" ? noIntegrations : selectedTools.includes(tool.id);
+                    const isSelected = selectedTools.includes(tool.id);
 
                     return (
                       <div
@@ -2213,50 +2202,12 @@ export default function OnboardingPage() {
                 {/* Visible Explanation Under the Grid */}
                 <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-text space-y-1">
                   <div className="font-bold text-cyan-400 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Database className="w-3.5 h-3.5" />
                     <span>How BizzPal Collects Your Daily Data</span>
                   </div>
                   <p className="text-[11px] text-text-muted leading-relaxed">
                     Selected tools sync your data automatically. For anything not connected, we&apos;ll ask you for a quick daily update instead — no manual dashboard work required.
                   </p>
-                </div>
-
-                {/* WhatsApp Check-In Bot Opt-In Field */}
-                <div className="p-4 rounded-xl border border-line bg-surface-2/60 space-y-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-jade/10 border border-jade/30 flex items-center justify-center text-jade shrink-0 mt-0.5">
-                        <Phone className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h2 className="text-xs font-bold text-text">WhatsApp Daily Executive Check-In Bot</h2>
-                        <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">
-                          Receive a 60-second morning message. Reply with 1 line or a voice note and BizzPal updates your dashboard and executive briefings automatically.
-                        </p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-                      <input
-                        type="checkbox"
-                        checked={whatsappOptIn}
-                        onChange={e => setWhatsappOptIn(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-surface rounded-full border border-line peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-muted peer-checked:after:bg-white after:border-line after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-jade" />
-                    </label>
-                  </div>
-
-                  {whatsappOptIn && (
-                    <div className="pt-2 border-t border-line/60 animate-fade-in space-y-1.5">
-                      <label className="text-[11px] font-semibold text-text block">
-                        Founder / Primary WhatsApp Number
-                      </label>
-                      <PhoneCountryInput
-                        value={whatsappNumber}
-                        onChange={setWhatsappNumber}
-                      />
-                    </div>
-                  )}
                 </div>
 
                 <div className="pt-3 border-t border-line flex items-center justify-between">
@@ -2614,7 +2565,7 @@ export default function OnboardingPage() {
 
       {/* Footer */}
       <div className="text-center text-[11px] text-text-muted">
-        BizzPal OS v3 · Enterprise Setup Wizard
+        BizzPal OS · Enterprise Setup Wizard
       </div>
 
       {/* Real Tool Authorization & Credential Modal */}
