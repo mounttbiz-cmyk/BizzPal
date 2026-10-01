@@ -2078,8 +2078,8 @@ export default function AdminPage() {
           </div>
 
           <div className="bg-surface rounded-2xl border border-line overflow-hidden shadow-theme">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="overflow-x-auto touch-scroll">
+              <table className="w-full min-w-[640px] text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-line bg-surface-2/60 text-text-muted font-semibold">
                     <th className="p-3 pl-4">Order</th>
@@ -2276,7 +2276,7 @@ export default function AdminPage() {
               .map((widget) => (
                 <div
                   key={widget.id}
-                  className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                  className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                     widget.enabled !== false
                       ? "bg-surface border-line"
                       : "bg-surface-2/40 border-dashed border-line opacity-60"
@@ -2294,7 +2294,7 @@ export default function AdminPage() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                     <button
                       type="button"
                       onClick={() => handleToggleWidget(widget)}
@@ -2359,9 +2359,9 @@ export default function AdminPage() {
                     : "bg-surface-2/40 border-dashed border-line opacity-60"
                 }`}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-xs font-bold text-text">{t.name}</h3>
                       <span className="text-[10px] px-2 py-0.2 rounded-full bg-surface-2 border border-line text-text-muted font-mono uppercase">
                         {t.category}
@@ -2375,7 +2375,7 @@ export default function AdminPage() {
                     <p className="text-[11px] text-text-muted mt-1 leading-relaxed">{t.description}</p>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
                     <button
                       type="button"
                       onClick={() => handleToggleTool(t)}
@@ -2431,19 +2431,19 @@ export default function AdminPage() {
               <div className="p-6 text-center text-xs text-text-muted">No audit logs recorded yet.</div>
             ) : (
               auditLogs.map((log) => (
-                <div key={log.id} className="p-4 flex items-start justify-between gap-4 text-xs">
+                <div key={log.id} className="p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4 text-xs">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-text">{log.note || log.action}</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-2 border border-line font-mono text-text-muted uppercase">
                         {log.entityType}
                       </span>
                     </div>
-                    <p className="text-[11px] text-text-muted mt-0.5 font-mono">
+                    <p className="text-[11px] text-text-muted mt-0.5 font-mono break-all">
                       Actor: {log.actor} · Target ID: {log.entityId}
                     </p>
                   </div>
-                  <span className="text-[10px] text-text-muted font-mono shrink-0">
+                  <span className="text-[10px] text-text-muted font-mono self-end sm:self-auto shrink-0">
                     {new Date(log.timestamp).toLocaleString()}
                   </span>
                 </div>
@@ -2468,7 +2468,7 @@ export default function AdminPage() {
           }}
         >
           <div className="relative w-full max-w-lg max-h-[88vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-surface shrink-0">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-line bg-surface shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-gold">
                   <Compass className="w-4 h-4" />
@@ -2490,7 +2490,7 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <form id="nav-modal-form" onSubmit={handleSaveNavItem} className="overflow-y-auto px-6 py-4 space-y-3.5 text-xs flex-1">
+            <form id="nav-modal-form" onSubmit={handleSaveNavItem} className="overflow-y-auto px-4 sm:px-6 py-4 space-y-3.5 text-xs flex-1">
               <div className="space-y-1">
                 <label className="font-semibold text-text">Button Label</label>
                 <input
@@ -2515,7 +2515,7 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="font-semibold text-text">Lucide Icon Name</label>
                   <select
@@ -2550,7 +2550,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="font-semibold text-text">Group</label>
                   <select
@@ -2578,11 +2578,11 @@ export default function AdminPage() {
               </div>
             </form>
 
-            <div className="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-line bg-surface-2/60 shrink-0">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 px-4 sm:px-6 py-3.5 sm:py-4 border-t border-line bg-surface-2/60 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsNavModalOpen(false)}
-                className="px-4 py-2 rounded-xl border border-line text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer font-semibold transition-colors"
+                className="px-4 py-2 rounded-xl border border-line text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer font-semibold transition-colors text-center"
               >
                 Cancel
               </button>
@@ -2590,7 +2590,7 @@ export default function AdminPage() {
                 type="submit"
                 form="nav-modal-form"
                 disabled={saving}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all shadow-md shadow-[0_8px_20px_-6px_var(--gold-glow)]"
+                className="px-5 py-2 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all shadow-md shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
               >
                 {saving ? "Saving..." : "Save Navigation Button"}
               </button>
@@ -2610,30 +2610,30 @@ export default function AdminPage() {
             if (e.target === e.currentTarget) setIsWidgetModalOpen(false);
           }}
         >
-          <div className="relative w-full max-w-lg max-h-[88vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-surface shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-gold">
+          <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-line bg-surface shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shrink-0">
                   <Layers className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-text">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-text truncate">
                     {editingWidget ? `Edit Widget: ${editingWidget.title}` : "Add Dashboard Widget"}
                   </h3>
-                  <p className="text-[11px] text-text-muted">Executive dashboard modular card configuration</p>
+                  <p className="text-[11px] text-text-muted truncate">Executive dashboard modular card configuration</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsWidgetModalOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer transition-colors"
+                className="p-1.5 rounded-xl hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer transition-colors shrink-0"
                 aria-label="Close modal"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form id="widget-modal-form" onSubmit={handleSaveWidget} className="overflow-y-auto px-6 py-4 space-y-3.5 text-xs flex-1">
+            <form id="widget-modal-form" onSubmit={handleSaveWidget} className="overflow-y-auto px-4 sm:px-6 py-4 space-y-3.5 text-xs flex-1">
               <div className="space-y-1">
                 <label className="font-semibold text-text">Widget Display Title</label>
                 <input
@@ -2642,7 +2642,7 @@ export default function AdminPage() {
                   placeholder="e.g. Sales Pipeline Velocity"
                   value={widgetForm.title}
                   onChange={(e) => setWidgetForm({ ...widgetForm, title: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold font-semibold"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold font-semibold text-sm sm:text-xs"
                 />
               </div>
 
@@ -2651,7 +2651,7 @@ export default function AdminPage() {
                 <select
                   value={widgetForm.component}
                   onChange={(e) => setWidgetForm({ ...widgetForm, component: e.target.value })}
-                  className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono"
+                  className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-sm sm:text-xs"
                 >
                   <option value="KpiGridWidget">KpiGridWidget (4-column Sparkline Tiles)</option>
                   <option value="HealthScoreWidget">HealthScoreWidget (Gauge + Breakdown)</option>
@@ -2662,13 +2662,13 @@ export default function AdminPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="font-semibold text-text">Default Column Span</label>
                   <select
                     value={widgetForm.defaultSpan}
                     onChange={(e) => setWidgetForm({ ...widgetForm, defaultSpan: Number(e.target.value) as any })}
-                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text"
+                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text text-sm sm:text-xs"
                   >
                     <option value={1}>1 Column (Compact)</option>
                     <option value={2}>2 Columns (Half Width)</option>
@@ -2685,17 +2685,17 @@ export default function AdminPage() {
                     max={100}
                     value={widgetForm.priority}
                     onChange={(e) => setWidgetForm({ ...widgetForm, priority: Number(e.target.value) })}
-                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono"
+                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-sm sm:text-xs"
                   />
                 </div>
               </div>
             </form>
 
-            <div className="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-line bg-surface-2/60 shrink-0">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 px-4 sm:px-6 py-3.5 sm:py-4 border-t border-line bg-surface-2/60 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsWidgetModalOpen(false)}
-                className="px-4 py-2 rounded-xl border border-line text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer font-semibold transition-colors"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl border border-line text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer font-semibold transition-colors text-center"
               >
                 Cancel
               </button>
@@ -2703,7 +2703,7 @@ export default function AdminPage() {
                 type="submit"
                 form="widget-modal-form"
                 disabled={saving}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all shadow-md shadow-[0_8px_20px_-6px_var(--gold-glow)]"
+                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all shadow-md shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
               >
                 {saving ? "Saving..." : "Save Widget"}
               </button>
@@ -2723,30 +2723,30 @@ export default function AdminPage() {
             if (e.target === e.currentTarget) setIsToolModalOpen(false);
           }}
         >
-          <div className="relative w-full max-w-lg max-h-[88vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-surface shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-gold">
+          <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-line bg-surface shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shrink-0">
                   <Wrench className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-text">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-text truncate">
                     {editingTool ? `Edit Tool: ${editingTool.name}` : "Add Specialist Tool"}
                   </h3>
-                  <p className="text-[11px] text-text-muted">Business specialist calculator & entitlement settings</p>
+                  <p className="text-[11px] text-text-muted truncate">Business specialist calculator & entitlement settings</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsToolModalOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer transition-colors"
+                className="p-1.5 rounded-xl hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer transition-colors shrink-0"
                 aria-label="Close modal"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form id="tool-modal-form" onSubmit={handleSaveTool} className="overflow-y-auto px-6 py-4 space-y-3.5 text-xs flex-1">
+            <form id="tool-modal-form" onSubmit={handleSaveTool} className="overflow-y-auto px-4 sm:px-6 py-4 space-y-3.5 text-xs flex-1">
               <div className="space-y-1">
                 <label className="font-semibold text-text">Tool Name</label>
                 <input
@@ -2755,17 +2755,17 @@ export default function AdminPage() {
                   placeholder="e.g. Valuation Multiples Calculator"
                   value={toolForm.name}
                   onChange={(e) => setToolForm({ ...toolForm, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold font-semibold"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold font-semibold text-sm sm:text-xs"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="font-semibold text-text">Category</label>
                   <select
                     value={toolForm.category}
                     onChange={(e) => setToolForm({ ...toolForm, category: e.target.value as any })}
-                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text"
+                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text text-sm sm:text-xs"
                   >
                     <option value="finance">Finance</option>
                     <option value="sales">Sales</option>
@@ -2780,7 +2780,7 @@ export default function AdminPage() {
                   <select
                     value={toolForm.requiredPlan}
                     onChange={(e) => setToolForm({ ...toolForm, requiredPlan: e.target.value as any })}
-                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text"
+                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text text-sm sm:text-xs"
                   >
                     <option value="free">Free</option>
                     <option value="starter">Starter</option>
@@ -2798,7 +2798,7 @@ export default function AdminPage() {
                   placeholder="Brief description of what this calculator or tool computes."
                   value={toolForm.description}
                   onChange={(e) => setToolForm({ ...toolForm, description: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold text-sm sm:text-xs"
                 />
               </div>
 
@@ -2809,11 +2809,11 @@ export default function AdminPage() {
                   placeholder="e.g. Valuation, Risk"
                   value={toolForm.badge}
                   onChange={(e) => setToolForm({ ...toolForm, badge: e.target.value })}
-                  className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono"
+                  className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-sm sm:text-xs"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <label className="inline-flex items-center gap-2 cursor-pointer p-2.5 rounded-xl bg-surface-2/60 border border-line hover:border-gold/50 transition-colors">
                   <input
                     type="checkbox"
@@ -2842,11 +2842,11 @@ export default function AdminPage() {
               </div>
             </form>
 
-            <div className="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-line bg-surface-2/60 shrink-0">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 px-4 sm:px-6 py-3.5 sm:py-4 border-t border-line bg-surface-2/60 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsToolModalOpen(false)}
-                className="px-4 py-2 rounded-xl border border-line text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer font-semibold transition-colors"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl border border-line text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer font-semibold transition-colors text-center"
               >
                 Cancel
               </button>
@@ -2854,7 +2854,7 @@ export default function AdminPage() {
                 type="submit"
                 form="tool-modal-form"
                 disabled={saving}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all shadow-md shadow-[0_8px_20px_-6px_var(--gold-glow)]"
+                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all shadow-md shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
               >
                 {saving ? "Saving..." : "Save Tool"}
               </button>

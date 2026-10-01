@@ -109,7 +109,7 @@ export function UsersManager({ users, onRefresh, notify }: UsersManagerProps) {
             >
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="font-bold text-xs text-text">{u.email}</span>
+                  <span className="font-bold text-xs text-text break-all">{u.email}</span>
                   <span
                     className={`text-[9px] px-2 py-0.5 rounded-full font-mono uppercase font-bold border ${
                       u.provider === "google"
@@ -124,8 +124,8 @@ export function UsersManager({ users, onRefresh, notify }: UsersManagerProps) {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 text-[11px] text-text-muted font-mono">
-                  <span>ID: {u.id}</span>
+                <div className="flex items-center gap-3 text-[11px] text-text-muted font-mono flex-wrap">
+                  <span className="break-all">ID: {u.id}</span>
                   {u.createdAt && (
                     <>
                       <span>•</span>

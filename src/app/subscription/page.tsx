@@ -240,7 +240,7 @@ export default function SubscriptionPage() {
       )}
 
       {/* Top Header */}
-      <div className="max-w-7xl w-full mx-auto pb-6 border-b border-line flex items-center justify-between">
+      <div className="max-w-7xl w-full mx-auto pb-5 sm:pb-6 border-b border-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-3 group">
             <div className="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center p-1 shadow-sm group-hover:scale-105 transition-transform">
@@ -261,27 +261,27 @@ export default function SubscriptionPage() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
           <Link
             href="/dashboard"
-            className="text-xs font-semibold text-text-muted hover:text-text btn-tactile px-3 py-1.5 rounded-lg border border-line bg-surface-2"
+            className="text-xs font-semibold text-text-muted hover:text-text btn-tactile px-3 py-1.5 rounded-lg border border-line bg-surface-2 whitespace-nowrap"
           >
             Go to Dashboard →
           </Link>
-          <div className="w-32">
+          <div className="w-28 sm:w-32 shrink-0">
             <ThemeSwitch compact />
           </div>
         </div>
       </div>
 
       {/* Main Container */}
-      <div className="max-w-7xl w-full mx-auto my-auto py-12 space-y-12">
-        <div className="text-center space-y-4 max-w-2xl mx-auto">
+      <div className="max-w-7xl w-full mx-auto my-auto py-8 sm:py-12 space-y-8 sm:space-y-12">
+        <div className="text-center space-y-4 max-w-2xl mx-auto px-2">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/10 border border-gold/25 text-gold text-xs font-bold uppercase tracking-wider">
             <Tag className="w-3.5 h-3.5" />
             <span>Plans & Pricing</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-text tracking-tight font-sans leading-tight">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-text tracking-tight font-sans leading-tight">
             Choose the Plan That Fits Your Business
           </h1>
           <p className="text-sm sm:text-base text-text-muted leading-relaxed max-w-xl mx-auto">
@@ -315,7 +315,7 @@ export default function SubscriptionPage() {
             return (
               <div
                 key={p.id}
-                className={`group rounded-3xl border p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
+                className={`group rounded-2xl sm:rounded-3xl border p-5 sm:p-8 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
                   isPopular
                     ? "bg-surface border-gold/40 shadow-[0_20px_50px_-12px_var(--gold-glow)] ring-1 ring-gold/20 lg:scale-[1.04] lg:-translate-y-2 z-10"
                     : "bg-surface border-line hover:border-gold/30 shadow-sm hover:shadow-lg hover:shadow-gold/5 hover:-translate-y-1.5"

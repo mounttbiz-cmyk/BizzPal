@@ -549,8 +549,8 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Bar Chart Visualization with clean layout and no clipping */}
-          <div className="pt-4 pb-2">
-            <div className="min-h-[230px] flex items-end justify-between gap-1.5 sm:gap-3 border-b border-line px-2 pb-2 relative">
+          <div className="pt-4 pb-2 overflow-x-auto touch-scroll">
+            <div className="min-w-[480px] sm:min-w-0 min-h-[230px] flex items-end justify-between gap-1.5 sm:gap-3 border-b border-line px-2 pb-2 relative">
               {revenueHistory.map((d, i) => {
                 // Ensure height percentage is strictly between 0% and 100%
                 const heightPct = Math.min(100, Math.max(8, Math.round((d.revenue / maxRev) * 85)));
@@ -595,7 +595,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 pt-2 text-center text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-2 text-center text-xs">
             <div className="p-2.5 rounded-xl bg-surface-2 border border-line">
               <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider block">Trailing 6M Vol</span>
               <span className="text-sm font-bold font-mono text-text">

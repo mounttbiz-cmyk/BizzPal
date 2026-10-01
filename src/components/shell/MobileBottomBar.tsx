@@ -106,7 +106,7 @@ export function MobileBottomBar({ navItems }: MobileBottomBarProps) {
             </div>
 
             {/* Links List */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2">
               {secondaryItems.map(item => {
                 const isActive = pathname === item.href;
                 const isLocked = !hasPlanLevel(item.requiredPlan);

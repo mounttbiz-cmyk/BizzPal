@@ -240,7 +240,7 @@ export function AppShell({
       />
 
       {/* Main Column */}
-      <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0 md:ml-16 lg:ml-64 relative">
+      <div className="flex-1 flex flex-col min-w-0 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0 md:ml-16 lg:ml-64 relative">
         {/* Ambient Top Glow specific to main column */}
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-gold/[0.02] to-transparent pointer-events-none z-0" />
         
@@ -252,7 +252,7 @@ export function AppShell({
         />
 
         {/* Page Content Container with Framer Motion Page Transitions */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1560px] w-full mx-auto relative z-10">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-[1560px] w-full mx-auto relative z-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}
@@ -268,7 +268,7 @@ export function AppShell({
         </main>
       </div>
 
-      {/* Floating AI Executive Launcher Button (Desktop & Tablet) - Signature BizzPal Champagne Gold */}
+      {/* Floating AI Executive Launcher Button (Desktop & Tablet & Mobile) - Signature BizzPal Champagne Gold */}
       {features.enableAiCopilot && pathname !== "/chat" && (
         <button
           type="button"
@@ -276,8 +276,8 @@ export function AppShell({
           aria-label="Open AI Workspace"
           className={`fixed z-40 flex items-center gap-2.5 rounded-full btn-gold-gradient shadow-2xl hover:scale-105 active:scale-95 transition-all text-xs font-bold font-sans cursor-pointer group ${
             pathname === "/datapal"
-              ? "bottom-6 left-6 md:left-24 lg:left-72 px-3 py-2 sm:px-4 sm:py-2.5"
-              : "bottom-6 right-6 px-4 py-2.5"
+              ? "bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 left-4 sm:left-6 md:left-24 lg:left-72 px-3 py-2 sm:px-4 sm:py-2.5"
+              : "bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-4 sm:right-6 px-3.5 py-2 sm:px-4 sm:py-2.5"
           }`}
         >
           <MessageSquare className="w-4 h-4 text-[#120E05] group-hover:rotate-6 transition-transform" />

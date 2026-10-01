@@ -193,7 +193,7 @@ export function ChatDock({
       }`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-line bg-surface">
+      <div className="flex items-center justify-between px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] border-b border-line bg-surface">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-brass/15 text-brass flex items-center justify-center font-bold text-xs">
             <MessageSquare className="w-4 h-4" />
@@ -368,14 +368,14 @@ export function ChatDock({
 
 
       {/* Composer */}
-      <form onSubmit={handleSend} className="p-3 border-t border-line bg-surface">
+      <form onSubmit={handleSend} className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] border-t border-line bg-surface">
         <div className="relative flex items-center">
           <input
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder="Ask your executive team (e.g. @cfo runway impact)..."
-            className="w-full text-xs pl-3 pr-10 py-2.5 rounded-lg border border-line bg-surface-2 text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brass"
+            className="w-full text-base sm:text-xs pl-3 pr-10 py-2.5 rounded-lg border border-line bg-surface-2 text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brass"
           />
           <button
             type="submit"

@@ -194,8 +194,20 @@ export function Nav ({ menuOpen, setMenuOpen, data }) {
       </header>
 
       <div className="menu" id="menu" aria-hidden={!menuOpen}>
-        {links.map(({ label, href }) => <a key={href} href={href}>{label}</a>)}
-        <a href={ctaHref} className="menu__cta">
+        {links.map(({ label, href }) => (
+          <a
+            key={href}
+            href={href}
+            onClick={() => setMenuOpen(false)}
+          >
+            {label}
+          </a>
+        ))}
+        <a
+          href={ctaHref}
+          className="menu__cta"
+          onClick={() => setMenuOpen(false)}
+        >
           <span>{ctaText}</span> <span aria-hidden="true">→</span>
         </a>
         <div className="menu__meta">{brand} — Intelligence in Motion</div>

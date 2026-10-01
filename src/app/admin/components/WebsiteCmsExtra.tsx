@@ -299,7 +299,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                 </div>
               ))}
 
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2">
                 <input
                   type="text"
                   placeholder="Label (e.g. Pricing)"
@@ -317,7 +317,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                 <button
                   type="button"
                   onClick={handleAddNavLink}
-                  className="px-3 py-1.5 rounded-xl bg-brass hover:brightness-110 text-white text-xs font-bold cursor-pointer shrink-0"
+                  className="px-4 py-2 sm:py-1.5 rounded-xl bg-brass hover:brightness-110 text-white text-xs font-bold cursor-pointer shrink-0"
                 >
                   Add Link
                 </button>
@@ -332,7 +332,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
   if (subTab === "vision_words") {
     return (
       <div className="space-y-6">
-        <div className="p-4 rounded-xl bg-surface border border-line flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-surface border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-bold text-text">Vision Section Kinetic Words</h2>
             <p className="text-xs text-text-muted mt-0.5">
@@ -343,7 +343,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md self-start sm:self-auto cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{saving ? "Saving..." : "Save Vision Words"}</span>
@@ -388,7 +388,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
               ))}
             </div>
 
-            <div className="flex items-center gap-2 pt-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3">
               <input
                 type="text"
                 placeholder="Add new word (e.g. Innovate.)"
@@ -400,7 +400,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
               <button
                 type="button"
                 onClick={handleAddVisionWord}
-                className="px-4 py-2 rounded-xl bg-brass hover:brightness-110 text-white text-xs font-bold cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-brass hover:brightness-110 text-white text-xs font-bold cursor-pointer shrink-0"
               >
                 Add Word
               </button>
@@ -414,7 +414,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
   // Announcement Subtab
   return (
     <div className="space-y-6">
-      <div className="p-4 rounded-xl bg-surface border border-line flex items-center justify-between">
+      <div className="p-4 rounded-xl bg-surface border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-bold text-text">Announcement Banner Settings</h2>
           <p className="text-xs text-text-muted mt-0.5">
@@ -425,7 +425,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
           type="button"
           onClick={onSave}
           disabled={saving}
-          className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+          className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md self-start sm:self-auto cursor-pointer"
         >
           <Save className="w-3.5 h-3.5" />
           <span>{saving ? "Saving..." : "Save Announcement"}</span>

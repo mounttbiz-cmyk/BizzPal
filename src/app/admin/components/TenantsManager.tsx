@@ -398,7 +398,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
               </div>
 
               {/* Financial Metrics Strip */}
-              <div className="flex items-center gap-4 sm:gap-6 bg-surface-2/60 p-3 rounded-xl border border-line shrink-0">
+              <div className="grid grid-cols-2 min-[460px]:grid-cols-4 gap-2.5 sm:gap-4 bg-surface-2/60 p-3 rounded-xl border border-line w-full lg:w-auto shrink-0">
                 <div>
                   <div className="text-[10px] text-text-muted uppercase font-mono">Monthly Rev</div>
                   <div className="text-xs font-bold text-text mt-0.5">₹{(t.monthlyRevenue / 1000).toFixed(0)}k</div>
@@ -424,7 +424,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 self-end lg:self-auto shrink-0">
+              <div className="flex items-center gap-2 w-full lg:w-auto justify-end pt-1 lg:pt-0 shrink-0">
                 <button
                   type="button"
                   onClick={() => handleSwitchActive(t)}

@@ -181,7 +181,7 @@ export function HealthScoreWidget({
         </div>
 
         {/* Circular Gauge + Hero Score */}
-        <div className="flex flex-col @sm:flex-row items-center gap-6 py-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 py-4">
           <div className="relative flex items-center justify-center shrink-0">
             <svg className="w-28 h-28 transform -rotate-90">
               <circle
@@ -216,7 +216,7 @@ export function HealthScoreWidget({
             </div>
           </div>
 
-          <div className="flex-1 space-y-2 text-center @sm:text-left">
+          <div className="flex-1 space-y-2 text-center sm:text-left">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 font-mono">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>{isFresh ? "Baseline Initiated" : "+ Live Calibrated"}</span>
@@ -234,7 +234,7 @@ export function HealthScoreWidget({
             <span>Weight</span>
           </div>
 
-          <div className="grid grid-cols-1 @xs:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 min-[420px]:grid-cols-3 sm:grid-cols-5 gap-2">
             {components.map(comp => {
               const isSelected = selectedComponent === comp.key;
               return (
