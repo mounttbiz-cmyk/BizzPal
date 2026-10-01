@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Bot, Sparkles, X, Upload, CheckCircle2, ArrowRight } from "lucide-react";
 
 interface AiMatcherDrawerProps {
@@ -18,6 +19,7 @@ export function AiMatcherDrawer({
   onServiceDescriptionChange,
   onApplySuggestions,
 }: AiMatcherDrawerProps) {
+  const [mounted, setMounted] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<{
     inferredRequirement: string;
@@ -25,7 +27,21 @@ export function AiMatcherDrawer({
     summary: string;
   } | null>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !mounted || typeof document === "undefined") return null;
 
   const handleAnalyze = () => {
     if (!serviceDescription.trim()) return;
@@ -66,15 +82,16 @@ export function AiMatcherDrawer({
     onClose();
   };
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-label="AI Smart Matcher & Pitch Analyzer"
-      className="fixed inset-0 z-50 flex justify-end"
+      className="fixed inset-0 z-[9999] flex justify-end"
+      style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
     >
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-2xs transition-opacity animate-fade-in"
+        className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-xs transition-opacity animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -161,6 +178,7 @@ export function AiMatcherDrawer({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
