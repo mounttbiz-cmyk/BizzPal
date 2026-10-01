@@ -46,21 +46,56 @@ export function useSmoothScroll ({ webgl }) {
         el.style.transform = `translate3d(0,${((1 - a) * 34).toFixed(1)}px,0) scale(${(0.985 + a * 0.015).toFixed(4)})`;
       });
 
+      const currentWords = document.querySelectorAll('#vision [data-word]');
       const visionSec = document.querySelector('#vision');
-      const visionWords = document.querySelectorAll('#vision [data-word]');
-      if (visionSec && visionWords.length) {
-        const sp = sectionProgress(visionSec), n = visionWords.length, seg = 1 / n;
-        visionWords.forEach((w, i) => {
-          const local = (sp - i * seg) / seg;
-          let a = 0, y = 0, sc = 1;
-          if (local > -0.85 && local < 1.85) {
-            a = smoothstep(inv(-0.30, 0.16, local)) * (1 - smoothstep(inv(0.84, 1.30, local)));
-            y = (0.5 - clamp(local, -0.4, 1.4)) * 70;
-            sc = 0.94 + a * 0.06;
+      if (visionSec && currentWords.length) {
+        const vp = sectionProgress(visionSec);
+        const n = currentWords.length;
+        const seg = 1 / n;
+
+        currentWords.forEach((w, i) => {
+          const local = (vp - i * seg) / seg;
+          let a = 0, y = 0, sc = 1, blur = 0;
+
+          const isFirst = (i === 0);
+          const isLast = (i === n - 1);
+
+          if (isFirst && local <= 0.20) {
+            a = 1;
+            y = 0;
+            sc = 1;
+            blur = 0;
+          } else if (isLast && local >= 0.80) {
+            a = 1;
+            y = 0;
+            sc = 1;
+            blur = 0;
+          } else if (local >= -0.05 && local <= 1.05) {
+            if (local < 0.20) {
+              const t = clamp((local - (-0.05)) / 0.25, 0, 1);
+              const ease = smoothstep(t);
+              a = ease;
+              y = (1 - ease) * 50;
+              sc = 0.94 + ease * 0.06;
+              blur = (1 - ease) * 8;
+            } else if (local <= 0.80) {
+              a = 1;
+              y = (0.5 - local) * 10;
+              sc = 1;
+              blur = 0;
+            } else {
+              const t = clamp((local - 0.80) / 0.25, 0, 1);
+              const ease = smoothstep(t);
+              a = 1 - ease;
+              y = -ease * 50;
+              sc = 1 - ease * 0.04;
+              blur = ease * 8;
+            }
           }
+
           w.style.opacity = a.toFixed(3);
           w.style.transform = `translate3d(0,${y.toFixed(1)}px,0) scale(${sc.toFixed(3)})`;
-          w.style.filter = a > 0.02 ? `blur(${((1 - a) * 9).toFixed(1)}px)` : 'blur(9px)';
+          w.style.filter = blur > 0.1 ? `blur(${blur.toFixed(1)}px)` : 'none';
         });
       }
     }
