@@ -369,129 +369,21 @@ const DEFAULT_VISION_WORDS = ['Understand.', 'Predict.', 'Adapt.', 'Create.', 'E
 export const Vision = ({ data }) => {
   const words = data?.words || DEFAULT_VISION_WORDS;
   const label = data?.label || 'The next interface is intelligence';
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-  const sectionRef = useRef(null);
-
-  // Auto-cycle through all vision words
-  useEffect(() => {
-    if (words.length <= 1) return;
-    const interval = setInterval(() => {
-      if (!isHovered) {
-        setActiveIndex(prev => (prev + 1) % words.length);
-      }
-    }, 2800);
-
-    return () => clearInterval(interval);
-  }, [words.length, isHovered]);
-
-  // Synchronize with scroll position as user scrolls through the section
-  useEffect(() => {
-    const handleScroll = () => {
-      const el = sectionRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const range = Math.max(1, el.offsetHeight - window.innerHeight);
-      if (rect.top <= 0 && rect.bottom >= window.innerHeight) {
-        const progress = Math.min(Math.max(-rect.top / range, 0), 0.999);
-        const targetIdx = Math.floor(progress * words.length);
-        setActiveIndex(targetIdx);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [words.length]);
 
   return (
-    <section 
-      id="vision" 
-      ref={sectionRef} 
-      className="story" 
-      style={{ minHeight: '260vh' }} 
-      aria-labelledby="vision-h"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <section id="vision" className="story" style={{ height: '330svh' }} aria-labelledby="vision-h">
       <div className="pin">
-        <div className="wrap" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="wrap" style={{ position: 'relative', height: '100%' }}>
           <p className="vision__label" id="vision-h">{label}</p>
-          
-          <div style={{ position: 'relative', width: '100%', height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {words.map((w, i) => {
-              const isActive = i === activeIndex;
-              const isPast = i < activeIndex;
-              const isFinal = i === words.length - 1;
-              return (
-                <div
-                  className={'vision__word' + (isFinal ? ' is-final' : '')}
-                  key={`${w}-${i}`}
-                  data-word
-                  style={{
-                    opacity: isActive ? 1 : 0,
-                    transform: isActive
-                      ? 'translate3d(0, 0, 0) scale(1)'
-                      : isPast
-                        ? 'translate3d(0, -45px, 0) scale(0.92)'
-                        : 'translate3d(0, 45px, 0) scale(0.92)',
-                    filter: isActive ? 'blur(0px)' : 'blur(10px)',
-                    transition: 'opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1), transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), filter 0.65s cubic-bezier(0.22, 1, 0.36, 1)',
-                    pointerEvents: isActive ? 'auto' : 'none',
-                  }}
-                >
-                  {w}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Interactive Vision Pills / Selectors */}
-          <div 
-            className="vision__indicators"
-            style={{
-              position: 'absolute',
-              bottom: 'calc(50% - clamp(110px, 15vw, 190px))',
-              left: 0,
-              right: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              flexWrap: 'wrap',
-              zIndex: 10,
-              padding: '0 16px'
-            }}
-          >
-            {words.map((w, i) => {
-              const cleanWord = w.replace(/\.$/, '');
-              const isActive = i === activeIndex;
-              return (
-                <button
-                  key={`pill-${cleanWord}-${i}`}
-                  type="button"
-                  onClick={() => setActiveIndex(i)}
-                  aria-label={`View vision pillar: ${cleanWord}`}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '999px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.22, 1, 0.36, 1)',
-                    background: isActive ? 'rgba(245, 197, 66, 0.22)' : 'rgba(255, 255, 255, 0.05)',
-                    border: isActive ? '1px solid #F5C542' : '1px solid rgba(255, 255, 255, 0.12)',
-                    color: isActive ? '#F5C542' : 'rgba(255, 255, 255, 0.45)',
-                    boxShadow: isActive ? '0 0 18px rgba(245, 197, 66, 0.45)' : 'none',
-                    transform: isActive ? 'scale(1.06)' : 'scale(1)',
-                  }}
-                >
-                  {cleanWord}
-                </button>
-              );
-            })}
-          </div>
+          {words.map((w, i) => (
+            <div
+              key={`${w}-${i}`}
+              className={`vision__word${i === words.length - 1 ? ' is-final' : ''}`}
+              data-word
+            >
+              {w}
+            </div>
+          ))}
         </div>
       </div>
     </section>

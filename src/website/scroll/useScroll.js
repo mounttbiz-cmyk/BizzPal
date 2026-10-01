@@ -45,6 +45,24 @@ export function useSmoothScroll ({ webgl }) {
         el.style.opacity = a.toFixed(3);
         el.style.transform = `translate3d(0,${((1 - a) * 34).toFixed(1)}px,0) scale(${(0.985 + a * 0.015).toFixed(4)})`;
       });
+
+      const visionSec = document.querySelector('#vision');
+      const visionWords = document.querySelectorAll('#vision [data-word]');
+      if (visionSec && visionWords.length) {
+        const sp = sectionProgress(visionSec), n = visionWords.length, seg = 1 / n;
+        visionWords.forEach((w, i) => {
+          const local = (sp - i * seg) / seg;
+          let a = 0, y = 0, sc = 1;
+          if (local > -0.85 && local < 1.85) {
+            a = smoothstep(inv(-0.30, 0.16, local)) * (1 - smoothstep(inv(0.84, 1.30, local)));
+            y = (0.5 - clamp(local, -0.4, 1.4)) * 70;
+            sc = 0.94 + a * 0.06;
+          }
+          w.style.opacity = a.toFixed(3);
+          w.style.transform = `translate3d(0,${y.toFixed(1)}px,0) scale(${sc.toFixed(3)})`;
+          w.style.filter = a > 0.02 ? `blur(${((1 - a) * 9).toFixed(1)}px)` : 'blur(9px)';
+        });
+      }
     }
 
     let lenis = null;
