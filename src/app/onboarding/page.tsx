@@ -36,6 +36,8 @@ import {
   KeyRound,
   Edit3,
   SlidersHorizontal,
+  ShieldCheck,
+  Lock,
 } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { ToolLogo } from "@/components/tools/ToolLogo";
@@ -1177,6 +1179,38 @@ export default function OnboardingPage() {
     setActiveAuthToolId(toolId);
   };
 
+  const handleDirectGoogleOAuth = () => {
+    const width = 540;
+    const height = 680;
+    const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+    const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+
+    const connectUrl = `/api/integrations/google/connect?returnTo=${encodeURIComponent(
+      typeof window !== "undefined" ? window.location.pathname + window.location.search : "/onboarding"
+    )}`;
+
+    const popup = window.open(
+      connectUrl,
+      "BizzPalGoogleOAuth",
+      `width=${width},height=${height},left=${left},top=${top},status=0,toolbar=0,menubar=0`
+    );
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "BIZZPAL_GOOGLE_AUTH_SUCCESS") {
+        window.removeEventListener("message", handleMessage);
+        const data = event.data.data;
+        const detail = data?.detail || `Connected · Live Google Account: ${data?.email || "Synced"}`;
+        handleRealConnectSuccess(
+          "google",
+          detail,
+          data?.config || { accountEmail: data?.email, liveOAuth: true }
+        );
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+  };
+
   const handleRealConnectSuccess = (toolId: string, detail: string, config: any) => {
     setToolAuthStates(prev => ({
       ...prev,
@@ -2248,176 +2282,346 @@ export default function OnboardingPage() {
             )}
 
             {/* Step 2.95: Sign In & Authorize Connected Tools */}
-            {step === 2.95 && (
-              <div className="space-y-5">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-wider mb-2">
-                    OAuth & Handshake Verification
-                  </div>
-                  <h1 className="text-lg sm:text-xl font-bold text-text tracking-tight font-sans">
-                    Sign in & authorize your connected tools
-                  </h1>
-                  <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                    Authenticate your selected platforms so BizzPal can ingest live daily metrics, calibrate executive briefings, and eliminate manual reporting.
-                  </p>
-                </div>
+            {step === 2.95 && (() => {
+              const connectedCount = selectedTools.filter(t => toolAuthStates[t]?.status === "connected").length;
+              const allConnected = selectedTools.length > 0 && connectedCount === selectedTools.length;
 
-                {/* Quick Connect All Banner */}
-                {selectedTools.some(t => toolAuthStates[t]?.status !== "connected") && (
-                  <div className="p-3.5 rounded-xl bg-surface-2 border border-line flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shrink-0">
-                        <Zap className="w-4 h-4" />
+              return (
+                <div className="space-y-6">
+                  {/* Executive Header with Telemetry Progress */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-line">
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <Lock className="w-3 h-3 text-emerald-500" />
+                        <span>OAuth 2.0 & Encrypted Telemetry Handshake</span>
                       </div>
-                      <div>
-                        <span className="text-xs font-bold text-text block">One-Click Multi-Tool Handshake</span>
-                        <span className="text-[11px] text-text-muted">Authorize all {selectedTools.length} selected systems simultaneously.</span>
+                      <h1 className="text-xl sm:text-2xl font-bold text-text tracking-tight font-sans">
+                        Sign in & authorize your connected tools
+                      </h1>
+                      <p className="text-xs text-text-muted max-w-2xl leading-relaxed">
+                        Authenticate your enterprise platforms so BizzPal's Autonomous AI C-Suite can ingest real-time KPIs, run continuous simulations, and eliminate manual reporting.
+                      </p>
+                    </div>
+
+                    {/* Live Progress Meter */}
+                    <div className="shrink-0 bg-surface-2/70 border border-line p-3 rounded-xl min-w-[170px] shadow-2xs">
+                      <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-text-muted">
+                        <span>Telemetry Sync</span>
+                        <span className="text-emerald-500 font-bold">{Math.round(selectedTools.length > 0 ? (connectedCount / selectedTools.length) * 100 : 0)}%</span>
+                      </div>
+                      <div className="text-sm font-bold text-text mt-1 flex items-baseline gap-1.5">
+                        <span className="text-emerald-500 font-mono text-base">{connectedCount}</span>
+                        <span className="text-text-muted font-normal text-xs">of</span>
+                        <span className="font-mono text-base">{selectedTools.length}</span>
+                        <span className="text-xs font-medium text-text-muted ml-0.5">Connected</span>
+                      </div>
+                      <div className="w-full bg-line/80 rounded-full h-1.5 mt-2 overflow-hidden">
+                        <div
+                          className="bg-emerald-500 h-full rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${selectedTools.length > 0 ? (connectedCount / selectedTools.length) * 100 : 0}%` }}
+                        />
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      disabled={isAuthorizingAll}
-                      onClick={handleConnectAllTools}
-                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 font-bold text-xs hover:bg-cyan-500/30 btn-tactile cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-1.5 shrink-0"
-                    >
-                      {isAuthorizingAll ? (
-                        <>
-                          <div className="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-                          <span>Connecting Tools…</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>Connect & Sign In to All</span>
-                        </>
-                      )}
-                    </button>
                   </div>
-                )}
 
-                {/* Individual Tool Sign-In Cards */}
-                <div className="space-y-3">
-                  {selectedTools.map(toolId => {
-                    const toolObj = TOOLS_OPTIONS.find(t => t.id === toolId);
-                    if (!toolObj) return null;
-                    const authState = toolAuthStates[toolId] || { status: "idle" };
-                    const isConnected = authState.status === "connected";
-                    const isConnecting = authState.status === "connecting";
-
-                    return (
-                      <div
-                        key={toolId}
-                        className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                          isConnected
-                            ? "bg-jade/5 border-jade/30 shadow-sm"
-                            : "bg-surface-2/40 border-line hover:border-line-strong"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3.5 min-w-0">
-                          <ToolLogo toolId={toolId} size={36} className="mt-0.5 shrink-0" />
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-text">{toolObj.name}</span>
-                              {isConnected ? (
-                                <span className="text-[9px] px-2 py-0.5 rounded-full bg-jade/15 text-jade border border-jade/30 font-mono font-semibold uppercase flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  <span>Connected</span>
-                                </span>
-                              ) : (
-                                <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30 font-mono font-semibold uppercase">
-                                  Pending Auth
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">
-                              {isConnected && authState.detail ? (
-                                <span className="text-jade font-medium font-mono text-[10px]">{authState.detail}</span>
-                              ) : (
-                                toolObj.description
-                              )}
-                            </p>
-                          </div>
+                  {/* Quick Connect All Handshake Banner */}
+                  {!allConnected && (
+                    <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-brass/10 via-surface-2 to-emerald-500/10 border border-brass/25 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-11 h-11 rounded-xl bg-brass/15 text-brass border border-brass/30 flex items-center justify-center shrink-0 shadow-inner">
+                          <Zap className="w-5 h-5 fill-current" />
                         </div>
-
-                        <div className="shrink-0 flex items-center gap-2">
-                          {isConnected ? (
-                            <>
-                              <div className="px-3.5 py-1.5 rounded-lg bg-jade/15 border border-jade/30 text-jade text-xs font-bold flex items-center gap-1.5">
-                                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                <span>Authorized</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleOpenRealAuth(toolId)}
-                                className="px-3 py-1.5 rounded-lg bg-surface-2 border border-line text-xs font-semibold text-text hover:bg-surface hover:border-brass transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                title="Edit or update your real account credentials"
-                              >
-                                <KeyRound className="w-3.5 h-3.5 text-brass" />
-                                <span className="hidden sm:inline">Edit Real ID</span>
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={isConnecting}
-                              onClick={() => handleOpenRealAuth(toolId)}
-                              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-brass text-white font-bold text-xs shadow-sm hover:brightness-110 btn-tactile cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-                            >
-                              <KeyRound className="w-3.5 h-3.5" />
-                              <span>Sign In with {toolObj.name.split(" ")[0]}</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs sm:text-sm font-bold text-text block">One-Click Multi-Platform Handshake</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass/15 text-brass font-mono font-bold uppercase tracking-wider">Fast Track</span>
+                          </div>
+                          <span className="text-xs text-text-muted mt-0.5 block leading-relaxed">
+                            Fast-track batch authorization for all {selectedTools.length} selected enterprise connectors.
+                          </span>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                      <button
+                        type="button"
+                        disabled={isAuthorizingAll}
+                        onClick={handleConnectAllTools}
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-brass to-brass/90 text-white font-bold text-xs shadow-md hover:brightness-110 btn-tactile cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 shrink-0"
+                      >
+                        {isAuthorizingAll ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Connecting All Systems…</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            <span>Authorize All Connectors</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
 
-                <div className="pt-3 border-t border-line flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setStep(2.9)}
-                    className="px-4 py-2 text-xs font-semibold text-text-muted hover:text-text cursor-pointer"
-                  >
-                    Back to Tools
-                  </button>
-                  <div className="flex items-center gap-3">
+                  {/* Individual Tool Sign-In Cards */}
+                  <div className="space-y-3.5">
+                    {selectedTools.map(toolId => {
+                      const toolObj = TOOLS_OPTIONS.find(t => t.id === toolId);
+                      if (!toolObj) return null;
+                      const authState = toolAuthStates[toolId] || { status: "idle" };
+                      const isConnected = authState.status === "connected";
+                      const isConnecting = authState.status === "connecting";
+
+                      // Capabilities summary per tool
+                      const capabilitiesMap: Record<string, string> = {
+                        google: "Live Calendar Sync · Google Drive & Docs · Search Metrics",
+                        microsoft: "Enterprise SSO · Outlook Calendar · Teams Channel Webhooks",
+                        linkedin: "Follower Growth · B2B Lead Gen · Executive Posts · Campaign ROAS",
+                        meta: "Instagram Ads CAC/ROAS · Pixel Events · WhatsApp Business API",
+                        stripe: "Real-time ARR/MRR · Invoices & Inflow · Subscriptions · Churn Velocity",
+                        slack: "Bi-directional AI Assistant · Executive Channel Alerts · Solvency Warnings",
+                        zoho_books: "P&L Synchronization · Vendor Expenses · GST Reconciliation · Burn Rate",
+                        help_desk: "Escalated Ticket Volume · SLA Response Times · Customer CSAT & Churn",
+                      };
+
+                      return (
+                        <div
+                          key={toolId}
+                          className={`p-4 sm:p-5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                            isConnected
+                              ? "bg-emerald-500/5 border-emerald-500/30 shadow-xs"
+                              : "bg-surface-2/40 border-line hover:border-line-strong hover:bg-surface-2/60"
+                          }`}
+                        >
+                          <div className="flex items-start gap-4 min-w-0">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line shrink-0 shadow-2xs flex items-center justify-center">
+                              <ToolLogo toolId={toolId} size={32} />
+                            </div>
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-bold text-text">{toolObj.name}</span>
+                                {toolId === "google" && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 font-mono font-bold uppercase">
+                                    Live OAuth 2.0
+                                  </span>
+                                )}
+                                {isConnected ? (
+                                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-mono font-bold uppercase flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span>Live Stream Active</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-mono font-semibold uppercase">
+                                    Awaiting Handshake
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="text-xs text-text-muted leading-relaxed">
+                                {isConnected && authState.detail ? (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-medium font-mono text-[11px] block">
+                                    {authState.detail}
+                                  </span>
+                                ) : (
+                                  toolObj.description
+                                )}
+                              </p>
+
+                              {/* Telemetry Scope Pill */}
+                              <div className="text-[11px] text-text-muted/80 flex items-center gap-1.5 pt-0.5">
+                                <span className="w-1 h-1 rounded-full bg-text-muted/40" />
+                                <span>{capabilitiesMap[toolId] || "Continuous read-only executive ingestion"}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Branded CTA Button Actions */}
+                          <div className="shrink-0 flex items-center gap-2.5 sm:self-center">
+                            {isConnected ? (
+                              <>
+                                <div className="px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                  <span>Authorized</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenRealAuth(toolId)}
+                                  className="px-3.5 py-2 rounded-xl bg-surface border border-line text-xs font-semibold text-text hover:border-brass hover:bg-surface-2 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                  title="Edit credentials or verify scopes"
+                                >
+                                  <SlidersHorizontal className="w-3.5 h-3.5 text-brass" />
+                                  <span className="hidden sm:inline">Configure</span>
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                {toolId === "google" ? (
+                                  <button
+                                    type="button"
+                                    onClick={handleDirectGoogleOAuth}
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50 font-bold text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-2.5 cursor-pointer dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                                  >
+                                    <ToolLogo toolId="google" size={16} />
+                                    <span>Sign in with Google (Live)</span>
+                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
+                                  </button>
+                                ) : toolId === "microsoft" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRealAuth(toolId)}
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-zinc-900 text-white border border-zinc-700 hover:bg-zinc-800 font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer dark:bg-zinc-800 dark:border-zinc-600 dark:hover:bg-zinc-700"
+                                  >
+                                    <ToolLogo toolId="microsoft" size={16} />
+                                    <span>Sign in with Microsoft 365</span>
+                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
+                                  </button>
+                                ) : toolId === "linkedin" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRealAuth(toolId)}
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0A66C2] text-white hover:bg-[#004182] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                                  >
+                                    <ToolLogo toolId="linkedin" size={16} />
+                                    <span>Connect LinkedIn Page</span>
+                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
+                                  </button>
+                                ) : toolId === "meta" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRealAuth(toolId)}
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#0064E0] to-[#0081FB] text-white hover:brightness-110 font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                                  >
+                                    <ToolLogo toolId="meta" size={16} />
+                                    <span>Connect Meta Business</span>
+                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
+                                  </button>
+                                ) : toolId === "stripe" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRealAuth(toolId)}
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#635BFF] text-white hover:bg-[#5347EA] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                                  >
+                                    <ToolLogo toolId="stripe" size={16} />
+                                    <span>Connect Stripe Revenue</span>
+                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
+                                  </button>
+                                ) : toolId === "slack" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRealAuth(toolId)}
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#4A154B] text-white hover:bg-[#611f69] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                                  >
+                                    <ToolLogo toolId="slack" size={16} />
+                                    <span>Connect Slack Workspace</span>
+                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
+                                  </button>
+                                ) : toolId === "zoho_books" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRealAuth(toolId)}
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#D32F2F] text-white hover:bg-[#B71C1C] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                                  >
+                                    <ToolLogo toolId="zoho_books" size={16} />
+                                    <span>Connect Zoho Books</span>
+                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
+                                  </button>
+                                ) : toolId === "help_desk" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRealAuth(toolId)}
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#03363D] text-white hover:bg-[#064c56] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                                  >
+                                    <ToolLogo toolId="help_desk" size={16} />
+                                    <span>Connect Help Desk SLA</span>
+                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRealAuth(toolId)}
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-brass text-white font-bold text-xs shadow-sm hover:brightness-110 btn-tactile cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                                  >
+                                    <KeyRound className="w-3.5 h-3.5" />
+                                    <span>Sign In with {toolObj.name.split(" ")[0]}</span>
+                                    <ArrowRight className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Security & Telemetry Guarantee Footer */}
+                  <div className="p-3.5 rounded-xl bg-surface-2/40 border border-line flex flex-wrap items-center justify-between gap-3 text-[11px] text-text-muted">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                      <span className="font-semibold text-text">Enterprise Data Shield</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 text-[11px]">
+                      <span className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-500" /> 256-Bit TLS Handshake
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-500" /> Read-Only Telemetry Scopes
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-500" /> Zero Raw Passwords Stored
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-500" /> Revoke Anytime
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Navigation Actions */}
+                  <div className="pt-3 border-t border-line flex items-center justify-between">
                     <button
                       type="button"
-                      onClick={() => {
-                        setStep(3);
-                        if (selectedNeeds.length === 0) {
-                          const recs = currentNeedsOptions
-                            .filter(o => o.recommended)
-                            .map(o => o.id);
-                          setSelectedNeeds(recs);
-                        }
-                      }}
-                      className="text-xs text-text-muted hover:text-text cursor-pointer"
+                      onClick={() => setStep(2.9)}
+                      className="px-4 py-2 rounded-xl border border-line text-xs font-semibold text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer transition-colors"
                     >
-                      Skip for now
+                      Back to Tools Selection
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStep(3);
-                        if (selectedNeeds.length === 0) {
-                          const recs = currentNeedsOptions
-                            .filter(o => o.recommended)
-                            .map(o => o.id);
-                          setSelectedNeeds(recs);
-                        }
-                      }}
-                      className="px-5 py-2.5 rounded-xl bg-brass text-white font-bold text-xs shadow-md hover:brightness-110 btn-tactile inline-flex items-center gap-2 cursor-pointer"
-                    >
-                      <span>Continue to Priorities & Bottlenecks</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStep(3);
+                          if (selectedNeeds.length === 0) {
+                            const recs = currentNeedsOptions
+                              .filter(o => o.recommended)
+                              .map(o => o.id);
+                            setSelectedNeeds(recs);
+                          }
+                        }}
+                        className="text-xs text-text-muted hover:text-text cursor-pointer px-3 py-2 transition-colors"
+                      >
+                        Skip for now
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStep(3);
+                          if (selectedNeeds.length === 0) {
+                            const recs = currentNeedsOptions
+                              .filter(o => o.recommended)
+                              .map(o => o.id);
+                            setSelectedNeeds(recs);
+                          }
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-brass text-white font-bold text-xs shadow-md hover:brightness-110 btn-tactile inline-flex items-center gap-2 cursor-pointer"
+                      >
+                        <span>Continue to Priorities & Bottlenecks</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Step 3: What do you need right now? (Priorities & Bottlenecks) */}
             {step === 3 && (

@@ -60,7 +60,7 @@ export default function LoginPage() {
   const [errorInfo, setErrorInfo] = useState<AuthErrorInfo | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const activeRedirectUri = `https://${firebaseConfig.authDomain || "nuralix-24360.firebaseapp.com"}/__/auth/handler`;
+  const activeRedirectUri = `/api/integrations/google/callback`;
 
   // Check URL query for auth mode and email flag
   React.useEffect(() => {
@@ -338,75 +338,65 @@ export default function LoginPage() {
     if (isFirebaseConfigured) {
       try {
         if (provider === "google") {
-          let googleRes: any = null;
-          try {
-            googleRes = await signInWithGoogle();
-          } catch (gErr: any) {
-            setLoading(false);
-            const parsed = parseAuthError(gErr);
-            setErrorInfo(parsed);
-            return;
-          }
+          // Direct Google OAuth flow using real Google Client ID (never routes through nuralix-firebase)
+          const width = 540;
+          const height = 680;
+          const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+          const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
 
-          if (!googleRes) {
-            setLoading(false);
-            return;
-          }
+          const popup = window.open(
+            `/api/integrations/google/connect?returnTo=${encodeURIComponent("/login")}&source=auth`,
+            "BizzPalGoogleAuth",
+            `width=${width},height=${height},left=${left},top=${top},status=0,toolbar=0,menubar=0`
+          );
 
-          const authUser = googleRes.user;
-          const isGoogleNewUser = googleRes.isNewUser;
-          const userEmail = (authUser.email || "").trim().toLowerCase();
+          const handleGoogleMessage = async (event: MessageEvent) => {
+            if (event.data?.type === "BIZZPAL_GOOGLE_AUTH_SUCCESS") {
+              window.removeEventListener("message", handleGoogleMessage);
+              const data = event.data.data;
+              const userEmail = (data.email || "").trim().toLowerCase();
+              const userName = data.name || fullName || "Founder";
+              const uid = `usr_google_${Date.now()}`;
 
-          if (authMode === "register") {
-            if (!isGoogleNewUser) {
-              await logout();
-              if (userEmail) setEmail(userEmail);
-              setErrorInfo({
-                title: "Existing Account",
-                message: "This Google account is already registered. Please click 'Log In' to access your business.",
-                type: "credentials",
-              });
+              const userSession = {
+                id: uid,
+                email: userEmail,
+                name: userName,
+                role: "owner",
+                provider: "google.com",
+                picture: data.picture || null,
+                authenticatedAt: new Date().toISOString(),
+              };
+              localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
+
+              if (authMode === "register") {
+                localStorage.removeItem("bizzpal_business_profile");
+                localStorage.removeItem("bizzpal_onboarding_step");
+                router.push("/onboarding?mode=new_signup");
+              } else {
+                await restoreAndNavigateOldUser(userEmail, userName, uid);
+              }
+            } else if (event.data?.type === "BIZZPAL_GOOGLE_AUTH_ERROR") {
+              window.removeEventListener("message", handleGoogleMessage);
               setLoading(false);
-              return;
+              setErrorInfo({
+                title: "Google Sign-In Cancelled",
+                message: event.data.error || "Google authentication was cancelled.",
+                type: "general",
+              });
             }
+          };
 
-            localStorage.removeItem("bizzpal_business_profile");
-            localStorage.removeItem("bizzpal_onboarding_step");
+          window.addEventListener("message", handleGoogleMessage);
 
-            const userSession = {
-              id: authUser.uid,
-              email: userEmail || email,
-              name: authUser.displayName || fullName || "Founder",
-              role: "owner",
-              provider: "google.com",
-              authenticatedAt: new Date().toISOString(),
-            };
-            localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
+          const checkClosed = setInterval(() => {
+            if (!popup || popup.closed) {
+              clearInterval(checkClosed);
+              setLoading(false);
+            }
+          }, 1200);
 
-            router.push("/onboarding?mode=new_signup");
-
-            saveUserProfileToFirestore(authUser.uid, {
-              email: userEmail,
-              displayName: authUser.displayName || fullName || "Founder",
-              role: "owner",
-              createdAt: new Date().toISOString(),
-            }).catch(() => { });
-            return;
-          } else {
-            // Log In mode
-            const userSession = {
-              id: authUser.uid,
-              email: userEmail || email,
-              name: authUser.displayName || fullName || "Founder",
-              role: "owner",
-              provider: "google.com",
-              authenticatedAt: new Date().toISOString(),
-            };
-            localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
-
-            await restoreAndNavigateOldUser(userEmail, authUser.displayName || fullName || "Founder", authUser.uid);
-            return;
-          }
+          return;
         }
 
         // Email & Password flow
@@ -1097,99 +1087,6 @@ export default function LoginPage() {
                 className="px-4 py-2 rounded-xl bg-surface-2 hover:bg-line text-text font-bold text-xs transition-all"
               >
                 Done, Close Guide
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Firebase Setup Modal */}
-      {showFirebaseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
-          <div className="bg-surface border border-line rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-line">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-base">
-                  🔥
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-text">Firebase Cloud Integration</h3>
-                  <p className="text-[11px] text-text-muted">Connected Project & Status</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowFirebaseModal(false)}
-                className="p-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div
-              className={`p-3.5 rounded-2xl border ${isFirebaseConfigured ? "bg-emerald-500/10 border-emerald-500/30" : "bg-surface-2 border-line"
-                } space-y-1.5`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text flex items-center gap-1.5">
-                  <span
-                    className={`w-2 h-2 rounded-full ${isFirebaseConfigured ? "bg-emerald-400" : "bg-amber-400"}`}
-                  />
-                  {isFirebaseConfigured ? "Active Cloud Project Linked" : "Configuration Pending in .env.local"}
-                </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-surface border border-line text-text-muted">
-                  SDK Live
-                </span>
-              </div>
-              <p className="text-[11px] text-text-muted leading-relaxed">
-                Project ID: <code>{firebaseConfig.projectId || "nuralix-24360"}</code> • Auth Domain:{" "}
-                <code>{firebaseConfig.authDomain || "nuralix-24360.firebaseapp.com"}</code>
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-text uppercase tracking-wider text-[11px]">
-                Firebase Console Setup Steps:
-              </h4>
-
-              <div className="space-y-2 text-xs text-text-muted">
-                <div className="p-3 rounded-xl bg-surface-2 border border-line space-y-1">
-                  <div className="font-semibold text-text flex items-center justify-between">
-                    <span>1. Sign-in Methods</span>
-                    <a
-                      href="https://console.firebase.google.com"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[11px] text-amber-500 hover:underline flex items-center gap-1 font-semibold"
-                    >
-                      console.firebase.google.com <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                  <p className="text-[11px]">
-                    Go to <b>Authentication → Sign-in method</b> and verify <b>Email/Password</b> and <b>Google</b> are
-                    enabled.
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-surface-2 border border-line space-y-1">
-                  <div className="font-semibold text-text flex items-center justify-between">
-                    <span>2. Authorized Domains</span>
-                  </div>
-                  <p className="text-[11px]">
-                    In <b>Authentication → Settings → Authorized domains</b>, ensure <code>localhost</code> and your
-                    production domain are added.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-line flex items-center justify-end">
-              <button
-                type="button"
-                onClick={() => setShowFirebaseModal(false)}
-                className="px-4 py-2 rounded-xl bg-amber-500 text-black font-extrabold text-xs hover:brightness-110 transition-all"
-              >
-                Close Guide
               </button>
             </div>
           </div>

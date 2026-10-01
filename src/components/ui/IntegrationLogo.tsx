@@ -126,10 +126,13 @@ export function IntegrationLogo({ id, className = "w-7 h-7" }: { id: string; cla
       return (
         <svg className={className} viewBox="0 0 24 24" fill="none">
           <rect x="2" y="3" width="9" height="8" rx="1.5" fill="#E42528" />
+          <text x="6.5" y="9.5" textAnchor="middle" fill="#FFFFFF" fontSize="6" fontWeight="bold" fontFamily="sans-serif">Z</text>
           <rect x="13" y="3" width="9" height="8" rx="1.5" fill="#2BA342" />
+          <text x="17.5" y="9.5" textAnchor="middle" fill="#FFFFFF" fontSize="6" fontWeight="bold" fontFamily="sans-serif">O</text>
           <rect x="2" y="13" width="9" height="8" rx="1.5" fill="#0C77B9" />
+          <text x="6.5" y="19.5" textAnchor="middle" fill="#FFFFFF" fontSize="6" fontWeight="bold" fontFamily="sans-serif">H</text>
           <rect x="13" y="13" width="9" height="8" rx="1.5" fill="#F4901E" />
-          <path d="M6 7h2M6 17h2M17 7h2M17 17h2" stroke="#FFF" strokeWidth="1.2" strokeLinecap="round" />
+          <text x="17.5" y="19.5" textAnchor="middle" fill="#FFFFFF" fontSize="6" fontWeight="bold" fontFamily="sans-serif">O</text>
         </svg>
       );
 
