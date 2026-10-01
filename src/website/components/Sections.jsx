@@ -376,7 +376,7 @@ export const Vision = ({ data }) => {
         <div className="wrap" style={{ position: 'relative', height: '100%' }}>
           <p className="vision__label" id="vision-h">{label}</p>
           {words.map((w, i) => (
-            <div className={'vision__word' + (i === words.length - 1 ? ' is-final' : '')} key={w} data-word>{w}</div>
+            <div className={'vision__word' + (i === words.length - 1 ? ' is-final' : '')} key={`${w}-${i}`} data-word>{w}</div>
           ))}
         </div>
       </div>
