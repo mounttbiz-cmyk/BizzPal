@@ -864,13 +864,13 @@ export default function DataPalPage() {
               {/* Filter & Search Bar */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface border border-line rounded-xl p-2.5 shadow-theme">
                 <div className="flex-1 relative">
-                  <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     value={resultsSearchQuery}
                     onChange={e => setResultsSearchQuery(e.target.value)}
                     placeholder="Search by name, phone, email, locality..."
-                    className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
+                    className="w-full pl-10 pr-3 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
 
