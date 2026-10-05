@@ -57,31 +57,6 @@ const ROTATING_EXAMPLES = [
   "First-time tech founders",
 ];
 
-const EXAMPLE_GROUPS = {
-  businesses: [
-    "Pan shops",
-    "Dental clinics",
-    "Cafes & coffee shops",
-    "Hardware stores",
-    "Automobile garages",
-    "Cloud kitchens",
-  ],
-  professionals: [
-    "Lawyers & advocates",
-    "Chartered accountants",
-    "Physiotherapists",
-    "Interior designers",
-    "Architects",
-    "Financial advisors",
-  ],
-  audiences: [
-    "Gen Z fitness enthusiasts",
-    "College students",
-    "Working women aged 25 to 40",
-    "High-net-worth investors",
-    "First-time homebuyers",
-  ],
-};
 
 export function getCategoryIcon(id: string) {
   switch (id) {
@@ -242,49 +217,6 @@ export function SearchInputStep({
     setUserSelectedType(types[nextIdx]);
   };
 
-  const handleChipClick = (text: string) => {
-    onSearchQueryChange(text);
-
-    // Coordinate with Category and Sub-category
-    const lower = text.toLowerCase();
-    if (lower.includes("dent")) {
-      onSelectCategory?.("healthcare");
-      onSelectSubcategory?.("Dentists & Dental Clinics");
-    } else if (lower.includes("pan shop")) {
-      onSelectCategory?.("retail_ecommerce");
-      onSelectSubcategory?.("Retail Stores & Boutiques");
-    } else if (lower.includes("cafe") || lower.includes("coffee")) {
-      onSelectCategory?.("food_hospitality");
-      onSelectSubcategory?.("Cafes & Coffee Shops");
-    } else if (lower.includes("hardware")) {
-      onSelectCategory?.("retail_ecommerce");
-      onSelectSubcategory?.("Retail Stores & Boutiques");
-    } else if (lower.includes("garage") || lower.includes("auto")) {
-      onSelectCategory?.("logistics_automotive");
-      onSelectSubcategory?.("Auto Repair & Service Centers");
-    } else if (lower.includes("cloud kitchen")) {
-      onSelectCategory?.("food_hospitality");
-      onSelectSubcategory?.("Cloud Kitchens & Food Hubs");
-    } else if (lower.includes("lawyer") || lower.includes("advocate")) {
-      onSelectCategory?.("professional_services");
-      onSelectSubcategory?.("Law Firms & Advocates");
-    } else if (lower.includes("accountant") || lower.includes("ca")) {
-      onSelectCategory?.("professional_services");
-      onSelectSubcategory?.("Chartered Accountants (CA/CS)");
-    } else if (lower.includes("physio")) {
-      onSelectCategory?.("healthcare");
-      onSelectSubcategory?.("Physiotherapists & Rehab Clinics");
-    } else if (lower.includes("interior")) {
-      onSelectCategory?.("real_estate");
-      onSelectSubcategory?.("Interior Designers");
-    } else if (lower.includes("architect")) {
-      onSelectCategory?.("real_estate");
-      onSelectSubcategory?.("Architects");
-    } else if (lower.includes("financial")) {
-      onSelectCategory?.("professional_services");
-      onSelectSubcategory?.("Financial & Investment Advisors");
-    }
-  };
 
   const handleSelectCategory = (catId: string) => {
     onSelectCategory?.(catId);
@@ -374,15 +306,27 @@ export function SearchInputStep({
               <Layers className="w-3.5 h-3.5 text-brass" />
               <span>Category</span>
             </label>
-            {selectedCategory && (
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => handleSelectCategory("")}
-                className="text-[11px] text-text-muted hover:text-brass transition-colors cursor-pointer"
+                onClick={onOpenCategoryPicker}
+                className="text-[11px] font-medium text-brass hover:underline flex items-center gap-1 cursor-pointer"
               >
-                Clear
+                <span>Browse all ({selectedCategories.length > 0 ? `${selectedCategories.length} selected` : "80+"})</span>
               </button>
-            )}
+              {selectedCategory && (
+                <>
+                  <span className="text-text-muted/40">•</span>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectCategory("")}
+                    className="text-[11px] text-text-muted hover:text-brass transition-colors cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           <button
@@ -731,80 +675,7 @@ export function SearchInputStep({
         </div>
       )}
 
-      {/* Grouped Example Chips in 3 Labeled Rows */}
-      <div className="space-y-2 pt-1 text-xs select-none">
-        {/* Row 1: Businesses */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted shrink-0 w-24 flex items-center gap-1">
-            <Store className="w-3 h-3 text-brass" />
-            <span>Businesses</span>
-          </span>
-          <div className="flex items-center gap-1.5 flex-nowrap">
-            {EXAMPLE_GROUPS.businesses.map(example => (
-              <button
-                key={example}
-                type="button"
-                onClick={() => handleChipClick(example)}
-                className="shrink-0 px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass/50 text-[11px] font-medium text-text-muted hover:text-text hover:bg-surface-2 transition-all cursor-pointer shadow-2xs"
-              >
-                {example}
-              </button>
-            ))}
-          </div>
-        </div>
 
-        {/* Row 2: Professionals */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted shrink-0 w-24 flex items-center gap-1">
-            <Briefcase className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
-            <span>Pros</span>
-          </span>
-          <div className="flex items-center gap-1.5 flex-nowrap">
-            {EXAMPLE_GROUPS.professionals.map(example => (
-              <button
-                key={example}
-                type="button"
-                onClick={() => handleChipClick(example)}
-                className="shrink-0 px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass/50 text-[11px] font-medium text-text-muted hover:text-text hover:bg-surface-2 transition-all cursor-pointer shadow-2xs"
-              >
-                {example}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Row 3: Audiences + Browse All Link */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted shrink-0 w-24 flex items-center gap-1">
-              <Users className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-              <span>Audiences</span>
-            </span>
-            <div className="flex items-center gap-1.5 flex-nowrap">
-              {EXAMPLE_GROUPS.audiences.map(example => (
-                <button
-                  key={example}
-                  type="button"
-                  onClick={() => handleChipClick(example)}
-                  className="shrink-0 px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass/50 text-[11px] font-medium text-text-muted hover:text-text hover:bg-surface-2 transition-all cursor-pointer shadow-2xs"
-                >
-                  {example}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Browse all categories link at the end */}
-          <button
-            type="button"
-            onClick={onOpenCategoryPicker}
-            className="text-xs font-semibold text-brass hover:underline flex items-center gap-1.5 shrink-0 cursor-pointer py-1"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Browse all categories ({selectedCategories.length > 0 ? `${selectedCategories.length} selected` : "80+"})</span>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

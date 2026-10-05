@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, Users, History } from "lucide-react";
+import { Search, Database, History } from "lucide-react";
 
 export type DataPalTab = "search" | "leads" | "history";
 
@@ -29,8 +29,8 @@ export function SearchTabs({
     },
     {
       id: "leads" as const,
-      label: "Leads",
-      icon: Users,
+      label: "Data",
+      icon: Database,
       count: leadsCount,
     },
     {
