@@ -38,7 +38,7 @@ export function UsersManager({ users, onRefresh, notify }: UsersManagerProps) {
       }
       const data = await res.json();
       if (data.success) {
-        notify(`User account "${u.email}" removed.`);
+        notify(data.message || `User account "${u.email}" removed.`);
         await onRefresh();
       } else {
         notify(`Error: ${data.error}`);

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, setPlatformConfig } from "@/lib/db";
+import { deleteUserFromFirebase } from "@/lib/firebase/adminDelete";
 
 export const dynamic = "force-dynamic";
 
@@ -345,10 +346,28 @@ export async function DELETE(request: Request) {
     }
 
     if (userEmail) {
-      db.prepare("DELETE FROM registered_users WHERE LOWER(email) = ?").run(userEmail.toLowerCase());
+      const cleanEmail = userEmail.trim().toLowerCase();
+      const bizId = `biz_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}`;
+      const row = db.prepare("SELECT id FROM registered_users WHERE LOWER(email) = ?").get(cleanEmail) as any;
+
+      // Remove the Firebase side first so a failure there is reported, not hidden.
+      const firebase = await deleteUserFromFirebase(cleanEmail, row?.id);
+
+      db.prepare("DELETE FROM registered_users WHERE LOWER(email) = ?").run(cleanEmail);
+      // The user's enterprise and everything hanging off it
+      for (const table of ["integrations", "tasks", "daily_checkins"]) {
+        try { db.prepare(`DELETE FROM ${table} WHERE business_id = ?`).run(bizId); } catch {}
+      }
+      db.prepare("DELETE FROM businesses WHERE id = ?").run(bizId);
+
+      const notes: string[] = [];
+      if (!firebase.configured) notes.push("Firebase not cleaned: set FIREBASE_SERVICE_ACCOUNT on the server.");
+      else if (firebase.errors.length) notes.push(`Firebase issues: ${firebase.errors.join("; ")}`);
+
       return NextResponse.json({
         success: true,
-        message: `User ${userEmail} removed from registered users ledger.`,
+        firebase,
+        message: `User ${userEmail} removed.${notes.length ? " " + notes.join(" ") : " Also removed from Firebase."}`,
       });
     }
 
