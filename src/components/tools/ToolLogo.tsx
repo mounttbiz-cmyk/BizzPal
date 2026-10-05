@@ -4,9 +4,10 @@ interface ToolLogoProps {
   toolId: string;
   className?: string;
   size?: number;
+  glyphOnly?: boolean;
 }
 
-export function ToolLogo({ toolId, className = "", size = 24 }: ToolLogoProps) {
+export function ToolLogo({ toolId, className = "", size = 24, glyphOnly = false }: ToolLogoProps) {
   const pixelSize = `${size}px`;
 
   switch (toolId) {
@@ -70,12 +71,12 @@ export function ToolLogo({ toolId, className = "", size = 24 }: ToolLogoProps) {
           viewBox="0 0 40 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className={`shrink-0 rounded-lg shadow-xs ${className}`}
+          className={`shrink-0 ${glyphOnly ? "" : "rounded-lg shadow-xs"} ${className}`}
         >
-          <rect width="40" height="40" rx="8" fill="#0A66C2" />
+          {!glyphOnly && <rect width="40" height="40" rx="8" fill="#0A66C2" />}
           <path
             d="M14.6 13.8a2.3 2.3 0 1 1-4.6 0 2.3 2.3 0 0 1 4.6 0zM10.3 17.5h4v12.2h-4V17.5zm6.3 0h3.8v1.7h.1c.5-1 1.9-2.1 3.8-2.1 4.1 0 4.8 2.7 4.8 6.2v6.4h-4v-5.7c0-1.4 0-3.1-1.9-3.1-1.9 0-2.2 1.5-2.2 3v5.8h-4V17.5z"
-            fill="#FFFFFF"
+            fill={glyphOnly ? "#0A66C2" : "#FFFFFF"}
           />
         </svg>
       );
@@ -91,12 +92,12 @@ export function ToolLogo({ toolId, className = "", size = 24 }: ToolLogoProps) {
           viewBox="0 0 40 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className={`shrink-0 rounded-lg shadow-xs ${className}`}
+          className={`shrink-0 ${glyphOnly ? "" : "rounded-lg shadow-xs"} ${className}`}
         >
-          <rect width="40" height="40" rx="8" fill="#0064E0" />
+          {!glyphOnly && <rect width="40" height="40" rx="8" fill="#0064E0" />}
           <path
             d="M20 23.3c-2.3 3.3-4.5 5.2-7.1 5.2-4.2 0-7.4-3.5-7.4-8.5s3.2-8.5 7.4-8.5c2.6 0 4.8 1.9 7.1 5.2 2.3-3.3 4.5-5.2 7.1-5.2 4.2 0 7.4 3.5 7.4 8.5s-3.2 8.5-7.4 8.5c-2.6 0-4.8-1.9-7.1-5.2zm-7.1 2.3c2.4 0 4.3-2.1 5.7-4.8l-1.3-1.8c-1.2 2-2.7 3.5-4.4 3.5-2.2 0-4-2-4-5.4 0-3.4 1.8-5.4 4-5.4 1.7 0 3.2 1.5 4.4 3.5l1.3-1.8c-1.4-2.7-3.3-4.8-5.7-4.8-4.1 0-7 3.7-7 8.5s2.9 8.5 7 8.5zm14.2 0c4.1 0 7-3.7 7-8.5s-2.9-8.5-7-8.5c-2.4 0-4.3 2.1-5.7 4.8l1.3 1.8c1.2-2 2.7-3.5 4.4-3.5 2.2 0 4 2 4 5.4 0 3.4-1.8 5.4-4 5.4-1.7 0-3.2-1.5-4.4-3.5l-1.3 1.8c1.4 2.7 3.3 4.8 5.7 4.8z"
-            fill="#FFFFFF"
+            fill={glyphOnly ? "#0064E0" : "#FFFFFF"}
           />
         </svg>
       );
@@ -110,12 +111,12 @@ export function ToolLogo({ toolId, className = "", size = 24 }: ToolLogoProps) {
           viewBox="0 0 40 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className={`shrink-0 rounded-lg shadow-xs ${className}`}
+          className={`shrink-0 ${glyphOnly ? "" : "rounded-lg shadow-xs"} ${className}`}
         >
-          <rect width="40" height="40" rx="8" fill="#635BFF" />
+          {!glyphOnly && <rect width="40" height="40" rx="8" fill="#635BFF" />}
           <path
             d="M26.2 19.3c0-2.3-1.6-3.7-4.7-4.4l-1.8-.4c-1.3-.3-1.8-.7-1.8-1.3 0-.7.7-1.2 2-1.2 1.6 0 3.2.5 4.3 1.2l.9-3.2c-1.3-.7-3.1-1.1-5.1-1.1-4 0-6.7 2.1-6.7 5.5 0 2.2 1.5 3.5 4.6 4.3l1.8.4c1.4.4 2 .8 2 1.5 0 .8-.9 1.3-2.2 1.3-1.8 0-3.7-.7-5.1-1.6l-1 3.3c1.6 1 3.7 1.6 6 1.6 4.2 0 7.1-2 7.1-5.6z"
-            fill="#FFFFFF"
+            fill={glyphOnly ? "#635BFF" : "#FFFFFF"}
           />
         </svg>
       );
@@ -219,17 +220,17 @@ export function ToolLogo({ toolId, className = "", size = 24 }: ToolLogoProps) {
           viewBox="0 0 40 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className={`shrink-0 rounded-lg shadow-xs ${className}`}
+          className={`shrink-0 ${glyphOnly ? "" : "rounded-lg shadow-xs"} ${className}`}
         >
-          <rect width="40" height="40" rx="8" fill="#03363D" />
+          {!glyphOnly && <rect width="40" height="40" rx="8" fill="#03363D" />}
           {/* Top-left semi-circle */}
-          <path d="M11 20a9 9 0 0 1 9-9v9H11z" fill="#17494D" />
+          <path d="M11 20a9 9 0 0 1 9-9v9H11z" fill={glyphOnly ? "#03363D" : "#17494D"} />
           {/* Bottom-left triangle */}
-          <path d="M11 20h9v9L11 20z" fill="#E8F4E8" />
+          <path d="M11 20h9v9L11 20z" fill={glyphOnly ? "#03363D" : "#E8F4E8"} />
           {/* Top-right triangle */}
-          <path d="M20 11h9L20 20V11z" fill="#E8F4E8" />
+          <path d="M20 11h9L20 20V11z" fill={glyphOnly ? "#03363D" : "#E8F4E8"} />
           {/* Bottom-right semi-circle */}
-          <path d="M20 20h9a9 9 0 0 1-9 9V20z" fill="#17494D" />
+          <path d="M20 20h9a9 9 0 0 1-9 9V20z" fill={glyphOnly ? "#03363D" : "#17494D"} />
           <circle cx="24.5" cy="15.5" r="3.2" fill="#69C99E" />
           <circle cx="15.5" cy="24.5" r="3.2" fill="#69C99E" />
         </svg>
