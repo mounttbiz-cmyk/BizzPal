@@ -2218,6 +2218,18 @@ export default function OnboardingPage() {
             {step === 2.95 && (() => {
               const connectedCount = selectedTools.filter(t => toolAuthStates[t]?.status === "connected").length;
 
+              const getToolSignLabel = (id: string, name: string) => {
+                if (id === "google") return "Sign in with Google";
+                if (id === "microsoft") return "Sign in with Microsoft 365";
+                if (id === "linkedin") return "Sign in with LinkedIn";
+                if (id === "meta") return "Sign in with Meta";
+                if (id === "stripe") return "Sign in with Stripe";
+                if (id === "slack") return "Sign in with Slack";
+                if (id === "zoho_books") return "Sign in with Zoho Books";
+                if (id === "help_desk") return "Sign in with Help Desk";
+                return `Sign in with ${name.split(" ")[0]}`;
+              };
+
               return (
                 <div className="space-y-6">
                   {/* Executive Header with Telemetry Progress */}
@@ -2333,99 +2345,15 @@ export default function OnboardingPage() {
                                 </button>
                               </>
                             ) : (
-                              <>
-                                {toolId === "google" ? (
-                                  <button
-                                    type="button"
-                                    onClick={handleDirectGoogleOAuth}
-                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50 font-bold text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-2.5 cursor-pointer dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                                  >
-                                    <ToolLogo toolId="google" size={16} />
-                                    <span>Sign in with Google (Live)</span>
-                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
-                                  </button>
-                                ) : toolId === "microsoft" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenRealAuth(toolId)}
-                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-zinc-900 text-white border border-zinc-700 hover:bg-zinc-800 font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer dark:bg-zinc-800 dark:border-zinc-600 dark:hover:bg-zinc-700"
-                                  >
-                                    <ToolLogo toolId="microsoft" size={16} />
-                                    <span>Sign in with Microsoft 365</span>
-                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
-                                  </button>
-                                ) : toolId === "linkedin" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenRealAuth(toolId)}
-                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0A66C2] text-white hover:bg-[#004182] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
-                                  >
-                                    <ToolLogo toolId="linkedin" size={16} />
-                                    <span>Connect LinkedIn Page</span>
-                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
-                                  </button>
-                                ) : toolId === "meta" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenRealAuth(toolId)}
-                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0064E0] text-white hover:bg-[#0052b8] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
-                                  >
-                                    <ToolLogo toolId="meta" size={16} />
-                                    <span>Connect Meta Business</span>
-                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
-                                  </button>
-                                ) : toolId === "stripe" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenRealAuth(toolId)}
-                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#635BFF] text-white hover:bg-[#5347EA] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
-                                  >
-                                    <ToolLogo toolId="stripe" size={16} />
-                                    <span>Connect Stripe Revenue</span>
-                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
-                                  </button>
-                                ) : toolId === "slack" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenRealAuth(toolId)}
-                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#4A154B] text-white hover:bg-[#611f69] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
-                                  >
-                                    <ToolLogo toolId="slack" size={16} />
-                                    <span>Connect Slack Workspace</span>
-                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
-                                  </button>
-                                ) : toolId === "zoho_books" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenRealAuth(toolId)}
-                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#D32F2F] text-white hover:bg-[#B71C1C] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
-                                  >
-                                    <ToolLogo toolId="zoho_books" size={16} />
-                                    <span>Connect Zoho Books</span>
-                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
-                                  </button>
-                                ) : toolId === "help_desk" ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenRealAuth(toolId)}
-                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#03363D] text-white hover:bg-[#064c56] font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2.5 cursor-pointer"
-                                  >
-                                    <ToolLogo toolId="help_desk" size={16} />
-                                    <span>Connect Help Desk SLA</span>
-                                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenRealAuth(toolId)}
-                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-brass text-white font-bold text-xs shadow-sm hover:brightness-110 btn-tactile cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-                                  >
-                                    <KeyRound className="w-3.5 h-3.5" />
-                                    <span>Sign In with {toolObj.name.split(" ")[0]}</span>
-                                    <ArrowRight className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </>
+                              <button
+                                type="button"
+                                onClick={toolId === "google" ? handleDirectGoogleOAuth : () => handleOpenRealAuth(toolId)}
+                                className="w-full sm:w-[230px] h-10 px-4 rounded-xl bg-[#0A66C2] text-white hover:bg-[#004182] font-bold text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-2.5 cursor-pointer shrink-0 whitespace-nowrap active:scale-[0.98]"
+                              >
+                                <ToolLogo toolId={toolId} size={16} />
+                                <span>{getToolSignLabel(toolId, toolObj.name)}</span>
+                                <ArrowRight className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                              </button>
                             )}
                           </div>
                         </div>
