@@ -2348,9 +2348,11 @@ export default function OnboardingPage() {
                               <button
                                 type="button"
                                 onClick={toolId === "google" ? handleDirectGoogleOAuth : () => handleOpenRealAuth(toolId)}
-                                className="w-full sm:w-[230px] h-10 px-4 rounded-xl bg-[#0A66C2] text-white hover:bg-[#004182] font-bold text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-2.5 cursor-pointer shrink-0 whitespace-nowrap active:scale-[0.98]"
+                                className="w-full sm:w-[245px] h-11 px-3 rounded-xl bg-[#0A66C2] text-white hover:bg-[#004182] font-bold text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-2.5 cursor-pointer shrink-0 whitespace-nowrap active:scale-[0.98]"
                               >
-                                <ToolLogo toolId={toolId} size={16} />
+                                <span className="w-7 h-7 rounded-lg bg-white flex items-center justify-center shrink-0 shadow-2xs">
+                                  <ToolLogo toolId={toolId} size={22} />
+                                </span>
                                 <span>{getToolSignLabel(toolId, toolObj.name)}</span>
                                 <ArrowRight className="w-3.5 h-3.5 opacity-70 shrink-0" />
                               </button>

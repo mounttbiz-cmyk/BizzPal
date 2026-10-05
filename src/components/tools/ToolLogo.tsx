@@ -20,7 +20,7 @@ export function ToolLogo({ toolId, className = "", size = 24 }: ToolLogoProps) {
           viewBox="0 0 40 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className={`shrink-0 rounded-lg bg-white shadow-xs p-1 ${className}`}
+          className={`shrink-0 ${className}`}
         >
           <path
             d="M31.64 20.2c0-.7-.06-1.37-.17-2.02H20v3.82h6.53c-.28 1.48-1.12 2.73-2.38 3.58v2.98h3.85c2.25-2.07 3.64-5.12 3.64-8.36z"
@@ -51,7 +51,7 @@ export function ToolLogo({ toolId, className = "", size = 24 }: ToolLogoProps) {
           viewBox="0 0 40 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className={`shrink-0 rounded-lg bg-white shadow-xs p-1.5 ${className}`}
+          className={`shrink-0 ${className}`}
         >
           <rect x="7" y="7" width="12" height="12" rx="1" fill="#F25022" />
           <rect x="21" y="7" width="12" height="12" rx="1" fill="#7FBA00" />
@@ -129,7 +129,7 @@ export function ToolLogo({ toolId, className = "", size = 24 }: ToolLogoProps) {
           viewBox="0 0 40 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className={`shrink-0 rounded-lg bg-white shadow-xs p-1.5 ${className}`}
+          className={`shrink-0 ${className}`}
         >
           <path
             d="M14.5 21a2.5 2.5 0 1 1-2.5-2.5h2.5V21zm1.2 0a2.5 2.5 0 0 1 5 0v6.2a2.5 2.5 0 0 1-5 0V21z"
@@ -161,7 +161,7 @@ export function ToolLogo({ toolId, className = "", size = 24 }: ToolLogoProps) {
           viewBox="0 0 40 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className={`shrink-0 rounded-lg bg-white shadow-xs p-1 ${className}`}
+          className={`shrink-0 ${className}`}
         >
           {/* Red Z block */}
           <rect x="6" y="8" width="12" height="11" rx="2" fill="#E42528" />
@@ -187,7 +187,7 @@ export function ToolLogo({ toolId, className = "", size = 24 }: ToolLogoProps) {
           viewBox="0 0 40 40"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className={`shrink-0 rounded-lg bg-white shadow-xs p-1 ${className}`}
+          className={`shrink-0 ${className}`}
         >
           <rect x="6" y="6" width="28" height="28" rx="6" fill="#FFFFFF" />
           <path d="M6 12h28V8a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v4z" fill="#4285F4" />
