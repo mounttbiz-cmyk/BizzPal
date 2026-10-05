@@ -63,6 +63,8 @@ export default function DataPalPage() {
 
   // Step 1: What data do you need?
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
   const [audienceRefine, setAudienceRefine] = useState<{
@@ -162,10 +164,66 @@ export default function DataPalPage() {
     setPostalCode("");
   };
 
+  const handleCategoryChange = (catId: string) => {
+    setSelectedCategory(catId);
+    if (!catId) {
+      setSelectedSubcategory("");
+      setSelectedCategories([]);
+      return;
+    }
+    const found = BUSINESS_CATEGORIES.find(c => c.id === catId);
+    if (found) {
+      if (selectedSubcategory && !found.subcategories.includes(selectedSubcategory)) {
+        setSelectedSubcategory("");
+        setSelectedCategories([found.name]);
+      } else if (selectedSubcategory) {
+        setSelectedCategories([selectedSubcategory]);
+      } else {
+        setSelectedCategories([found.name]);
+      }
+    }
+    if (step1Error) setStep1Error(null);
+  };
+
+  const handleSubcategoryChange = (sub: string) => {
+    setSelectedSubcategory(sub);
+    if (sub) {
+      setSelectedCategories([sub]);
+    } else if (selectedCategory) {
+      const found = BUSINESS_CATEGORIES.find(c => c.id === selectedCategory);
+      setSelectedCategories(found ? [found.name] : []);
+    } else {
+      setSelectedCategories([]);
+    }
+    if (step1Error) setStep1Error(null);
+  };
+
+  const handleSheetCategoriesChange = (cats: string[]) => {
+    setSelectedCategories(cats);
+    if (cats.length === 1) {
+      const singleCat = cats[0];
+      const parentCategory = BUSINESS_CATEGORIES.find(
+        c => c.name === singleCat || c.subcategories.includes(singleCat)
+      );
+      if (parentCategory) {
+        setSelectedCategory(parentCategory.id);
+        if (parentCategory.subcategories.includes(singleCat)) {
+          setSelectedSubcategory(singleCat);
+        } else {
+          setSelectedSubcategory("");
+        }
+      }
+    } else if (cats.length === 0) {
+      setSelectedCategory("");
+      setSelectedSubcategory("");
+    }
+    if (step1Error) setStep1Error(null);
+  };
+
   // Main Extraction Trigger (lives ONLY in Step 3)
   const handleStartExtraction = async () => {
     const trimmedQuery = searchQuery.trim();
-    const hasCategorySelected = selectedCategories.length > 0;
+    const hasCategorySelected = selectedCategories.length > 0 || Boolean(selectedCategory) || Boolean(selectedSubcategory);
 
     // Validate Step 1 requirement
     if (!trimmedQuery && !hasCategorySelected) {
@@ -184,13 +242,23 @@ export default function DataPalPage() {
     const primaryState = stateCodes[0] || "All States";
     const primaryCity = cityNames[0] || "All Cities";
 
-    const effectiveCategories = hasCategorySelected
+    const chosenCategoryName = selectedCategory
+      ? (BUSINESS_CATEGORIES.find(c => c.id === selectedCategory)?.name || selectedCategory)
+      : "";
+
+    const effectiveCategories = selectedSubcategory
+      ? [selectedSubcategory]
+      : chosenCategoryName
+      ? [chosenCategoryName]
+      : selectedCategories.length > 0
       ? selectedCategories
       : [trimmedQuery || "General Businesses"];
 
+    const queryTerm = trimmedQuery || selectedSubcategory || chosenCategoryName || effectiveCategories[0];
+
     // Build configuration
     const config: DataPalSearchConfig = {
-      searchQuery: trimmedQuery,
+      searchQuery: queryTerm,
       requirement: pitchAngleEnabled ? targetRequirement : "Normal Extract (All Business Details)",
       countryCode: primaryCountry,
       state: isAllStates ? "ALL" : primaryState,
@@ -229,10 +297,12 @@ export default function DataPalPage() {
     setExtractProgress(15);
     setExtractStatusText(`Connecting to DataPal Directory Engine for ${primaryCity}...`);
 
+    const displayTarget = trimmedQuery || selectedSubcategory || chosenCategoryName || (selectedCategories.length > 0 ? selectedCategories[0] : "businesses");
+
     const interval = setInterval(() => {
       setExtractProgress(prev => {
         if (prev < 40) {
-          setExtractStatusText(`Scanning global directories for ${trimmedQuery || selectedCategories[0]}...`);
+          setExtractStatusText(`Scanning global directories for ${displayTarget}...`);
           return prev + 14;
         } else if (prev < 70) {
           setExtractStatusText(`Verifying contact phone numbers & resolving domains...`);
@@ -447,12 +517,16 @@ export default function DataPalPage() {
   };
 
   // Helpers for step status
-  const isStep1Complete = Boolean(searchQuery.trim() || selectedCategories.length > 0);
+  const isStep1Complete = Boolean(searchQuery.trim() || selectedCategories.length > 0 || selectedCategory || selectedSubcategory);
   const isStep2Complete = Boolean(countryCodes.length > 0 || isAllCountries);
 
   // Step 1 summary text
   const step1Summary = searchQuery.trim()
     ? searchQuery.trim()
+    : selectedSubcategory
+    ? `${BUSINESS_CATEGORIES.find(c => c.id === selectedCategory)?.name || "Category"} → ${selectedSubcategory}`
+    : selectedCategory
+    ? BUSINESS_CATEGORIES.find(c => c.id === selectedCategory)?.name || selectedCategory
     : selectedCategories.length === 1
     ? selectedCategories[0]
     : selectedCategories.length > 1
@@ -578,6 +652,10 @@ export default function DataPalPage() {
                     setSearchQuery(q);
                     if (step1Error) setStep1Error(null);
                   }}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={handleCategoryChange}
+                  selectedSubcategory={selectedSubcategory}
+                  onSelectSubcategory={handleSubcategoryChange}
                   selectedCategories={selectedCategories}
                   onOpenCategoryPicker={() => setIsCategorySheetOpen(true)}
                   audienceRefine={audienceRefine}
@@ -1253,7 +1331,7 @@ export default function DataPalPage() {
         isOpen={isCategorySheetOpen}
         onClose={() => setIsCategorySheetOpen(false)}
         selectedCategories={selectedCategories}
-        onSelectCategories={setSelectedCategories}
+        onSelectCategories={handleSheetCategoriesChange}
       />
 
       {/* AI Smart Matcher Drawer (Feature Flag component) */}
