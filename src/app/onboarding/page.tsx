@@ -1114,17 +1114,28 @@ export default function OnboardingPage() {
 
     setNoIntegrations(false);
     setSelectedTools(prev => {
+      let updated: string[];
       if (prev.includes(toolId)) {
-        return prev.filter(t => t !== toolId);
+        updated = prev.filter(t => t !== toolId);
       } else {
-        return [...prev, toolId];
+        updated = [...prev, toolId];
       }
+      const priorityOrder = ["google", "microsoft", "linkedin", "meta"];
+      return updated.sort((a, b) => {
+        const pA = priorityOrder.indexOf(a);
+        const pB = priorityOrder.indexOf(b);
+        if (pA !== -1 && pB !== -1) return pA - pB;
+        if (pA !== -1) return -1;
+        if (pB !== -1) return 1;
+        const idxA = TOOLS_OPTIONS.findIndex(t => t.id === a);
+        const idxB = TOOLS_OPTIONS.findIndex(t => t.id === b);
+        return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+      });
     });
   };
 
   // Step 2.95 Tool Authorization State & Handlers
   const [toolAuthStates, setToolAuthStates] = useState<Record<string, { status: "connected" | "connecting" | "idle"; detail?: string; config?: any }>>({});
-  const [isAuthorizingAll, setIsAuthorizingAll] = useState(false);
 
   // Load existing saved integrations from SQLite on mount
   React.useEffect(() => {
@@ -1223,83 +1234,6 @@ export default function OnboardingPage() {
       delete next[toolId];
       return next;
     });
-  };
-
-  const handleConnectAllTools = async () => {
-    setIsAuthorizingAll(true);
-    const safeDomain = companyName ? companyName.toLowerCase().replace(/[^a-z0-9]/g, "") : "enterprise";
-    const userEm = currentUserEmail || (founderName ? `${founderName.toLowerCase().replace(/\s+/g, "")}@gmail.com` : "founder@company.com");
-
-    for (const toolId of selectedTools) {
-      if (toolAuthStates[toolId]?.status !== "connected") {
-        let detail = "Live Telemetry Connected";
-        let configPayload: any = {
-          connectedAt: new Date().toISOString(),
-          liveSync: true,
-        };
-
-        if (toolId === "google") {
-          detail = `Connected · Real Account: ${userEm} (Live Calendar & Docs)`;
-          configPayload.accountEmail = userEm;
-          configPayload.connectedEmail = userEm;
-          configPayload.calendarScope = "primary";
-          configPayload.provider = "Google Workspace";
-        } else if (toolId === "microsoft") {
-          detail = `Connected · Microsoft 365: ${userEm} (SSO & Teams Synced)`;
-          configPayload.accountEmail = userEm;
-          configPayload.provider = "Microsoft 365 / Entra ID";
-        } else if (toolId === "linkedin") {
-          detail = `Connected · LinkedIn: linkedin.com/company/${safeDomain}`;
-          configPayload.pageUrl = `https://linkedin.com/company/${safeDomain}`;
-          configPayload.accountEmail = userEm;
-        } else if (toolId === "meta") {
-          detail = `Connected · Meta Business Manager: ${safeDomain} (Ads Synced)`;
-          configPayload.businessManagerId = `biz_${safeDomain.slice(0, 10)}`;
-          configPayload.instagramHandle = `@${safeDomain}`;
-        } else if (toolId === "google_calendar") {
-          detail = `Connected · Real Account: ${userEm} (Live Calendar Synced)`;
-          configPayload.accountEmail = userEm;
-          configPayload.calendarScope = "primary";
-        } else if (toolId === "stripe") {
-          const defaultAccId = `acct_live_${safeDomain.slice(0, 8)}`;
-          detail = `Connected · Real Stripe ID: ${defaultAccId} (Live Production)`;
-          configPayload.accountId = defaultAccId;
-          configPayload.mode = "live";
-        } else if (toolId === "slack") {
-          detail = `Connected · Workspace: ${safeDomain}.slack.com · #executive-briefings`;
-          configPayload.workspace = `${safeDomain}.slack.com`;
-          configPayload.channel = "#executive-briefings";
-        } else if (toolId === "zoho_books") {
-          detail = `Connected · Org: ${companyName || "Enterprise"} Pvt Ltd (P&L Live)`;
-          configPayload.platform = "zoho";
-          configPayload.accountEmail = userEm;
-          configPayload.region = "zoho.in";
-        } else if (toolId === "help_desk") {
-          detail = `Connected · Help Desk: ${safeDomain}.zendesk.com (Live Tickets)`;
-          configPayload.platform = "zendesk";
-          configPayload.domain = `${safeDomain}.zendesk.com`;
-          configPayload.accountEmail = userEm;
-        }
-
-        setToolAuthStates(prev => ({
-          ...prev,
-          [toolId]: { status: "connected", detail, config: configPayload },
-        }));
-
-        try {
-          await fetch("/api/integrations", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              toolKey: toolId,
-              status: "connected",
-              config: { ...configPayload, accountDetail: detail },
-            }),
-          });
-        } catch (e) {}
-      }
-    }
-    setIsAuthorizingAll(false);
   };
 
   const validateStep1 = () => {
@@ -2283,7 +2217,6 @@ export default function OnboardingPage() {
             {/* Step 2.95: Sign In & Authorize Connected Tools */}
             {step === 2.95 && (() => {
               const connectedCount = selectedTools.filter(t => toolAuthStates[t]?.status === "connected").length;
-              const allConnected = selectedTools.length > 0 && connectedCount === selectedTools.length;
 
               return (
                 <div className="space-y-6">
@@ -2324,47 +2257,21 @@ export default function OnboardingPage() {
                     </div>
                   </div>
 
-                  {/* Quick Connect All Handshake Banner */}
-                  {!allConnected && (
-                    <div className="p-4 sm:p-5 rounded-2xl bg-surface-2 border border-line shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3.5">
-                        <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center shrink-0 shadow-2xs">
-                          <Zap className="w-5 h-5 text-brass" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs sm:text-sm font-bold text-text block">One-Click Multi-Platform Handshake</span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface border border-line text-text-muted font-mono font-bold uppercase tracking-wider">Fast Track</span>
-                          </div>
-                          <span className="text-xs text-text-muted mt-0.5 block leading-relaxed">
-                            Fast-track batch authorization for all {selectedTools.length} selected enterprise connectors.
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        disabled={isAuthorizingAll}
-                        onClick={handleConnectAllTools}
-                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-brass text-white font-bold text-xs shadow-xs hover:opacity-90 active:scale-95 cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 shrink-0 transition-all"
-                      >
-                        {isAuthorizingAll ? (
-                          <>
-                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Connecting All Systems…</span>
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="w-4 h-4 fill-current" />
-                            <span>Authorize All Connectors</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-
                   {/* Individual Tool Sign-In Cards */}
                   <div className="space-y-3.5">
-                    {selectedTools.map(toolId => {
+                    {[...selectedTools]
+                      .sort((a, b) => {
+                        const priority = ["google", "microsoft", "linkedin", "meta"];
+                        const pA = priority.indexOf(a);
+                        const pB = priority.indexOf(b);
+                        if (pA !== -1 && pB !== -1) return pA - pB;
+                        if (pA !== -1) return -1;
+                        if (pB !== -1) return 1;
+                        const idxA = TOOLS_OPTIONS.findIndex(t => t.id === a);
+                        const idxB = TOOLS_OPTIONS.findIndex(t => t.id === b);
+                        return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+                      })
+                      .map(toolId => {
                       const toolObj = TOOLS_OPTIONS.find(t => t.id === toolId);
                       if (!toolObj) return null;
                       const authState = toolAuthStates[toolId] || { status: "idle" };
