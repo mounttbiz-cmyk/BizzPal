@@ -21,6 +21,7 @@ import {
   Truck,
   Check,
   Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { BUSINESS_CATEGORIES } from "@/lib/datapal/constants";
 
@@ -561,35 +562,23 @@ export function SearchInputStep({
       </div>
 
       {/* 2. Category & Sub-category Drilldown Controls */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5 items-start">
         {/* Category Combobox */}
         <div className="relative flex flex-col gap-1.5" ref={categoryContainerRef}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between h-6">
             <label className="text-xs font-semibold text-text flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-brass" />
+              <Layers className="w-3.5 h-3.5 text-brass shrink-0" />
               <span>Category</span>
             </label>
-            <div className="flex items-center gap-2">
+            {selectedCategory && (
               <button
                 type="button"
-                onClick={onOpenCategoryPicker}
-                className="text-[11px] font-medium text-brass hover:underline flex items-center gap-1 cursor-pointer"
+                onClick={() => handleSelectCategory("")}
+                className="text-[11px] text-text-muted hover:text-brass transition-colors cursor-pointer"
               >
-                <span>Browse all ({selectedCategories.length > 0 ? `${selectedCategories.length} selected` : "80+"})</span>
+                Clear
               </button>
-              {selectedCategory && (
-                <>
-                  <span className="text-text-muted/40">•</span>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectCategory("")}
-                    className="text-[11px] text-text-muted hover:text-brass transition-colors cursor-pointer"
-                  >
-                    Clear
-                  </button>
-                </>
-              )}
-            </div>
+            )}
           </div>
 
           <button
@@ -599,7 +588,7 @@ export function SearchInputStep({
               setIsSubcategoryOpen(false);
             }}
             aria-expanded={isCategoryOpen}
-            className={`min-h-[44px] w-full px-3 py-2 rounded-xl border flex items-center justify-between gap-2 transition-all cursor-pointer select-none bg-surface text-left ${
+            className={`h-11 min-h-[44px] w-full px-3 py-2 rounded-xl border flex items-center justify-between gap-2 transition-all cursor-pointer select-none bg-surface text-left ${
               isCategoryOpen
                 ? "border-brass ring-1 ring-brass"
                 : selectedCategory
@@ -610,13 +599,13 @@ export function SearchInputStep({
             <div className="flex items-center gap-2 min-w-0 flex-1">
               {selectedCategoryData ? (
                 <>
-                  {getCategoryIcon(selectedCategoryData.id)}
+                  <span className="shrink-0">{getCategoryIcon(selectedCategoryData.id)}</span>
                   <span className="text-xs sm:text-sm font-semibold text-text truncate">
                     {selectedCategoryData.name}
                   </span>
                 </>
               ) : (
-                <span className="text-xs sm:text-sm text-text-muted">
+                <span className="text-xs sm:text-sm text-text-muted truncate">
                   All Categories (General / Free-text)
                 </span>
               )}
@@ -657,6 +646,24 @@ export function SearchInputStep({
               </div>
 
               <div className="max-h-64 overflow-y-auto p-1.5 space-y-0.5">
+                {/* Drawer View Option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCategoryOpen(false);
+                    onOpenCategoryPicker();
+                  }}
+                  className="w-full px-2.5 py-2 rounded-lg text-left text-xs flex items-center justify-between transition-colors cursor-pointer hover:bg-surface-2 text-brass font-medium"
+                >
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-brass shrink-0" />
+                    <span>Browse all categories ({selectedCategories.length > 0 ? `${selectedCategories.length} selected` : "80+"})</span>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-brass shrink-0" />
+                </button>
+
+                <div className="h-px bg-line my-1" />
+
                 {/* General Option */}
                 <button
                   type="button"
@@ -707,14 +714,14 @@ export function SearchInputStep({
 
         {/* Sub-category Combobox (Explicitly Optional) */}
         <div className="relative flex flex-col gap-1.5" ref={subcategoryContainerRef}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between h-6">
             <label className="text-xs font-semibold text-text flex items-center gap-1.5">
               <span>Sub-category</span>
-              <span className="text-[10px] font-sans font-medium px-1.5 py-0.2 rounded bg-surface-2 text-text-muted border border-line">
+              <span className="text-[10px] font-sans font-medium px-1.5 py-0.5 rounded bg-surface-2 text-text-muted border border-line">
                 Optional
               </span>
               {selectedSubcategory && (
-                <span className="text-[10px] font-sans font-bold px-1.5 py-0.2 rounded bg-brass/15 text-brass">
+                <span className="text-[10px] font-sans font-bold px-1.5 py-0.5 rounded bg-brass/15 text-brass">
                   Filtered
                 </span>
               )}
@@ -740,7 +747,7 @@ export function SearchInputStep({
               }
             }}
             aria-expanded={isSubcategoryOpen}
-            className={`min-h-[44px] w-full px-3 py-2 rounded-xl border flex items-center justify-between gap-2 transition-all select-none text-left ${
+            className={`h-11 min-h-[44px] w-full px-3 py-2 rounded-xl border flex items-center justify-between gap-2 transition-all select-none text-left ${
               !selectedCategory
                 ? "bg-surface/50 border-line/60 text-text-muted opacity-60 cursor-not-allowed"
                 : isSubcategoryOpen
