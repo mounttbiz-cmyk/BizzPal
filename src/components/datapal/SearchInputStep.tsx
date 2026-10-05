@@ -57,6 +57,245 @@ const ROTATING_EXAMPLES = [
   "First-time tech founders",
 ];
 
+export function detectCategoryFromQuery(query: string): {
+  categoryId: string;
+  matchedSubcategory?: string;
+} | null {
+  const q = query.toLowerCase().trim();
+  if (!q || q.length < 2) return null;
+
+  // 1. Doctors & Healthcare (including typo 'dooctor', 'doct', 'doc', 'dr', 'physician', etc.)
+  if (
+    q.includes("doct") ||
+    q.includes("dooc") ||
+    q.includes("doc") ||
+    q.includes("dr.") ||
+    q.includes("physician") ||
+    q.includes("medical") ||
+    q.includes("health") ||
+    q.includes("clinic") ||
+    q.includes("hospital") ||
+    q.includes("dent") ||
+    q.includes("derm") ||
+    q.includes("pediat") ||
+    q.includes("ortho") ||
+    q.includes("cardio") ||
+    q.includes("eye") ||
+    q.includes("ent ") ||
+    q.includes("throat") ||
+    q.includes("gynec") ||
+    q.includes("psych") ||
+    q.includes("physio") ||
+    q.includes("ayurv") ||
+    q.includes("homeo") ||
+    q.includes("pharm") ||
+    q.includes("patho")
+  ) {
+    if (q.includes("dent")) return { categoryId: "healthcare", matchedSubcategory: "Dentists & Dental Clinics" };
+    if (q.includes("derm")) return { categoryId: "healthcare", matchedSubcategory: "Dermatologists & Skin Clinics" };
+    if (q.includes("pediat") || q.includes("child")) return { categoryId: "healthcare", matchedSubcategory: "Pediatricians & Child Care" };
+    if (q.includes("ortho") || q.includes("bone")) return { categoryId: "healthcare", matchedSubcategory: "Orthopedic & Bone Specialists" };
+    if (q.includes("cardio") || q.includes("heart")) return { categoryId: "healthcare", matchedSubcategory: "Cardiologists & Heart Specialists" };
+    if (q.includes("eye") || q.includes("ophthalm") || q.includes("optic")) return { categoryId: "healthcare", matchedSubcategory: "Eye Specialists & Ophthalmologists" };
+    if (q.includes("ent") || q.includes("throat") || q.includes("ear") || q.includes("nose")) return { categoryId: "healthcare", matchedSubcategory: "ENT Specialists (Ear, Nose, Throat)" };
+    if (q.includes("gynec") || q.includes("obgyn") || q.includes("obstet")) return { categoryId: "healthcare", matchedSubcategory: "Gynecologists & Obstetricians" };
+    if (q.includes("psych") || q.includes("mental") || q.includes("therapy")) return { categoryId: "healthcare", matchedSubcategory: "Psychiatrists & Mental Health" };
+    if (q.includes("physio") || q.includes("rehab")) return { categoryId: "healthcare", matchedSubcategory: "Physiotherapists & Rehab Clinics" };
+    if (q.includes("ayurv") || q.includes("homeo")) return { categoryId: "healthcare", matchedSubcategory: "Ayurvedic & Homeopathy Centers" };
+    if (q.includes("pharm") || q.includes("chemist") || q.includes("medicine")) return { categoryId: "healthcare", matchedSubcategory: "Pharmacies & Medical Stores" };
+    if (q.includes("patho") || q.includes("diagnost") || q.includes("lab")) return { categoryId: "healthcare", matchedSubcategory: "Diagnostic Centers & Pathology" };
+    if (q.includes("hospital")) return { categoryId: "healthcare", matchedSubcategory: "Hospitals & Multi-Specialty" };
+    if (q.includes("general") || q.includes("family")) return { categoryId: "healthcare", matchedSubcategory: "General Physicians & Family Doctors" };
+
+    return { categoryId: "healthcare" };
+  }
+
+  // 2. Food, Dining & Hospitality
+  if (
+    q.includes("food") ||
+    q.includes("restaur") ||
+    q.includes("cafe") ||
+    q.includes("coffee") ||
+    q.includes("bakery") ||
+    q.includes("bakeries") ||
+    q.includes("patisserie") ||
+    q.includes("hotel") ||
+    q.includes("resort") ||
+    q.includes("bar") ||
+    q.includes("lounge") ||
+    q.includes("pub") ||
+    q.includes("cater") ||
+    q.includes("kitchen") ||
+    q.includes("dining")
+  ) {
+    if (q.includes("cafe") || q.includes("coffee")) return { categoryId: "food_hospitality", matchedSubcategory: "Cafes & Coffee Shops" };
+    if (q.includes("restaur") || q.includes("dining")) return { categoryId: "food_hospitality", matchedSubcategory: "Restaurants & Fine Dining" };
+    if (q.includes("hotel") || q.includes("resort")) return { categoryId: "food_hospitality", matchedSubcategory: "Hotels & Boutique Resorts" };
+    if (q.includes("bakery") || q.includes("patisserie") || q.includes("cake")) return { categoryId: "food_hospitality", matchedSubcategory: "Bakeries & Patisseries" };
+    if (q.includes("bar") || q.includes("lounge") || q.includes("pub")) return { categoryId: "food_hospitality", matchedSubcategory: "Bars & Lounges" };
+    if (q.includes("cater")) return { categoryId: "food_hospitality", matchedSubcategory: "Catering Services" };
+    if (q.includes("cloud kitchen") || q.includes("food hub")) return { categoryId: "food_hospitality", matchedSubcategory: "Cloud Kitchens & Food Hubs" };
+    return { categoryId: "food_hospitality" };
+  }
+
+  // 3. Real Estate & Construction
+  if (
+    q.includes("real estate") ||
+    q.includes("property") ||
+    q.includes("properties") ||
+    q.includes("builder") ||
+    q.includes("contractor") ||
+    q.includes("architect") ||
+    q.includes("interior") ||
+    q.includes("broker") ||
+    q.includes("commercial real estate")
+  ) {
+    if (q.includes("interior")) return { categoryId: "real_estate", matchedSubcategory: "Interior Designers" };
+    if (q.includes("architect")) return { categoryId: "real_estate", matchedSubcategory: "Architects" };
+    if (q.includes("builder") || q.includes("contractor")) return { categoryId: "real_estate", matchedSubcategory: "Builders & Contractors" };
+    if (q.includes("developer")) return { categoryId: "real_estate", matchedSubcategory: "Real Estate Developers" };
+    if (q.includes("broker")) return { categoryId: "real_estate", matchedSubcategory: "Real Estate Brokerages" };
+    return { categoryId: "real_estate" };
+  }
+
+  // 4. Technology & IT
+  if (
+    q.includes("tech") ||
+    q.includes("software") ||
+    q.includes("it ") ||
+    q.includes("saas") ||
+    q.includes("developer") ||
+    q.includes("web") ||
+    q.includes("cyber") ||
+    q.includes("cloud") ||
+    q.includes("automation") ||
+    q.includes("digital marketing")
+  ) {
+    if (q.includes("saas")) return { categoryId: "technology", matchedSubcategory: "SaaS Startups" };
+    if (q.includes("web")) return { categoryId: "technology", matchedSubcategory: "Web Design & Development" };
+    if (q.includes("cyber")) return { categoryId: "technology", matchedSubcategory: "Cybersecurity Firms" };
+    if (q.includes("cloud")) return { categoryId: "technology", matchedSubcategory: "Cloud Solutions" };
+    if (q.includes("ai") || q.includes("automation")) return { categoryId: "technology", matchedSubcategory: "AI & Automation Services" };
+    if (q.includes("digital marketing") || q.includes("marketing agency")) return { categoryId: "technology", matchedSubcategory: "Digital Marketing Agencies" };
+    return { categoryId: "technology" };
+  }
+
+  // 5. Retail & E-Commerce
+  if (
+    q.includes("retail") ||
+    q.includes("shop") ||
+    q.includes("store") ||
+    q.includes("ecommerce") ||
+    q.includes("e-commerce") ||
+    q.includes("boutique") ||
+    q.includes("supermarket") ||
+    q.includes("grocery") ||
+    q.includes("fashion") ||
+    q.includes("apparel") ||
+    q.includes("clothing") ||
+    q.includes("electronic") ||
+    q.includes("jewel") ||
+    q.includes("pan shop")
+  ) {
+    if (q.includes("ecommerce") || q.includes("e-commerce")) return { categoryId: "retail_ecommerce", matchedSubcategory: "E-commerce Brands" };
+    if (q.includes("supermarket") || q.includes("grocery")) return { categoryId: "retail_ecommerce", matchedSubcategory: "Supermarkets & Grocery" };
+    if (q.includes("fashion") || q.includes("apparel") || q.includes("clothing")) return { categoryId: "retail_ecommerce", matchedSubcategory: "Fashion & Apparel" };
+    if (q.includes("electronic")) return { categoryId: "retail_ecommerce", matchedSubcategory: "Electronics & Appliances" };
+    if (q.includes("jewel")) return { categoryId: "retail_ecommerce", matchedSubcategory: "Jewelry & Watches" };
+    if (q.includes("wholesale")) return { categoryId: "retail_ecommerce", matchedSubcategory: "Wholesalers & Distributors" };
+    return { categoryId: "retail_ecommerce", matchedSubcategory: "Retail Stores & Boutiques" };
+  }
+
+  // 6. Professional & Legal Services
+  if (
+    q.includes("lawyer") ||
+    q.includes("advocate") ||
+    q.includes("legal") ||
+    q.includes("accountant") ||
+    q.includes("ca ") ||
+    q.includes("cs ") ||
+    q.includes("chartered") ||
+    q.includes("consult") ||
+    q.includes("tax") ||
+    q.includes("gst") ||
+    q.includes("pr agency") ||
+    q.includes("financial advisor")
+  ) {
+    if (q.includes("lawyer") || q.includes("advocate") || q.includes("legal")) return { categoryId: "professional_services", matchedSubcategory: "Law Firms & Advocates" };
+    if (q.includes("accountant") || q.includes("ca") || q.includes("cs") || q.includes("chartered")) return { categoryId: "professional_services", matchedSubcategory: "Chartered Accountants (CA/CS)" };
+    if (q.includes("consult")) return { categoryId: "professional_services", matchedSubcategory: "Management Consulting" };
+    if (q.includes("pr ") || q.includes("public relations")) return { categoryId: "professional_services", matchedSubcategory: "Public Relations (PR) Agencies" };
+    if (q.includes("financial") || q.includes("investment")) return { categoryId: "professional_services", matchedSubcategory: "Financial & Investment Advisors" };
+    if (q.includes("tax") || q.includes("gst")) return { categoryId: "professional_services", matchedSubcategory: "Tax & GST Consultants" };
+    return { categoryId: "professional_services" };
+  }
+
+  // 7. Fitness, Beauty & Wellness
+  if (
+    q.includes("gym") ||
+    q.includes("fitness") ||
+    q.includes("yoga") ||
+    q.includes("pilates") ||
+    q.includes("salon") ||
+    q.includes("hair") ||
+    q.includes("spa") ||
+    q.includes("wellness") ||
+    q.includes("beauty")
+  ) {
+    if (q.includes("gym") || q.includes("fitness")) return { categoryId: "fitness_beauty", matchedSubcategory: "Gyms & Fitness Centers" };
+    if (q.includes("yoga") || q.includes("pilates")) return { categoryId: "fitness_beauty", matchedSubcategory: "Yoga & Pilates Studios" };
+    if (q.includes("salon") || q.includes("hair")) return { categoryId: "fitness_beauty", matchedSubcategory: "Luxury Salons & Hairdressers" };
+    if (q.includes("spa") || q.includes("wellness")) return { categoryId: "fitness_beauty", matchedSubcategory: "Spas & Wellness Resorts" };
+    if (q.includes("aesthetic") || q.includes("beauty")) return { categoryId: "fitness_beauty", matchedSubcategory: "Aesthetic & Dermatology Clinics" };
+    return { categoryId: "fitness_beauty" };
+  }
+
+  // 8. Education & Academics
+  if (
+    q.includes("school") ||
+    q.includes("college") ||
+    q.includes("universit") ||
+    q.includes("coaching") ||
+    q.includes("tuition") ||
+    q.includes("jee") ||
+    q.includes("neet") ||
+    q.includes("edtech") ||
+    q.includes("academy") ||
+    q.includes("institute") ||
+    q.includes("educat")
+  ) {
+    if (q.includes("universit") || q.includes("college")) return { categoryId: "education", matchedSubcategory: "Universities & Colleges" };
+    if (q.includes("school")) return { categoryId: "education", matchedSubcategory: "Private International Schools" };
+    if (q.includes("coaching") || q.includes("jee") || q.includes("neet") || q.includes("tuition")) return { categoryId: "education", matchedSubcategory: "IIT-JEE & NEET Coaching Centers" };
+    if (q.includes("edtech")) return { categoryId: "education", matchedSubcategory: "EdTech Academies" };
+    if (q.includes("skill") || q.includes("vocational")) return { categoryId: "education", matchedSubcategory: "Vocational & Skill Institutes" };
+    return { categoryId: "education" };
+  }
+
+  // 9. Logistics, Transport & Auto
+  if (
+    q.includes("auto") ||
+    q.includes("garage") ||
+    q.includes("car ") ||
+    q.includes("cars") ||
+    q.includes("mechanic") ||
+    q.includes("transport") ||
+    q.includes("logistics") ||
+    q.includes("freight") ||
+    q.includes("courier") ||
+    q.includes("dealership") ||
+    q.includes("manufacturing")
+  ) {
+    if (q.includes("garage") || q.includes("repair") || q.includes("mechanic") || q.includes("service center")) return { categoryId: "logistics_automotive", matchedSubcategory: "Auto Repair & Service Centers" };
+    if (q.includes("dealership") || q.includes("dealer")) return { categoryId: "logistics_automotive", matchedSubcategory: "Automobile Dealerships" };
+    if (q.includes("logistics") || q.includes("freight")) return { categoryId: "logistics_automotive", matchedSubcategory: "Logistics & Freight Forwarders" };
+    if (q.includes("transport") || q.includes("fleet")) return { categoryId: "logistics_automotive", matchedSubcategory: "Transport Fleet Companies" };
+    if (q.includes("manufactur")) return { categoryId: "logistics_automotive", matchedSubcategory: "Manufacturing Units" };
+    return { categoryId: "logistics_automotive" };
+  }
+
+  return null;
+}
 
 export function getCategoryIcon(id: string) {
   switch (id) {
@@ -143,6 +382,19 @@ export function SearchInputStep({
     }, 3000);
     return () => clearInterval(timer);
   }, []);
+
+  // Auto-detect and sync category whenever search text matches a known category or specialization
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const match = detectCategoryFromQuery(searchQuery);
+      if (match && selectedCategory !== match.categoryId) {
+        onSelectCategory?.(match.categoryId);
+        if (match.matchedSubcategory) {
+          onSelectSubcategory?.(match.matchedSubcategory);
+        }
+      }
+    }
+  }, [searchQuery, selectedCategory, onSelectCategory, onSelectSubcategory]);
 
   // Find active category item
   const selectedCategoryData = useMemo(() => {
@@ -252,8 +504,19 @@ export function SearchInputStep({
             type="text"
             value={searchQuery}
             onChange={e => {
-              onSearchQueryChange(e.target.value);
+              const val = e.target.value;
+              onSearchQueryChange(val);
               setUserSelectedType(null); // allow auto-detection on text change
+
+              if (val.trim()) {
+                const match = detectCategoryFromQuery(val);
+                if (match) {
+                  onSelectCategory?.(match.categoryId);
+                  if (match.matchedSubcategory) {
+                    onSelectSubcategory?.(match.matchedSubcategory);
+                  }
+                }
+              }
             }}
             placeholder={`e.g. "${ROTATING_EXAMPLES[placeholderIndex]}"`}
             className={`w-full pl-11 pr-28 sm:pr-32 py-3.5 sm:py-4 rounded-2xl bg-surface border text-sm sm:text-base text-text placeholder:text-text-muted/60 transition-all shadow-theme focus:outline-none focus:ring-2 focus:ring-brass ${

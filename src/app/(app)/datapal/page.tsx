@@ -610,14 +610,8 @@ export default function DataPalPage() {
                 className="flex items-center justify-between cursor-pointer md:cursor-default"
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
-                      isStep1Complete
-                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
-                        : "bg-brass/15 text-brass border border-brass/30"
-                    }`}
-                  >
-                    {isStep1Complete ? <Check className="w-3.5 h-3.5" /> : "1"}
+                  <div className="w-7 h-7 rounded-full bg-brass/15 text-brass border border-brass/30 flex items-center justify-center text-xs font-bold shrink-0">
+                    1
                   </div>
                   <div>
                     <h2 className="text-base sm:text-lg font-bold text-text tracking-tight">
