@@ -606,7 +606,7 @@ export function SearchInputStep({
                 </>
               ) : (
                 <span className="text-xs sm:text-sm text-text-muted truncate">
-                  All Categories (General / Free-text)
+                  All Categories
                 </span>
               )}
             </div>
@@ -676,7 +676,7 @@ export function SearchInputStep({
                 >
                   <div className="flex items-center gap-2">
                     <Store className="w-4 h-4 text-brass shrink-0" />
-                    <span>All Categories (General / Free-text)</span>
+                    <span>All Categories</span>
                   </div>
                   {!selectedCategory && <Check className="w-3.5 h-3.5 text-brass shrink-0 ml-2" />}
                 </button>
@@ -864,24 +864,6 @@ export function SearchInputStep({
         </div>
       </div>
 
-      {/* Active Specialization Refinement Banner */}
-      {selectedCategoryData && selectedSubcategory && (
-        <div className="flex items-center justify-between text-xs py-1.5 px-3 rounded-xl bg-brass/10 border border-brass/25 text-brass animate-fade-in">
-          <div className="flex items-center gap-1.5 truncate">
-            <Sparkles className="w-3.5 h-3.5 shrink-0 text-brass" />
-            <span className="truncate">
-              Targeting specialization: <strong>{selectedSubcategory}</strong> under {selectedCategoryData.name}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => handleSelectSubcategory("")}
-            className="text-[11px] font-medium underline hover:text-text cursor-pointer shrink-0 ml-2"
-          >
-            Switch to broad search
-          </button>
-        </div>
-      )}
 
       {/* Optional Collapsed "Refine" row for Audience Searches */}
       {detectedType === "Audience" && (
