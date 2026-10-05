@@ -20,7 +20,7 @@ const TOOLS_OPTIONS = [
     id: "google",
     name: "Google Account & Workspace",
     category: "Email, Calendar & Live OAuth",
-    description: "Connect your real Google account with live OAuth 2.0 to sync meetings, executive schedule, and Docs.",
+    description: "Connect your Google account to sync your calendar, Gmail briefings, Drive files and Docs, so BizzPal always works from your real schedule and documents.",
   },
   {
     id: "microsoft",

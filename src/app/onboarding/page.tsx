@@ -475,49 +475,49 @@ const TOOLS_OPTIONS = [
     id: "google",
     name: "Google Account & Workspace",
     category: "Email, Calendar & Live OAuth",
-    description: "Connect your real Google account with live OAuth 2.0 to sync meetings, executive schedule, and Docs.",
+    description: "Connect your Google account to sync your calendar, Gmail briefings, Drive files and Docs, so BizzPal always works from your real schedule and documents.",
   },
   {
     id: "microsoft",
     name: "Microsoft 365 & Teams",
     category: "Enterprise Cloud & SSO",
-    description: "Enterprise Single Sign-On, Outlook executive communications, OneDrive repositories, and Teams alerts.",
+    description: "Connect Microsoft 365 to bring in Outlook email and calendar, OneDrive files and Teams alerts, with single sign-on for your whole team.",
   },
   {
     id: "linkedin",
     name: "LinkedIn Company & Ads",
     category: "B2B Social & Lead Generation",
-    description: "Sync company page follower analytics, campaign ROAS, B2B lead generation, and executive posts.",
+    description: "Connect your LinkedIn page to track follower growth, ad campaign returns, B2B lead generation and executive posts in one place.",
   },
   {
     id: "meta",
     name: "Meta Business & Instagram",
     category: "Ad Spends, Instagram & WhatsApp",
-    description: "Meta Business Manager telemetry, Facebook & Instagram Ads CAC/ROAS, Pixel events, and WhatsApp API.",
+    description: "Connect Meta Business to track Facebook and Instagram ad performance, acquisition cost and return on spend, Pixel events and WhatsApp conversations.",
   },
   {
     id: "stripe",
     name: "Stripe",
     category: "Payments & Revenue",
-    description: "Automatic sync of invoices, ARR/MRR subscriptions, refunds, and daily cash inflow.",
+    description: "Connect Stripe to automatically sync invoices, subscription revenue, refunds and daily cash inflow, so your numbers are always current.",
   },
   {
     id: "slack",
     name: "Slack",
     category: "Team Communication",
-    description: "Executive channel alerts, solvency warnings, and bidirectional AI assistant bot.",
+    description: "Connect Slack to receive executive channel alerts and cash-runway warnings, and to ask the BizzPal assistant questions right where your team works.",
   },
   {
     id: "zoho_books",
     name: "Zoho Books / QuickBooks",
     category: "Accounting & Ledgers",
-    description: "P&L synchronization, vendor expenses, GST reconciliation, and burn tracking.",
+    description: "Connect Zoho Books to sync your profit and loss, vendor expenses and GST reconciliation, and to track your monthly burn automatically.",
   },
   {
     id: "help_desk",
     name: "Help Desk (Zendesk / Freshdesk)",
     category: "Support & Customer Health",
-    description: "Escalated ticket volume, SLA response times, and customer churn indicators.",
+    description: "Connect your help desk to monitor escalated tickets, response times and early signs of customer churn.",
   },
 ];
 
@@ -2371,18 +2371,6 @@ export default function OnboardingPage() {
                       const isConnected = authState.status === "connected";
                       const isConnecting = authState.status === "connecting";
 
-                      // Capabilities summary per tool
-                      const capabilitiesMap: Record<string, string> = {
-                        google: "Live Calendar Sync · Google Drive & Docs · Search Metrics",
-                        microsoft: "Enterprise SSO · Outlook Calendar · Teams Channel Webhooks",
-                        linkedin: "Follower Growth · B2B Lead Gen · Executive Posts · Campaign ROAS",
-                        meta: "Instagram Ads CAC/ROAS · Pixel Events · WhatsApp Business API",
-                        stripe: "Real-time ARR/MRR · Invoices & Inflow · Subscriptions · Churn Velocity",
-                        slack: "Bi-directional AI Assistant · Executive Channel Alerts · Solvency Warnings",
-                        zoho_books: "P&L Synchronization · Vendor Expenses · GST Reconciliation · Burn Rate",
-                        help_desk: "Escalated Ticket Volume · SLA Response Times · Customer CSAT & Churn",
-                      };
-
                       return (
                         <div
                           key={toolId}
@@ -2399,19 +2387,10 @@ export default function OnboardingPage() {
                             <div className="min-w-0 space-y-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-sm font-bold text-text">{toolObj.name}</span>
-                                {toolId === "google" && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 font-mono font-bold uppercase">
-                                    Live OAuth 2.0
-                                  </span>
-                                )}
-                                {isConnected ? (
+                                {isConnected && (
                                   <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-mono font-bold uppercase flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                     <span>Live Stream Active</span>
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-mono font-semibold uppercase">
-                                    Awaiting Handshake
                                   </span>
                                 )}
                               </div>
@@ -2425,12 +2404,6 @@ export default function OnboardingPage() {
                                   toolObj.description
                                 )}
                               </p>
-
-                              {/* Telemetry Scope Pill */}
-                              <div className="text-[11px] text-text-muted/80 flex items-center gap-1.5 pt-0.5">
-                                <span className="w-1 h-1 rounded-full bg-text-muted/40" />
-                                <span>{capabilitiesMap[toolId] || "Continuous read-only executive ingestion"}</span>
-                              </div>
                             </div>
                           </div>
 
