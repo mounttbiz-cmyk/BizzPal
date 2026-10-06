@@ -508,16 +508,6 @@ export function SearchInputStep({
               const val = e.target.value;
               onSearchQueryChange(val);
               setUserSelectedType(null); // allow auto-detection on text change
-
-              if (val.trim()) {
-                const match = detectCategoryFromQuery(val);
-                if (match) {
-                  onSelectCategory?.(match.categoryId);
-                  if (match.matchedSubcategory) {
-                    onSelectSubcategory?.(match.matchedSubcategory);
-                  }
-                }
-              }
             }}
             placeholder={`e.g. "${ROTATING_EXAMPLES[placeholderIndex]}"`}
             className={`w-full pl-11 pr-28 sm:pr-32 py-3.5 sm:py-4 rounded-2xl bg-surface border text-sm sm:text-base text-text placeholder:text-text-muted/60 transition-all shadow-theme focus:outline-none focus:ring-2 focus:ring-brass ${
