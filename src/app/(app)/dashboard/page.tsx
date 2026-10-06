@@ -538,7 +538,7 @@ function DashboardContent() {
             </p>
           </div>
 
-          {/* Action Controls: Upload Business Data + Profile Selector + Customize Layout */}
+          {/* Action Controls: Quick Business Input + Upload Business Data */}
           <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap w-full lg:w-auto">
             {/* Quick Business Input Button */}
             <button
@@ -561,65 +561,6 @@ function DashboardContent() {
               {uploadedFileName && (
                 <span className="w-1.5 h-1.5 rounded-full bg-jade animate-pulse" title="Custom dataset active" />
               )}
-            </button>
-
-            {/* Profile Switcher */}
-            <div className="flex items-center gap-1 p-1 bg-surface-2 rounded-xl border border-line overflow-x-auto touch-scroll w-full sm:w-auto shrink-0">
-              {[
-                { ind: "saas", mod: "subscription", label: "B2B SaaS" },
-                { ind: "d2c", mod: "one-time", label: "D2C Brand" },
-                { ind: "agency", mod: "retainer", label: "Agency" },
-              ].map(profile => {
-                const isActive = selectedIndustry === profile.ind;
-                return (
-                  <button
-                    key={profile.ind}
-                    type="button"
-                    onClick={() => {
-                      const newInd = profile.ind as any;
-                      const newMod = profile.mod as any;
-                      setSelectedIndustry(newInd);
-                      setSelectedModel(newMod);
-
-                      // Update local profile and broadcast
-                      try {
-                        const existing = localStorage.getItem("bizzpal_business_profile");
-                        const parsed = existing ? JSON.parse(existing) : {};
-                        const updated = {
-                          ...parsed,
-                          industry: newInd,
-                          industryLabel: profile.label,
-                          businessModel: newMod,
-                        };
-                        localStorage.setItem("bizzpal_business_profile", JSON.stringify(updated));
-                        window.dispatchEvent(new CustomEvent("bizzpal_business_data_updated", { detail: updated }));
-                        notify(`Switched to ${profile.label} operating context`);
-                      } catch {}
-                    }}
-                    className={`flex-1 sm:flex-initial px-2.5 sm:px-3 py-1.5 text-xs rounded-lg transition-all btn-tactile whitespace-nowrap text-center ${
-                      isActive
-                        ? "bg-surface text-text font-bold shadow-xs border border-line"
-                        : "text-slate-600 dark:text-slate-300 hover:text-text hover:bg-surface/50"
-                    }`}
-                  >
-                    {profile.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Customize Dashboard Button */}
-            <button
-              type="button"
-              onClick={() => setIsEditingLayout(!isEditingLayout)}
-              className={`w-full sm:w-auto px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all btn-tactile cursor-pointer ${
-                isEditingLayout
-                  ? "btn-gold-gradient font-bold shadow-md"
-                  : "bg-surface-2 hover:bg-surface border border-line text-slate-700 dark:text-slate-300 hover:text-text"
-              }`}
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>{isEditingLayout ? "Exit Layout Editor" : "Customize Layout"}</span>
             </button>
           </div>
         </div>
