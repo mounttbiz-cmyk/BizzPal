@@ -107,7 +107,7 @@ export function DesktopRail({
   }, [navItems]);
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 h-screen fixed inset-y-0 left-0 bg-surface/95 backdrop-blur-2xl border-r border-line select-none z-30 transition-colors">
+    <aside className="hidden lg:flex flex-col w-64 h-screen fixed inset-y-0 left-0 bg-white dark:bg-surface border-r border-line select-none z-30 transition-colors">
       {/* Quick Business Input Modal */}
       <QuickBusinessInputModal
         isOpen={isQuickInputOpen}
@@ -254,7 +254,7 @@ export function DesktopRail({
       </div>
 
       {/* Footer Controls & User Menu */}
-      <div className="p-3 border-t border-line space-y-3 bg-surface/90 transition-colors">
+      <div className="p-3 border-t border-line space-y-3 bg-white dark:bg-surface transition-colors">
         <Button
           type="button"
           variant="primary"

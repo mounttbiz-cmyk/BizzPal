@@ -740,7 +740,7 @@ export default function AdminPage() {
       {/* PERSISTENT MODERN LEFT SIDEBAR                                            */}
       {/* ========================================================================= */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-surface/80 backdrop-blur-xl border-r border-line/60 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 shrink-0 shadow-2xl lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-surface border-r border-line/60 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 shrink-0 shadow-2xl lg:shadow-none ${
           isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         }`}
       >

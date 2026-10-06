@@ -44,7 +44,7 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
   }, [navItems]);
 
   return (
-    <aside className="hidden md:flex lg:hidden flex-col items-center w-16 h-screen fixed inset-y-0 left-0 bg-surface/95 backdrop-blur-2xl border-r border-line select-none z-30 py-3 transition-colors">
+    <aside className="hidden md:flex lg:hidden flex-col items-center w-16 h-screen fixed inset-y-0 left-0 bg-white dark:bg-surface border-r border-line select-none z-30 py-3 transition-colors">
       {/* Brand Icon with Ribbon Logo */}
       <Link
         href="/dashboard"
