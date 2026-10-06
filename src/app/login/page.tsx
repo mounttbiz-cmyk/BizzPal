@@ -590,16 +590,7 @@ export default function LoginPage() {
           <div className="flex items-center gap-3">
             <span className="font-black text-2xl tracking-tight text-text font-sans leading-none">
               Bizz
-              <span
-                className="font-black"
-                style={{
-                  background: "linear-gradient(135deg, #F7ECD1 0%, #DFBA73 50%, #A37C2C 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  color: "#DFBA73",
-                  display: "inline-block",
-                }}
-              >
+              <span className="font-black ml-0.5 bizzpal-brand-pal">
                 Pal
               </span>
             </span>

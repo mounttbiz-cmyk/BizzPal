@@ -761,16 +761,7 @@ export default function AdminPage() {
                 <h1 className="text-sm font-bold text-text tracking-tight flex items-center gap-1.5">
                   <span className="font-black text-base flex items-center leading-none">
                     <span>Bizz</span>
-                    <span
-                      className="font-black ml-0.5"
-                      style={{
-                        background: "linear-gradient(135deg, #F7ECD1 0%, #DFBA73 50%, #A37C2C 100%)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        color: "#DFBA73",
-                        display: "inline-block",
-                      }}
-                    >
+                    <span className="font-black ml-0.5 bizzpal-brand-pal">
                       Pal
                     </span>
                   </span>

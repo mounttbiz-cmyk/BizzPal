@@ -162,6 +162,23 @@ body, [data-surface] {
   box-shadow: 0 4px 12px -2px rgba(155, 118, 36, 0.25) !important;
 }
 
+/* BizzPal brand wordmark text - solid uniform color matching "Bizz" in light mode, metallic gold in dark mode */
+.bizzpal-brand-pal {
+  background: linear-gradient(135deg, #F7ECD1 0%, #DFBA73 50%, #A37C2C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #DFBA73;
+  display: inline-block;
+}
+
+[data-theme="light"] .bizzpal-brand-pal,
+.light .bizzpal-brand-pal {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: initial !important;
+  color: var(--text) !important;
+}
+
 /* Tactile micro-interactions (§4.3) */
 .btn-tactile {
   transition: transform var(--dur-instant) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);

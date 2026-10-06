@@ -130,16 +130,7 @@ export function DesktopRail({
           <div className="min-w-0 flex-1">
             <div className="font-black text-xl tracking-tight text-text font-sans flex items-center leading-none">
               <span>Bizz</span>
-              <span
-                className="font-black ml-0.5"
-                style={{
-                  background: "linear-gradient(135deg, #F7ECD1 0%, #DFBA73 50%, #A37C2C 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  color: "#DFBA73",
-                  display: "inline-block",
-                }}
-              >
+              <span className="font-black ml-0.5 bizzpal-brand-pal">
                 Pal
               </span>
               <span className="text-xs text-gold/80 font-bold ml-1 -mt-2">™</span>
