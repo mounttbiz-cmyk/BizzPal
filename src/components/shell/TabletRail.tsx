@@ -48,14 +48,14 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
       {/* Brand Icon with Ribbon Logo */}
       <Link
         href="/dashboard"
-        className="w-11 h-11 flex items-center justify-center mb-3 hover:scale-105 transition-transform"
+        className="w-12 h-12 flex items-center justify-center mb-3 hover:scale-105 transition-transform"
         title="BizzPal Dashboard"
       >
         <Image
           src="/logo-icon.png"
           alt="BizzPal Logo"
-          width={38}
-          height={38}
+          width={42}
+          height={42}
           className="object-contain drop-shadow"
         />
       </Link>
@@ -64,7 +64,7 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
       <button
         type="button"
         onClick={onOpenSearch}
-        title="Search tools, pages… (⌘K)"
+        title="Search tools, pages…"
         className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-gold hover:bg-surface-2 transition-all btn-tactile mb-3"
       >
         <Search className="w-5 h-5" />

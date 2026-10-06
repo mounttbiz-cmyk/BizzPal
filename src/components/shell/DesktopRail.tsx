@@ -117,18 +117,18 @@ export function DesktopRail({
       {/* Brand Header */}
       <div className="p-4 border-b border-line">
         <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+          <div className="w-12 h-12 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
             <Image
               src="/logo-icon.png"
               alt="BizzPal Logo"
-              width={40}
-              height={40}
+              width={46}
+              height={46}
               className="object-contain drop-shadow"
               priority
             />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-black text-lg tracking-tight text-text font-sans flex items-center leading-none">
+            <div className="font-black text-xl tracking-tight text-text font-sans flex items-center leading-none">
               <span>Bizz</span>
               <span
                 className="font-black ml-0.5"
@@ -142,9 +142,9 @@ export function DesktopRail({
               >
                 Pal
               </span>
-              <span className="text-[10px] text-gold/80 font-bold ml-1 -mt-2">™</span>
+              <span className="text-xs text-gold/80 font-bold ml-1 -mt-2">™</span>
             </div>
-            <p className="text-[11px] text-text-muted truncate max-w-[180px] font-medium mt-0.5">
+            <p className="text-xs text-text-muted truncate max-w-[180px] font-medium mt-1">
               {companyName}
             </p>
           </div>
@@ -156,15 +156,12 @@ export function DesktopRail({
         <button
           type="button"
           onClick={onOpenSearch}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-surface-2 border border-line text-text-muted hover:text-text hover:border-line-strong transition-all text-xs group cursor-pointer"
+          className="w-full flex items-center px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text-muted hover:text-text hover:border-line-strong transition-all text-xs group cursor-pointer"
         >
           <div className="flex items-center gap-2 min-w-0">
             <Search className="w-3.5 h-3.5 text-text-muted group-hover:text-gold transition-colors shrink-0" />
             <span className="text-[11px] font-medium truncate">Search tools, pages…</span>
           </div>
-          <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-surface border border-line text-text-muted font-mono font-semibold shrink-0">
-            ⌘K
-          </kbd>
         </button>
       </div>
 
