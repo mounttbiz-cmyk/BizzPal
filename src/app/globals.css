@@ -162,10 +162,11 @@ body, [data-surface] {
   box-shadow: 0 4px 12px -2px rgba(155, 118, 36, 0.25) !important;
 }
 
-/* BizzPal brand wordmark text - solid normal gold in light mode, metallic gold gradient in dark mode */
+/* BizzPal brand wordmark text - 3D metallic gold in light mode matching attached reference, metallic gold in dark mode */
 .bizzpal-brand-pal {
   background: linear-gradient(135deg, #F7ECD1 0%, #DFBA73 50%, #A37C2C 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   color: #DFBA73;
   display: inline-block;
@@ -173,10 +174,14 @@ body, [data-surface] {
 
 [data-theme="light"] .bizzpal-brand-pal,
 .light .bizzpal-brand-pal {
-  background: none !important;
-  -webkit-background-clip: unset !important;
-  -webkit-text-fill-color: initial !important;
-  color: #B8860B !important;
+  background: linear-gradient(180deg, #FDE882 0%, #F5C642 22%, #E5A31E 52%, #B36809 82%, #864102 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: #D89218 !important;
+  display: inline-block !important;
+  filter: drop-shadow(0.5px 1px 0px #7A3C02)
+          drop-shadow(1px 2px 2px rgba(110, 48, 0, 0.4)) !important;
 }
 
 /* Tactile micro-interactions (§4.3) */
