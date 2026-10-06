@@ -748,12 +748,12 @@ export default function AdminPage() {
         <div className="p-4 border-b border-line/60 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 flex items-center justify-center shrink-0">
                 <Image
                   src="/logo-icon.png"
                   alt="BizzPal Logo"
-                  width={28}
-                  height={28}
+                  width={34}
+                  height={34}
                   className="object-contain drop-shadow"
                 />
               </div>

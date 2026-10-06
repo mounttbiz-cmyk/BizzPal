@@ -48,14 +48,14 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
       {/* Brand Icon with Ribbon Logo */}
       <Link
         href="/dashboard"
-        className="w-10 h-10 flex items-center justify-center mb-3 hover:scale-105 transition-transform"
+        className="w-11 h-11 flex items-center justify-center mb-3 hover:scale-105 transition-transform"
         title="BizzPal Dashboard"
       >
         <Image
           src="/logo-icon.png"
           alt="BizzPal Logo"
-          width={32}
-          height={32}
+          width={38}
+          height={38}
           className="object-contain drop-shadow"
         />
       </Link>

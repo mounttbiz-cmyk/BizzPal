@@ -117,12 +117,12 @@ export function DesktopRail({
       {/* Brand Header */}
       <div className="p-4 border-b border-line">
         <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+          <div className="w-10 h-10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
             <Image
               src="/logo-icon.png"
               alt="BizzPal Logo"
-              width={32}
-              height={32}
+              width={40}
+              height={40}
               className="object-contain drop-shadow"
               priority
             />
