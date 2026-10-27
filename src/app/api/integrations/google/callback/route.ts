@@ -16,10 +16,12 @@ export async function GET(req: NextRequest) {
     } catch {}
   }
 
-  // Derive origin if not in state
+  // Derive origin from state or request headers
+  const configuredOrigin = (process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "").replace(/\/$/, "");
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
-  const proto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-  const currentOrigin = requestOrigin || `${proto}://${host}`;
+  const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
+  const proto = isLocal ? (req.headers.get("x-forwarded-proto") || "http") : "https";
+  const currentOrigin = configuredOrigin || requestOrigin || `${proto}://${host}`;
   const redirectUri = `${currentOrigin}/api/integrations/google/callback`;
 
   // Handle OAuth error or user rejection

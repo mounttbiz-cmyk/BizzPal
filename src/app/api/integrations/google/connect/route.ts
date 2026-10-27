@@ -10,10 +10,12 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Derive the redirect URI dynamically from request headers or host
+  // Derive the redirect URI dynamically from request headers or environment
+  const configuredOrigin = (process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "").replace(/\/$/, "");
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
-  const proto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-  const origin = `${proto}://${host}`;
+  const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
+  const proto = isLocal ? (req.headers.get("x-forwarded-proto") || "http") : "https";
+  const origin = configuredOrigin || `${proto}://${host}`;
   const redirectUri = `${origin}/api/integrations/google/callback`;
 
   // Get optional state parameter (e.g. source: 'onboarding' | 'integrations' | 'settings')

@@ -58,8 +58,13 @@ export default function LoginPage() {
   const [adminPasscode, setAdminPasscode] = useState("");
   const [errorInfo, setErrorInfo] = useState<AuthErrorInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [activeRedirectUri, setActiveRedirectUri] = useState("http://localhost:3000/api/integrations/google/callback");
 
-  const activeRedirectUri = `/api/integrations/google/callback`;
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      setActiveRedirectUri(`${window.location.origin}/api/integrations/google/callback`);
+    }
+  }, []);
 
   // Check URL query for auth mode and email flag
   React.useEffect(() => {
