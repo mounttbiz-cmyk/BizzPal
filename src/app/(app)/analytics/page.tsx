@@ -30,6 +30,7 @@ import { ProvenanceBadge } from "@/components/ui/Badge";
 import { PortalModal } from "@/components/ui/PortalModal";
 import Link from "next/link";
 import { useBusinessDataSync } from "@/lib/upload/events";
+import { RealTimeBiSection } from "@/components/bi/RealTimeBiSection";
 
 type ExecutiveRole = "ceo" | "cfo" | "cmo" | "coo";
 type StrategicGoal = "extend_runway" | "accelerate_growth" | "protect_margins" | "reduce_churn";
@@ -54,6 +55,7 @@ function formatShortINR(val: number): string {
 }
 
 export default function AnalyticsPage() {
+  const [analyticsView, setAnalyticsView] = useState<"realtime_bi" | "telemetry">("realtime_bi");
   const [role, setRole] = useState<ExecutiveRole>("ceo");
   const [goal, setGoal] = useState<StrategicGoal>("extend_runway");
   const [forecastMode, setForecastMode] = useState<"baseline" | "optimized">("optimized");
@@ -239,6 +241,42 @@ export default function AnalyticsPage() {
         </div>
       )}
 
+      {/* Analytics View Switcher */}
+      <div className="flex items-center gap-2 p-1.5 bg-surface-2/60 border border-line rounded-2xl w-fit">
+        <button
+          type="button"
+          onClick={() => setAnalyticsView("realtime_bi")}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
+            analyticsView === "realtime_bi"
+              ? "bg-brass text-white shadow-xs"
+              : "text-text-muted hover:text-text hover:bg-surface"
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          <span>Real-Time BI & Proactive Insights</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setAnalyticsView("telemetry")}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
+            analyticsView === "telemetry"
+              ? "bg-brass text-white shadow-xs"
+              : "text-text-muted hover:text-text hover:bg-surface"
+          }`}
+        >
+          <TrendingUp className="w-3.5 h-3.5" />
+          <span>Role Telemetry & Simulation</span>
+        </button>
+      </div>
+
+      {analyticsView === "realtime_bi" && (
+        <RealTimeBiSection companyName={companyName} />
+      )}
+
+      {analyticsView === "telemetry" && (
+        <>
       {/* Role & Strategic Goal Adaptation Switcher Bar */}
       <div className="p-4 rounded-2xl bg-surface border border-line shadow-theme space-y-3">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -830,6 +868,8 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* Metric Drill-Down Modal */}
       {activeDrillDown && (

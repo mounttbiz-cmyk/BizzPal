@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getActiveBusiness } from "@/lib/db";
+import { getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib/db";
+import { searchCompanyKnowledge } from "@/lib/knowledge/retrieval";
 
 export const maxDuration = 60;
 
@@ -211,15 +212,25 @@ Company Context:
 - Team Size: ${teamSize} FTEs
 `;
 
+    // Retrieve relevant company memory chunks if available
+    let memoryEvidence = "";
+    try {
+      const bizId = resolvedProfile.id || activeBiz?.id || DEFAULT_BUSINESS_ID;
+      const chunks = await searchCompanyKnowledge(message, bizId, { limit: 2, minSimilarity: 0.55 });
+      if (chunks.length > 0) {
+        memoryEvidence = `\nRelevant Company Memory & Documents:\n` + chunks.map(c => `- [${c.documentTitle} / ${c.sectionTitle || "General"}]: ${c.content.slice(0, 300)}`).join("\n") + "\n";
+      }
+    } catch {}
+
     const systemPrompt = `You are ${activeRole.title}, an executive AI advisor in the BizzPal Enterprise Business OS.
 Your Focus: ${activeRole.focus}
 Your Tone: ${activeRole.tone}
 
 ${companyContext}
-
+${memoryEvidence}
 Instructions:
 1. Always frame your answer with executive authority for the Indian market (using INR ₹ notation where relevant).
-2. Ground your advice in the company fundamentals above.
+2. Ground your advice in the company fundamentals and verified memory above.
 3. Keep the tone sharp, crisp, and high-impact. Avoid fluff.
 4. COMPLETION GUARANTEE: You must always generate a complete, coherent response and conclude all tables, bullet points, and strategic phases. Never stop in the middle of a sentence, list, or markdown table. Always finish with a clear next step or conclusion.`;
 

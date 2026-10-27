@@ -332,6 +332,122 @@ db.exec(`
     last_run TEXT,
     created_at TEXT NOT NULL
   );
+
+  -- Business Context Engine (Company Memory)
+  CREATE TABLE IF NOT EXISTS company_documents (
+    id TEXT PRIMARY KEY,
+    business_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    file_size INTEGER DEFAULT 0,
+    content_hash TEXT NOT NULL,
+    mime_type TEXT,
+    storage_url TEXT,
+    status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'processing' | 'indexed' | 'failed'
+    error_message TEXT,
+    chunk_count INTEGER DEFAULT 0,
+    metadata TEXT DEFAULT '{}', -- JSON object
+    created_by TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS document_chunks (
+    id TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL,
+    business_id TEXT NOT NULL,
+    chunk_index INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    clean_text TEXT NOT NULL,
+    char_count INTEGER NOT NULL,
+    token_estimate INTEGER NOT NULL,
+    page_number INTEGER,
+    section_title TEXT,
+    embedding TEXT, -- JSON array of floats for vector embedding
+    metadata TEXT DEFAULT '{}',
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS business_facts (
+    id TEXT PRIMARY KEY,
+    business_id TEXT NOT NULL,
+    category TEXT NOT NULL, -- 'strategy' | 'finance' | 'operations' | 'marketing' | 'legal'
+    fact_key TEXT NOT NULL,
+    fact_value TEXT NOT NULL,
+    confidence REAL DEFAULT 1.0,
+    source_document_id TEXT,
+    source_citation TEXT,
+    verified_by TEXT DEFAULT 'system',
+    is_active INTEGER DEFAULT 1,
+    valid_from TEXT NOT NULL,
+    valid_to TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS document_processing_jobs (
+    id TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL,
+    business_id TEXT NOT NULL,
+    job_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued',
+    attempts INTEGER DEFAULT 0,
+    error_log TEXT,
+    started_at TEXT,
+    completed_at TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  -- Real-Time Business Intelligence
+  CREATE TABLE IF NOT EXISTS kpi_definitions (
+    id TEXT PRIMARY KEY,
+    business_id TEXT NOT NULL,
+    metric_key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    target_value REAL,
+    warning_threshold REAL,
+    critical_threshold REAL,
+    comparison_type TEXT NOT NULL DEFAULT 'period_over_period',
+    alert_severity TEXT NOT NULL DEFAULT 'warning',
+    frequency TEXT NOT NULL DEFAULT 'daily',
+    enabled INTEGER DEFAULT 1,
+    last_evaluated_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS business_insights (
+    id TEXT PRIMARY KEY,
+    business_id TEXT NOT NULL,
+    kpi_id TEXT,
+    title TEXT NOT NULL,
+    severity TEXT NOT NULL DEFAULT 'warning',
+    status TEXT NOT NULL DEFAULT 'detected',
+    observed_value REAL,
+    previous_value REAL,
+    change_pct REAL,
+    evidence_summary TEXT DEFAULT '{}',
+    root_cause_analysis TEXT,
+    recommended_actions TEXT DEFAULT '[]',
+    audit_trail TEXT DEFAULT '[]',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS insight_actions_audit (
+    id TEXT PRIMARY KEY,
+    insight_id TEXT NOT NULL,
+    business_id TEXT NOT NULL,
+    action_key TEXT NOT NULL,
+    action_title TEXT NOT NULL,
+    action_status TEXT NOT NULL,
+    approved_by TEXT,
+    created_task_id TEXT,
+    details TEXT DEFAULT '{}',
+    created_at TEXT NOT NULL
+  );
 `);
 
 // Migrate existing registered_users table if business_profile column is missing
@@ -764,6 +880,98 @@ if (automationsCountRow.count === 0) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(a.id, DEFAULT_BUSINESS_ID, a.title, a.description, a.trigger_event, a.action_event, a.tool_key, a.category, a.enabled, a.executions_count, a.last_run, new Date().toISOString());
   }
+}
+
+// Ensure default KPI monitoring rules exist
+try {
+  const kpiCountRow = db.prepare("SELECT COUNT(*) as count FROM kpi_definitions WHERE business_id = ?").get(DEFAULT_BUSINESS_ID) as { count: number };
+  if (kpiCountRow.count === 0) {
+    const defaultKPIs = [
+      {
+        id: "kpi_mrr_growth",
+        metric_key: "monthly_revenue",
+        name: "Revenue Momentum & Growth",
+        description: "Monitors monthly top-line revenue for contractions exceeding 10% period-over-period.",
+        target_value: 15.0,
+        warning_threshold: -5.0,
+        critical_threshold: -15.0,
+        comparison_type: "period_over_period",
+        alert_severity: "critical",
+        frequency: "daily"
+      },
+      {
+        id: "kpi_burn_control",
+        metric_key: "monthly_burn",
+        name: "Monthly Net Burn Inflation",
+        description: "Monitors unexpected operational spend spikes exceeding 20% MoM.",
+        target_value: 0.0,
+        warning_threshold: 15.0,
+        critical_threshold: 30.0,
+        comparison_type: "pct_change",
+        alert_severity: "warning",
+        frequency: "daily"
+      },
+      {
+        id: "kpi_runway_safety",
+        metric_key: "runway_months",
+        name: "Cash Runway Safeguard",
+        description: "Alerts when cash reserves fall below 6 months of current net burn.",
+        target_value: 18.0,
+        warning_threshold: 6.0,
+        critical_threshold: 3.0,
+        comparison_type: "threshold",
+        alert_severity: "critical",
+        frequency: "daily"
+      },
+      {
+        id: "kpi_gross_margin",
+        metric_key: "gross_margin_pct",
+        name: "Gross Margin Integrity",
+        description: "Ensures gross margin remains above healthy unit economics threshold (70%).",
+        target_value: 80.0,
+        warning_threshold: 65.0,
+        critical_threshold: 50.0,
+        comparison_type: "threshold",
+        alert_severity: "warning",
+        frequency: "weekly"
+      },
+      {
+        id: "kpi_ltv_cac",
+        metric_key: "ltv_cac_ratio",
+        name: "LTV / CAC Efficiency",
+        description: "Verifies customer lifetime value to acquisition cost ratio exceeds 3.0x.",
+        target_value: 4.0,
+        warning_threshold: 3.0,
+        critical_threshold: 1.8,
+        comparison_type: "threshold",
+        alert_severity: "warning",
+        frequency: "weekly"
+      }
+    ];
+
+    for (const k of defaultKPIs) {
+      db.prepare(`
+        INSERT INTO kpi_definitions (id, business_id, metric_key, name, description, target_value, warning_threshold, critical_threshold, comparison_type, alert_severity, frequency, enabled, last_evaluated_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL, ?, ?)
+      `).run(
+        k.id,
+        DEFAULT_BUSINESS_ID,
+        k.metric_key,
+        k.name,
+        k.description,
+        k.target_value,
+        k.warning_threshold,
+        k.critical_threshold,
+        k.comparison_type,
+        k.alert_severity,
+        k.frequency,
+        new Date().toISOString(),
+        new Date().toISOString()
+      );
+    }
+  }
+} catch (e) {
+  console.warn("Could not seed default KPIs:", e);
 }
 
 // -------------------------------------------------------------

@@ -30,6 +30,9 @@ import {
 } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
+import { AskMemorySection } from "@/components/knowledge/AskMemorySection";
+import { DocumentsManager } from "@/components/knowledge/DocumentsManager";
+import { FactsManager } from "@/components/knowledge/FactsManager";
 
 interface KnowledgeDoc {
   id: string;
@@ -59,7 +62,7 @@ interface BusinessNewsItem {
 }
 
 export default function KnowledgeHubPage() {
-  const [activeTab, setActiveTab] = useState<"all" | "news" | "playbooks">("all");
+  const [activeTab, setActiveTab] = useState<"memory" | "documents" | "facts" | "playbooks" | "news">("memory");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedNewsCategory, setSelectedNewsCategory] = useState<string>("all");
@@ -452,34 +455,47 @@ export default function KnowledgeHubPage() {
         </div>
       )}
 
-      {/* Main Mode Tab Switcher: All vs Live Business News vs Company SOPs */}
+      {/* Main Mode Tab Switcher */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-1.5 bg-surface-2/60 border border-line rounded-2xl">
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             type="button"
-            onClick={() => setActiveTab("all")}
+            onClick={() => setActiveTab("memory")}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "all"
+              activeTab === "memory"
                 ? "bg-brass text-white shadow-xs"
                 : "text-text-muted hover:text-text hover:bg-surface"
             }`}
           >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>All Knowledge & News ({docs.length + newsList.length})</span>
+            <BrainCircuit className="w-3.5 h-3.5" />
+            <span>Ask Company Memory</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab("news")}
+            onClick={() => setActiveTab("documents")}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "news"
-                ? "bg-cyan-500 text-slate-950 shadow-xs font-extrabold"
+              activeTab === "documents"
+                ? "bg-brass text-white shadow-xs"
                 : "text-text-muted hover:text-text hover:bg-surface"
             }`}
           >
-            <Newspaper className="w-3.5 h-3.5" />
-            <span>Live Business News & Intel ({newsList.length})</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <FileText className="w-3.5 h-3.5" />
+            <span>Documents & Ingestion</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("facts")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "facts"
+                ? "bg-brass text-white shadow-xs"
+                : "text-text-muted hover:text-text hover:bg-surface"
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Persistent Facts</span>
           </button>
 
           <button
@@ -492,84 +508,114 @@ export default function KnowledgeHubPage() {
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span>Company SOPs & Playbooks ({docs.length})</span>
+            <span>SOPs & Playbooks ({docs.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("news")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "news"
+                ? "bg-cyan-500 text-slate-950 shadow-xs font-extrabold"
+                : "text-text-muted hover:text-text hover:bg-surface"
+            }`}
+          >
+            <Newspaper className="w-3.5 h-3.5" />
+            <span>Live Intel ({newsList.length})</span>
           </button>
         </div>
 
         <div className="flex items-center gap-2 px-3 text-[11px] text-text-muted">
           <Radio className="w-3 h-3 text-emerald-500 animate-pulse" />
-          <span>Auto-Ingested into Astra (CEO) & Marcus (CFO) Memory</span>
+          <span>pgvector Engine Active</span>
         </div>
       </div>
 
-      {/* Search & Dynamic Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        {/* Search */}
-        <div className="relative w-full sm:w-80">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search playbooks, market news, tax rules…"
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:ring-1 focus:ring-brass"
-          />
-        </div>
+      {/* SECTION: ASK COMPANY MEMORY */}
+      {activeTab === "memory" && (
+        <AskMemorySection companyName={companyName} />
+      )}
 
-        {/* Dynamic Category Filters based on active tab */}
-        {activeTab === "news" ? (
-          <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
-            {[
-              { id: "all", label: "All News" },
-              { id: "economy", label: "Economy & Rates" },
-              { id: "tax_compliance", label: "Tax & GST" },
-              { id: "funding", label: "Valuations & VC" },
-              { id: "tech_ai", label: "Tech & DPDP" },
-              { id: "saas_trends", label: "B2B Trends" },
-            ].map(cat => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setSelectedNewsCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all btn-tactile cursor-pointer ${
-                  selectedNewsCategory === cat.id
-                    ? "bg-cyan-500 text-slate-950 border-cyan-500 font-bold shadow-xs"
-                    : "bg-surface-2 border-line text-text-muted hover:text-text"
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+      {/* SECTION: COMPANY DOCUMENTS INGESTION */}
+      {activeTab === "documents" && (
+        <DocumentsManager />
+      )}
+
+      {/* SECTION: PERSISTENT BUSINESS FACTS */}
+      {activeTab === "facts" && (
+        <FactsManager />
+      )}
+
+      {/* Search & Dynamic Filter Bar (For News & Playbooks) */}
+      {(activeTab === "playbooks" || activeTab === "news") && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          {/* Search */}
+          <div className="relative w-full sm:w-80">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search playbooks, market news, tax rules…"
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:ring-1 focus:ring-brass"
+            />
           </div>
-        ) : (
-          <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
-            {[
-              { id: "all", label: "All Sectors" },
-              { id: "operations", label: "Operations" },
-              { id: "finance", label: "Finance" },
-              { id: "sales", label: "Sales & Growth" },
-              { id: "technology", label: "Tech & Security" },
-              { id: "governance", label: "Governance" },
-            ].map(cat => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize border transition-all btn-tactile cursor-pointer ${
-                  selectedCategory === cat.id
-                    ? "bg-brass text-white border-brass font-semibold"
-                    : "bg-surface-2 border-line text-text-muted hover:text-text"
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+
+          {/* Dynamic Category Filters based on active tab */}
+          {activeTab === "news" ? (
+            <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
+              {[
+                { id: "all", label: "All News" },
+                { id: "economy", label: "Economy & Rates" },
+                { id: "tax_compliance", label: "Tax & GST" },
+                { id: "funding", label: "Valuations & VC" },
+                { id: "tech_ai", label: "Tech & DPDP" },
+                { id: "saas_trends", label: "B2B Trends" },
+              ].map(cat => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedNewsCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all btn-tactile cursor-pointer ${
+                    selectedNewsCategory === cat.id
+                      ? "bg-cyan-500 text-slate-950 border-cyan-500 font-bold shadow-xs"
+                      : "bg-surface-2 border-line text-text-muted hover:text-text"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
+              {[
+                { id: "all", label: "All Sectors" },
+                { id: "operations", label: "Operations" },
+                { id: "finance", label: "Finance" },
+                { id: "sales", label: "Sales & Growth" },
+                { id: "technology", label: "Tech & Security" },
+                { id: "governance", label: "Governance" },
+              ].map(cat => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize border transition-all btn-tactile cursor-pointer ${
+                    selectedCategory === cat.id
+                      ? "bg-brass text-white border-brass font-semibold"
+                      : "bg-surface-2 border-line text-text-muted hover:text-text"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* SECTION 1: LIVE BUSINESS NEWS & MARKET INTEL */}
-      {(activeTab === "all" || activeTab === "news") && (
+      {activeTab === "news" && (
         <div className="space-y-3.5">
           <div className="flex items-center justify-between pb-1">
             <div className="flex items-center gap-2">
@@ -638,7 +684,7 @@ export default function KnowledgeHubPage() {
       )}
 
       {/* SECTION 2: COMPANY SOPS & PLAYBOOKS */}
-      {(activeTab === "all" || activeTab === "playbooks") && (
+      {activeTab === "playbooks" && (
         <div className="space-y-3.5 pt-2">
           <div className="flex items-center justify-between pb-1">
             <div className="flex items-center gap-2">
