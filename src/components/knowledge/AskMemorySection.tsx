@@ -19,6 +19,8 @@ import {
   X,
   FileSpreadsheet,
   FileCode,
+  TrendingUp,
+  RefreshCw,
 } from "lucide-react";
 
 interface Citation {
@@ -57,7 +59,7 @@ export function AskMemorySection({ companyName = "Your Business" }: { companyNam
     {
       label: "Q4 Marketing Strategy & CAC",
       query: "What marketing strategy did we use last year, and how successful was it?",
-      icon: Sparkles,
+      icon: TrendingUp,
     },
     {
       label: "Cash Runway & Burn Safeguards",
@@ -112,16 +114,6 @@ export function AskMemorySection({ companyName = "Your Business" }: { companyNam
         <div className="absolute top-0 right-0 w-96 h-96 bg-brass/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
 
         <div className="relative z-10 max-w-4xl space-y-4">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[10px] font-semibold font-mono uppercase tracking-wider bg-brass/10 text-brass border border-brass/25">
-              <span className="w-1.5 h-1.5 rounded-full bg-brass animate-pulse" />
-              <span>pgvector Semantic Search</span>
-            </span>
-            <span className="inline-flex items-center gap-1 h-6 px-2.5 rounded-full text-[10px] font-mono font-medium text-text-muted bg-surface-2 border border-line">
-              <span>HNSW Cosine Operator</span>
-            </span>
-          </div>
-
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-text tracking-tight font-sans">
               Natural Language Company Memory Console
@@ -164,7 +156,11 @@ export function AskMemorySection({ companyName = "Your Business" }: { companyNam
                 disabled={isLoading || !question.trim()}
                 className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-brass text-white text-xs font-bold hover:brightness-110 btn-tactile disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs shrink-0"
               >
-                <Sparkles className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+                {isLoading ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <ArrowRight className="w-3.5 h-3.5" />
+                )}
                 <span>{isLoading ? "Searching…" : "Search"}</span>
                 <CornerDownLeft className="w-3 h-3 text-white/70 ml-0.5 hidden sm:inline-block" />
               </button>

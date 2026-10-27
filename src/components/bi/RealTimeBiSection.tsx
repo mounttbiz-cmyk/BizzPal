@@ -8,24 +8,17 @@ import {
   ShieldCheck,
   CheckCircle2,
   RefreshCw,
-  Sparkles,
-  ArrowRight,
   Clock,
   Layers,
   FileText,
   BarChart3,
   Calendar,
   AlertCircle,
-  HelpCircle,
   Play,
   Check,
-  ChevronRight,
-  Cpu,
   Target,
   FileSpreadsheet,
   Zap,
-  ArrowUpRight,
-  ArrowDownRight,
   Info,
 } from "lucide-react";
 
@@ -181,17 +174,17 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
       if (data.success) {
         const breaches = data.breachedCount || 0;
         setEvalResultBanner(
-          `Diagnostic complete • ${data.evaluatedCount} KPIs evaluated • ${
+          `Diagnostic complete: ${data.evaluatedCount} KPIs evaluated. ${
             breaches > 0
-              ? `${breaches} variance anomaly detected & investigated by AI copilot!`
-              : "All monitored metrics operating within acceptable tolerance thresholds."
+              ? `${breaches} anomaly detected and root cause investigated.`
+              : "All metrics are within acceptable thresholds."
           }`
         );
         fetchKpis();
         fetchInsights();
       }
-    } catch (err: any) {
-      setEvalResultBanner("Diagnostic execution failed. Please check backend connection.");
+    } catch {
+      setEvalResultBanner("Diagnostic run failed. Please verify network connection.");
     } finally {
       setIsEvaluating(false);
     }
@@ -211,7 +204,7 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
       });
       const data = await res.json();
       if (data.success) {
-        setEvalResultBanner(`Action approved! Created task "${data.action?.title}" in Operations queue.`);
+        setEvalResultBanner(`Action approved. Created operational task "${data.action?.title}".`);
         fetchInsights();
       }
     } catch {
@@ -238,115 +231,62 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
   };
 
   const criticalCount = insights.filter((i) => i.severity === "critical").length;
-  const warningCount = insights.filter((i) => i.severity === "warning").length;
 
   return (
-    <div className="space-y-6">
-      {/* Executive Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line select-none">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-2xs">
-            <Activity className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base sm:text-lg font-bold text-text truncate tracking-tight font-sans">
-                Real-Time Business Intelligence & Awareness
-              </h1>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-surface-2 border border-line text-text-muted shrink-0">
-                Proactive Engine
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Continuous Telemetry</span>
-              </span>
-            </div>
-            <p className="text-xs text-text-muted truncate mt-0.5">
-              Continuous KPI monitoring, autonomous root-cause investigation, memory grounding, and authorized workflow execution
-            </p>
-          </div>
-        </div>
-
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleRunEvaluation}
-            disabled={isEvaluating}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-brass text-white text-xs font-bold shadow-2xs hover:brightness-110 btn-tactile cursor-pointer disabled:opacity-50"
-          >
-            <Play className={`w-3.5 h-3.5 ${isEvaluating ? "animate-spin" : ""}`} />
-            <span>{isEvaluating ? "Evaluating KPI Rules…" : "Run KPI Diagnostics"}</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Real-Time Telemetry Stat Strip */}
+    <div className="space-y-5">
+      {/* Overview Stat Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
+        <div className="p-4 rounded-xl bg-surface border border-line space-y-1">
           <div className="flex items-center justify-between text-xs text-text-muted">
             <span className="font-medium">Active Incidents</span>
-            <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${
-              criticalCount > 0 ? "bg-rose-500/10 text-rose-500" : "bg-emerald-500/10 text-emerald-500"
-            }`}>
-              <AlertTriangle className="w-3.5 h-3.5" />
-            </div>
+            <AlertTriangle className={`w-3.5 h-3.5 ${criticalCount > 0 ? "text-rose-500" : "text-emerald-500"}`} />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-bold font-mono text-text">{insights.length}</span>
-            <span className="text-[10px] text-text-muted font-mono">
+            <span className="text-[11px] text-text-muted">
               {criticalCount > 0 ? `${criticalCount} critical` : "all within target"}
             </span>
           </div>
-          <p className="text-[10px] text-text-muted/80">AI root-cause synthesized</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
+        <div className="p-4 rounded-xl bg-surface border border-line space-y-1">
           <div className="flex items-center justify-between text-xs text-text-muted">
             <span className="font-medium">Monitored KPIs</span>
-            <div className="w-6 h-6 rounded-lg bg-brass/10 flex items-center justify-center text-brass">
-              <Target className="w-3.5 h-3.5" />
-            </div>
+            <Target className="w-3.5 h-3.5 text-brass" />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-bold font-mono text-text">{kpis.length}</span>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">100% active</span>
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400">rules active</span>
           </div>
-          <p className="text-[10px] text-text-muted/80">Runway, burn, margins, sales</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
+        <div className="p-4 rounded-xl bg-surface border border-line space-y-1">
           <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Autonomous Copilot</span>
-            <div className="w-6 h-6 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-              <Sparkles className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xl font-bold font-mono text-indigo-600 dark:text-indigo-400">Marcus & Astra</span>
-          </div>
-          <p className="text-[10px] text-text-muted/80">Investigation & task generation</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Predictive Drift</span>
-            <div className="w-6 h-6 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-500">
-              <TrendingUp className="w-3.5 h-3.5" />
-            </div>
+            <span className="font-medium">Monthly Revenue Drift</span>
+            <TrendingUp className="w-3.5 h-3.5 text-brass" />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-bold font-mono text-text">
               {forecast ? `${forecast.growthRatePct > 0 ? "+" : ""}${forecast.growthRatePct}%` : "--"}
             </span>
-            <span className="text-[10px] text-text-muted font-mono">MoM</span>
+            <span className="text-[11px] text-text-muted">projected</span>
           </div>
-          <p className="text-[10px] text-text-muted/80">90-Day horizon projection</p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-surface border border-line space-y-1">
+          <div className="flex items-center justify-between text-xs text-text-muted">
+            <span className="font-medium">Diagnostic Status</span>
+            <Activity className="w-3.5 h-3.5 text-emerald-500" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-bold font-mono text-text">Active</span>
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400">continuous</span>
+          </div>
         </div>
       </div>
 
       {evalResultBanner && (
-        <div className="p-3 rounded-xl bg-brass/10 border border-brass/30 text-xs font-medium text-brass flex items-center justify-between gap-2 animate-fade-in shadow-2xs">
+        <div className="p-3 rounded-xl bg-brass/10 border border-brass/30 text-xs font-medium text-brass flex items-center justify-between gap-2 animate-fade-in">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-brass shrink-0" />
             <span>{evalResultBanner}</span>
@@ -354,101 +294,100 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
           <button
             type="button"
             onClick={() => setEvalResultBanner(null)}
-            className="text-[10px] font-bold text-brass hover:underline cursor-pointer"
+            className="text-[11px] font-bold text-brass hover:underline cursor-pointer"
           >
             Dismiss
           </button>
         </div>
       )}
 
-      {/* Enterprise Underlined Tab Bar */}
-      <nav
-        aria-label="Real-Time BI Navigation"
-        className="flex items-center gap-1 sm:gap-2 border-b border-line pb-0 select-none overflow-x-auto"
-      >
-        {[
-          { id: "insights" as const, label: "Active Incidents & Anomalies", icon: AlertTriangle, count: insights.length, alert: criticalCount > 0 },
-          { id: "kpis" as const, label: "Configured KPI Thresholds", icon: Target, count: kpis.length },
-          { id: "forecast" as const, label: "Statistical Forecasting", icon: BarChart3, badge: "90-Day" },
-        ].map((tab) => {
-          const isActive = activeTab === tab.id;
-          const Icon = tab.icon;
+      {/* Sub-Nav Bar with Diagnostic Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-0">
+        <nav aria-label="BI Section Navigation" className="flex items-center gap-1 sm:gap-2">
+          {[
+            { id: "insights" as const, label: "Active Incidents", icon: AlertTriangle, count: insights.length },
+            { id: "kpis" as const, label: "Monitored Guardrails", icon: Target, count: kpis.length },
+            { id: "forecast" as const, label: "Statistical Forecast", icon: BarChart3 },
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
 
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => {
-                setActiveTab(tab.id);
-                if (tab.id === "forecast") fetchForecast(forecastMetric);
-              }}
-              className={`relative pb-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-                isActive
-                  ? "text-brass font-bold"
-                  : "text-text-muted hover:text-text"
-              }`}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span>{tab.label}</span>
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  if (tab.id === "forecast") fetchForecast(forecastMetric);
+                }}
+                className={`relative pb-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                  isActive ? "text-brass font-bold" : "text-text-muted hover:text-text"
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span>{tab.label}</span>
 
-              {tab.alert && (
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-              )}
+                {tab.count !== undefined && (
+                  <span
+                    className={`text-[10px] font-sans font-bold px-1.5 py-0.2 rounded-full border ${
+                      isActive
+                        ? "bg-brass/15 border-brass/40 text-brass"
+                        : "bg-surface-2 border-line text-text-muted"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
 
-              {tab.badge && (
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-brass/15 text-brass border border-brass/30">
-                  {tab.badge}
-                </span>
-              )}
+                {isActive && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-brass rounded-t-full shadow-xs"
+                  />
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
-              {tab.count !== undefined && (
-                <span
-                  className={`text-[10px] font-sans font-bold px-1.5 py-0.2 rounded-full border ${
-                    isActive
-                      ? "bg-brass/15 border-brass/40 text-brass"
-                      : "bg-surface-2 border-line text-text-muted"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              )}
+        {/* Run Diagnostic Button */}
+        <div className="pb-2.5 sm:pb-2">
+          <button
+            type="button"
+            onClick={handleRunEvaluation}
+            disabled={isEvaluating}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-line text-xs font-semibold text-text hover:border-brass/40 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <Play className={`w-3.5 h-3.5 text-brass ${isEvaluating ? "animate-spin" : ""}`} />
+            <span>{isEvaluating ? "Evaluating…" : "Run KPI Diagnostics"}</span>
+          </button>
+        </div>
+      </div>
 
-              {/* Active Indicator Underline */}
-              {isActive && (
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-brass rounded-t-full shadow-xs"
-                />
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* TAB 1: ACTIVE INSIGHTS & ANOMALIES */}
+      {/* TAB 1: ACTIVE INCIDENTS */}
       {activeTab === "insights" && (
         <div className="space-y-4">
           {insights.length === 0 ? (
-            <div className="rounded-2xl border border-line bg-surface p-12 text-center space-y-4 shadow-2xs">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 mx-auto flex items-center justify-center text-emerald-500 shadow-2xs">
-                <ShieldCheck className="w-7 h-7" />
+            <div className="rounded-xl border border-line bg-surface p-10 text-center space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 mx-auto flex items-center justify-center text-emerald-500">
+                <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-sm font-bold text-text">No active business anomalies detected</h3>
-                <p className="text-xs text-text-muted max-w-md mx-auto leading-relaxed">
-                  All monitored metrics (revenue velocity, opex burn rate, runway horizon, and margin variance) are currently within tolerance bounds. Click &ldquo;Run KPI Diagnostics&rdquo; to trigger immediate evaluation.
+                <h3 className="text-sm font-bold text-text">All Metrics Healthy</h3>
+                <p className="text-xs text-text-muted max-w-md mx-auto">
+                  Monitored revenue velocity, burn, cash runway, and gross margins are operating within expected tolerance limits.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleRunEvaluation}
                 disabled={isEvaluating}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer shadow-2xs btn-tactile"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer"
               >
                 <Play className="w-3.5 h-3.5" />
-                <span>Run Diagnostics Now</span>
+                <span>Run Diagnostics</span>
               </button>
             </div>
           ) : (
@@ -456,36 +395,29 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
               {insights.map((ins) => (
                 <div
                   key={ins.id}
-                  className="rounded-2xl border border-line bg-surface p-5 sm:p-6 space-y-5 hover:border-line-strong transition-all shadow-2xs"
+                  className="rounded-xl border border-line bg-surface p-5 space-y-4 hover:border-line-strong transition-all"
                 >
-                  {/* Top Incident Banner */}
+                  {/* Top Bar */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
-                    <div className="flex items-center gap-2.5 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border ${
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
                           ins.severity === "critical"
                             ? "bg-rose-500/10 text-rose-500 border-rose-500/25"
                             : "bg-amber-500/10 text-amber-500 border-amber-500/25"
                         }`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${ins.severity === "critical" ? "bg-rose-500 animate-ping" : "bg-amber-500"}`} />
-                        <span>{ins.severity} Alert</span>
+                        {ins.severity}
                       </span>
-
                       <h3 className="text-sm font-bold text-text">{ins.title}</h3>
-
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-surface-2 border border-line text-text-muted">
-                        Variance: {ins.changePct > 0 ? "+" : ""}{ins.changePct.toFixed(1)}%
-                      </span>
                     </div>
 
-                    {/* Status Dropdown */}
-                    <div className="flex items-center gap-2 text-xs shrink-0">
-                      <span className="text-[11px] text-text-muted font-medium">Incident Lifecycle:</span>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-[11px] text-text-muted">Status:</span>
                       <select
                         value={ins.status}
                         onChange={(e) => handleStatusChange(ins.id, e.target.value)}
-                        className="px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-xs font-semibold text-text focus:outline-none cursor-pointer"
+                        className="px-2 py-1 rounded-md bg-surface-2 border border-line text-xs font-medium text-text focus:outline-none cursor-pointer"
                       >
                         <option value="detected">Detected</option>
                         <option value="action_recommended">Action Recommended</option>
@@ -497,139 +429,98 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
                   </div>
 
                   {/* AI Root Cause Synthesis */}
-                  <div className="p-4 rounded-xl bg-surface-2 border border-line space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-md bg-brass/10 flex items-center justify-center text-brass">
-                        <Sparkles className="w-3 h-3" />
-                      </div>
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-brass">
-                        Executive Copilot Synthesis • Uncertainty Rating: {ins.rootCauseAnalysis.uncertaintyRating.toUpperCase()}
-                      </span>
+                  <div className="p-3.5 rounded-lg bg-surface-2/60 border border-line space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-text">
+                      <Info className="w-3.5 h-3.5 text-brass" />
+                      <span>Root Cause Summary</span>
                     </div>
-                    <p className="text-xs text-text leading-relaxed font-sans font-medium selection:bg-brass/20">
+                    <p className="text-xs text-text-muted leading-relaxed font-sans">
                       {ins.rootCauseAnalysis.summary}
                     </p>
                   </div>
 
-                  {/* Telemetry Facts vs Contributing Factors */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Verified Telemetry */}
-                    <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Verified Telemetry Facts</span>
-                        </span>
-                        <span className="text-[9px] font-mono uppercase text-emerald-600/70 dark:text-emerald-400/70">
-                          Ground Truth
-                        </span>
-                      </div>
-                      <ul className="space-y-1.5 text-xs text-text-muted">
+                  {/* Facts vs Hypotheses */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-surface-2/40 border border-line space-y-2">
+                      <span className="text-xs font-bold text-text flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>Observed Telemetry</span>
+                      </span>
+                      <ul className="space-y-1 text-xs text-text-muted">
                         {ins.rootCauseAnalysis.verifiedFacts.map((fact, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                            <span className="leading-relaxed">{fact}</span>
+                          <li key={idx} className="flex items-start gap-1.5">
+                            <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                            <span>{fact}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
 
-                    {/* Contributing Hypotheses */}
-                    <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
-                          <HelpCircle className="w-4 h-4" />
-                          <span>Contributing Factors & Hypotheses</span>
-                        </span>
-                        <span className="text-[9px] font-mono uppercase text-indigo-600/70 dark:text-indigo-400/70">
-                          Probabilistic
-                        </span>
-                      </div>
-                      <ul className="space-y-1.5 text-xs text-text-muted">
+                    <div className="p-3 rounded-lg bg-surface-2/40 border border-line space-y-2">
+                      <span className="text-xs font-bold text-text flex items-center gap-1.5">
+                        <Info className="w-3.5 h-3.5 text-brass" />
+                        <span>Contributing Factors</span>
+                      </span>
+                      <ul className="space-y-1 text-xs text-text-muted">
                         {ins.rootCauseAnalysis.hypotheses.map((hyp, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                            <span className="leading-relaxed">{hyp}</span>
+                          <li key={idx} className="flex items-start gap-1.5">
+                            <span className="w-1 h-1 rounded-full bg-brass mt-1.5 shrink-0" />
+                            <span>{hyp}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                   </div>
 
-                  {/* Correlated Memory Documents */}
-                  {ins.evidenceSummary.relatedDocuments && ins.evidenceSummary.relatedDocuments.length > 0 && (
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted">
-                        Correlated Company Memory Documents:
-                      </span>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {ins.evidenceSummary.relatedDocuments.map((doc, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-text"
-                          >
-                            <FileText className="w-3.5 h-3.5 text-brass" />
-                            <span className="font-semibold">{doc.title}</span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Recommended Action Workflows */}
                   {ins.recommendedActions.length > 0 && (
-                    <div className="space-y-3 pt-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-text flex items-center gap-2">
-                          <Layers className="w-4 h-4 text-brass" />
-                          <span>Approved Executive Action Workflows & 1-Click Operations</span>
-                        </h4>
-                        <span className="text-[10px] font-mono text-text-muted">Requires executive sign-off</span>
-                      </div>
+                    <div className="space-y-2.5 pt-1">
+                      <h4 className="text-xs font-bold text-text flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-brass" />
+                        <span>Recommended Corrective Actions</span>
+                      </h4>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {ins.recommendedActions.map((action) => (
                           <div
                             key={action.key}
-                            className="p-4 rounded-xl bg-surface-2 border border-line flex flex-col justify-between space-y-3 shadow-2xs hover:border-line-strong transition-all"
+                            className="p-3.5 rounded-lg bg-surface-2/50 border border-line flex flex-col justify-between space-y-2.5"
                           >
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-surface border border-line text-brass">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between text-[11px] text-text-muted">
+                                <span className="font-semibold text-text uppercase text-[10px]">
                                   {action.targetDepartment}
                                 </span>
-                                <span className="text-[10px] text-text-muted font-mono">
-                                  Owner: {action.suggestedOwner}
-                                </span>
+                                <span>Owner: {action.suggestedOwner}</span>
                               </div>
                               <h5 className="text-xs font-bold text-text">{action.title}</h5>
                               <p className="text-xs text-text-muted leading-relaxed">
                                 {action.description}
                               </p>
-                              <div className="p-2 rounded-lg bg-surface border border-line/60 text-[11px] text-brass font-medium">
-                                Expected Impact: {action.expectedImpact}
+                              <div className="text-[11px] text-brass">
+                                Impact: {action.expectedImpact}
                               </div>
                             </div>
 
                             <div className="pt-2 border-t border-line/60 flex items-center justify-between">
-                              <span className="text-[10px] font-mono text-text-muted uppercase">
+                              <span className="text-[10px] text-text-muted uppercase">
                                 Priority: {action.priority}
                               </span>
 
                               {action.status === "task_created" ? (
-                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/25">
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                   <Check className="w-3.5 h-3.5" />
-                                  <span>Task Created ({action.taskId})</span>
+                                  <span>Task Created</span>
                                 </span>
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() => handleApproveAction(ins.id, action.key)}
                                   disabled={approvingActionKey === action.key}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brass text-white text-xs font-bold hover:brightness-110 btn-tactile cursor-pointer shadow-2xs disabled:opacity-50"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer disabled:opacity-50"
                                 >
                                   <Play className="w-3 h-3" />
-                                  <span>{approvingActionKey === action.key ? "Provisioning Task…" : "Approve & Create Task"}</span>
+                                  <span>{approvingActionKey === action.key ? "Creating…" : "Approve & Create Task"}</span>
                                 </button>
                               )}
                             </div>
@@ -647,52 +538,33 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
 
       {/* TAB 2: CONFIGURED KPIS */}
       {activeTab === "kpis" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {kpis.map((kpi) => (
             <div
               key={kpi.id}
-              className="p-5 rounded-2xl bg-surface border border-line space-y-4 hover:border-line-strong transition-all flex flex-col justify-between shadow-2xs"
+              className="p-4 rounded-xl bg-surface border border-line space-y-3 flex flex-col justify-between"
             >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-surface-2 border border-line text-brass">
-                    {kpi.frequency}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    Active Guardrail
-                  </span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[10px] text-text-muted">
+                  <span className="font-semibold uppercase">{kpi.frequency}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Active</span>
                 </div>
-
                 <div>
                   <h4 className="text-xs font-bold text-text">{kpi.name}</h4>
-                  <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                  <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
                     {kpi.description}
                   </p>
                 </div>
-
-                {/* Tolerance Progress Gauge */}
-                <div className="space-y-1 pt-1">
-                  <div className="flex justify-between text-[10px] text-text-muted font-mono">
-                    <span>Critical: {kpi.criticalThreshold ?? "--"}</span>
-                    <span>Target: {kpi.targetValue ?? "--"}</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-surface-2 rounded-full overflow-hidden flex">
-                    <div className="w-1/3 bg-rose-500/80" />
-                    <div className="w-1/3 bg-amber-500/80" />
-                    <div className="w-1/3 bg-emerald-500/80" />
-                  </div>
-                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-center p-2.5 rounded-xl bg-surface-2 border border-line text-[11px]">
+              <div className="grid grid-cols-2 gap-2 text-center p-2 rounded-lg bg-surface-2 border border-line text-xs font-mono">
                 <div>
-                  <span className="block text-[9px] text-text-muted uppercase font-mono tracking-wider">Target</span>
-                  <span className="font-bold font-mono text-text">{kpi.targetValue ?? "N/A"}</span>
+                  <span className="block text-[10px] text-text-muted uppercase font-sans">Target</span>
+                  <span className="font-bold text-text">{kpi.targetValue ?? "N/A"}</span>
                 </div>
                 <div>
-                  <span className="block text-[9px] text-text-muted uppercase font-mono tracking-wider">Warning</span>
-                  <span className="font-bold font-mono text-amber-500">{kpi.warningThreshold ?? "N/A"}</span>
+                  <span className="block text-[10px] text-text-muted uppercase font-sans">Warning</span>
+                  <span className="font-bold text-amber-500">{kpi.warningThreshold ?? "N/A"}</span>
                 </div>
               </div>
             </div>
@@ -702,21 +574,20 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
 
       {/* TAB 3: STATISTICAL FORECASTING */}
       {activeTab === "forecast" && (
-        <div className="space-y-6">
-          {/* Target Metric Switcher Bar */}
-          <div className="flex items-center justify-between flex-wrap gap-3 p-3 sm:p-4 rounded-2xl bg-surface border border-line shadow-2xs">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2 p-3 rounded-xl bg-surface border border-line">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-text">Forecast Target Metric:</span>
-              <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-line">
+              <span className="text-xs font-medium text-text">Target Metric:</span>
+              <div className="flex items-center gap-1 bg-surface-2 p-0.5 rounded-lg border border-line">
                 <button
                   type="button"
                   onClick={() => {
                     setForecastMetric("revenue");
                     fetchForecast("revenue");
                   }}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer ${
                     forecastMetric === "revenue"
-                      ? "bg-surface text-text shadow-2xs font-bold border border-line/60"
+                      ? "bg-surface text-text shadow-xs"
                       : "text-text-muted hover:text-text"
                   }`}
                 >
@@ -728,9 +599,9 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
                     setForecastMetric("burn");
                     fetchForecast("burn");
                   }}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer ${
                     forecastMetric === "burn"
-                      ? "bg-surface text-text shadow-2xs font-bold border border-line/60"
+                      ? "bg-surface text-text shadow-xs"
                       : "text-text-muted hover:text-text"
                   }`}
                 >
@@ -743,62 +614,54 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
               type="button"
               onClick={() => fetchForecast(forecastMetric)}
               disabled={isLoadingForecast}
-              className="p-2 rounded-xl bg-surface-2 border border-line text-text-muted hover:text-text cursor-pointer transition-all disabled:opacity-50"
-              title="Refresh forecast model"
+              className="p-1.5 rounded-lg bg-surface-2 border border-line text-text-muted hover:text-text cursor-pointer"
+              title="Refresh forecast"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoadingForecast ? "animate-spin text-brass" : ""}`} />
             </button>
           </div>
 
           {forecast && (
-            <div className="rounded-2xl border border-line bg-surface p-6 space-y-6 shadow-2xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
+            <div className="rounded-xl border border-line bg-surface p-5 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-line">
                 <div>
-                  <h3 className="text-sm font-bold text-text">{forecast.metric} Trajectory Model</h3>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {forecast.methodology} • Confidence Level: {forecast.confidenceLevel}
-                  </p>
+                  <h3 className="text-sm font-bold text-text">{forecast.metric} Trajectory</h3>
+                  <p className="text-xs text-text-muted">{forecast.methodology}</p>
                 </div>
-                <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  <span>{forecast.growthRatePct > 0 ? "+" : ""}{forecast.growthRatePct}% Monthly Drift</span>
+                <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  {forecast.growthRatePct > 0 ? "+" : ""}{forecast.growthRatePct}% Monthly Drift
                 </span>
               </div>
 
-              {/* Data Table with Confidence Intervals */}
-              <div className="overflow-x-auto rounded-xl border border-line">
+              <div className="overflow-x-auto rounded-lg border border-line">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-surface-2 border-b border-line">
-                    <tr className="text-text-muted text-[11px] font-mono">
-                      <th className="py-2.5 px-3">Period</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3">Expected (INR)</th>
-                      <th className="py-2.5 px-3">80% Lower Bound</th>
-                      <th className="py-2.5 px-3">80% Upper Bound</th>
+                    <tr className="text-text-muted text-[11px]">
+                      <th className="py-2 px-3">Period</th>
+                      <th className="py-2 px-3">Status</th>
+                      <th className="py-2 px-3">Expected (INR)</th>
+                      <th className="py-2 px-3">80% Lower Bound</th>
+                      <th className="py-2 px-3">80% Upper Bound</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
                     {forecast.periods.map((p, idx) => (
-                      <tr key={idx} className={p.type === "projected" ? "bg-brass/5" : "hover:bg-surface-2/40"}>
-                        <td className="py-2.5 px-3 font-bold text-text font-mono">{p.period}</td>
-                        <td className="py-2.5 px-3">
-                          <span
-                            className={`text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                              p.type === "projected"
-                                ? "bg-brass/15 text-brass border-brass/30"
-                                : "bg-surface-2 text-text-muted border-line"
-                            }`}
-                          >
+                      <tr key={idx} className={p.type === "projected" ? "bg-brass/5" : ""}>
+                        <td className="py-2 px-3 font-semibold text-text">{p.period}</td>
+                        <td className="py-2 px-3">
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                            p.type === "projected" ? "bg-brass/10 text-brass" : "bg-surface-2 text-text-muted"
+                          }`}>
                             {p.type}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 font-mono font-bold text-text">
+                        <td className="py-2 px-3 font-mono font-semibold text-text">
                           ₹{p.expected.toLocaleString("en-IN")}
                         </td>
-                        <td className="py-2.5 px-3 font-mono text-text-muted">
+                        <td className="py-2 px-3 font-mono text-text-muted">
                           ₹{p.lowerBound.toLocaleString("en-IN")}
                         </td>
-                        <td className="py-2.5 px-3 font-mono text-text-muted">
+                        <td className="py-2 px-3 font-mono text-text-muted">
                           ₹{p.upperBound.toLocaleString("en-IN")}
                         </td>
                       </tr>
@@ -807,27 +670,26 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
                 </table>
               </div>
 
-              {/* Assumptions & Model Limitations */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                <div className="p-4 rounded-xl bg-surface-2 border border-line space-y-2">
-                  <span className="text-xs font-bold text-text block">Model Assumptions:</span>
-                  <ul className="space-y-1.5 text-xs text-text-muted">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <div className="p-3 rounded-lg bg-surface-2/40 border border-line space-y-1">
+                  <span className="text-xs font-semibold text-text block">Model Assumptions:</span>
+                  <ul className="space-y-1 text-xs text-text-muted">
                     {forecast.assumptions.map((a, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-brass mt-1.5 shrink-0" />
-                        <span className="leading-relaxed">{a}</span>
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="w-1 h-1 rounded-full bg-brass mt-1.5 shrink-0" />
+                        <span>{a}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="p-4 rounded-xl bg-surface-2 border border-line space-y-2">
-                  <span className="text-xs font-bold text-amber-500 block">Limitations & Horizon Disclosure:</span>
-                  <ul className="space-y-1.5 text-xs text-text-muted">
+                <div className="p-3 rounded-lg bg-surface-2/40 border border-line space-y-1">
+                  <span className="text-xs font-semibold text-text block">Limitations:</span>
+                  <ul className="space-y-1 text-xs text-text-muted">
                     {forecast.limitations.map((l, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                        <span className="leading-relaxed">{l}</span>
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="w-1 h-1 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                        <span>{l}</span>
                       </li>
                     ))}
                   </ul>

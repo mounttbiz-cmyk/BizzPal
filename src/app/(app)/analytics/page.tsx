@@ -200,27 +200,18 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Enterprise Platform Header */}
+      {/* Platform Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line select-none">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-2xs">
             <TrendingUp className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base sm:text-lg font-bold text-text truncate tracking-tight font-sans">
-                Adaptive Analytics & Intelligence
-              </h1>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-surface-2 border border-line text-text-muted shrink-0">
-                {industryName}
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Live Telemetry</span>
-              </span>
-            </div>
+            <h1 className="text-base sm:text-lg font-bold text-text tracking-tight font-sans">
+              Adaptive Analytics
+            </h1>
             <p className="text-xs text-text-muted truncate mt-0.5">
-              Live performance telemetry, forward-looking financial benchmarks, and anomaly diagnostics powering {companyName}
+              Performance telemetry, predictive forecasts, and proactive anomaly diagnostics powering {companyName}
             </p>
           </div>
         </div>
@@ -245,13 +236,13 @@ export default function AnalyticsPage() {
         </div>
       )}
 
-      {/* Enterprise Underlined View Navigation */}
+      {/* View Navigation */}
       <nav
         aria-label="Analytics view switcher"
         className="flex items-center gap-1 sm:gap-2 border-b border-line pb-0 select-none overflow-x-auto"
       >
         {[
-          { id: "realtime_bi" as const, label: "Real-Time BI & Proactive Insights", icon: Activity, live: true, badge: "Autonomous" },
+          { id: "realtime_bi" as const, label: "Real-Time BI & Insights", icon: Activity },
           { id: "telemetry" as const, label: "Role Telemetry & Simulation", icon: TrendingUp },
         ].map((tab) => {
           const isActive = analyticsView === tab.id;
@@ -270,16 +261,6 @@ export default function AnalyticsPage() {
             >
               <Icon className="w-4 h-4 shrink-0" />
               <span>{tab.label}</span>
-
-              {tab.live && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              )}
-
-              {tab.badge && (
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-brass/15 text-brass border border-brass/30">
-                  {tab.badge}
-                </span>
-              )}
 
               {isActive && (
                 <span
