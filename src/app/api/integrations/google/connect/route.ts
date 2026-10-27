@@ -15,7 +15,10 @@ export async function GET(req: NextRequest) {
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
   const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
   const proto = isLocal ? (req.headers.get("x-forwarded-proto") || "http") : "https";
-  const origin = configuredOrigin || `${proto}://${host}`;
+  let origin = configuredOrigin || `${proto}://${host}`;
+  if (!isLocal && origin.startsWith("http://")) {
+    origin = origin.replace(/^http:\/\//, "https://");
+  }
   const redirectUri = `${origin}/api/integrations/google/callback`;
 
   // Get optional state parameter (e.g. source: 'onboarding' | 'integrations' | 'settings')

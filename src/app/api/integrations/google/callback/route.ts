@@ -21,7 +21,10 @@ export async function GET(req: NextRequest) {
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
   const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
   const proto = isLocal ? (req.headers.get("x-forwarded-proto") || "http") : "https";
-  const currentOrigin = configuredOrigin || requestOrigin || `${proto}://${host}`;
+  let currentOrigin = configuredOrigin || requestOrigin || `${proto}://${host}`;
+  if (!isLocal && currentOrigin.startsWith("http://")) {
+    currentOrigin = currentOrigin.replace(/^http:\/\//, "https://");
+  }
   const redirectUri = `${currentOrigin}/api/integrations/google/callback`;
 
   // Handle OAuth error or user rejection
