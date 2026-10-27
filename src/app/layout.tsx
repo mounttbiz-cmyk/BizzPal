@@ -3,37 +3,6 @@ import "./globals.css";
 import { themeInitScript } from "@/lib/theme/themeScript";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { AuthProvider } from "@/lib/firebase/authContext";
-import { Plus_Jakarta_Sans, Newsreader, Space_Grotesk, Inter } from "next/font/google";
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600"],
-  variable: "--font-serif",
-  display: "swap",
-  adjustFontFallback: false,
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-space-grotesk",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-inter",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "BizzPal — AI Business Operating System",
@@ -56,11 +25,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${plusJakartaSans.variable} ${newsreader.variable} ${spaceGrotesk.variable} ${inter.variable}`}
+      className="dark"
       data-theme="dark"
       suppressHydrationWarning
     >
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
         <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
         <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
