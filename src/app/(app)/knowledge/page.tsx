@@ -402,35 +402,38 @@ export default function KnowledgeHubPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Top Header with Mandatory One-Line Summary */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-brass-soft flex items-center justify-center text-brass">
-              <BookOpen className="w-4 h-4" />
+      {/* Enterprise Platform Header */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line select-none">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-2xs">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-lg font-bold text-text truncate tracking-tight font-sans">
+                Knowledge Hub & Company Memory
+              </h1>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-surface-2 border border-line text-text-muted shrink-0">
+                Context Engine
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Vector RAG Active</span>
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-text">Knowledge Hub & Business Intelligence</h1>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider">
-                  Live Context Engine
-                </span>
-              </div>
-              {/* One-Line Summary */}
-              <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
-                Central repository for company operating playbooks, live market news, and regulatory business intelligence powering {companyName}.
-              </p>
-            </div>
+            <p className="text-xs text-text-muted truncate mt-0.5">
+              Persistent memory, vector-indexed documents, corporate ground truths, and live market intelligence powering {companyName}
+            </p>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={handleRefreshNews}
             disabled={isRefreshingNews}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text hover:bg-surface hover:border-line-strong transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text hover:bg-surface hover:border-line-strong transition-all cursor-pointer shadow-2xs disabled:opacity-50"
             title="Refresh Live Business Feeds"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-brass ${isRefreshingNews ? "animate-spin" : ""}`} />
@@ -440,96 +443,85 @@ export default function KnowledgeHubPage() {
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brass text-white text-xs font-bold shadow-sm hover:brightness-110 btn-tactile cursor-pointer self-start sm:self-auto"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brass text-white text-xs font-bold shadow-2xs hover:brightness-110 btn-tactile cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Knowledge / News</span>
+            <span>Add Knowledge</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {toastMessage && (
-        <div className="p-3 rounded-xl bg-brass-soft border border-brass/30 text-xs font-medium text-brass flex items-center gap-2 animate-fade-in">
-          <CheckCircle2 className="w-4 h-4 text-brass" />
+        <div className="p-3 rounded-xl bg-brass/10 border border-brass/30 text-xs font-medium text-brass flex items-center gap-2 animate-fade-in shadow-2xs">
+          <CheckCircle2 className="w-4 h-4 text-brass shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Main Mode Tab Switcher */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-1.5 bg-surface-2/60 border border-line rounded-2xl">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setActiveTab("memory")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "memory"
-                ? "bg-brass text-white shadow-xs"
-                : "text-text-muted hover:text-text hover:bg-surface"
-            }`}
-          >
-            <BrainCircuit className="w-3.5 h-3.5" />
-            <span>Ask Company Memory</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          </button>
+      {/* Enterprise Underlined Tab Bar */}
+      <nav
+        aria-label="Knowledge hub navigation"
+        className="flex items-center gap-1 sm:gap-2 border-b border-line pb-0 select-none overflow-x-auto"
+      >
+        {[
+          { id: "memory" as const, label: "Ask Company Memory", icon: BrainCircuit, badge: "AI Core", live: true },
+          { id: "documents" as const, label: "Documents & Ingestion", icon: FileText, count: undefined },
+          { id: "facts" as const, label: "Corporate Facts", icon: ShieldCheck, count: undefined },
+          { id: "playbooks" as const, label: "SOPs & Playbooks", icon: BookOpen, count: docs.length },
+          { id: "news" as const, label: "Market Intelligence", icon: Newspaper, count: newsList.length },
+        ].map((tab) => {
+          const isActive = activeTab === tab.id;
+          const Icon = tab.icon;
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("documents")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "documents"
-                ? "bg-brass text-white shadow-xs"
-                : "text-text-muted hover:text-text hover:bg-surface"
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Documents & Ingestion</span>
-          </button>
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative pb-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                isActive
+                  ? "text-brass font-bold"
+                  : "text-text-muted hover:text-text"
+              }`}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span>{tab.label}</span>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("facts")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "facts"
-                ? "bg-brass text-white shadow-xs"
-                : "text-text-muted hover:text-text hover:bg-surface"
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Persistent Facts</span>
-          </button>
+              {tab.live && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              )}
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("playbooks")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "playbooks"
-                ? "bg-brass text-white shadow-xs"
-                : "text-text-muted hover:text-text hover:bg-surface"
-            }`}
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>SOPs & Playbooks ({docs.length})</span>
-          </button>
+              {tab.badge && (
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-brass/15 text-brass border border-brass/30">
+                  {tab.badge}
+                </span>
+              )}
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("news")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "news"
-                ? "bg-cyan-500 text-slate-950 shadow-xs font-extrabold"
-                : "text-text-muted hover:text-text hover:bg-surface"
-            }`}
-          >
-            <Newspaper className="w-3.5 h-3.5" />
-            <span>Live Intel ({newsList.length})</span>
-          </button>
-        </div>
+              {tab.count !== undefined && (
+                <span
+                  className={`text-[10px] font-sans font-bold px-1.5 py-0.2 rounded-full border ${
+                    isActive
+                      ? "bg-brass/15 border-brass/40 text-brass"
+                      : "bg-surface-2 border-line text-text-muted"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              )}
 
-        <div className="flex items-center gap-2 px-3 text-[11px] text-text-muted">
-          <Radio className="w-3 h-3 text-emerald-500 animate-pulse" />
-          <span>pgvector Engine Active</span>
-        </div>
-      </div>
+              {/* Active Indicator Underline */}
+              {isActive && (
+                <span
+                  aria-hidden="true"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-brass rounded-t-full shadow-xs"
+                />
+              )}
+            </button>
+          );
+        })}
+      </nav>
 
       {/* SECTION: ASK COMPANY MEMORY */}
       {activeTab === "memory" && (

@@ -200,76 +200,97 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-brass-soft flex items-center justify-center text-brass">
-              <TrendingUp className="w-4 h-4" />
+      {/* Enterprise Platform Header */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line select-none">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-2xs">
+            <TrendingUp className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-lg font-bold text-text truncate tracking-tight font-sans">
+                Adaptive Analytics & Intelligence
+              </h1>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-surface-2 border border-line text-text-muted shrink-0">
+                {industryName}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live Telemetry</span>
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-text">Adaptive Analytics</h1>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider font-mono">
-                  {industryName}
-                </span>
-              </div>
-              <p className="text-xs text-text-muted mt-1 font-medium">
-                Live performance telemetry and forward-looking financial benchmarks that pinpoint revenue leaks and growth opportunities for {companyName}.
-              </p>
-            </div>
+            <p className="text-xs text-text-muted truncate mt-0.5">
+              Live performance telemetry, forward-looking financial benchmarks, and anomaly diagnostics powering {companyName}
+            </p>
           </div>
         </div>
 
         {/* Controls: Export */}
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={handleExport}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brass text-white text-xs font-semibold shadow-sm hover:brightness-110 btn-tactile cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brass text-white text-xs font-bold shadow-2xs hover:brightness-110 btn-tactile cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export Analytics</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {exportNotice && (
-        <div className="p-3.5 rounded-xl bg-brass-soft border border-brass/30 text-xs font-semibold text-brass flex items-center gap-2 animate-fade-in">
-          <CheckCircle2 className="w-4 h-4 text-brass" />
+        <div className="p-3 rounded-xl bg-brass/10 border border-brass/30 text-xs font-semibold text-brass flex items-center gap-2 animate-fade-in shadow-2xs">
+          <CheckCircle2 className="w-4 h-4 text-brass shrink-0" />
           <span>{exportNotice}</span>
         </div>
       )}
 
-      {/* Analytics View Switcher */}
-      <div className="flex items-center gap-2 p-1.5 bg-surface-2/60 border border-line rounded-2xl w-fit">
-        <button
-          type="button"
-          onClick={() => setAnalyticsView("realtime_bi")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
-            analyticsView === "realtime_bi"
-              ? "bg-brass text-white shadow-xs"
-              : "text-text-muted hover:text-text hover:bg-surface"
-          }`}
-        >
-          <Activity className="w-3.5 h-3.5" />
-          <span>Real-Time BI & Proactive Insights</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        </button>
+      {/* Enterprise Underlined View Navigation */}
+      <nav
+        aria-label="Analytics view switcher"
+        className="flex items-center gap-1 sm:gap-2 border-b border-line pb-0 select-none overflow-x-auto"
+      >
+        {[
+          { id: "realtime_bi" as const, label: "Real-Time BI & Proactive Insights", icon: Activity, live: true, badge: "Autonomous" },
+          { id: "telemetry" as const, label: "Role Telemetry & Simulation", icon: TrendingUp },
+        ].map((tab) => {
+          const isActive = analyticsView === tab.id;
+          const Icon = tab.icon;
 
-        <button
-          type="button"
-          onClick={() => setAnalyticsView("telemetry")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all btn-tactile cursor-pointer flex items-center gap-1.5 ${
-            analyticsView === "telemetry"
-              ? "bg-brass text-white shadow-xs"
-              : "text-text-muted hover:text-text hover:bg-surface"
-          }`}
-        >
-          <TrendingUp className="w-3.5 h-3.5" />
-          <span>Role Telemetry & Simulation</span>
-        </button>
-      </div>
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setAnalyticsView(tab.id)}
+              className={`relative pb-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                isActive ? "text-brass font-bold" : "text-text-muted hover:text-text"
+              }`}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span>{tab.label}</span>
+
+              {tab.live && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              )}
+
+              {tab.badge && (
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-brass/15 text-brass border border-brass/30">
+                  {tab.badge}
+                </span>
+              )}
+
+              {isActive && (
+                <span
+                  aria-hidden="true"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-brass rounded-t-full shadow-xs"
+                />
+              )}
+            </button>
+          );
+        })}
+      </nav>
 
       {analyticsView === "realtime_bi" && (
         <RealTimeBiSection companyName={companyName} />

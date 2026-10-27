@@ -13,6 +13,12 @@ import {
   BookOpen,
   ArrowRight,
   ExternalLink,
+  Layers,
+  Database,
+  CornerDownLeft,
+  X,
+  FileSpreadsheet,
+  FileCode,
 } from "lucide-react";
 
 interface Citation {
@@ -48,9 +54,21 @@ export function AskMemorySection({ companyName = "Your Business" }: { companyNam
   const [activeCitation, setActiveCitation] = useState<Citation | null>(null);
 
   const sampleQuestions = [
-    "What marketing strategy did we use last year, and how successful was it?",
-    "What are our cash runway and burn protocols?",
-    "What are our core enterprise sales benchmarks and margins?",
+    {
+      label: "Q4 Marketing Strategy & CAC",
+      query: "What marketing strategy did we use last year, and how successful was it?",
+      icon: Sparkles,
+    },
+    {
+      label: "Cash Runway & Burn Safeguards",
+      query: "What are our cash runway and burn protocols?",
+      icon: ShieldCheck,
+    },
+    {
+      label: "Enterprise Margin & Pricing Mandates",
+      query: "What are our core enterprise sales benchmarks and margins?",
+      icon: Database,
+    },
   ];
 
   const handleSearch = async (queryText?: string) => {
@@ -80,75 +98,102 @@ export function AskMemorySection({ companyName = "Your Business" }: { companyNam
     }
   };
 
+  const getDocIcon = (fileName: string) => {
+    const ext = fileName.split(".").pop()?.toLowerCase();
+    if (ext === "csv" || ext === "xlsx") return FileSpreadsheet;
+    if (ext === "json" || ext === "md") return FileCode;
+    return FileText;
+  };
+
   return (
     <div className="space-y-6">
-      {/* Search Input Banner */}
-      <div className="relative rounded-2xl p-6 bg-gradient-to-br from-surface to-surface-2 border border-line shadow-xs overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-brass/5 rounded-full blur-3xl pointer-events-none" />
+      {/* Enterprise Search Console Hero */}
+      <div className="relative rounded-2xl bg-surface border border-line p-6 sm:p-7 shadow-theme overflow-hidden transition-all duration-300">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brass/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
 
-        <div className="max-w-3xl space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-brass">
-              Persistent Company Memory • pgvector Semantic Search
+        <div className="relative z-10 max-w-4xl space-y-4">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[10px] font-semibold font-mono uppercase tracking-wider bg-brass/10 text-brass border border-brass/25">
+              <span className="w-1.5 h-1.5 rounded-full bg-brass animate-pulse" />
+              <span>pgvector Semantic Search</span>
+            </span>
+            <span className="inline-flex items-center gap-1 h-6 px-2.5 rounded-full text-[10px] font-mono font-medium text-text-muted bg-surface-2 border border-line">
+              <span>HNSW Cosine Operator</span>
             </span>
           </div>
 
-          <h2 className="text-xl font-bold text-text">
-            Ask BizzPal about {companyName}&apos;s Knowledge & Strategy
-          </h2>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-text tracking-tight font-sans">
+              Natural Language Company Memory Console
+            </h2>
+            <p className="text-xs sm:text-sm text-text-muted mt-1 leading-relaxed max-w-3xl">
+              Query verified business documents, board minutes, operational SOPs, and pricing policies. BizzPal returns source-backed evidence with grounded citations.
+            </p>
+          </div>
 
-          <p className="text-xs text-text-muted leading-relaxed">
-            Query all uploaded contracts, board memos, quarterly reports, and business records using natural language.
-            BizzPal searches vector embeddings, retrieves exact citations, and separates verified facts from inferences.
-          </p>
-
+          {/* Search Bar Form */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSearch();
             }}
-            className="flex items-center gap-2 pt-2"
+            className="pt-2"
           >
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <div className="relative flex items-center rounded-xl bg-surface-2/80 border border-line hover:border-line-strong focus-within:border-brass/70 focus-within:ring-2 focus-within:ring-brass/20 transition-all p-1.5 shadow-inner">
+              <div className="flex items-center justify-center pl-3 pr-2 text-text-muted">
+                <Search className="w-4 h-4 text-brass" />
+              </div>
               <input
                 type="text"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Ask anything (e.g. What marketing strategy did we use last year, and how successful was it?)..."
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:border-brass/70 focus:ring-1 focus:ring-brass/30 transition-all shadow-inner"
+                placeholder="Ask BizzPal anything about your business strategy, contracts, or financial history…"
+                className="w-full bg-transparent py-2.5 pr-3 text-xs sm:text-sm text-text placeholder:text-text-muted/60 focus:outline-none"
               />
+              {question && (
+                <button
+                  type="button"
+                  onClick={() => setQuestion("")}
+                  className="p-1.5 text-text-muted hover:text-text cursor-pointer mr-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={isLoading || !question.trim()}
+                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-brass text-white text-xs font-bold hover:brightness-110 btn-tactile disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs shrink-0"
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+                <span>{isLoading ? "Searching…" : "Search"}</span>
+                <CornerDownLeft className="w-3 h-3 text-white/70 ml-0.5 hidden sm:inline-block" />
+              </button>
             </div>
-            <button
-              type="submit"
-              disabled={isLoading || !question.trim()}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 btn-tactile disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
-            >
-              <Sparkles className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-              <span>{isLoading ? "Retrieving…" : "Query Memory"}</span>
-            </button>
           </form>
 
-          {/* Sample Prompts */}
+          {/* Quick Prompt Capsules */}
           <div className="flex items-center gap-2 flex-wrap pt-1">
-            <span className="text-[11px] text-text-muted font-medium">Try asking:</span>
-            {sampleQuestions.map((sq, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => handleSearch(sq)}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-2/80 hover:bg-surface border border-line hover:border-line-strong text-text-muted hover:text-text transition-all cursor-pointer text-left"
-              >
-                &ldquo;{sq}&rdquo;
-              </button>
-            ))}
+            <span className="text-[11px] font-mono text-text-muted/80 uppercase tracking-wider">Example Prompts:</span>
+            {sampleQuestions.map((sq, i) => {
+              const IconComp = sq.icon;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleSearch(sq.query)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-line hover:border-brass/40 text-[11px] font-medium text-text-muted hover:text-text transition-all cursor-pointer text-left shadow-2xs group"
+                >
+                  <IconComp className="w-3 h-3 text-brass/70 group-hover:text-brass transition-colors" />
+                  <span>{sq.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 dark:text-rose-400 text-xs flex items-center gap-2.5 animate-fade-in font-medium">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -156,77 +201,88 @@ export function AskMemorySection({ companyName = "Your Business" }: { companyNam
 
       {/* Answer Output */}
       {result && (
-        <div className="rounded-2xl border border-line bg-surface p-6 space-y-6 shadow-xs animate-fade-in">
+        <div className="rounded-2xl border border-line bg-surface p-6 sm:p-7 space-y-6 shadow-theme animate-fade-in">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-line">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-brass-soft flex items-center justify-center text-brass">
-                <BrainCircuit className="w-4 h-4" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shadow-2xs">
+                <BrainCircuit className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-text">Synthesized Business Intelligence Answer</h3>
-                <p className="text-[11px] text-text-muted">
-                  Grounded response with {result.citations.length} document citations
+                <h3 className="text-sm sm:text-base font-bold text-text tracking-tight font-sans">
+                  Synthesized Grounded Intelligence
+                </h3>
+                <p className="text-[11px] font-mono text-text-muted mt-0.5">
+                  Extracted from company vectors with {result.citations.length} cited source chunks
                 </p>
               </div>
             </div>
 
             <span
-              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+              className={`inline-flex items-center gap-1.5 h-6 px-3 rounded-full text-[10px] font-semibold font-mono uppercase tracking-wider ${
                 result.hasSufficientContext
-                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                  : "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                  ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/25"
+                  : "bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/25"
               }`}
             >
-              {result.hasSufficientContext ? "Source-Backed & Grounded" : "Limited Document Coverage"}
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  result.hasSufficientContext ? "bg-emerald-500" : "bg-amber-500"
+                }`}
+              />
+              <span>{result.hasSufficientContext ? "Verified Ground Truth" : "Limited Context Coverage"}</span>
             </span>
           </div>
 
           {/* AI Response Body */}
-          <div className="prose prose-invert max-w-none text-xs text-text/90 leading-relaxed space-y-3 whitespace-pre-line bg-surface-2/40 p-4 rounded-xl border border-line">
+          <div className="p-4 sm:p-5 rounded-xl bg-surface-2/60 border border-line text-xs sm:text-sm text-text/90 leading-relaxed space-y-3 whitespace-pre-line font-sans selection:bg-brass/20">
             {result.answer}
           </div>
 
-          {/* Fact vs Inference Separation */}
+          {/* Fact vs Inference Separation Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Verified Facts */}
-            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-2.5">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                <ShieldCheck className="w-4 h-4" />
-                <span>Verified Business Facts (From Sources)</span>
+            <div className="p-4 sm:p-5 rounded-xl bg-emerald-500/[0.04] border border-emerald-500/20 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 font-sans">
+                <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <span>Verified Business Facts (From Source)</span>
               </div>
               {result.verifiedFacts.length > 0 ? (
-                <ul className="space-y-1.5 text-[11px] text-text-muted">
+                <ul className="space-y-2 text-xs text-text-muted">
                   {result.verifiedFacts.map((fact, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                    <li key={idx} className="flex items-start gap-2 leading-relaxed">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                       <span>{fact}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-[11px] text-text-muted">Extracted directly from matched document sections.</p>
+                <p className="text-xs text-text-muted">Extracted directly from matching vector chunks.</p>
               )}
             </div>
 
             {/* Inferred Conclusions */}
-            <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 space-y-2.5">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-400">
-                <HelpCircle className="w-4 h-4" />
+            <div className="p-4 sm:p-5 rounded-xl bg-amber-500/[0.04] border border-amber-500/20 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-900 dark:text-amber-200 font-sans">
+                <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <HelpCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                </div>
                 <span>Inferred Conclusions & Recommendations</span>
               </div>
               {result.inferredConclusions.length > 0 ? (
-                <ul className="space-y-1.5 text-[11px] text-text-muted">
+                <ul className="space-y-2 text-xs text-text-muted">
                   {result.inferredConclusions.map((inf, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 shrink-0" />
+                    <li key={idx} className="flex items-start gap-2 leading-relaxed">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
                       <span>{inf}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-[11px] text-text-muted">
-                  Conclusions inferred based on historical metrics and strategic context.
+                <p className="text-xs text-text-muted">
+                  Strategic deductions based on financial metrics and historical data.
                 </p>
               )}
             </div>
@@ -235,38 +291,48 @@ export function AskMemorySection({ companyName = "Your Business" }: { companyNam
           {/* Citations & Evidence Sources */}
           {result.citations.length > 0 && (
             <div className="space-y-3 pt-2">
-              <h4 className="text-xs font-bold text-text flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-brass" />
-                <span>Supporting Source Evidence ({result.citations.length})</span>
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-text flex items-center gap-2 font-mono">
+                  <BookOpen className="w-3.5 h-3.5 text-brass" />
+                  <span>Document Evidence Citations ({result.citations.length})</span>
+                </h4>
+                <span className="text-[11px] text-text-muted font-mono">Click card to inspect</span>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {result.citations.map((c, i) => (
-                  <div
-                    key={i}
-                    onClick={() => setActiveCitation(c)}
-                    className="p-3.5 rounded-xl bg-surface-2 border border-line hover:border-brass/40 transition-all cursor-pointer group space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-text group-hover:text-brass transition-colors line-clamp-1">
-                        <FileText className="w-3.5 h-3.5 shrink-0 text-brass" />
-                        <span>{c.documentTitle}</span>
+                {result.citations.map((c, i) => {
+                  const DocIcon = getDocIcon(c.fileName);
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => setActiveCitation(c)}
+                      className="p-4 rounded-xl bg-surface-2/70 border border-line hover:border-brass/50 transition-all cursor-pointer group space-y-2.5 hover:shadow-theme"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-7 h-7 rounded-lg bg-surface border border-line flex items-center justify-center text-brass shrink-0 group-hover:border-brass/30">
+                            <DocIcon className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-xs font-bold text-text group-hover:text-brass transition-colors truncate">
+                            {c.documentTitle}
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-surface border border-line text-emerald-700 dark:text-emerald-400 shrink-0">
+                          {(c.similarity * 100).toFixed(0)}% Match
+                        </span>
                       </div>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface border border-line text-text-muted shrink-0 font-mono">
-                        {(c.similarity * 100).toFixed(0)}% Match
-                      </span>
-                    </div>
 
-                    <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
-                      &ldquo;{c.snippet}&rdquo;
-                    </p>
+                      <p className="text-xs text-text-muted line-clamp-2 leading-relaxed italic">
+                        &ldquo;{c.snippet}&rdquo;
+                      </p>
 
-                    <div className="flex items-center justify-between text-[10px] text-text-muted/70 pt-1 border-t border-line/60">
-                      <span>Section: {c.sectionTitle || "General"}</span>
-                      <span>Page {c.pageNumber || 1}</span>
+                      <div className="flex items-center justify-between text-[10px] font-mono text-text-muted/80 pt-2 border-t border-line/50">
+                        <span className="truncate max-w-[140px]">{c.sectionTitle || "General Section"}</span>
+                        <span>Page {c.pageNumber || 1}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -276,38 +342,55 @@ export function AskMemorySection({ companyName = "Your Business" }: { companyNam
       {/* Citation Snippet Modal */}
       {activeCitation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-lg rounded-2xl bg-surface border border-line p-6 space-y-4 shadow-xl">
+          <div className="w-full max-w-lg rounded-2xl bg-surface border border-line p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-line">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-brass" />
-                <h4 className="text-sm font-bold text-text">{activeCitation.documentTitle}</h4>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-brass/10 border border-brass/30 flex items-center justify-center text-brass">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-text truncate max-w-[280px]">
+                    {activeCitation.documentTitle}
+                  </h4>
+                  <p className="text-[10px] font-mono text-text-muted">{activeCitation.fileName}</p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveCitation(null)}
-                className="text-xs text-text-muted hover:text-text cursor-pointer"
+                className="w-7 h-7 rounded-lg bg-surface-2 border border-line text-text-muted hover:text-text flex items-center justify-center cursor-pointer transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <div className="text-xs text-text-muted space-y-1">
-              <div><strong>File:</strong> {activeCitation.fileName}</div>
-              <div><strong>Section:</strong> {activeCitation.sectionTitle || "General"} (Page {activeCitation.pageNumber || 1})</div>
-              <div><strong>Vector Similarity Score:</strong> {(activeCitation.similarity * 100).toFixed(1)}%</div>
+            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-text-muted bg-surface-2/60 p-3 rounded-xl border border-line">
+              <div>
+                <span className="text-text-muted/60 block text-[10px]">SECTION</span>
+                <span className="text-text font-bold">{activeCitation.sectionTitle || "General"}</span>
+              </div>
+              <div>
+                <span className="text-text-muted/60 block text-[10px]">MATCH CONFIDENCE</span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-bold">{(activeCitation.similarity * 100).toFixed(1)}% Cosine</span>
+              </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-surface-2 border border-line text-xs text-text/90 leading-relaxed font-mono whitespace-pre-wrap max-h-60 overflow-y-auto">
-              {activeCitation.snippet}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-text-muted block">
+                Source Document Chunk Content:
+              </span>
+              <div className="p-4 rounded-xl bg-surface-2 border border-line text-xs text-text leading-relaxed font-mono whitespace-pre-wrap max-h-60 overflow-y-auto shadow-inner">
+                {activeCitation.snippet}
+              </div>
             </div>
 
             <div className="flex justify-end pt-2">
               <button
                 type="button"
                 onClick={() => setActiveCitation(null)}
-                className="px-4 py-2 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer"
+                className="h-8 px-4 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer shadow-xs"
               >
-                Close Preview
+                Done
               </button>
             </div>
           </div>
