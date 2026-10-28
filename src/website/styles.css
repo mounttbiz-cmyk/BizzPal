@@ -353,9 +353,9 @@ h1,h2,h3,h4{
 .ch--g{background-image:var(--wm-gold)}
 .hero__mark .ch--tm{
   align-self:flex-start;
-  margin-left:.16em;
-  margin-top:.12em;
-  font-size:.38em;
+  margin-left:.20em;
+  margin-top:.15em;
+  font-size:.29em;
   font-weight:600;
   letter-spacing:0;
   line-height:1;
