@@ -90,7 +90,12 @@ export async function GET(req: NextRequest) {
     if (!tokenResponse.ok) {
       const tokenError = await tokenResponse.text();
       console.error("[Google OAuth] Token exchange error:", tokenError);
-      throw new Error(`Token exchange failed: ${tokenResponse.statusText}`);
+      let desc = tokenResponse.statusText;
+      try {
+        const parsed = JSON.parse(tokenError);
+        if (parsed.error_description) desc = parsed.error_description;
+      } catch {}
+      throw new Error(`Token exchange failed: ${desc}`);
     }
 
     const tokens = await tokenResponse.json();
