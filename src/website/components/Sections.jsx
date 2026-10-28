@@ -8,8 +8,8 @@ import { applyFX, resetFX } from '../lib/engine';
 import { DASHBOARD_URL } from '../config';
 
 export const DEFAULT_CONTACT = {
-  email: 'hello@bizzpal.in',
-  site: 'bizzpal.in',
+  email: 'hello@bizzpal.ai',
+  site: 'bizzpal.ai',
   linkedin: 'https://linkedin.com/company/bizzpal',
   twitter: 'https://twitter.com/bizzpal'
 };
@@ -36,7 +36,8 @@ export function AnnouncementBanner({ data }) {
 
 /* ------------------------------------------------------------------- hero */
 export function Hero({ ready, data }) {
-  const eyebrow = data?.eyebrow || 'Artificial Intelligence · For Business';
+  const rawEyebrow = data?.eyebrow || 'Artificial Intelligence · BizzPal.ai';
+  const eyebrow = rawEyebrow.replace(/bizzpal\.in/gi, 'BizzPal.ai');
   const subtitle = data?.subtitle || 'Your Business. Powered by Intelligence.';
   const primaryCtaText = data?.primaryCtaText || 'Explore BizzPal';
   const primaryCtaHref = data?.primaryCtaHref || '#s01';
@@ -400,8 +401,8 @@ export function Contact({ data }) {
   const headline = data?.headline || 'Ready to build\nwhat’s next?';
   const ctaText = data?.ctaText || 'Start a Conversation';
   const contactInfo = {
-    email: data?.email || DEFAULT_CONTACT.email,
-    site: data?.site || DEFAULT_CONTACT.site,
+    email: (data?.email || DEFAULT_CONTACT.email).replace(/bizzpal\.in/gi, 'bizzpal.ai'),
+    site: (data?.site || DEFAULT_CONTACT.site).replace(/bizzpal\.in/gi, 'bizzpal.ai'),
     linkedin: data?.linkedin || DEFAULT_CONTACT.linkedin,
     twitter: data?.twitter || DEFAULT_CONTACT.twitter,
   };
@@ -411,7 +412,7 @@ export function Contact({ data }) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setNote('Please enter a valid email address.'); setAlert(true); return;
     }
-    const to = contactInfo.email || 'hello@bizzpal.in';
+    const to = contactInfo.email || 'hello@bizzpal.ai';
     const subject = encodeURIComponent('Starting a conversation with BizzPal');
     const body = encodeURIComponent(`Hi BizzPal,\n\nI'd like to talk about a project.\n\nMy email: ${email.trim()}\n\n`);
     window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
@@ -467,7 +468,27 @@ export const Footer = () => {
   return (
     <footer>
       <div className="wrap foot">
-        <span>© 2026 BizzPal</span>
+        <div className="foot__links" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="foot__legal-link"
+            style={{ color: 'var(--ink-dim)', fontSize: '13px', textDecoration: 'none', transition: 'color 0.2s ease' }}
+          >
+            Terms &amp; Conditions
+          </a>
+          <span style={{ color: 'var(--ink-faint)', opacity: 0.4 }}>•</span>
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="foot__legal-link"
+            style={{ color: 'var(--ink-dim)', fontSize: '13px', textDecoration: 'none', transition: 'color 0.2s ease' }}
+          >
+            Privacy Policy
+          </a>
+        </div>
         <span>
           <span className="wm wm--sm">
             <span className="wm__a">Bizz</span><span className="wm__b">Pal</span><span className="wm__tm">&trade;</span>

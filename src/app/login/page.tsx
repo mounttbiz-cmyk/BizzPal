@@ -292,7 +292,7 @@ export default function LoginPage() {
 
     const userSession = {
       id: uid || `usr_${Date.now()}`,
-      email: cleanEmail || "user@bizzpal.in",
+      email: cleanEmail || "user@bizzpal.ai",
       name: displayName || fullName || "Founder",
       role: "owner",
       provider: "email",

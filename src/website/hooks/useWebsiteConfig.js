@@ -121,13 +121,12 @@ export const DEFAULT_WEBSITE_STATE = {
     note: "Opens your mail app — nothing is stored on this page.",
     ctaText: "Start a Conversation",
     ctaHref: "#contact",
-    email: "hello@bizzpal.in",
-    site: "bizzpal.in",
+    email: "hello@bizzpal.ai",
+    site: "bizzpal.ai",
     linkedin: "https://linkedin.com/company/bizzpal",
     twitter: "https://twitter.com/bizzpal",
   },
   footer: {
-    copyright: "© 2026 BizzPal",
     tagline: "BizzPal™ — Your AI Business Partner",
   },
 };

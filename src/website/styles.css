@@ -343,8 +343,20 @@ h1,h2,h3,h4{
 .ch--s{background-image:var(--wm-silver)}
 .ch--g{background-image:var(--wm-gold)}
 .hero__mark .ch--tm{
-  font-size:.16em;vertical-align:super;margin-left:.05em;margin-right:-.06em;
-  color:var(--gold);opacity:.85;background:none}
+  font-size:.18em;
+  display:inline-block;
+  vertical-align:top;
+  position:relative;
+  top:-0.32em;
+  margin-left:.04em;
+  margin-right:-.06em;
+  color:var(--gold);
+  opacity:.9;
+  background:none;
+}
+.foot__legal-link:hover{
+  color:var(--white) !important;
+}
 .hero__sub{margin:26px 0 0;font-size:clamp(1rem,2.1vw,1.75rem);font-family:var(--f-display);font-weight:300;letter-spacing:-.01em;color:rgba(255,251,242,.82)}
 .hero__sub em{font-style:normal;color:var(--accent);transition:color .6s linear}
 .hero__cta{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:44px}
