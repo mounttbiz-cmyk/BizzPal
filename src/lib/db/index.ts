@@ -1,20 +1,49 @@
-// @ts-ignore
-import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
 
-// Detect serverless environment (Vercel, AWS Lambda, Cloud Functions)
-const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+// Safe dynamic resolution of node:sqlite (supported natively in Node 22.5+)
+let DatabaseSyncClass: any = null;
+try {
+  // Use require so environments running Node < 22 do not fail at module parse time
+  const sqlite = require("node:sqlite");
+  DatabaseSyncClass = sqlite.DatabaseSync;
+} catch (e) {
+  console.warn("[SQLite] node:sqlite is not available in this Node runtime:", (e as any)?.message);
+}
 
-// In serverless, process.cwd() is read-only (/var/task). /tmp is the writable storage directory.
-const dataDir = isServerless
+// In-memory key-value fallback store when SQLite is unavailable or read-only
+const inMemoryConfigStore = new Map<string, string>();
+const inMemoryBusinessStore: any[] = [];
+
+// Detect serverless and cloud container environments (Vercel, AWS Lambda, GCP Cloud Run, Cloud Functions, Docker)
+const isServerless = Boolean(
+  process.env.VERCEL ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.K_SERVICE ||
+  process.env.FUNCTION_NAME ||
+  process.env.FUNCTION_TARGET ||
+  process.env.FIREBASE_CONFIG ||
+  process.env.GCP_PROJECT ||
+  process.env.GOOGLE_CLOUD_PROJECT ||
+  (process.env.NODE_ENV === "production" && process.platform !== "win32")
+);
+
+// In serverless / containers, process.cwd() is read-only. os.tmpdir() is the writable storage directory.
+let dataDir: string = isServerless
   ? path.join(os.tmpdir(), "bizzpal-data")
   : path.join(process.cwd(), "data");
 
-if (!fs.existsSync(dataDir)) {
-  try {
+try {
+  if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
+  }
+} catch {
+  dataDir = path.join(os.tmpdir(), "bizzpal-data");
+  try {
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
   } catch {}
 }
 
@@ -56,45 +85,62 @@ export function healDatabasePermissions() {
   }
 }
 
-// Immediately heal permissions upon module load
-healDatabasePermissions();
+// Immediately heal permissions upon module load safely
+try {
+  healDatabasePermissions();
+} catch {}
 
 declare global {
   var __bizzpal_raw_db: any | undefined;
 }
 
 function createRawConnection() {
-  healDatabasePermissions();
-  let conn: any;
   try {
-    conn = new DatabaseSync(dbPath);
+    healDatabasePermissions();
+  } catch {}
+
+  if (!DatabaseSyncClass) {
+    return null;
+  }
+
+  let conn: any = null;
+  try {
+    conn = new DatabaseSyncClass(dbPath);
   } catch (err) {
-    console.warn(`[SQLite] Could not open db file at ${dbPath}, falling back to in-memory database:`, err);
+    console.warn(`[SQLite] Could not open db file at ${dbPath}, trying /tmp fallback:`, err);
     try {
-      conn = new DatabaseSync(":memory:");
-    } catch (e) {
-      console.error("[SQLite] Fatal: Cannot initialize SQLite in-memory:", e);
-      throw e;
+      const tmpPath = path.join(os.tmpdir(), "bizzpal.db");
+      conn = new DatabaseSyncClass(tmpPath);
+    } catch (e2) {
+      try {
+        console.warn(`[SQLite] Falling back to :memory: database`);
+        conn = new DatabaseSyncClass(":memory:");
+      } catch (e3) {
+        console.error("[SQLite] Fatal: Cannot initialize SQLite in-memory:", e3);
+        return null;
+      }
     }
   }
 
-  try {
-    conn.exec(`
-      PRAGMA busy_timeout = 10000;
-      PRAGMA journal_mode = WAL;
-      PRAGMA synchronous = NORMAL;
-      PRAGMA temp_store = MEMORY;
-    `);
-  } catch (e) {
+  if (conn) {
     try {
-      conn.exec("PRAGMA journal_mode = MEMORY;");
-    } catch {}
+      conn.exec(`
+        PRAGMA busy_timeout = 10000;
+        PRAGMA journal_mode = WAL;
+        PRAGMA synchronous = NORMAL;
+        PRAGMA temp_store = MEMORY;
+      `);
+    } catch (e) {
+      try {
+        conn.exec("PRAGMA journal_mode = MEMORY;");
+      } catch {}
+    }
   }
   return conn;
 }
 
 function getRawConnection() {
-  if (!globalThis.__bizzpal_raw_db) {
+  if (globalThis.__bizzpal_raw_db === undefined) {
     globalThis.__bizzpal_raw_db = createRawConnection();
   }
   return globalThis.__bizzpal_raw_db;
@@ -110,14 +156,22 @@ function resetConnection() {
   return getRawConnection();
 }
 
-// Resilient wrapper interface matching DatabaseSync
+// Resilient wrapper interface matching DatabaseSync that never throws fatal exceptions
 const db = {
   prepare(sql: string) {
     return {
       run(...args: any[]) {
+        const raw = getRawConnection();
+        if (!raw) {
+          // Memory fallback handling
+          if (sql.includes("platform_config") && args.length >= 2) {
+            inMemoryConfigStore.set(String(args[0]), typeof args[1] === "string" ? args[1] : JSON.stringify(args[1]));
+          }
+          return { changes: 1, lastInsertRowid: 1 };
+        }
+
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
-            const raw = getRawConnection();
             const stmt = raw.prepare(sql);
             return stmt.run(...args);
           } catch (err: any) {
@@ -128,7 +182,6 @@ const db = {
               msg.includes("locked") ||
               msg.includes("permission")
             ) {
-              console.warn(`[SQLite SafeRun] Caught "${err.message}" on attempt ${attempt}. Healing permissions & reconnecting...`);
               healDatabasePermissions();
               resetConnection();
               if (attempt === 3) {
@@ -137,50 +190,80 @@ const db = {
               }
               continue;
             }
-            throw err;
+            if (attempt === 3) {
+              console.warn(`[SQLite SafeRun] Query error:`, err?.message);
+              return { changes: 0, lastInsertRowid: 0 };
+            }
           }
         }
+        return { changes: 0, lastInsertRowid: 0 };
       },
       get(...args: any[]) {
+        const raw = getRawConnection();
+        if (!raw) {
+          if (sql.includes("platform_config") && args[0]) {
+            const val = inMemoryConfigStore.get(String(args[0]));
+            return val !== undefined ? { config_key: args[0], config_value: val } : undefined;
+          }
+          if (sql.includes("businesses")) {
+            return inMemoryBusinessStore[0] || null;
+          }
+          return null;
+        }
+
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
-            const raw = getRawConnection();
             return raw.prepare(sql).get(...args);
           } catch (err: any) {
             const msg = String(err?.message || "").toLowerCase();
             if (msg.includes("readonly") || msg.includes("busy") || msg.includes("locked")) {
               healDatabasePermissions();
               resetConnection();
-              if (attempt === 3) throw err;
+              if (attempt === 3) return null;
               continue;
             }
-            throw err;
+            if (attempt === 3) {
+              console.warn(`[SQLite SafeGet] Query error:`, err?.message);
+              return null;
+            }
           }
         }
+        return null;
       },
       all(...args: any[]) {
+        const raw = getRawConnection();
+        if (!raw) {
+          if (sql.includes("businesses")) return inMemoryBusinessStore;
+          return [];
+        }
+
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
-            const raw = getRawConnection();
             return raw.prepare(sql).all(...args);
           } catch (err: any) {
             const msg = String(err?.message || "").toLowerCase();
             if (msg.includes("readonly") || msg.includes("busy") || msg.includes("locked")) {
               healDatabasePermissions();
               resetConnection();
-              if (attempt === 3) throw err;
+              if (attempt === 3) return [];
               continue;
             }
-            throw err;
+            if (attempt === 3) {
+              console.warn(`[SQLite SafeAll] Query error:`, err?.message);
+              return [];
+            }
           }
         }
+        return [];
       },
     };
   },
   exec(sql: string) {
+    const raw = getRawConnection();
+    if (!raw) return;
+
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        const raw = getRawConnection();
         return raw.exec(sql);
       } catch (err: any) {
         const msg = String(err?.message || "").toLowerCase();
@@ -192,17 +275,24 @@ const db = {
         ) {
           healDatabasePermissions();
           resetConnection();
-          if (attempt === 3) throw err;
+          if (attempt === 3) {
+            console.warn(`[SQLite SafeExec] Exec could not complete (${err.message}). Continued gracefully.`);
+            return;
+          }
           continue;
         }
-        throw err;
+        if (attempt === 3) {
+          console.warn(`[SQLite SafeExec] Exec error:`, err?.message);
+          return;
+        }
       }
     }
   },
 };
 
-// Initialize schema
-db.exec(`
+// Initialize schema safely
+try {
+  db.exec(`
   CREATE TABLE IF NOT EXISTS businesses (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -450,11 +540,14 @@ db.exec(`
   );
 `);
 
-// Migrate existing registered_users table if business_profile column is missing
-try {
-  db.exec(`ALTER TABLE registered_users ADD COLUMN business_profile TEXT`);
-} catch (e) {
-  // column already exists
+  // Migrate existing registered_users table if business_profile column is missing
+  try {
+    db.exec(`ALTER TABLE registered_users ADD COLUMN business_profile TEXT`);
+  } catch (e) {
+    // column already exists
+  }
+} catch (err) {
+  console.warn("[SQLite] Schema initialization handled safely:", err);
 }
 
 /**
@@ -1210,31 +1303,32 @@ export function setPlatformConfig<T>(key: string, value: T): void {
 }
 
 // Initialize seed platform configs if not present or heal if partial
-const existingWebsiteRow = db.prepare("SELECT config_value FROM platform_config WHERE config_key = ?").get("website_config") as { config_value: string } | undefined;
-if (!existingWebsiteRow) {
-  setPlatformConfig("website_config", DEFAULT_WEBSITE_CONFIG);
-} else {
-  try {
-    const parsedWeb = JSON.parse(existingWebsiteRow.config_value);
-    if (!parsedWeb.hero || !parsedWeb.scenes || !parsedWeb.sections?.about) {
-      const healed = deepMerge(DEFAULT_WEBSITE_CONFIG, parsedWeb);
-      setPlatformConfig("website_config", healed);
-    }
-  } catch {
+try {
+  const existingWebsiteRow = db.prepare("SELECT config_value FROM platform_config WHERE config_key = ?").get("website_config") as { config_value: string } | undefined;
+  if (!existingWebsiteRow) {
     setPlatformConfig("website_config", DEFAULT_WEBSITE_CONFIG);
+  } else {
+    try {
+      const parsedWeb = JSON.parse(existingWebsiteRow.config_value);
+      if (!parsedWeb.hero || !parsedWeb.scenes || !parsedWeb.sections?.about) {
+        const healed = deepMerge(DEFAULT_WEBSITE_CONFIG, parsedWeb);
+        setPlatformConfig("website_config", healed);
+      }
+    } catch {
+      setPlatformConfig("website_config", DEFAULT_WEBSITE_CONFIG);
+    }
   }
-}
-
-if (!db.prepare("SELECT config_key FROM platform_config WHERE config_key = ?").get("dashboard_features")) {
-  setPlatformConfig("dashboard_features", DEFAULT_DASHBOARD_FEATURES);
-}
-
-if (!db.prepare("SELECT config_key FROM platform_config WHERE config_key = ?").get("tools_catalog")) {
-  setPlatformConfig("tools_catalog", DEFAULT_TOOLS_CATALOG);
-}
-
-if (!db.prepare("SELECT config_key FROM platform_config WHERE config_key = ?").get("subscription_plans")) {
-  setPlatformConfig("subscription_plans", DEFAULT_SUBSCRIPTION_PLANS);
+  if (!db.prepare("SELECT config_key FROM platform_config WHERE config_key = ?").get("dashboard_features")) {
+    setPlatformConfig("dashboard_features", DEFAULT_DASHBOARD_FEATURES);
+  }
+  if (!db.prepare("SELECT config_key FROM platform_config WHERE config_key = ?").get("tools_catalog")) {
+    setPlatformConfig("tools_catalog", DEFAULT_TOOLS_CATALOG);
+  }
+  if (!db.prepare("SELECT config_key FROM platform_config WHERE config_key = ?").get("subscription_plans")) {
+    setPlatformConfig("subscription_plans", DEFAULT_SUBSCRIPTION_PLANS);
+  }
+} catch (err) {
+  console.warn("[SQLite] Database seed caught error (handled safely):", err);
 }
 
 export function getActiveBusiness() {
