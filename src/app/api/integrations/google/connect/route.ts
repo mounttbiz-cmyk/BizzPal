@@ -21,21 +21,26 @@ export async function GET(req: NextRequest) {
   }
   const redirectUri = `${origin}/api/integrations/google/callback`;
 
-  // Get optional state parameter (e.g. source: 'onboarding' | 'integrations' | 'settings')
+  // Get optional state parameter (e.g. source: 'onboarding' | 'integrations' | 'settings' | 'auth')
   const returnTo = req.nextUrl.searchParams.get("returnTo") || "/integrations";
-  const state = Buffer.from(JSON.stringify({ returnTo, origin })).toString("base64url");
+  const source = req.nextUrl.searchParams.get("source") || "integration";
+  const state = Buffer.from(JSON.stringify({ returnTo, origin, source })).toString("base64url");
 
   // Google OAuth 2.0 Authorization URL
   const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   googleAuthUrl.searchParams.set("client_id", clientId);
   googleAuthUrl.searchParams.set("redirect_uri", redirectUri);
   googleAuthUrl.searchParams.set("response_type", "code");
-  googleAuthUrl.searchParams.set(
-    "scope",
-    "openid email profile https://www.googleapis.com/auth/calendar.readonly"
-  );
+
+  // When source is 'auth' (Sign in / Sign up), request ONLY standard non-sensitive identity scopes.
+  // Sensitive scopes (calendar.readonly) are only for integrations and trigger Google 500 / unverified errors during login.
+  const scope = source === "auth"
+    ? "openid email profile"
+    : "openid email profile https://www.googleapis.com/auth/calendar.readonly";
+
+  googleAuthUrl.searchParams.set("scope", scope);
   googleAuthUrl.searchParams.set("access_type", "offline");
-  googleAuthUrl.searchParams.set("prompt", "consent");
+  googleAuthUrl.searchParams.set("prompt", "select_account");
   googleAuthUrl.searchParams.set("state", state);
 
   return NextResponse.redirect(googleAuthUrl.toString());

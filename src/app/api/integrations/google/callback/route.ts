@@ -8,11 +8,13 @@ export async function GET(req: NextRequest) {
 
   let returnTo = "/integrations";
   let requestOrigin = "";
+  let source = "integration";
   if (stateRaw) {
     try {
       const parsed = JSON.parse(Buffer.from(stateRaw, "base64url").toString("utf8"));
       if (parsed.returnTo) returnTo = parsed.returnTo;
       if (parsed.origin) requestOrigin = parsed.origin;
+      if (parsed.source) source = parsed.source;
     } catch {}
   }
 
@@ -113,15 +115,15 @@ export async function GET(req: NextRequest) {
       accountName: name,
       picture,
       liveOAuth: true,
-      scopes: ["openid", "email", "profile", "calendar.readonly"],
+      scopes: source === "auth" ? ["openid", "email", "profile"] : ["openid", "email", "profile", "calendar.readonly"],
       accountDetail: `Connected · Live Google Account: ${email}`,
       connectedAt: now,
       hasRefreshToken: !!tokens.refresh_token,
     };
 
-    // 3. Persist to database for both 'google' and 'google_calendar'
+    // 3. Persist to database
     try {
-      const toolsToUpdate = ["google", "google_calendar"];
+      const toolsToUpdate = source === "auth" ? ["google"] : ["google", "google_calendar"];
       for (const toolKey of toolsToUpdate) {
         const existing = db
           .prepare("SELECT id, config FROM integrations WHERE business_id = ? AND tool_key = ?")
