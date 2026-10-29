@@ -95,29 +95,7 @@ const DEFAULT_FALLBACK_PLANS: PlanTier[] = [
     ],
     ctaLabel: "Activate Growth Scale",
   },
-  {
-    id: "enterprise",
-    name: "Enterprise Custom",
-    tagline: "For mid-market companies & conglomerates (30+ people).",
-    price: "Custom",
-    period: "/billed annually",
-    color: "border-amber-400/30 text-amber-400",
-    badge: "Enterprise",
-    isPopular: false,
-    actionType: "contact",
-    contactEmail: "sales@bizzpal.app",
-    features: [
-      "All Growth Scale features",
-      "Self-hosted / Dedicated Cloud Deployment",
-      "Custom AI Executive Models trained on your data",
-      "Custom ERP & Legacy Integrations",
-      "Enterprise SLA (99.9% uptime)",
-      "Unlimited Seats & Departments",
-      "SOC 2 Type II & ISO 27001 Compliance",
-      "24/7 Executive Hotline",
-    ],
-    ctaLabel: "Contact Enterprise Sales",
-  },
+  
 ];
 
 export default function SubscriptionPage() {
@@ -183,7 +161,7 @@ export default function SubscriptionPage() {
     fetch("/api/public/config", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
-        if (d.success && Array.isArray(d.plans) && d.plans.length > 0) {
+        if (d.success && Array.isArray(d.plans)) {
           const activePlans = d.plans.filter((p: any) => p.enabled !== false);
           setPlans(activePlans);
           try {
@@ -223,9 +201,15 @@ export default function SubscriptionPage() {
 
     window.addEventListener("storage", handleStorage);
     window.addEventListener("bizzpal_config_updated", handleCustomSync);
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel("bizzpal_channel");
+      bc.onmessage = () => loadPlans();
+    } catch {}
     return () => {
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("bizzpal_config_updated", handleCustomSync);
+      if (bc) bc.close();
     };
   }, []);
 

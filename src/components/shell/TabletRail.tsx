@@ -23,24 +23,9 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
   const { hasPlanLevel } = usePlanAccess();
   const [lockedItem, setLockedItem] = React.useState<NavItem | null>(null);
 
-  // Guarantee DataPal is always present in navigation items
+  // Use navItems directly without force-injecting deleted items
   const effectiveNavItems = React.useMemo(() => {
-    const list = navItems || [];
-    const hasDataPal = list.some(item => item.id === "nav_datapal" || item.href === "/datapal");
-    if (!hasDataPal) {
-      const datapalDefault: NavItem = {
-        id: "nav_datapal",
-        label: "DataPal",
-        href: "/datapal",
-        icon: "Database",
-        order: 10,
-        mobileTab: false,
-        group: "intelligence",
-        enabled: true,
-      };
-      return [...list, datapalDefault].sort((a, b) => a.order - b.order);
-    }
-    return list;
+    return (navItems || []).filter(item => item.enabled !== false);
   }, [navItems]);
 
   return (

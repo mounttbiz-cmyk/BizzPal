@@ -30,13 +30,29 @@ export async function setFirestoreConfig<T>(key: string, value: T): Promise<bool
   if (!firestoreDb || !isFirebaseConfigured) return false;
   try {
     const docRef = doc(firestoreDb, PLATFORM_COLLECTION, key);
+    // Explicit replacement (no merge: true) to guarantee deleted array elements/keys are purged from GCP Firestore
     await setDoc(docRef, {
       value,
       updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    });
     return true;
   } catch (err) {
     console.warn(`[Firestore] Failed to write ${key}:`, err);
+    return false;
+  }
+}
+
+export async function deleteFirestoreConfig(key: string): Promise<boolean> {
+  if (!firestoreDb || !isFirebaseConfigured) return false;
+  try {
+    const docRef = doc(firestoreDb, PLATFORM_COLLECTION, key);
+    await setDoc(docRef, {
+      value: null,
+      deletedAt: new Date().toISOString(),
+    });
+    return true;
+  } catch (err) {
+    console.warn(`[Firestore] Failed to delete ${key}:`, err);
     return false;
   }
 }

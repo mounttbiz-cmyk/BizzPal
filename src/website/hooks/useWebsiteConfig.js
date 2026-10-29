@@ -131,26 +131,22 @@ export const DEFAULT_WEBSITE_STATE = {
   },
 };
 
-function deepMerge(fallback, override) {
-  if (!override || typeof override !== 'object' || Array.isArray(override)) {
-    return override !== undefined ? override : fallback;
-  }
-  if (!fallback || typeof fallback !== 'object' || Array.isArray(fallback)) {
-    return override;
-  }
-  const result = { ...fallback };
+function mergeWebsiteConfig(fallback, override) {
+  if (!override || typeof override !== 'object') return fallback;
+  const result = { ...fallback, ...override };
+
   for (const key of Object.keys(override)) {
-    if (
-      override[key] !== null &&
-      typeof override[key] === 'object' &&
-      !Array.isArray(override[key]) &&
-      key in result &&
-      typeof result[key] === 'object' &&
-      !Array.isArray(result[key])
-    ) {
-      result[key] = deepMerge(result[key], override[key]);
-    } else if (override[key] !== undefined) {
-      result[key] = override[key];
+    if (override[key] !== undefined && override[key] !== null) {
+      if (typeof override[key] === 'object' && !Array.isArray(override[key]) && fallback[key]) {
+        result[key] = { ...fallback[key], ...override[key] };
+        for (const subKey of Object.keys(override[key])) {
+          if (override[key][subKey] !== undefined) {
+            result[key][subKey] = override[key][subKey];
+          }
+        }
+      } else {
+        result[key] = override[key];
+      }
     }
   }
   return result;
@@ -161,7 +157,7 @@ function getInitialWebsiteConfig() {
     try {
       const saved = localStorage.getItem('bizzpal_website_config');
       if (saved) {
-        return deepMerge(DEFAULT_WEBSITE_STATE, JSON.parse(saved));
+        return mergeWebsiteConfig(DEFAULT_WEBSITE_STATE, JSON.parse(saved));
       }
     } catch {}
   }
@@ -181,7 +177,7 @@ export function useWebsiteConfig() {
         try {
           const local = localStorage.getItem('bizzpal_website_config');
           if (local && mounted) {
-            setConfig(deepMerge(DEFAULT_WEBSITE_STATE, JSON.parse(local)));
+            setConfig(mergeWebsiteConfig(DEFAULT_WEBSITE_STATE, JSON.parse(local)));
           }
         } catch {}
       }
@@ -194,7 +190,7 @@ export function useWebsiteConfig() {
         });
         const json = await res.json();
         if (mounted && json.success && json.website) {
-          const merged = deepMerge(DEFAULT_WEBSITE_STATE, json.website);
+          const merged = mergeWebsiteConfig(DEFAULT_WEBSITE_STATE, json.website);
           setConfig(merged);
           try {
             localStorage.setItem('bizzpal_website_config', JSON.stringify(merged));

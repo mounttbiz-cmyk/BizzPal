@@ -63,7 +63,7 @@ export default function AdminPage() {
     "website" | "navigation" | "features" | "widgets" | "tools" | "tenants" | "users" | "plans" | "audit"
   >("tenants");
   const [subWebTab, setSubWebTab] = useState<
-    "sections" | "hero" | "scenes" | "about_solutions" | "contact" | "nav_brand" | "vision_words" | "announcement"
+    "sections" | "hero" | "scenes" | "about_solutions" | "stats" | "contact" | "nav_brand" | "vision_words" | "announcement" | "footer"
   >("sections");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -236,19 +236,19 @@ export default function AdminPage() {
             setFeaturesConfig(data.data.features);
             try { localStorage.setItem("bizzpal_dashboard_features", JSON.stringify(data.data.features)); } catch {}
           }
-          if (Array.isArray(data.data.nav) && data.data.nav.length > 0) {
+          if (Array.isArray(data.data.nav)) {
             setNavItems(data.data.nav);
             try { localStorage.setItem("bizzpal_dashboard_nav", JSON.stringify(data.data.nav)); } catch {}
           }
-          if (Array.isArray(data.data.widgets) && data.data.widgets.length > 0) {
+          if (Array.isArray(data.data.widgets)) {
             setWidgets(data.data.widgets);
             try { localStorage.setItem("bizzpal_dashboard_widgets", JSON.stringify(data.data.widgets)); } catch {}
           }
-          if (Array.isArray(data.data.tools) && data.data.tools.length > 0) {
+          if (Array.isArray(data.data.tools)) {
             setTools(data.data.tools);
             try { localStorage.setItem("bizzpal_tools_catalog", JSON.stringify(data.data.tools)); } catch {}
           }
-          if (Array.isArray(data.data.plans) && data.data.plans.length > 0) {
+          if (Array.isArray(data.data.plans)) {
             setPlans(data.data.plans);
             try { localStorage.setItem("bizzpal_subscription_plans", JSON.stringify(data.data.plans)); } catch {}
           }
@@ -261,10 +261,10 @@ export default function AdminPage() {
       console.error("Failed to load admin config", err);
       // Ensure seed defaults remain active so counters and CMS never display as blank or (0)
       setWebsiteConfig((prev: any) => prev || DEFAULT_WEBSITE_STATE);
-      setNavItems((prev) => (prev && prev.length > 0 ? prev : defaultNavItems));
-      setWidgets((prev) => (prev && prev.length > 0 ? prev : defaultWidgets));
-      setTools((prev) => (prev && prev.length > 0 ? prev : DEFAULT_TOOLS_CATALOG));
-      setPlans((prev) => (prev && prev.length > 0 ? prev : DEFAULT_SUBSCRIPTION_PLANS));
+      setNavItems((prev) => (Array.isArray(prev) ? prev : defaultNavItems));
+      setWidgets((prev) => (Array.isArray(prev) ? prev : defaultWidgets));
+      setTools((prev) => (Array.isArray(prev) ? prev : DEFAULT_TOOLS_CATALOG));
+      setPlans((prev) => (Array.isArray(prev) ? prev : DEFAULT_SUBSCRIPTION_PLANS));
     } finally {
       setLoading(false);
     }
@@ -278,6 +278,22 @@ export default function AdminPage() {
   const saveSection = async (sectionName: string, payload: any, note?: string) => {
     try {
       setSaving(true);
+      // Synchronize parent React state immediately so UI and all child components reflect without lag or reversion
+      if (sectionName === "plans") setPlans(payload);
+      if (sectionName === "website") setWebsiteConfig(payload);
+      if (sectionName === "nav") setNavItems(payload);
+      if (sectionName === "widgets") setWidgets(payload);
+      if (sectionName === "tools") setTools(payload);
+      if (sectionName === "features") setFeaturesConfig(payload);
+      if (sectionName === "import" && payload) {
+        if (payload.website) setWebsiteConfig(payload.website);
+        if (payload.features) setFeaturesConfig(payload.features);
+        if (Array.isArray(payload.nav)) setNavItems(payload.nav);
+        if (Array.isArray(payload.widgets)) setWidgets(payload.widgets);
+        if (Array.isArray(payload.tools)) setTools(payload.tools);
+        if (Array.isArray(payload.plans)) setPlans(payload.plans);
+      }
+
       // 1. Immediately mirror to localStorage so website and dashboard reflect instantly on same domain
       if (typeof window !== "undefined") {
         try {
@@ -287,6 +303,14 @@ export default function AdminPage() {
           if (sectionName === "widgets") localStorage.setItem("bizzpal_dashboard_widgets", JSON.stringify(payload));
           if (sectionName === "features") localStorage.setItem("bizzpal_dashboard_features", JSON.stringify(payload));
           if (sectionName === "plans") localStorage.setItem("bizzpal_subscription_plans", JSON.stringify(payload));
+          if (sectionName === "import" && payload) {
+            if (payload.website) localStorage.setItem("bizzpal_website_config", JSON.stringify(payload.website));
+            if (payload.features) localStorage.setItem("bizzpal_dashboard_features", JSON.stringify(payload.features));
+            if (payload.nav) localStorage.setItem("bizzpal_dashboard_nav", JSON.stringify(payload.nav));
+            if (payload.widgets) localStorage.setItem("bizzpal_dashboard_widgets", JSON.stringify(payload.widgets));
+            if (payload.tools) localStorage.setItem("bizzpal_tools_catalog", JSON.stringify(payload.tools));
+            if (payload.plans) localStorage.setItem("bizzpal_subscription_plans", JSON.stringify(payload.plans));
+          }
           localStorage.setItem("bizzpal_config_timestamp", String(Date.now()));
           window.dispatchEvent(new CustomEvent("bizzpal_config_updated", { detail: { section: sectionName } }));
           try {
@@ -659,6 +683,53 @@ export default function AdminPage() {
     );
   }
 
+  
+  // Export full platform configuration as JSON
+  const handleExportConfig = () => {
+    const fullConfig = {
+      version,
+      exportedAt: new Date().toISOString(),
+      website: websiteConfig,
+      features: featuresConfig,
+      nav: navItems,
+      widgets: widgets,
+      tools: tools,
+      plans: plans,
+    };
+    const blob = new Blob([JSON.stringify(fullConfig, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bizzpal-platform-config-v${version}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    notify("Exported full platform configuration to JSON backup file");
+  };
+
+  // Import full platform configuration from JSON
+  const handleImportConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+        if (!parsed || typeof parsed !== "object") {
+          throw new Error("Invalid configuration file format");
+        }
+        await saveSection("import", parsed, "Restored configuration from imported JSON backup");
+        notify("Successfully imported and restored configuration backup");
+      } catch (err: any) {
+        notify(`Import failed: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
   const breadcrumb = (() => {
     switch (activeTab) {
       case "website":
@@ -862,10 +933,12 @@ export default function AdminPage() {
               { id: "website_hero", tab: "website", sub: "hero", label: "Hero Copy & CTAs", icon: Globe },
               { id: "website_scenes", tab: "website", sub: "scenes", label: "Story Scenes (01-07)", icon: Film, badge: "7" },
               { id: "website_about", tab: "website", sub: "about_solutions", label: "About & Solutions", icon: Layers },
+              { id: "website_stats", tab: "website", sub: "stats", label: "Impact & Stats", icon: Layers },
               { id: "website_contact", tab: "website", sub: "contact", label: "Contact & Channels", icon: MessageSquare },
-              { id: "website_nav", tab: "website", sub: "nav_brand", label: "Navbar Links & Brand", icon: Globe },
+              { id: "website_nav", tab: "website", sub: "nav_brand", label: "Navbar & Brand", icon: Globe },
               { id: "website_vision", tab: "website", sub: "vision_words", label: "Vision Kinetic Words", icon: Type },
               { id: "website_announcement", tab: "website", sub: "announcement", label: "Announcement Bar", icon: Megaphone },
+              { id: "website_footer", tab: "website", sub: "footer", label: "Site Footer & Legal", icon: Globe },
             ].map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.tab && subWebTab === item.sub;
@@ -990,6 +1063,32 @@ export default function AdminPage() {
                 {auditLogs.length}
               </span>
             </button>
+
+            
+            <div className="pt-2 border-t border-line/60 space-y-1.5">
+              <div className="px-2.5 pb-1 text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
+                Config Backup & Sync
+              </div>
+              <button
+                type="button"
+                onClick={handleExportConfig}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-text-muted hover:text-text hover:bg-surface-2 transition-colors font-semibold cursor-pointer text-xs"
+              >
+                <Save className="w-3.5 h-3.5 text-brass" />
+                <span>Export Config (JSON)</span>
+              </button>
+
+              <label className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-text-muted hover:text-text hover:bg-surface-2 transition-colors font-semibold cursor-pointer text-xs">
+                <Compass className="w-3.5 h-3.5 text-brass" />
+                <span>Import Config (JSON)</span>
+                <input
+                  type="file"
+                  accept="application/json"
+                  onChange={handleImportConfig}
+                  className="hidden"
+                />
+              </label>
+            </div>
 
             <button
               type="button"
@@ -1174,10 +1273,12 @@ export default function AdminPage() {
               { id: "hero", label: "2. Hero Copy & CTAs" },
               { id: "scenes", label: "3. Story Scenes (01 - 07)" },
               { id: "about_solutions", label: "4. About & Solutions" },
-              { id: "contact", label: "5. Contact Info & Socials" },
-              { id: "nav_brand", label: "6. Navbar Links & Brand" },
-              { id: "vision_words", label: "7. Vision Kinetic Words" },
-              { id: "announcement", label: "8. Announcement Banner" },
+              { id: "stats", label: "5. Impact & Stats" },
+              { id: "contact", label: "6. Contact Info & Socials" },
+              { id: "nav_brand", label: "7. Navbar Links & Brand" },
+              { id: "vision_words", label: "8. Vision Kinetic Words" },
+              { id: "announcement", label: "9. Announcement Banner" },
+              { id: "footer", label: "10. Site Footer & Legal" },
             ].map((st) => (
               <button
                 key={st.id}
@@ -1335,139 +1436,219 @@ export default function AdminPage() {
 
           {/* Subtab: Hero Copy & Buttons */}
           {subWebTab === "hero" && (
-            <div className="p-5 rounded-2xl bg-surface border border-line space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-bold text-text">Hero Section & Call-To-Action Buttons</h2>
-                  <p className="text-xs text-text-muted">
-                    Edit the main brand mark, eyebrow, subtitle, and primary/secondary button labels and links.
-                  </p>
+            <div className="space-y-6">
+              <div className="p-5 rounded-2xl bg-surface border border-line space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-bold text-text">Hero Section & Call-To-Action Buttons</h2>
+                    <p className="text-xs text-text-muted">
+                      Edit the main brand mark, eyebrow, subtitle, and primary/secondary button labels and links.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => saveSection("website", websiteConfig, "Saved Hero section & buttons")}
+                    disabled={saving}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{saving ? "Saving..." : "Save Hero Changes"}</span>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => saveSection("website", websiteConfig, "Saved Hero section & buttons")}
-                  disabled={saving}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{saving ? "Saving..." : "Save Hero Changes"}</span>
-                </button>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-text">Hero Eyebrow Text</label>
+                    <input
+                      type="text"
+                      value={websiteConfig.hero?.eyebrow || ""}
+                      onChange={(e) =>
+                        setWebsiteConfig({
+                          ...websiteConfig,
+                          hero: { ...websiteConfig.hero, eyebrow: e.target.value },
+                        })
+                      }
+                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-gold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-text">Brand Title Wordmark (Rendered with Cinematic Letter Split)</label>
+                    <input
+                      type="text"
+                      value={websiteConfig.hero?.word || ""}
+                      onChange={(e) =>
+                        setWebsiteConfig({
+                          ...websiteConfig,
+                          hero: { ...websiteConfig.hero, word: e.target.value },
+                        })
+                      }
+                      placeholder="e.g. Autonomous Enterprise Engine or BizzPal™"
+                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-bold focus:outline-none focus:border-gold"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-text">Hero Subtitle</label>
+                      <span className="text-[10px] text-text-muted font-mono">
+                        {(websiteConfig.hero?.subtitle || "").length} characters
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={websiteConfig.hero?.subtitle || ""}
+                      onChange={(e) =>
+                        setWebsiteConfig({
+                          ...websiteConfig,
+                          hero: { ...websiteConfig.hero, subtitle: e.target.value },
+                        })
+                      }
+                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-gold"
+                    />
+                  </div>
+
+                  {/* Primary CTA Button */}
+                  <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gold block">
+                        Primary CTA Button (Solid Glow)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setWebsiteConfig({
+                            ...websiteConfig,
+                            hero: {
+                              ...websiteConfig.hero,
+                              primaryCtaEnabled: websiteConfig.hero?.primaryCtaEnabled === false ? true : false,
+                            },
+                          })
+                        }
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                          websiteConfig.hero?.primaryCtaEnabled !== false
+                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                            : "bg-surface border-line text-text-muted"
+                        }`}
+                      >
+                        {websiteConfig.hero?.primaryCtaEnabled !== false ? "VISIBLE" : "HIDDEN"}
+                      </button>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-text-muted">Button Label</label>
+                      <input
+                        type="text"
+                        value={websiteConfig.hero?.primaryCtaText || ""}
+                        onChange={(e) =>
+                          setWebsiteConfig({
+                            ...websiteConfig,
+                            hero: { ...websiteConfig.hero, primaryCtaText: e.target.value },
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-text-muted">Destination Link (e.g. #s01 or /dashboard)</label>
+                      <input
+                        type="text"
+                        value={websiteConfig.hero?.primaryCtaHref || ""}
+                        onChange={(e) =>
+                          setWebsiteConfig({
+                            ...websiteConfig,
+                            hero: { ...websiteConfig.hero, primaryCtaHref: e.target.value },
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Secondary CTA Button */}
+                  <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-text-muted block">
+                        Secondary CTA Button (Outline)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setWebsiteConfig({
+                            ...websiteConfig,
+                            hero: {
+                              ...websiteConfig.hero,
+                              secondaryCtaEnabled: websiteConfig.hero?.secondaryCtaEnabled === false ? true : false,
+                            },
+                          })
+                        }
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                          websiteConfig.hero?.secondaryCtaEnabled !== false
+                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                            : "bg-surface border-line text-text-muted"
+                        }`}
+                      >
+                        {websiteConfig.hero?.secondaryCtaEnabled !== false ? "VISIBLE" : "HIDDEN"}
+                      </button>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-text-muted">Button Label</label>
+                      <input
+                        type="text"
+                        value={websiteConfig.hero?.secondaryCtaText || ""}
+                        onChange={(e) =>
+                          setWebsiteConfig({
+                            ...websiteConfig,
+                            hero: { ...websiteConfig.hero, secondaryCtaText: e.target.value },
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-text-muted">Destination Link (e.g. #s03 or /subscription)</label>
+                      <input
+                        type="text"
+                        value={websiteConfig.hero?.secondaryCtaHref || ""}
+                        onChange={(e) =>
+                          setWebsiteConfig({
+                            ...websiteConfig,
+                            hero: { ...websiteConfig.hero, secondaryCtaHref: e.target.value },
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text">Hero Eyebrow Text</label>
-                  <input
-                    type="text"
-                    value={websiteConfig.hero?.eyebrow || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        hero: { ...websiteConfig.hero, eyebrow: e.target.value },
-                      })
-                    }
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-gold"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text">Brand Wordmark</label>
-                  <input
-                    type="text"
-                    value={websiteConfig.hero?.word || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        hero: { ...websiteConfig.hero, word: e.target.value },
-                      })
-                    }
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-mono focus:outline-none focus:border-gold"
-                  />
-                </div>
-
-                <div className="md:col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-text">Hero Subtitle</label>
-                  <input
-                    type="text"
-                    value={websiteConfig.hero?.subtitle || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        hero: { ...websiteConfig.hero, subtitle: e.target.value },
-                      })
-                    }
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-gold"
-                  />
-                </div>
-
-                {/* Primary CTA Button */}
-                <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2.5">
-                  <span className="text-xs font-bold text-gold block">
-                    Primary CTA Button (Solid Glow)
-                  </span>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-text-muted">Button Label</label>
-                    <input
-                      type="text"
-                      value={websiteConfig.hero?.primaryCtaText || ""}
-                      onChange={(e) =>
-                        setWebsiteConfig({
-                          ...websiteConfig,
-                          hero: { ...websiteConfig.hero, primaryCtaText: e.target.value },
-                        })
-                      }
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-text-muted">Destination Link (e.g. #s01 or /login)</label>
-                    <input
-                      type="text"
-                      value={websiteConfig.hero?.primaryCtaHref || ""}
-                      onChange={(e) =>
-                        setWebsiteConfig({
-                          ...websiteConfig,
-                          hero: { ...websiteConfig.hero, primaryCtaHref: e.target.value },
-                        })
-                      }
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text font-mono"
-                    />
-                  </div>
-                </div>
-
-                {/* Secondary CTA Button */}
-                <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2.5">
-                  <span className="text-xs font-bold text-text-muted block">
-                    Secondary CTA Button (Outline)
-                  </span>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-text-muted">Button Label</label>
-                    <input
-                      type="text"
-                      value={websiteConfig.hero?.secondaryCtaText || ""}
-                      onChange={(e) =>
-                        setWebsiteConfig({
-                          ...websiteConfig,
-                          hero: { ...websiteConfig.hero, secondaryCtaText: e.target.value },
-                        })
-                      }
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-text-muted">Destination Link (e.g. #s03 or /dashboard)</label>
-                    <input
-                      type="text"
-                      value={websiteConfig.hero?.secondaryCtaHref || ""}
-                      onChange={(e) =>
-                        setWebsiteConfig({
-                          ...websiteConfig,
-                          hero: { ...websiteConfig.hero, secondaryCtaHref: e.target.value },
-                        })
-                      }
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text font-mono"
-                    />
-                  </div>
+              {/* Live Visual Card Preview */}
+              <div className="p-6 rounded-2xl bg-[#08070A] border border-[#D6B46A]/25 text-center space-y-3">
+                <span className="text-[10px] font-mono text-[#D6B46A] uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D6B46A]/10 border border-[#D6B46A]/20">
+                  Live Landing Page Hero Preview
+                </span>
+                <p className="text-xs text-white/60 tracking-widest uppercase font-mono mt-2">
+                  {websiteConfig.hero?.eyebrow || "Artificial Intelligence · For Business"}
+                </p>
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight py-1 font-sans">
+                  {websiteConfig.hero?.word || "BizzPal™"}
+                </h1>
+                <p className="text-sm text-[#E0D8C3] max-w-lg mx-auto">
+                  {websiteConfig.hero?.subtitle || "Your Business. Powered by Intelligence."}
+                </p>
+                <div className="flex items-center justify-center gap-3 pt-3">
+                  {websiteConfig.hero?.primaryCtaEnabled !== false && (
+                    <span className="px-4 py-2 rounded-xl text-xs font-bold bg-[#D6B46A] text-black">
+                      {websiteConfig.hero?.primaryCtaText || "Explore BizzPal"} →
+                    </span>
+                  )}
+                  {websiteConfig.hero?.secondaryCtaEnabled !== false && (
+                    <span className="px-4 py-2 rounded-xl text-xs font-semibold border border-white/20 text-white">
+                      {websiteConfig.hero?.secondaryCtaText || "Discover Our Intelligence"}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1480,7 +1661,7 @@ export default function AdminPage() {
                 <div>
                   <h2 className="text-sm font-bold text-text">Cinematic Story Scenes (01–07)</h2>
                   <p className="text-xs text-text-muted">
-                    Edit the headlines and subtitles displayed during the 3D scroll journey.
+                    Edit the headlines, subtitles, and CTAs displayed during the 3D scroll journey.
                   </p>
                 </div>
                 <button
@@ -1495,219 +1676,118 @@ export default function AdminPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                {/* Scene 01 */}
-                <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2">
-                  <span className="text-xs font-bold text-text">Scene 01 — Awakening</span>
-                  <input
-                    type="text"
-                    placeholder="Eyebrow"
-                    value={websiteConfig.scenes?.s01?.eyebrow || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s01: { ...websiteConfig.scenes?.s01, eyebrow: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                  <textarea
-                    rows={2}
-                    placeholder="Headline"
-                    value={websiteConfig.scenes?.s01?.headline || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s01: { ...websiteConfig.scenes?.s01, headline: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                </div>
+                {[
+                  { key: "s01", title: "Scene 01 — Awakening" },
+                  { key: "s02", title: "Scene 02 — Connection" },
+                  { key: "s03", title: "Scene 03 — Intelligence" },
+                  { key: "s04", title: "Scene 04 — This is BizzPal" },
+                  { key: "s05", title: "Scene 05 — Expansion" },
+                  { key: "s06", title: "Scene 06 — Human + AI" },
+                ].map(({ key, title }) => {
+                  const s = websiteConfig.scenes?.[key] || {};
+                  return (
+                    <div key={key} className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-text">{title}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setWebsiteConfig({
+                              ...websiteConfig,
+                              scenes: {
+                                ...websiteConfig.scenes,
+                                [key]: { ...s, enabled: s.enabled === false ? true : false },
+                              },
+                            })
+                          }
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                            s.enabled !== false
+                              ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                              : "bg-surface border-line text-text-muted"
+                          }`}
+                        >
+                          {s.enabled !== false ? "ACTIVE" : "HIDDEN"}
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Eyebrow text"
+                        value={s.eyebrow || ""}
+                        onChange={(e) =>
+                          setWebsiteConfig({
+                            ...websiteConfig,
+                            scenes: {
+                              ...websiteConfig.scenes,
+                              [key]: { ...s, eyebrow: e.target.value },
+                            },
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                      />
+                      <textarea
+                        rows={2}
+                        placeholder="Headline text"
+                        value={s.headline || ""}
+                        onChange={(e) =>
+                          setWebsiteConfig({
+                            ...websiteConfig,
+                            scenes: {
+                              ...websiteConfig.scenes,
+                              [key]: { ...s, headline: e.target.value },
+                            },
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                      />
+                      {s.lead !== undefined && (
+                        <textarea
+                          rows={2}
+                          placeholder="Lead paragraph"
+                          value={s.lead || ""}
+                          onChange={(e) =>
+                            setWebsiteConfig({
+                              ...websiteConfig,
+                              scenes: {
+                                ...websiteConfig.scenes,
+                                [key]: { ...s, lead: e.target.value },
+                              },
+                            })
+                          }
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
 
-                {/* Scene 02 */}
-                <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2">
-                  <span className="text-xs font-bold text-text">Scene 02 — Connection</span>
-                  <input
-                    type="text"
-                    placeholder="Eyebrow"
-                    value={websiteConfig.scenes?.s02?.eyebrow || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s02: { ...websiteConfig.scenes?.s02, eyebrow: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                  <textarea
-                    rows={2}
-                    placeholder="Headline"
-                    value={websiteConfig.scenes?.s02?.headline || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s02: { ...websiteConfig.scenes?.s02, headline: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                </div>
+                {/* Scene 07 with Final Action Button */}
+                <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-3 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-text">Scene 07 — Future & Final CTA Button</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWebsiteConfig({
+                          ...websiteConfig,
+                          scenes: {
+                            ...websiteConfig.scenes,
+                            s07: {
+                              ...websiteConfig.scenes?.s07,
+                              enabled: websiteConfig.scenes?.s07?.enabled === false ? true : false,
+                            },
+                          },
+                        })
+                      }
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                        websiteConfig.scenes?.s07?.enabled !== false
+                          ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                          : "bg-surface border-line text-text-muted"
+                      }`}
+                    >
+                      {websiteConfig.scenes?.s07?.enabled !== false ? "ACTIVE" : "HIDDEN"}
+                    </button>
+                  </div>
 
-                {/* Scene 03 */}
-                <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2">
-                  <span className="text-xs font-bold text-text">Scene 03 — Intelligence</span>
-                  <input
-                    type="text"
-                    placeholder="Eyebrow"
-                    value={websiteConfig.scenes?.s03?.eyebrow || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s03: { ...websiteConfig.scenes?.s03, eyebrow: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                  <textarea
-                    rows={2}
-                    placeholder="Headline"
-                    value={websiteConfig.scenes?.s03?.headline || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s03: { ...websiteConfig.scenes?.s03, headline: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                </div>
-
-                {/* Scene 04 */}
-                <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2">
-                  <span className="text-xs font-bold text-text">Scene 04 — This is BizzPal</span>
-                  <input
-                    type="text"
-                    placeholder="Headline"
-                    value={websiteConfig.scenes?.s04?.headline || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s04: { ...websiteConfig.scenes?.s04, headline: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                  <textarea
-                    rows={2}
-                    placeholder="Lead text"
-                    value={websiteConfig.scenes?.s04?.lead || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s04: { ...websiteConfig.scenes?.s04, lead: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                </div>
-
-                {/* Scene 05 */}
-                <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2">
-                  <span className="text-xs font-bold text-text">Scene 05 — Expansion</span>
-                  <input
-                    type="text"
-                    placeholder="Eyebrow"
-                    value={websiteConfig.scenes?.s05?.eyebrow || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s05: { ...websiteConfig.scenes?.s05, eyebrow: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                  <textarea
-                    rows={2}
-                    placeholder="Headline"
-                    value={websiteConfig.scenes?.s05?.headline || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s05: { ...websiteConfig.scenes?.s05, headline: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                </div>
-
-                {/* Scene 06 */}
-                <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2">
-                  <span className="text-xs font-bold text-text">Scene 06 — Human + AI</span>
-                  <input
-                    type="text"
-                    placeholder="Eyebrow"
-                    value={websiteConfig.scenes?.s06?.eyebrow || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s06: { ...websiteConfig.scenes?.s06, eyebrow: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                  <textarea
-                    rows={2}
-                    placeholder="Headline"
-                    value={websiteConfig.scenes?.s06?.headline || ""}
-                    onChange={(e) =>
-                      setWebsiteConfig({
-                        ...websiteConfig,
-                        scenes: {
-                          ...websiteConfig.scenes,
-                          s06: { ...websiteConfig.scenes?.s06, headline: e.target.value },
-                        },
-                      })
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
-                  />
-                </div>
-
-                {/* Scene 07 */}
-                <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2 md:col-span-2">
-                  <span className="text-xs font-bold text-text">Scene 07 — Future & Final CTA Button</span>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[11px] text-text-muted">Eyebrow</label>
@@ -1785,12 +1865,12 @@ export default function AdminPage() {
 
           {/* Subtab: About & Solutions */}
           {subWebTab === "about_solutions" && (
-            <div className="p-5 rounded-2xl bg-surface border border-line space-y-4">
+            <div className="p-5 rounded-2xl bg-surface border border-line space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-bold text-text">About & Solutions Content</h2>
                   <p className="text-xs text-text-muted">
-                    Configure the narrative paragraphs and capability solution cards.
+                    Configure narrative copy, approach pillars, and capabilities cards.
                   </p>
                 </div>
                 <button
@@ -1806,7 +1886,7 @@ export default function AdminPage() {
 
               {/* About Text */}
               <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-3">
-                <span className="text-xs font-bold text-text block">About BizzPal Narrative</span>
+                <span className="text-xs font-bold text-text block">About Narrative</span>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="text-[11px] text-text-muted">Headline</label>
@@ -1867,20 +1947,178 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Solution Cards */}
+              {/* Approach Pillars Full CRUD */}
+              <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-text">Approach Pillars (Step-by-Step Methodology)</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = websiteConfig.about?.approach || [];
+                      const nextNum = String(cur.length + 1).padStart(2, "0");
+                      const updated = [...cur, { label: "New Pillar", num: nextNum }];
+                      setWebsiteConfig({
+                        ...websiteConfig,
+                        about: { ...websiteConfig.about, approach: updated },
+                      });
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3 text-brass" />
+                    <span>Add Pillar</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(websiteConfig.about?.approach || []).map((pillar: any, pIdx: number) => (
+                    <div key={pIdx} className="p-2.5 rounded-xl bg-surface border border-line flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={pillar.num || ""}
+                        onChange={(e) => {
+                          const list = [...(websiteConfig.about?.approach || [])];
+                          list[pIdx] = { ...list[pIdx], num: e.target.value };
+                          setWebsiteConfig({
+                            ...websiteConfig,
+                            about: { ...websiteConfig.about, approach: list },
+                          });
+                        }}
+                        className="w-12 px-2 py-1 rounded-lg bg-surface-2 border border-line text-xs font-mono font-bold text-gold text-center"
+                      />
+                      <input
+                        type="text"
+                        value={pillar.label || ""}
+                        onChange={(e) => {
+                          const list = [...(websiteConfig.about?.approach || [])];
+                          list[pIdx] = { ...list[pIdx], label: e.target.value };
+                          setWebsiteConfig({
+                            ...websiteConfig,
+                            about: { ...websiteConfig.about, approach: list },
+                          });
+                        }}
+                        className="flex-1 px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-xs text-text font-semibold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const list = (websiteConfig.about?.approach || []).filter((_: any, i: number) => i !== pIdx);
+                          setWebsiteConfig({
+                            ...websiteConfig,
+                            about: { ...websiteConfig.about, approach: list },
+                          });
+                        }}
+                        className="p-1 rounded text-text-muted hover:text-rose-500 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Solution Capability Cards Full CRUD */}
               <div className="space-y-3">
-                <span className="text-xs font-bold text-text block">Capability Cards (5 Items)</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-text">Capabilities Cards ({(websiteConfig.solutions?.cards || []).length} Cards)</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = websiteConfig.solutions?.cards || [];
+                      const nextNum = String(cur.length + 1).padStart(2, "0");
+                      const newCard = {
+                        id: `c_${Date.now()}`,
+                        num: nextNum,
+                        fx: "ai",
+                        title: "Autonomous Intelligence",
+                        desc: "Next-generation autonomous system built around enterprise challenges.",
+                        enabled: true,
+                      };
+                      setWebsiteConfig({
+                        ...websiteConfig,
+                        solutions: { ...websiteConfig.solutions, cards: [...cur, newCard] },
+                      });
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-surface border border-line hover:border-brass text-text text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-brass" />
+                    <span>Add Capability Card</span>
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {(websiteConfig.solutions?.cards || []).map((card: any, idx: number) => (
-                    <div key={card.id || idx} className="p-3.5 rounded-xl bg-surface-2/60 border border-line space-y-2">
+                    <div key={card.id || idx} className="p-3.5 rounded-xl bg-surface-2/60 border border-line space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-gold font-mono">
-                          Card {card.num || `0${idx+1}`}
-                        </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-surface border border-line font-mono">
-                          FX: {card.fx || "ai"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={card.num || `0${idx+1}`}
+                            onChange={(e) => {
+                              const updatedCards = [...websiteConfig.solutions.cards];
+                              updatedCards[idx] = { ...updatedCards[idx], num: e.target.value };
+                              setWebsiteConfig({
+                                ...websiteConfig,
+                                solutions: { ...websiteConfig.solutions, cards: updatedCards },
+                              });
+                            }}
+                            className="w-10 px-1.5 py-0.5 rounded bg-surface border border-line font-mono font-bold text-xs text-gold text-center"
+                          />
+                          <select
+                            value={card.fx || "ai"}
+                            onChange={(e) => {
+                              const updatedCards = [...websiteConfig.solutions.cards];
+                              updatedCards[idx] = { ...updatedCards[idx], fx: e.target.value };
+                              setWebsiteConfig({
+                                ...websiteConfig,
+                                solutions: { ...websiteConfig.solutions, cards: updatedCards },
+                              });
+                            }}
+                            className="px-2 py-0.5 rounded bg-surface border border-line font-mono text-[10px] text-text"
+                          >
+                            <option value="ai">FX: ai</option>
+                            <option value="auto">FX: auto</option>
+                            <option value="data">FX: data</option>
+                            <option value="digital">FX: digital</option>
+                            <option value="custom">FX: custom</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updatedCards = [...websiteConfig.solutions.cards];
+                              updatedCards[idx] = { ...updatedCards[idx], enabled: card.enabled === false ? true : false };
+                              setWebsiteConfig({
+                                ...websiteConfig,
+                                solutions: { ...websiteConfig.solutions, cards: updatedCards },
+                              });
+                            }}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${
+                              card.enabled !== false
+                                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                                : "bg-surface border-line text-text-muted"
+                            }`}
+                          >
+                            {card.enabled !== false ? "ACTIVE" : "HIDDEN"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!window.confirm(`Delete card "${card.title}"?`)) return;
+                              const updatedCards = (websiteConfig.solutions?.cards || []).filter((_: any, i: number) => i !== idx);
+                              setWebsiteConfig({
+                                ...websiteConfig,
+                                solutions: { ...websiteConfig.solutions, cards: updatedCards },
+                              });
+                            }}
+                            className="p-1 rounded text-text-muted hover:text-rose-500 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
+
                       <input
                         type="text"
                         placeholder="Title"
@@ -1893,7 +2131,7 @@ export default function AdminPage() {
                             solutions: { ...websiteConfig.solutions, cards: updatedCards },
                           });
                         }}
-                        className="w-full px-2.5 py-1 rounded-lg bg-surface border border-line text-xs text-text font-semibold"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text font-semibold"
                       />
                       <textarea
                         rows={2}
@@ -2027,12 +2265,60 @@ export default function AdminPage() {
                     className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-mono"
                   />
                 </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text">GitHub URL (Optional)</label>
+                  <input
+                    type="text"
+                    value={websiteConfig.contact?.github || ""}
+                    onChange={(e) =>
+                      setWebsiteConfig({
+                        ...websiteConfig,
+                        contact: { ...websiteConfig.contact, github: e.target.value },
+                      })
+                    }
+                    placeholder="https://github.com/..."
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text">WhatsApp Direct Chat Link (Optional)</label>
+                  <input
+                    type="text"
+                    value={websiteConfig.contact?.whatsapp || ""}
+                    onChange={(e) =>
+                      setWebsiteConfig({
+                        ...websiteConfig,
+                        contact: { ...websiteConfig.contact, whatsapp: e.target.value },
+                      })
+                    }
+                    placeholder="https://wa.me/..."
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-mono"
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-xs font-semibold text-text">Note / Privacy Notice</label>
+                  <input
+                    type="text"
+                    value={websiteConfig.contact?.note || ""}
+                    onChange={(e) =>
+                      setWebsiteConfig({
+                        ...websiteConfig,
+                        contact: { ...websiteConfig.contact, note: e.target.value },
+                      })
+                    }
+                    placeholder="Opens your mail app — nothing is stored on this page."
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text"
+                  />
+                </div>
               </div>
             </div>
           )}
 
-          {/* Subtab: Navbar, Vision Words, Announcement Banner */}
-          {(subWebTab === "nav_brand" || subWebTab === "vision_words" || subWebTab === "announcement") && (
+          {/* Subtab: Navbar, Vision Words, Announcement, Stats, Footer */}
+          {(subWebTab === "nav_brand" || subWebTab === "vision_words" || subWebTab === "announcement" || subWebTab === "stats" || subWebTab === "footer") && (
             <WebsiteCmsExtra
               config={websiteConfig}
               onChange={setWebsiteConfig}

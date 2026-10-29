@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getPlatformConfig,
   setPlatformConfig,
+  clearMemoryConfigCache,
   DEFAULT_WEBSITE_CONFIG,
   DEFAULT_DASHBOARD_FEATURES,
   DEFAULT_TOOLS_CATALOG,
@@ -25,19 +26,37 @@ interface AuditLogItem {
   note?: string;
 }
 
+async function fetchConfigWithCloudFirst<T>(key: string, localFallback: T): Promise<T> {
+  try {
+    const cloudVal = await getFirestoreConfig<T | null>(key, null);
+    if (cloudVal !== null && cloudVal !== undefined) {
+      // Mirror to local SQLite cache
+      try { setPlatformConfig(key, cloudVal); } catch { }
+      return cloudVal;
+    }
+  } catch (e) {
+    console.warn(`[GCP Config] Failed reading ${key} from Firestore:`, e);
+  }
+  return getPlatformConfig<T>(key, localFallback);
+}
+
 export async function GET() {
   try {
-    const website = getPlatformConfig("website_config", DEFAULT_WEBSITE_CONFIG);
-    const features = getPlatformConfig("dashboard_features", DEFAULT_DASHBOARD_FEATURES);
-    const widgets = getPlatformConfig("dashboard_widgets", defaultWidgets);
-    let rawNav = getPlatformConfig("dashboard_nav", defaultNavItems);
-    const existingNavIds = new Set((Array.isArray(rawNav) ? rawNav : []).map((n: any) => n.id));
-    const missingNavDefaults = defaultNavItems.filter(item => !existingNavIds.has(item.id));
-    const nav = Array.isArray(rawNav) ? [...rawNav, ...missingNavDefaults].sort((a: any, b: any) => a.order - b.order) : defaultNavItems;
-    const tools = getPlatformConfig("tools_catalog", DEFAULT_TOOLS_CATALOG);
-    const plans = getPlatformConfig("subscription_plans", DEFAULT_SUBSCRIPTION_PLANS);
-    const metrics = getPlatformConfig("dashboard_metrics", defaultMetrics);
-    const auditLogs = getPlatformConfig<AuditLogItem[]>("audit_logs", [
+    const [website, features, widgets, rawNav, tools, plans, metrics, cloudAuditLogs, cloudVersion] = await Promise.all([
+      fetchConfigWithCloudFirst("website_config", DEFAULT_WEBSITE_CONFIG),
+      fetchConfigWithCloudFirst("dashboard_features", DEFAULT_DASHBOARD_FEATURES),
+      fetchConfigWithCloudFirst("dashboard_widgets", defaultWidgets),
+      fetchConfigWithCloudFirst("dashboard_nav", defaultNavItems),
+      fetchConfigWithCloudFirst("tools_catalog", DEFAULT_TOOLS_CATALOG),
+      fetchConfigWithCloudFirst("subscription_plans", DEFAULT_SUBSCRIPTION_PLANS),
+      fetchConfigWithCloudFirst("dashboard_metrics", defaultMetrics),
+      fetchConfigWithCloudFirst<AuditLogItem[] | null>("audit_logs", null),
+      fetchConfigWithCloudFirst<number | null>("config_version", null),
+    ]);
+
+    // Respect user deletions: Never append "missing" defaults back!
+    const nav = Array.isArray(rawNav) ? rawNav : defaultNavItems;
+    const auditLogs = Array.isArray(cloudAuditLogs) ? cloudAuditLogs : getPlatformConfig<AuditLogItem[]>("audit_logs", [
       {
         id: "log_init",
         timestamp: new Date().toISOString(),
@@ -48,7 +67,7 @@ export async function GET() {
         note: "System initialized with enterprise defaults",
       },
     ]);
-    const version = getPlatformConfig<number>("config_version", 1);
+    const version = cloudVersion || getPlatformConfig<number>("config_version", 1);
 
     return NextResponse.json({
       success: true,
@@ -103,56 +122,65 @@ export async function POST(request: Request) {
       note: note || `Published updates to ${section || "platform configuration"}`,
     };
 
-    // Update the targeted section
+    // Update the targeted section in both local SQLite and permanent GCP Cloud Firestore
     if (section === "website" && payload) {
+      clearMemoryConfigCache("website_config");
       setPlatformConfig("website_config", payload);
-      setFirestoreConfig("website_config", payload).catch(() => {});
+      await setFirestoreConfig("website_config", payload);
     } else if (section === "features" && payload) {
+      clearMemoryConfigCache("dashboard_features");
       setPlatformConfig("dashboard_features", payload);
-      setFirestoreConfig("dashboard_features", payload).catch(() => {});
+      await setFirestoreConfig("dashboard_features", payload);
     } else if (section === "nav" && payload) {
+      clearMemoryConfigCache("dashboard_nav");
       setPlatformConfig("dashboard_nav", payload);
-      setFirestoreConfig("dashboard_nav", payload).catch(() => {});
+      await setFirestoreConfig("dashboard_nav", payload);
       // Synchronize in-memory store
       if (Array.isArray(payload)) {
         platformConfigStore.setNav(payload);
       }
     } else if (section === "widgets" && payload) {
+      clearMemoryConfigCache("dashboard_widgets");
       setPlatformConfig("dashboard_widgets", payload);
-      setFirestoreConfig("dashboard_widgets", payload).catch(() => {});
+      await setFirestoreConfig("dashboard_widgets", payload);
       if (Array.isArray(payload)) {
         platformConfigStore.setWidgets(payload);
       }
     } else if (section === "tools" && payload) {
+      clearMemoryConfigCache("tools_catalog");
       setPlatformConfig("tools_catalog", payload);
-      setFirestoreConfig("tools_catalog", payload).catch(() => {});
+      await setFirestoreConfig("tools_catalog", payload);
     } else if (section === "plans" && payload) {
+      clearMemoryConfigCache("subscription_plans");
       setPlatformConfig("subscription_plans", payload);
-      setFirestoreConfig("subscription_plans", payload).catch(() => {});
-    } else if (section === "all" && payload) {
+      await setFirestoreConfig("subscription_plans", payload);
+    } else if ((section === "all" || section === "import") && payload) {
+      clearMemoryConfigCache();
       if (payload.website) {
         setPlatformConfig("website_config", payload.website);
-        setFirestoreConfig("website_config", payload.website).catch(() => {});
+        await setFirestoreConfig("website_config", payload.website);
       }
       if (payload.features) {
         setPlatformConfig("dashboard_features", payload.features);
-        setFirestoreConfig("dashboard_features", payload.features).catch(() => {});
+        await setFirestoreConfig("dashboard_features", payload.features);
       }
       if (payload.nav) {
         setPlatformConfig("dashboard_nav", payload.nav);
-        setFirestoreConfig("dashboard_nav", payload.nav).catch(() => {});
+        await setFirestoreConfig("dashboard_nav", payload.nav);
+        if (Array.isArray(payload.nav)) platformConfigStore.setNav(payload.nav);
       }
       if (payload.widgets) {
         setPlatformConfig("dashboard_widgets", payload.widgets);
-        setFirestoreConfig("dashboard_widgets", payload.widgets).catch(() => {});
+        await setFirestoreConfig("dashboard_widgets", payload.widgets);
+        if (Array.isArray(payload.widgets)) platformConfigStore.setWidgets(payload.widgets);
       }
       if (payload.tools) {
         setPlatformConfig("tools_catalog", payload.tools);
-        setFirestoreConfig("tools_catalog", payload.tools).catch(() => {});
+        await setFirestoreConfig("tools_catalog", payload.tools);
       }
       if (payload.plans) {
         setPlatformConfig("subscription_plans", payload.plans);
-        setFirestoreConfig("subscription_plans", payload.plans).catch(() => {});
+        await setFirestoreConfig("subscription_plans", payload.plans);
       }
     } else {
       return NextResponse.json(
@@ -161,11 +189,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Save audit log & updated version
+    // Save audit log & updated version to both SQLite and GCP Firestore
     const updatedAuditLogs = [newLog, ...currentAuditLogs].slice(0, 100);
     setPlatformConfig("audit_logs", updatedAuditLogs);
     setPlatformConfig("config_version", nextVersion);
-    setFirestoreConfig("config_version", nextVersion).catch(() => {});
+    await setFirestoreConfig("audit_logs", updatedAuditLogs);
+    await setFirestoreConfig("config_version", nextVersion);
 
     return NextResponse.json({
       success: true,
@@ -188,6 +217,7 @@ export async function DELETE() {
     const nextVersion = currentVersion + 1;
     const currentAuditLogs = getPlatformConfig<AuditLogItem[]>("audit_logs", []);
 
+    clearMemoryConfigCache();
     setPlatformConfig("website_config", DEFAULT_WEBSITE_CONFIG);
     setPlatformConfig("dashboard_features", DEFAULT_DASHBOARD_FEATURES);
     setPlatformConfig("dashboard_nav", defaultNavItems);
@@ -195,6 +225,17 @@ export async function DELETE() {
     setPlatformConfig("tools_catalog", DEFAULT_TOOLS_CATALOG);
     setPlatformConfig("subscription_plans", DEFAULT_SUBSCRIPTION_PLANS);
     setPlatformConfig("dashboard_metrics", defaultMetrics);
+
+    // Sync reset to permanent GCP Firestore
+    await Promise.allSettled([
+      setFirestoreConfig("website_config", DEFAULT_WEBSITE_CONFIG),
+      setFirestoreConfig("dashboard_features", DEFAULT_DASHBOARD_FEATURES),
+      setFirestoreConfig("dashboard_nav", defaultNavItems),
+      setFirestoreConfig("dashboard_widgets", defaultWidgets),
+      setFirestoreConfig("tools_catalog", DEFAULT_TOOLS_CATALOG),
+      setFirestoreConfig("subscription_plans", DEFAULT_SUBSCRIPTION_PLANS),
+      setFirestoreConfig("dashboard_metrics", defaultMetrics),
+    ]);
 
     // Keep in-memory config store in sync
     platformConfigStore.setNav(defaultNavItems);

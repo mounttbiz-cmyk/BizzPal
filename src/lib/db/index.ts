@@ -1214,7 +1214,15 @@ import {
 } from "@/config/seeds/defaultCatalog";
 
 
-const memoryConfigCache = new Map<string, any>();
+export const memoryConfigCache = new Map<string, any>();
+
+export function clearMemoryConfigCache(key?: string): void {
+  if (key) {
+    memoryConfigCache.delete(key);
+  } else {
+    memoryConfigCache.clear();
+  }
+}
 
 export function deepMerge<T>(fallback: T, override: any): T {
   if (!override || typeof override !== "object" || Array.isArray(override)) {
@@ -1244,20 +1252,36 @@ export function deepMerge<T>(fallback: T, override: any): T {
 export function getPlatformConfig<T>(key: string, fallback: T): T {
   // First check in-memory cache
   if (memoryConfigCache.has(key)) {
-    const cached = memoryConfigCache.get(key);
-    return typeof fallback === "object" && fallback !== null && !Array.isArray(fallback)
-      ? deepMerge(fallback, cached)
-      : (cached as T);
+    return memoryConfigCache.get(key) as T;
   }
   try {
     const row = db.prepare("SELECT config_value FROM platform_config WHERE config_key = ?").get(key) as { config_value: string } | undefined;
     if (row && row.config_value) {
       const parsed = JSON.parse(row.config_value);
-      const merged = typeof fallback === "object" && fallback !== null && !Array.isArray(fallback)
-        ? deepMerge(fallback, parsed)
-        : (parsed as T);
-      memoryConfigCache.set(key, merged);
-      return merged;
+      // Collections/Arrays: STRICT REPLACEMENT SEMANTICS. Never append or merge fallback arrays!
+      if (Array.isArray(parsed)) {
+        memoryConfigCache.set(key, parsed);
+        return parsed as T;
+      }
+      // Objects: Only supply default top-level sections if completely missing in parsed
+      let resolved: any = parsed;
+      if (
+        typeof fallback === "object" &&
+        fallback !== null &&
+        !Array.isArray(fallback) &&
+        typeof parsed === "object" &&
+        parsed !== null
+      ) {
+        resolved = { ...fallback, ...parsed };
+        // Retain user-saved sub-objects and arrays exactly as saved
+        for (const k of Object.keys(parsed)) {
+          if (parsed[k] !== undefined) {
+            resolved[k] = parsed[k];
+          }
+        }
+      }
+      memoryConfigCache.set(key, resolved);
+      return resolved as T;
     }
   } catch (err) {
     console.error(`Error reading config for key ${key}:`, err);
@@ -1301,21 +1325,11 @@ export function setPlatformConfig<T>(key: string, value: T): void {
   }
 }
 
-// Initialize seed platform configs if not present or heal if partial
+// Initialize seed platform configs ONLY if row does not exist at all (never revive deleted items)
 try {
   const existingWebsiteRow = db.prepare("SELECT config_value FROM platform_config WHERE config_key = ?").get("website_config") as { config_value: string } | undefined;
   if (!existingWebsiteRow) {
     setPlatformConfig("website_config", DEFAULT_WEBSITE_CONFIG);
-  } else {
-    try {
-      const parsedWeb = JSON.parse(existingWebsiteRow.config_value);
-      if (!parsedWeb.hero || !parsedWeb.scenes || !parsedWeb.sections?.about) {
-        const healed = deepMerge(DEFAULT_WEBSITE_CONFIG, parsedWeb);
-        setPlatformConfig("website_config", healed);
-      }
-    } catch {
-      setPlatformConfig("website_config", DEFAULT_WEBSITE_CONFIG);
-    }
   }
   if (!db.prepare("SELECT config_key FROM platform_config WHERE config_key = ?").get("dashboard_features")) {
     setPlatformConfig("dashboard_features", DEFAULT_DASHBOARD_FEATURES);

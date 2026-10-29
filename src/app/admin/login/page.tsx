@@ -95,7 +95,7 @@ export default function AdminLoginPage() {
                 <Lock className="w-3.5 h-3.5 text-text-muted absolute left-3" />
                 <input
                   type="password"
-                  placeholder="Enter passcode (bizzpal2026)"
+                  placeholder="Enter passcode"
                   value={passcode}
                   onChange={e => setPasscode(e.target.value)}
                   className="w-full text-xs pl-9 pr-3.5 py-2.5 rounded-lg border border-line bg-surface-2 text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-amber"
@@ -116,7 +116,7 @@ export default function AdminLoginPage() {
       </div>
 
       <div className="text-center text-[11px] text-text-muted">
-        BizzPal v3 · Superadmin Control Plane Security Gate
+        BizzPal · Superadmin Control Plane Security Gate
       </div>
     </div>
   );

@@ -152,24 +152,35 @@ export function Nav ({ menuOpen, setMenuOpen, data }) {
   }, [menuOpen, setMenuOpen]);
 
   const brand = data?.brand || 'BizzPal';
-  const rawLinks = data?.links || DEFAULT_NAV_LINKS;
-  const links = rawLinks.map(l => Array.isArray(l) ? { label: l[0], href: l[1] } : l);
+  const logoUrl = data?.logoUrl || '/logo-icon.png';
+  const logoHref = data?.logoHref || '#hero';
+  const rawLinks = Array.isArray(data?.links) ? data.links : DEFAULT_NAV_LINKS;
+  const links = rawLinks
+    .filter(l => l && l.enabled !== false)
+    .map(l => Array.isArray(l) ? { label: l[0], href: l[1] } : l);
+  const ctaEnabled = data?.ctaEnabled !== false;
   const ctaText = data?.ctaText || 'Start a Conversation';
   const ctaHref = data?.ctaHref || '#contact';
 
   return (
     <>
       <header className="nav">
-        <a className="brand" href="#hero" aria-label="BizzPal home">
+        <a className="brand" href={logoHref} aria-label={`${brand} home`}>
           <img
-            src={data?.logoUrl || '/logo-icon.png'}
+            src={logoUrl}
             alt={brand}
             className="brand__logo-img"
           />
           <span className="wm">
-            <span className="wm__a">Bizz</span>
-            <span className="wm__b">Pal</span>
-            <span className="wm__tm">&trade;</span>
+            {brand === 'BizzPal' || brand === 'BizzPal™' ? (
+              <>
+                <span className="wm__a">Bizz</span>
+                <span className="wm__b">Pal</span>
+                <span className="wm__tm">&trade;</span>
+              </>
+            ) : (
+              <span className="wm__custom font-bold text-white tracking-tight">{brand}</span>
+            )}
           </span>
         </a>
 
@@ -180,9 +191,11 @@ export function Nav ({ menuOpen, setMenuOpen, data }) {
         </nav>
 
         <div className="nav__right">
-          <MagneticButton className="btn--nav" href={ctaHref}>
-            <span>{ctaText}</span><span className="btn__ar" aria-hidden="true">→</span>
-          </MagneticButton>
+          {ctaEnabled && (
+            <MagneticButton className="btn--nav" href={ctaHref}>
+              <span>{ctaText}</span><span className="btn__ar" aria-hidden="true">→</span>
+            </MagneticButton>
+          )}
           <button
             className="burger"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
@@ -203,13 +216,15 @@ export function Nav ({ menuOpen, setMenuOpen, data }) {
             {label}
           </a>
         ))}
-        <a
-          href={ctaHref}
-          className="menu__cta"
-          onClick={() => setMenuOpen(false)}
-        >
-          <span>{ctaText}</span> <span aria-hidden="true">→</span>
-        </a>
+        {ctaEnabled && (
+          <a
+            href={ctaHref}
+            className="menu__cta"
+            onClick={() => setMenuOpen(false)}
+          >
+            <span>{ctaText}</span> <span aria-hidden="true">→</span>
+          </a>
+        )}
         <div className="menu__meta">{brand} — Intelligence in Motion</div>
       </div>
     </>

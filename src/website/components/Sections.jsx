@@ -38,11 +38,14 @@ export function AnnouncementBanner({ data }) {
 export function Hero({ ready, data }) {
   const rawEyebrow = data?.eyebrow || 'Artificial Intelligence · BizzPal.ai';
   const eyebrow = rawEyebrow.replace(/bizzpal\.in/gi, 'BizzPal.ai');
+  const word = data?.word || 'BizzPal™';
   const subtitle = data?.subtitle || 'Your Business. Powered by Intelligence.';
   const primaryCtaText = data?.primaryCtaText || 'Explore BizzPal';
   const primaryCtaHref = data?.primaryCtaHref || '#s01';
+  const primaryCtaEnabled = data?.primaryCtaEnabled !== false;
   const secondaryCtaText = data?.secondaryCtaText || 'Discover Our Intelligence';
   const secondaryCtaHref = data?.secondaryCtaHref || '#s03';
+  const secondaryCtaEnabled = data?.secondaryCtaEnabled !== false;
 
   return (
     <section id="hero" className="story" aria-label="BizzPal — Your AI Business Partner">
@@ -50,28 +53,38 @@ export function Hero({ ready, data }) {
         <div className="wrap hero__inner">
           <p className={'eyebrow eyebrow--both rv' + (ready ? ' in' : '')} data-d="1">{eyebrow}</p>
 
-          <h1 className={'hero__mark' + (ready ? ' in' : '')} aria-label="BizzPal™">
-            <span className="ch ch--s" aria-hidden="true" style={{ transitionDelay: '0.30s' }}>B</span>
-            <span className="ch ch--s" aria-hidden="true" style={{ transitionDelay: '0.355s' }}>i</span>
-            <span className="ch ch--s" aria-hidden="true" style={{ transitionDelay: '0.41s' }}>z</span>
-            <span className="ch ch--s" aria-hidden="true" style={{ transitionDelay: '0.465s' }}>z</span>
-            <span className="ch ch--g" aria-hidden="true" style={{ transitionDelay: '0.52s' }}>P</span>
-            <span className="ch ch--g" aria-hidden="true" style={{ transitionDelay: '0.575s' }}>a</span>
-            <span className="ch ch--g" aria-hidden="true" style={{ transitionDelay: '0.63s' }}>l</span>
-            <span className="ch ch--tm" aria-hidden="true" style={{ transitionDelay: '0.685s' }}>&trade;</span>
+          <h1 className={'hero__mark' + (ready ? ' in' : '')} aria-label={word}>
+            {word.split('').map((char, idx) => (
+              <span
+                key={idx}
+                className={
+                  char === ' '
+                    ? 'inline-block w-3 md:w-5'
+                    : (idx < Math.ceil(word.length / 2) ? 'ch ch--s' : 'ch ch--g')
+                }
+                aria-hidden="true"
+                style={{ transitionDelay: `${0.30 + Math.min(idx * 0.05, 0.75)}s` }}
+              >
+                {char}
+              </span>
+            ))}
           </h1>
 
           <p className={'hero__sub rv' + (ready ? ' in' : '')} data-d="4">
-            Your Business. <em>Powered by Intelligence.</em>
+            {subtitle}
           </p>
 
           <div className={'hero__cta rv' + (ready ? ' in' : '')} data-d="5">
-            <MagneticButton className="btn--solid btn--lg" href={primaryCtaHref}>
-              <span>{primaryCtaText}</span><span className="btn__ar" aria-hidden="true">→</span>
-            </MagneticButton>
-            <MagneticButton className="btn--lg" href={secondaryCtaHref}>
-              <span>{secondaryCtaText}</span>
-            </MagneticButton>
+            {primaryCtaEnabled && (
+              <MagneticButton className="btn--solid btn--lg" href={primaryCtaHref}>
+                <span>{primaryCtaText}</span><span className="btn__ar" aria-hidden="true">→</span>
+              </MagneticButton>
+            )}
+            {secondaryCtaEnabled && (
+              <MagneticButton className="btn--lg" href={secondaryCtaHref}>
+                <span>{secondaryCtaText}</span>
+              </MagneticButton>
+            )}
           </div>
         </div>
 
@@ -83,7 +96,6 @@ export function Hero({ ready, data }) {
   );
 }
 
-/* ------------------------------------------------------ cinematic captions */
 function Beat({ id, height, label, align = 'center', modifier = '', children }) {
   const beatClass = ['beat', align === 'center' ? 'beat--c' : '', modifier, 'fade'].filter(Boolean).join(' ');
   const style = align === 'right' ? { marginLeft: 'auto', textAlign: 'right' } : undefined;
@@ -192,6 +204,7 @@ export const SceneFuture = ({ data }) => {
   const headline = data?.headline || 'The future isn’t coming.\nWe’re engineering it.';
   const ctaText = data?.ctaText || 'Build the Future with BizzPal';
   const ctaHref = data?.ctaHref || DASHBOARD_URL;
+  const ctaEnabled = data?.ctaEnabled !== false;
 
   return (
     <section id="s07" className="story" style={{ height: '180svh' }} aria-label="The future">
@@ -200,11 +213,13 @@ export const SceneFuture = ({ data }) => {
           <div className="beat beat--c fade" data-fade>
             <p className="eyebrow" style={{ justifyContent: 'center' }}>{eyebrow}</p>
             <h2 className="h-xl" style={{ whiteSpace: 'pre-line' }}>{headline}</h2>
-            <div className="hero__cta" style={{ marginTop: 40 }}>
-              <MagneticButton className="btn--solid btn--lg" href={ctaHref}>
-                <span>{ctaText}</span><span className="btn__ar" aria-hidden="true">→</span>
-              </MagneticButton>
-            </div>
+            {ctaEnabled && (
+              <div className="hero__cta" style={{ marginTop: 40 }}>
+                <MagneticButton className="btn--solid btn--lg" href={ctaHref}>
+                  <span>{ctaText}</span><span className="btn__ar" aria-hidden="true">→</span>
+                </MagneticButton>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -225,7 +240,7 @@ export const About = ({ data }) => {
   const headline = data?.headline || 'We build intelligence that moves the world forward.';
   const p1 = data?.p1 || 'BizzPal uses artificial intelligence to automate tasks, analyse data, and help businesses make smarter, faster decisions for growth.';
   const p2 = data?.p2 || 'We work at the point where information becomes understanding — designing systems that read complexity, find the signal inside it, and turn that signal into a decision a business can act on today.';
-  const rawApproach = data?.approach || DEFAULT_APPROACH;
+  const rawApproach = Array.isArray(data?.approach) ? data.approach : DEFAULT_APPROACH;
   const approach = rawApproach.map((item, idx) =>
     Array.isArray(item) ? { label: item[0], num: item[1] } : { label: item.label, num: item.num || `0${idx+1}` }
   );
@@ -307,7 +322,7 @@ export const Solutions = ({ data }) => {
   const eyebrow = data?.eyebrow || 'Solutions';
   const headline = data?.headline || 'Capabilities, engineered.';
   const subtitle = data?.subtitle || 'Each capability is a system, not a feature — built around the problem it is meant to solve.';
-  const cards = data?.cards || DEFAULT_CARDS;
+  const cards = Array.isArray(data?.cards) ? data.cards.filter(c => c && c.enabled !== false) : DEFAULT_CARDS;
 
   return (
     <section id="solutions" aria-labelledby="sol-h">
@@ -347,7 +362,7 @@ const DEFAULT_STATS = [
 ];
 
 export const Stats = ({ data }) => {
-  const items = data?.items || DEFAULT_STATS;
+  const items = Array.isArray(data?.items) ? data.items.filter(s => s && s.enabled !== false) : DEFAULT_STATS;
   return (
     <section id="stats" aria-label="Impact">
       <div className="wrap">
@@ -368,7 +383,7 @@ export const Stats = ({ data }) => {
 const DEFAULT_VISION_WORDS = ['Understand.', 'Predict.', 'Adapt.', 'Create.', 'Evolve.', 'BizzPal.'];
 
 export const Vision = ({ data }) => {
-  const words = data?.words || DEFAULT_VISION_WORDS;
+  const words = Array.isArray(data?.words) ? data.words : DEFAULT_VISION_WORDS;
   const label = data?.label || 'The next interface is intelligence';
 
   return (
@@ -421,7 +436,7 @@ export function Contact({ data }) {
 
   const social = (label, url) => url && !url.includes('placeholder')
     ? <a className="crow" key={label} href={url} target="_blank" rel="noopener"><span className="crow__v">{label}</span><span className="crow__k">Social</span></a>
-    : <span className="crow" key={label}><span className="crow__v">{label} <span className="ph">ADD LINK</span></span><span className="crow__k">Social</span></span>;
+    : null;
 
   return (
     <section id="contact" aria-labelledby="contact-h">
@@ -456,6 +471,9 @@ export function Contact({ data }) {
               <a className="crow" href={`https://${contactInfo.site}`} target="_blank" rel="noopener"><span className="crow__v">{contactInfo.site}</span><span className="crow__k">Website</span></a>
               {social('LinkedIn', contactInfo.linkedin)}
               {social('X / Twitter', contactInfo.twitter)}
+              {data?.github && social('GitHub', data.github)}
+              {data?.whatsapp && social('WhatsApp', data.whatsapp)}
+              {data?.discord && social('Discord', data.discord)}
             </div>
           </div>
         </div>
@@ -464,36 +482,35 @@ export function Contact({ data }) {
   );
 }
 
-export const Footer = () => {
+export const Footer = ({ data }) => {
+  const brand = data?.brand || 'BizzPal™';
+  const tagline = data?.tagline || 'BizzPal™ — Your AI Business Partner';
+  const legalLinks = Array.isArray(data?.legalLinks) ? data.legalLinks : [
+    { label: 'Terms & Conditions', href: '/terms' },
+    { label: 'Privacy Policy', href: '/privacy' }
+  ];
+
   return (
     <footer>
       <div className="wrap foot">
         <div className="foot__links" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <a
-            href="/terms"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="foot__legal-link"
-            style={{ color: 'var(--ink-dim)', fontSize: '13px', textDecoration: 'none', transition: 'color 0.2s ease' }}
-          >
-            Terms &amp; Conditions
-          </a>
-          <span style={{ color: 'var(--ink-faint)', opacity: 0.4 }}>•</span>
-          <a
-            href="/privacy"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="foot__legal-link"
-            style={{ color: 'var(--ink-dim)', fontSize: '13px', textDecoration: 'none', transition: 'color 0.2s ease' }}
-          >
-            Privacy Policy
-          </a>
+          {legalLinks.map((item, idx) => (
+            <span key={item.href || idx} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              {idx > 0 && <span style={{ color: 'var(--ink-faint)', opacity: 0.4 }}>•</span>}
+              <a
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="foot__legal-link"
+                style={{ color: 'var(--ink-dim)', fontSize: '13px', textDecoration: 'none', transition: 'color 0.2s ease' }}
+              >
+                {item.label}
+              </a>
+            </span>
+          ))}
         </div>
         <span>
-          <span className="wm wm--sm">
-            <span className="wm__a">Bizz</span><span className="wm__b">Pal</span><span className="wm__tm">&trade;</span>
-          </span>
-          &nbsp;&mdash;&nbsp;Your AI Business Partner
+          {tagline}
         </span>
         <a href="#hero">Back to top ↑</a>
       </div>

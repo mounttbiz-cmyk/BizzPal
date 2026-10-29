@@ -58,7 +58,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
 
   // Sync internal state when parent props change from API fetch
   useEffect(() => {
-    if (Array.isArray(plans) && plans.length > 0) {
+    if (Array.isArray(plans)) {
       setPlanList(plans);
     }
   }, [plans]);
@@ -116,7 +116,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
     try {
       localStorage.setItem("bizzpal_subscription_plans", JSON.stringify(updated));
       window.dispatchEvent(new Event("bizzpal_config_updated"));
-    } catch {}
+    } catch { }
   };
 
   const openCreateModal = () => {
@@ -175,22 +175,22 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
       updated = planList.map((p) =>
         p.id === editingPlan.id
           ? {
-              ...p,
-              id: form.id.trim() || p.id,
-              name: form.name.trim(),
-              tagline: form.tagline.trim(),
-              price: form.price.trim(),
-              period: form.period.trim(),
-              color: form.color,
-              badge: form.badge.trim() || undefined,
-              isPopular: form.isPopular,
-              features: featureList,
-              ctaLabel: form.ctaLabel.trim(),
-              actionType: form.actionType,
-              contactEmail: form.contactEmail.trim(),
-              customUrl: form.customUrl.trim(),
-              enabled: form.enabled,
-            }
+            ...p,
+            id: form.id.trim() || p.id,
+            name: form.name.trim(),
+            tagline: form.tagline.trim(),
+            price: form.price.trim(),
+            period: form.period.trim(),
+            color: form.color,
+            badge: form.badge.trim() || undefined,
+            isPopular: form.isPopular,
+            features: featureList,
+            ctaLabel: form.ctaLabel.trim(),
+            actionType: form.actionType,
+            contactEmail: form.contactEmail.trim(),
+            customUrl: form.customUrl.trim(),
+            enabled: form.enabled,
+          }
           : p
       );
     } else {
@@ -322,13 +322,12 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
           return (
             <div
               key={plan.id}
-              className={`p-5 rounded-2xl bg-surface border flex flex-col justify-between shadow-theme transition-all relative ${
-                !isEnabled
+              className={`p-5 rounded-2xl bg-surface border flex flex-col justify-between shadow-theme transition-all relative ${!isEnabled
                   ? "opacity-60 border-dashed border-line"
                   : isPopular
-                  ? "border-blue-500/60 ring-2 ring-blue-500/20 shadow-lg shadow-blue-500/5"
-                  : "border-line"
-              }`}
+                    ? "border-blue-500/60 ring-2 ring-blue-500/20 shadow-lg shadow-blue-500/5"
+                    : "border-line"
+                }`}
             >
               {/* Badge & Popular Indicator */}
               <div className="flex items-center justify-between gap-2 mb-3">
@@ -339,11 +338,10 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                 <div className="flex items-center gap-1.5">
                   {plan.badge && (
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                        isPopular
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${isPopular
                           ? "bg-blue-500 text-white shadow-xs"
                           : "bg-surface-2 border border-line text-text-muted"
-                      }`}
+                        }`}
                     >
                       {plan.badge}
                     </span>
@@ -352,11 +350,10 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                     type="button"
                     onClick={() => handleTogglePopular(plan.id)}
                     title={isPopular ? "Unmark as Most Popular" : "Mark as Most Popular"}
-                    className={`p-1 rounded-lg border transition-colors cursor-pointer ${
-                      isPopular
+                    className={`p-1 rounded-lg border transition-colors cursor-pointer ${isPopular
                         ? "bg-amber-500/15 border-amber-500/40 text-amber-500"
                         : "border-line text-text-muted hover:text-amber-500 hover:bg-surface-2"
-                    }`}
+                      }`}
                   >
                     <Star className={`w-3.5 h-3.5 ${isPopular ? "fill-amber-500" : ""}`} />
                   </button>
@@ -432,11 +429,10 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                   <button
                     type="button"
                     onClick={() => handleToggleEnabled(plan.id)}
-                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                      isEnabled
+                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${isEnabled
                         ? "border-line text-text-muted hover:text-text hover:bg-surface-2"
                         : "bg-rose-500/10 border-rose-500/30 text-rose-500"
-                    }`}
+                      }`}
                     title={isEnabled ? "Disable Plan" : "Enable Plan"}
                   >
                     {isEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}

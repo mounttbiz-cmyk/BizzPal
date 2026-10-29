@@ -23,13 +23,7 @@ interface AppShellProps {
 }
 
 function sanitizeNavItems(list: NavItem[]): NavItem[] {
-  const existingIds = new Set((list || []).map(item => item.id));
-  const existingHrefs = new Set((list || []).map(item => item.href));
-  const missingDefaults = defaultNavItems.filter(
-    def => !existingIds.has(def.id) && !existingHrefs.has(def.href)
-  );
-
-  const fullList = [...(list || []), ...missingDefaults].sort((a, b) => a.order - b.order);
+  const fullList = [...(list || [])].sort((a, b) => a.order - b.order);
 
   return fullList.map(item => {
     const isWorkspace = item.id === "nav_chat" || item.label.toLowerCase().includes("workspace");
@@ -108,10 +102,9 @@ export function AppShell({
           const savedNav = localStorage.getItem("bizzpal_dashboard_nav");
           if (savedNav) {
             const parsedNav = JSON.parse(savedNav);
-            if (mounted && Array.isArray(parsedNav) && parsedNav.length > 0) {
-              const cleaned = sanitizeNavItems(parsedNav.filter((n: NavItem) => n.enabled !== false));
-              setItems(cleaned);
-              localStorage.setItem("bizzpal_dashboard_nav", JSON.stringify(cleaned));
+            if (mounted && Array.isArray(parsedNav)) {
+              const active = parsedNav.filter((n: NavItem) => n.enabled !== false);
+              setItems(sanitizeNavItems(active));
             }
           }
           const savedFeatures = localStorage.getItem("bizzpal_dashboard_features");
@@ -130,11 +123,11 @@ export function AppShell({
         .then(d => {
           if (!mounted) return;
           if (d.success) {
-            if (Array.isArray(d.nav) && d.nav.length > 0) {
-              const cleaned = sanitizeNavItems(d.nav.filter((n: NavItem) => n.enabled !== false));
-              setItems(cleaned);
+            if (Array.isArray(d.nav)) {
+              const active = d.nav.filter((n: NavItem) => n.enabled !== false);
+              setItems(sanitizeNavItems(active));
               try {
-                localStorage.setItem("bizzpal_dashboard_nav", JSON.stringify(cleaned));
+                localStorage.setItem("bizzpal_dashboard_nav", JSON.stringify(d.nav));
               } catch {}
             }
             if (d.features) {
