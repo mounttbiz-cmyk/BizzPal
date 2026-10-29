@@ -263,20 +263,27 @@ export async function GET(req: NextRequest) {
 <body>
   <div class="card">
     ${picture ? `<img src="${picture}" class="avatar" alt="${name}" />` : ""}
-    <div class="badge"><span class="pulse-dot"></span> Live Account Connected</div>
-    <h2>Welcome, ${name}!</h2>
+    <div class="badge"><span class="pulse-dot"></span> Authenticating Google Account</div>
+    <h2>Authenticating ${name}...</h2>
     <p class="email">${email}</p>
-    <p class="info">Synced with BizzPal Executive Platform. Closing window...</p>
+    <p class="info">Transferring session to BizzPal Executive Platform...</p>
   </div>
   <script>
     const payload = ${JSON.stringify(successData)};
     if (window.opener) {
-      window.opener.postMessage({ type: 'BIZZPAL_GOOGLE_AUTH_SUCCESS', data: payload }, '*');
-      setTimeout(() => window.close(), 1200);
+      try {
+        window.opener.postMessage({ type: 'BIZZPAL_GOOGLE_AUTH_SUCCESS', data: payload }, '*');
+      } catch (e) {}
+      try {
+        window.close();
+      } catch (e) {}
+      setTimeout(() => {
+        try { window.close(); } catch (e) {}
+      }, 150);
     } else {
       setTimeout(() => {
         window.location.href = '${returnTo}?connected=google';
-      }, 1500);
+      }, 500);
     }
   </script>
 </body>

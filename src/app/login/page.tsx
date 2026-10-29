@@ -368,6 +368,14 @@ export default function LoginPage() {
           const handleGoogleMessage = async (event: MessageEvent) => {
             if (event.data?.type === "BIZZPAL_GOOGLE_AUTH_SUCCESS") {
               window.removeEventListener("message", handleGoogleMessage);
+
+              // Immediately close the OAuth popup window
+              if (popup && !popup.closed) {
+                try {
+                  popup.close();
+                } catch (e) {}
+              }
+
               const data = event.data.data;
               const userEmail = (data.email || "").trim().toLowerCase();
               const userName = data.name || fullName || "Founder";
@@ -386,9 +394,12 @@ export default function LoginPage() {
               // Rule 1: On "Log In" tab, new email cannot sign in - must create account first
               if (authMode === "signin" && !accountExists) {
                 setLoading(false);
+                setEmail(userEmail);
+                setFullName(userName);
+                setAuthMode("register"); // Automatically switch tab to Create Account
                 setErrorInfo({
                   title: "Account Not Found",
-                  message: `No registered account found with Google email "${userEmail}". Please click "Create Account" above to register your business.`,
+                  message: `No registered account found with Google email "${userEmail}". We have automatically switched you to "Create Account" — click "Sign up with Google" below to create your workspace.`,
                   type: "credentials",
                 });
                 return;
@@ -397,9 +408,11 @@ export default function LoginPage() {
               // Rule 2: On "Create Account" tab, existing email cannot re-register - must log in
               if (authMode === "register" && accountExists) {
                 setLoading(false);
+                setEmail(userEmail);
+                setAuthMode("signin"); // Automatically switch tab to Log In
                 setErrorInfo({
                   title: "Account Already Exists",
-                  message: `An account with Google email "${userEmail}" is already registered. Please click "Log In" above to access your business.`,
+                  message: `An account with Google email "${userEmail}" is already registered. We have automatically switched you to "Log In" — click "Log In" below to access your dashboard.`,
                   type: "credentials",
                 });
                 return;
@@ -487,9 +500,10 @@ export default function LoginPage() {
         if (authMode === "register") {
           // Rule 2: Cannot create account if email already exists
           if (accountExists) {
+            setAuthMode("signin");
             setErrorInfo({
               title: "Account Already Exists",
-              message: `An account with "${cleanEmail}" is already registered. Please switch to "Log In" above to access your business OS.`,
+              message: `An account with "${cleanEmail}" is already registered. We have automatically switched you to "Log In" — please enter your password to sign in.`,
               type: "credentials",
             });
             setLoading(false);
@@ -561,9 +575,10 @@ export default function LoginPage() {
           // authMode === "signin"
           // Rule 1: Cannot log in if account does not exist
           if (!accountExists) {
+            setAuthMode("register");
             setErrorInfo({
               title: "Account Not Found",
-              message: `No registered account found with "${cleanEmail}". Please switch to "Create Account" above to register your business.`,
+              message: `No registered account found with "${cleanEmail}". We have automatically switched you to "Create Account" — please complete your registration to get started.`,
               type: "credentials",
             });
             setLoading(false);
