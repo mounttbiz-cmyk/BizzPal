@@ -1,21 +1,37 @@
 import { DataPalApiSettings, DataPalBusinessLead, DataPalSearchCampaign, DataPalSearchConfig } from "./types";
 import { COUNTRY_HIERARCHIES, SAMPLE_HISTORIC_CAMPAIGNS } from "./constants";
 
-const STORAGE_KEY_CAMPAIGNS = "bizzpal_datapal_campaigns";
+export function getCampaignsStorageKey(): string {
+  if (typeof window === "undefined") return "bizzpal_datapal_campaigns";
+  try {
+    const raw = localStorage.getItem("bizzpal_user_session");
+    if (raw) {
+      const sess = JSON.parse(raw);
+      if (sess?.email) {
+        return `bizzpal_datapal_campaigns_${sess.email.trim().toLowerCase()}`;
+      }
+      if (sess?.id) {
+        return `bizzpal_datapal_campaigns_${sess.id}`;
+      }
+    }
+  } catch (e) {}
+  return "bizzpal_datapal_campaigns_guest";
+}
+
 const STORAGE_KEY_SETTINGS = "bizzpal_datapal_settings";
 
 export function getStoredCampaigns(): DataPalSearchCampaign[] {
-  if (typeof window === "undefined") return SAMPLE_HISTORIC_CAMPAIGNS;
+  if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_CAMPAIGNS);
+    const key = getCampaignsStorageKey();
+    const raw = localStorage.getItem(key);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY_CAMPAIGNS, JSON.stringify(SAMPLE_HISTORIC_CAMPAIGNS));
-      return SAMPLE_HISTORIC_CAMPAIGNS;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : SAMPLE_HISTORIC_CAMPAIGNS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
-    return SAMPLE_HISTORIC_CAMPAIGNS;
+    return [];
   }
 }
 
@@ -31,7 +47,7 @@ export function saveCampaign(campaign: DataPalSearchCampaign): DataPalSearchCamp
     updated = [campaign, ...current];
   }
   try {
-    localStorage.setItem(STORAGE_KEY_CAMPAIGNS, JSON.stringify(updated));
+    localStorage.setItem(getCampaignsStorageKey(), JSON.stringify(updated));
   } catch (e) {}
   return updated;
 }
@@ -41,7 +57,7 @@ export function deleteCampaign(campaignId: string): DataPalSearchCampaign[] {
   const current = getStoredCampaigns();
   const updated = current.filter(c => c.id !== campaignId);
   try {
-    localStorage.setItem(STORAGE_KEY_CAMPAIGNS, JSON.stringify(updated));
+    localStorage.setItem(getCampaignsStorageKey(), JSON.stringify(updated));
   } catch (e) {}
   return updated;
 }

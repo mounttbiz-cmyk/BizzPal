@@ -57,7 +57,7 @@ export function DesktopRail({
     } catch (e) {
       // ignore
     }
-    localStorage.removeItem("bizzpal_user_session");
+    localStorage.removeItem("bizzpal_user_session"); localStorage.removeItem("bizzpal_business_profile"); localStorage.removeItem("bizzpal_subscription_plan"); localStorage.removeItem("bizzpal_datapal_campaigns");
     window.location.href = WEBSITE_URL;
   };
 

@@ -823,7 +823,7 @@ export default function OnboardingPage() {
       const isNewSignup = params.get("mode") === "new_signup" || params.get("signup") === "true";
       if (isNewSignup) {
         // User explicitly signed up as a new user: clear previous cached business profile and run onboarding!
-        localStorage.removeItem("bizzpal_business_profile");
+        localStorage.removeItem("bizzpal_business_profile"); localStorage.removeItem("bizzpal_subscription_plan"); localStorage.removeItem("bizzpal_datapal_campaigns"); localStorage.setItem("bizzpal_subscription_plan", "free");
         return;
       }
 

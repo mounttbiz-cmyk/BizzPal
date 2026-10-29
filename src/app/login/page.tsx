@@ -27,6 +27,7 @@ import { useAuth } from "@/lib/firebase/authContext";
 import { auth, isFirebaseConfigured, firebaseConfig } from "@/lib/firebase/config";
 import { saveUserProfileToFirestore, getUserProfileFromFirestore } from "@/lib/firebase/firestore";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { validateWorkEmail } from "@/lib/validation/emailValidator";
 
 interface AuthErrorInfo {
   title?: string;
@@ -264,11 +265,17 @@ export default function LoginPage() {
       } catch (e) { }
     }
 
-    if (!businessProfile) {
+    // Try fetching the exact registered business profile from database
+    if (!businessProfile && cleanEmail) {
       try {
-        const existingStr = localStorage.getItem("bizzpal_business_profile");
-        if (existingStr) businessProfile = JSON.parse(existingStr);
-      } catch (e) { }
+        const res = await fetch(`/api/auth/account-status?email=${encodeURIComponent(cleanEmail)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.businessProfile && (data.businessProfile.name || data.businessProfile.revenue !== undefined)) {
+            businessProfile = data.businessProfile;
+          }
+        }
+      } catch (e) {}
     }
 
     if (!businessProfile) {
@@ -303,6 +310,10 @@ export default function LoginPage() {
     if (cleanEmail) {
       localStorage.setItem(`bizzpal_user_business_${cleanEmail}`, JSON.stringify(businessProfile));
     }
+
+    // Restore user-specific plan or default to "free"
+    const userPlan = localStorage.getItem(`bizzpal_subscription_plan_${cleanEmail}`) || "free";
+    localStorage.setItem("bizzpal_subscription_plan", userPlan);
 
     router.push("/dashboard");
 
@@ -362,6 +373,38 @@ export default function LoginPage() {
               const userName = data.name || fullName || "Founder";
               const uid = `usr_google_${Date.now()}`;
 
+              // Query whether account already exists in platform DB
+              let accountExists = false;
+              try {
+                const statusRes = await fetch(`/api/auth/account-status?email=${encodeURIComponent(userEmail)}`);
+                if (statusRes.ok) {
+                  const statusData = await statusRes.json();
+                  accountExists = Boolean(statusData.exists);
+                }
+              } catch (e) {}
+
+              // Rule 1: On "Log In" tab, new email cannot sign in - must create account first
+              if (authMode === "signin" && !accountExists) {
+                setLoading(false);
+                setErrorInfo({
+                  title: "Account Not Found",
+                  message: `No registered account found with Google email "${userEmail}". Please click "Create Account" above to register your business.`,
+                  type: "credentials",
+                });
+                return;
+              }
+
+              // Rule 2: On "Create Account" tab, existing email cannot re-register - must log in
+              if (authMode === "register" && accountExists) {
+                setLoading(false);
+                setErrorInfo({
+                  title: "Account Already Exists",
+                  message: `An account with Google email "${userEmail}" is already registered. Please click "Log In" above to access your business.`,
+                  type: "credentials",
+                });
+                return;
+              }
+
               const userSession = {
                 id: uid,
                 email: userEmail,
@@ -374,8 +417,21 @@ export default function LoginPage() {
               localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
 
               if (authMode === "register") {
+                // Clear any prior user's cached business, campaigns, and subscription plans
                 localStorage.removeItem("bizzpal_business_profile");
                 localStorage.removeItem("bizzpal_onboarding_step");
+                localStorage.removeItem("bizzpal_subscription_plan");
+                localStorage.removeItem("bizzpal_datapal_campaigns");
+                localStorage.setItem("bizzpal_subscription_plan", "free");
+                localStorage.setItem(`bizzpal_subscription_plan_${userEmail}`, "free");
+
+                // Record user in platform database
+                fetch("/api/auth/account-status", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ email: userEmail, name: userName, provider: "google", uid }),
+                }).catch(() => {});
+
                 router.push("/onboarding?mode=new_signup");
               } else {
                 await restoreAndNavigateOldUser(userEmail, userName, uid);
@@ -405,16 +461,41 @@ export default function LoginPage() {
 
         // Email & Password flow
         const cleanEmail = (email || "").trim().toLowerCase();
+
+        // Work email validation (reject fake, disposable, or malformed email)
+        const emailValidation = validateWorkEmail(cleanEmail);
+        if (!emailValidation.isValid) {
+          setErrorInfo({
+            title: "Valid Work Email Required",
+            message: emailValidation.error || "Please enter a valid work email address.",
+            type: "credentials",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Check if user already exists in database
+        let accountExists = false;
+        try {
+          const statusRes = await fetch(`/api/auth/account-status?email=${encodeURIComponent(cleanEmail)}`);
+          if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            accountExists = Boolean(statusData.exists);
+          }
+        } catch (e) {}
+
         if (authMode === "register") {
-          if (!cleanEmail || !cleanEmail.includes("@")) {
+          // Rule 2: Cannot create account if email already exists
+          if (accountExists) {
             setErrorInfo({
-              title: "Email Required",
-              message: "Please enter a valid work email address.",
+              title: "Account Already Exists",
+              message: `An account with "${cleanEmail}" is already registered. Please switch to "Log In" above to access your business OS.`,
               type: "credentials",
             });
             setLoading(false);
             return;
           }
+
           if (!password || password.length < 6) {
             setErrorInfo({
               title: "Password Too Short",
@@ -436,8 +517,13 @@ export default function LoginPage() {
           }
 
           if (authUser) {
+            // Isolate new user: Clear previous user caches and reset plan to "free"
             localStorage.removeItem("bizzpal_business_profile");
             localStorage.removeItem("bizzpal_onboarding_step");
+            localStorage.removeItem("bizzpal_subscription_plan");
+            localStorage.removeItem("bizzpal_datapal_campaigns");
+            localStorage.setItem("bizzpal_subscription_plan", "free");
+            localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, "free");
 
             const userSession = {
               id: authUser.uid,
@@ -448,6 +534,18 @@ export default function LoginPage() {
               authenticatedAt: new Date().toISOString(),
             };
             localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
+
+            // Register in SQLite immediately
+            fetch("/api/auth/account-status", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: cleanEmail,
+                name: fullName || "Founder",
+                provider: "email",
+                uid: authUser.uid,
+              }),
+            }).catch(() => {});
 
             router.push("/onboarding?mode=new_signup");
 
@@ -461,15 +559,17 @@ export default function LoginPage() {
           }
         } else {
           // authMode === "signin"
-          if (!cleanEmail || !cleanEmail.includes("@")) {
+          // Rule 1: Cannot log in if account does not exist
+          if (!accountExists) {
             setErrorInfo({
-              title: "Email Required",
-              message: "Please enter your registered work email address.",
+              title: "Account Not Found",
+              message: `No registered account found with "${cleanEmail}". Please switch to "Create Account" above to register your business.`,
               type: "credentials",
             });
             setLoading(false);
             return;
           }
+
           if (!password) {
             setErrorInfo({
               title: "Password Required",

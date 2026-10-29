@@ -388,7 +388,18 @@ const DEFAULT_WORKFLOWS: WorkflowItem[] = [
 ];
 
 export default function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState<WorkflowItem[]>(DEFAULT_WORKFLOWS);
+  const [workflows, setWorkflows] = useState<WorkflowItem[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("bizzpal_workflows");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return DEFAULT_WORKFLOWS;
+  });
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>("wf_bulk_email_100");
   const [simulationActive, setSimulationActive] = useState(false);
   const [simulationCurrentStage, setSimulationCurrentStage] = useState<number>(0);
@@ -439,11 +450,15 @@ export default function WorkflowsPage() {
   };
 
   const toggleWorkflowStatus = (id: string) => {
-    setWorkflows(prev =>
-      prev.map(w =>
-        w.id === id ? { ...w, status: w.status === "active" ? "paused" : "active" } : w
-      )
-    );
+    setWorkflows(prev => {
+      const updated: WorkflowItem[] = prev.map(w =>
+        w.id === id ? { ...w, status: (w.status === "active" ? "paused" : "active") as "active" | "paused" } : w
+      );
+      try {
+        localStorage.setItem("bizzpal_workflows", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   const handleSimulatePipeline = () => {
@@ -491,6 +506,34 @@ export default function WorkflowsPage() {
             `[02.65s] [Stage 6: Monitor Outcome] Active telemetry listener registered. Operational loop closed.`,
             `[02.90s] ✓ Entire 6-stage Event-to-Outcome cycle executed with 0 errors.`,
           ]);
+
+          // Increment execution count and persist to localStorage
+          setWorkflows(prev => {
+            const updated: WorkflowItem[] = prev.map(w =>
+              w.id === activeWorkflow.id
+                ? { ...w, executionsCount: w.executionsCount + 1, lastRun: "Just now" }
+                : w
+            );
+            try {
+              localStorage.setItem("bizzpal_workflows", JSON.stringify(updated));
+            } catch {}
+            return updated;
+          });
+
+          // Post a real task to /tasks for this pipeline outcome
+          try {
+            fetch("/api/tasks", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title: `[Pipeline Executed] ${activeWorkflow.name}: Verified outcome closed`,
+                owner: "Autonomous Workflow Engine",
+                priority: "high",
+                gap: "Workflows & Automation",
+              }),
+            }).catch(() => {});
+          } catch {}
+
           setTimeout(() => {
             setSimulationActive(false);
           }, 1200);
@@ -576,7 +619,13 @@ export default function WorkflowsPage() {
       ],
     };
 
-    setWorkflows(prev => [newWf, ...prev]);
+    setWorkflows(prev => {
+      const updated = [newWf, ...prev];
+      try {
+        localStorage.setItem("bizzpal_workflows", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     setSelectedWorkflowId(newWf.id);
     setIsCreateModalOpen(false);
     setNewWorkflowName("");

@@ -31,9 +31,24 @@ function planRank(planId: string | null | undefined): number {
   return fallbackIdx === -1 ? 0 : fallbackIdx;
 }
 
+function getCurrentUserEmail(userObj: any): string | null {
+  if (userObj?.email) return userObj.email.trim().toLowerCase();
+  if (typeof window !== "undefined") {
+    try {
+      const sess = localStorage.getItem("bizzpal_user_session");
+      if (sess) {
+        const parsed = JSON.parse(sess);
+        if (parsed?.email) return parsed.email.trim().toLowerCase();
+      }
+    } catch {}
+  }
+  return null;
+}
+
 /**
  * Resolves the current user's active subscription plan (Firestore when signed in,
- * falling back to the local cache used before/without auth) and exposes plan-gating helpers.
+ * falling back to the isolated user-specific local cache, defaulting strictly to "free")
+ * and exposes plan-gating helpers.
  */
 export function usePlanAccess() {
   const { user } = useAuth();
@@ -46,6 +61,8 @@ export function usePlanAccess() {
 
     async function resolvePlan() {
       setLoading(true);
+      const email = getCurrentUserEmail(user);
+
       try {
         if (user) {
           const remotePlan = await getUserPlanFromFirestore(user.uid);
@@ -53,25 +70,37 @@ export function usePlanAccess() {
             if (remotePlan) {
               setPlan(remotePlan);
               setHasActivated(true);
+              if (email) localStorage.setItem(`bizzpal_subscription_plan_${email}`, remotePlan);
               localStorage.setItem("bizzpal_subscription_plan", remotePlan);
-            } else {
-              const local = localStorage.getItem("bizzpal_subscription_plan");
-              setPlan(local || "free");
-              setHasActivated(Boolean(local));
+              return;
             }
           }
-          return;
         }
-        const local = localStorage.getItem("bizzpal_subscription_plan");
+
+        // Check user-specific storage key first
+        if (email) {
+          const userSpecificPlan = localStorage.getItem(`bizzpal_subscription_plan_${email}`);
+          if (userSpecificPlan) {
+            if (!cancelled) {
+              setPlan(userSpecificPlan);
+              setHasActivated(userSpecificPlan !== "free");
+              localStorage.setItem("bizzpal_subscription_plan", userSpecificPlan);
+            }
+            return;
+          }
+        }
+
+        // If no user-specific plan is found, default strictly to "free"
         if (!cancelled) {
-          setPlan(local || "free");
-          setHasActivated(Boolean(local));
+          setPlan("free");
+          setHasActivated(false);
+          localStorage.setItem("bizzpal_subscription_plan", "free");
+          if (email) localStorage.setItem(`bizzpal_subscription_plan_${email}`, "free");
         }
       } catch {
         if (!cancelled) {
-          const local = localStorage.getItem("bizzpal_subscription_plan");
-          setPlan(local || "free");
-          setHasActivated(Boolean(local));
+          setPlan("free");
+          setHasActivated(false);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -81,9 +110,13 @@ export function usePlanAccess() {
     resolvePlan();
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "bizzpal_subscription_plan" && e.newValue) {
+      const email = getCurrentUserEmail(user);
+      if (
+        (email && e.key === `bizzpal_subscription_plan_${email}` && e.newValue) ||
+        (e.key === "bizzpal_subscription_plan" && e.newValue)
+      ) {
         setPlan(e.newValue);
-        setHasActivated(true);
+        setHasActivated(e.newValue !== "free");
       }
     };
     window.addEventListener("storage", onStorage);
@@ -96,9 +129,13 @@ export function usePlanAccess() {
   const activatePlan = useCallback(
     async (planId: string) => {
       setPlan(planId);
-      setHasActivated(true);
+      setHasActivated(planId !== "free");
+      const email = getCurrentUserEmail(user);
       try {
         localStorage.setItem("bizzpal_subscription_plan", planId);
+        if (email) {
+          localStorage.setItem(`bizzpal_subscription_plan_${email}`, planId);
+        }
       } catch {
         // ignore
       }
