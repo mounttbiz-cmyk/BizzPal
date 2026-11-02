@@ -676,14 +676,6 @@ export default function SubscriptionPage() {
                   </span>
                 </div>
               </div>
-
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[11px] leading-relaxed">
-                <div className="font-bold flex items-center gap-1.5 mb-1">
-                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                  <span>Ready for Live Razorpay Keys</span>
-                </div>
-                Your Razorpay keys are currently in placeholder mode in <code className="bg-surface px-1 py-0.5 rounded border border-line">.env.local</code>. You can simulate a successful Razorpay payment now to test order creation, cryptographic verification, and plan activation!
-              </div>
             </div>
 
             <div className="pt-3 border-t border-line flex items-center justify-end gap-2.5">
