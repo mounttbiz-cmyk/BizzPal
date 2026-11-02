@@ -4,11 +4,12 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Check, ArrowRight, CheckCircle2, X, Building2, Zap, Crown, Tag } from "lucide-react";
+import { Check, ArrowRight, CheckCircle2, X, Building2, Zap, Crown, Tag, ShieldCheck, Loader2, Sparkles, AlertCircle, CreditCard } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 import { PortalModal } from "@/components/ui/PortalModal";
+import { loadRazorpaySDK } from "@/lib/payments/loadRazorpay";
 
 interface PlanTier {
   id: string;
@@ -102,11 +103,31 @@ export default function SubscriptionPage() {
   const router = useRouter();
   const { plan: currentPlan, activatePlan, hasActivated } = usePlanAccess();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedPlanForModal, setSelectedPlanForModal] = useState<PlanTier | null>(null);
+  const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Close Plan modal on Escape
-  useEscapeKey(() => setSelectedPlanForModal(null), Boolean(selectedPlanForModal));
+  // Razorpay Modals State
+  const [sandboxModalOrder, setSandboxModalOrder] = useState<{
+    orderId: string;
+    amount: number;
+    planId: string;
+    planName: string;
+    userEmail: string;
+    userName: string;
+    priceFormatted: string;
+  } | null>(null);
+
+  const [paymentSuccessModal, setPaymentSuccessModal] = useState<{
+    planName: string;
+    planId: string;
+    paymentId: string;
+    periodEnd?: string;
+  } | null>(null);
+
+  // Close modals on Escape
+  useEscapeKey(() => {
+    setSandboxModalOrder(null);
+  }, Boolean(sandboxModalOrder));
 
   const notify = (msg: string) => {
     setToast(msg);
@@ -140,6 +161,231 @@ export default function SubscriptionPage() {
     setTimeout(() => {
       window.location.href = "/dashboard";
     }, 600);
+  };
+
+  // Helper to extract active user details for checkout
+  const getUserCheckoutDetails = () => {
+    let email = "founder@bizzpal.ai";
+    let name = "Founder";
+    let phone = "";
+    try {
+      const sessStr = localStorage.getItem("bizzpal_user_session");
+      if (sessStr) {
+        const sess = JSON.parse(sessStr);
+        if (sess.email) email = sess.email.trim().toLowerCase();
+        if (sess.name) name = sess.name;
+      }
+      const bizStr = localStorage.getItem("bizzpal_business_profile");
+      if (bizStr) {
+        const biz = JSON.parse(bizStr);
+        if (biz.founderName && !name) name = biz.founderName;
+        if (biz.whatsappNumber) phone = biz.whatsappNumber;
+      }
+    } catch {}
+    return { email, name, phone };
+  };
+
+  // Verify payment on backend API and complete activation
+  const verifyPaymentAndActivate = async (payload: {
+    razorpay_order_id: string;
+    razorpay_payment_id?: string;
+    razorpay_signature?: string;
+    planId: string;
+    planName: string;
+    userEmail: string;
+    userName: string;
+    amount: number;
+    isSandboxMode: boolean;
+  }) => {
+    try {
+      setIsProcessing(true);
+      const res = await fetch("/api/payments/razorpay/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        notify(data.error || "Payment verification failed. Please try again.");
+        setIsProcessing(false);
+        setProcessingPlanId(null);
+        return;
+      }
+
+      // 1. Activate plan in local client state and user-specific storage
+      activatePlan(payload.planId);
+      localStorage.setItem("bizzpal_subscription_plan", payload.planId);
+      if (payload.userEmail) {
+        localStorage.setItem(`bizzpal_subscription_plan_${payload.userEmail}`, payload.planId);
+      }
+
+      // 2. Broadcast live synchronization
+      try {
+        window.dispatchEvent(new CustomEvent("bizzpal_plan_updated", { detail: { planId: payload.planId } }));
+        const bc = new BroadcastChannel("bizzpal_channel");
+        bc.postMessage({ type: "PLAN_UPDATED", planId: payload.planId, userEmail: payload.userEmail });
+        bc.close();
+      } catch {}
+
+      // 3. Show celebratory success modal
+      setSandboxModalOrder(null);
+      setPaymentSuccessModal({
+        planName: payload.planName,
+        planId: payload.planId,
+        paymentId: data.paymentId || payload.razorpay_payment_id || "PAY_CONFIRMED",
+        periodEnd: data.periodEnd,
+      });
+    } catch (err: any) {
+      console.error("[Checkout Verification Error]:", err);
+      notify("Network error verifying payment. Please check your connection.");
+    } finally {
+      setIsProcessing(false);
+      setProcessingPlanId(null);
+    }
+  };
+
+  // Main payment initiation handler
+  const handleInitiatePayment = async (plan: PlanTier) => {
+    // Current active plan check
+    if (currentPlan === plan.id) {
+      ensureSessionAndOpenDashboard(plan.id, plan.name);
+      return;
+    }
+
+    // Custom external checkout link check
+    if (plan.actionType === "custom_link" && plan.customUrl) {
+      window.open(plan.customUrl, "_blank");
+      return;
+    }
+
+    // Contact sales check
+    const isContact =
+      plan.actionType === "contact" ||
+      plan.price.toLowerCase().includes("custom") ||
+      plan.ctaLabel.toLowerCase().includes("contact");
+    if (isContact) {
+      const email = plan.contactEmail || "sales@bizzpal.app";
+      window.location.href = `mailto:${email}?subject=${encodeURIComponent(`Enterprise plan enquiry — ${plan.name}`)}`;
+      return;
+    }
+
+    // Free plan direct activation
+    if (plan.id === "free" || plan.price === "₹0" || plan.price === "0") {
+      ensureSessionAndOpenDashboard(plan.id, plan.name);
+      return;
+    }
+
+    // Paid Plan: Initiate Razorpay Order
+    setIsProcessing(true);
+    setProcessingPlanId(plan.id);
+
+    const userDetails = getUserCheckoutDetails();
+
+    try {
+      const orderRes = await fetch("/api/payments/razorpay/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: plan.id,
+          planName: plan.name,
+          amount: plan.price,
+          userEmail: userDetails.email,
+          userName: userDetails.name,
+        }),
+      });
+
+      const orderData = await orderRes.json();
+      if (!orderRes.ok || !orderData.success) {
+        notify(orderData.error || "Failed to initiate payment. Please try again.");
+        setIsProcessing(false);
+        setProcessingPlanId(null);
+        return;
+      }
+
+      // Check if order is free
+      if (orderData.isFreePlan) {
+        ensureSessionAndOpenDashboard(plan.id, plan.name);
+        setIsProcessing(false);
+        setProcessingPlanId(null);
+        return;
+      }
+
+      // If Razorpay keys are not yet configured or in test simulation:
+      if (orderData.isSandboxMode) {
+        setIsProcessing(false);
+        setSandboxModalOrder({
+          orderId: orderData.orderId,
+          amount: orderData.amount,
+          planId: plan.id,
+          planName: plan.name,
+          userEmail: userDetails.email,
+          userName: userDetails.name,
+          priceFormatted: orderData.plan?.priceFormatted || plan.price,
+        });
+        return;
+      }
+
+      // Live / Test Mode: Load official Razorpay Checkout SDK
+      const sdkLoaded = await loadRazorpaySDK();
+      if (!sdkLoaded || !(window as any).Razorpay) {
+        notify("Couldn't load the Razorpay checkout. Check your connection and try again.");
+        setIsProcessing(false);
+        setProcessingPlanId(null);
+        return;
+      }
+
+      // Open official Razorpay modal
+      const razorpayOptions = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency || "INR",
+        name: "BizzPal™",
+        description: `Subscription to ${plan.name}`,
+        image: "/logo.png",
+        order_id: orderData.orderId,
+        prefill: {
+          name: userDetails.name,
+          email: userDetails.email,
+          contact: userDetails.phone,
+        },
+        theme: {
+          color: "#B48C36", // Boardroom gold
+        },
+        handler: async (response: any) => {
+          await verifyPaymentAndActivate({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            planId: plan.id,
+            planName: plan.name,
+            userEmail: userDetails.email,
+            userName: userDetails.name,
+            amount: orderData.amount,
+            isSandboxMode: false,
+          });
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false);
+            setProcessingPlanId(null);
+          },
+        },
+      };
+
+      const rzpInstance = new (window as any).Razorpay(razorpayOptions);
+      rzpInstance.on("payment.failed", (response: any) => {
+        setIsProcessing(false);
+        setProcessingPlanId(null);
+        notify(`Payment cancelled: ${response?.error?.description || "Transaction failed"}`);
+      });
+      rzpInstance.open();
+    } catch (err: any) {
+      console.error("[Razorpay Checkout Exception]:", err);
+      notify("Failed to initialize checkout. Please try again.");
+      setIsProcessing(false);
+      setProcessingPlanId(null);
+    }
   };
 
   const [plans, setPlans] = useState<PlanTier[]>(() => {
@@ -338,38 +584,22 @@ export default function SubscriptionPage() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      if (isCurrent) {
-                        ensureSessionAndOpenDashboard(p.id, p.name);
-                        return;
-                      }
-
-                      if (p.actionType === "custom_link" && p.customUrl) {
-                        window.open(p.customUrl, "_blank");
-                        return;
-                      }
-
-                      if (isContact) {
-                        const email = p.contactEmail || "sales@bizzpal.app";
-                        window.location.href = `mailto:${email}?subject=${encodeURIComponent(`Enterprise plan enquiry — ${p.name}`)}`;
-                        return;
-                      }
-
-                      if (p.id === "free") {
-                        ensureSessionAndOpenDashboard(p.id, p.name);
-                      } else {
-                        setSelectedPlanForModal(p);
-                      }
-                    }}
-                    className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition-all btn-tactile cursor-pointer text-center ${
+                    disabled={isProcessing && processingPlanId === p.id}
+                    onClick={() => handleInitiatePayment(p)}
+                    className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition-all btn-tactile cursor-pointer text-center flex items-center justify-center gap-2 ${
                       isCurrent
-                        ? "bg-surface-2 border border-line text-emerald-500 dark:text-emerald-400 hover:bg-surface flex items-center justify-center gap-1.5"
+                        ? "bg-surface-2 border border-line text-emerald-500 dark:text-emerald-400 hover:bg-surface"
                         : isPopular
                         ? "btn-gold-gradient shadow-md hover:brightness-105 active:scale-[0.98]"
                         : "bg-surface-2 hover:bg-surface border border-line-strong hover:border-gold/30 text-text"
                     }`}
                   >
-                    {isCurrent ? (
+                    {isProcessing && processingPlanId === p.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-brass" />
+                        <span>Initializing Checkout…</span>
+                      </>
+                    ) : isCurrent ? (
                       <>
                         <Check className="w-4 h-4 text-emerald-500" />
                         <span>Current Plan (Active)</span>
@@ -400,22 +630,31 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      {/* Payment Confirmation Modal */}
-      {selectedPlanForModal && (
-        <PortalModal isOpen={Boolean(selectedPlanForModal)} onClose={() => setSelectedPlanForModal(null)}>
+      {/* ============================================================== */}
+      {/* RAZORPAY SANDBOX TEST SIMULATION MODAL                         */}
+      {/* ============================================================== */}
+      {sandboxModalOrder && (
+        <PortalModal isOpen={Boolean(sandboxModalOrder)} onClose={() => setSandboxModalOrder(null)}>
           <div
-            className="w-full max-w-md p-6 rounded-2xl border border-line bg-surface shadow-2xl space-y-4 animate-scale-up"
+            className="w-full max-w-md p-6 rounded-2xl border border-line bg-surface shadow-2xl space-y-5 animate-scale-up"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-line">
               <div className="flex items-center gap-2">
-                <Crown className="w-4 h-4 text-amber-500" />
-                <h3 className="text-sm font-bold text-text">Confirm Subscription</h3>
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-text">Razorpay Checkout</h3>
+                  <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">
+                    Sandbox / Test Simulation Mode
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedPlanForModal(null)}
-                className="text-xs text-text-muted hover:text-text cursor-pointer"
+                onClick={() => setSandboxModalOrder(null)}
+                className="text-xs text-text-muted hover:text-text cursor-pointer p-1"
               >
                 ✕
               </button>
@@ -424,24 +663,34 @@ export default function SubscriptionPage() {
             <div className="space-y-3 text-xs">
               <div className="p-3.5 rounded-xl bg-surface-2 border border-line flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-text">{selectedPlanForModal.name}</div>
-                  <div className="text-[11px] text-text-muted">{selectedPlanForModal.tagline}</div>
+                  <div className="font-bold text-text text-sm">{sandboxModalOrder.planName}</div>
+                  <div className="text-[11px] text-text-muted">Order ID: {sandboxModalOrder.orderId}</div>
+                  <div className="text-[11px] text-text-muted">Billing To: {sandboxModalOrder.userEmail}</div>
                 </div>
-                <div className="text-base font-bold font-mono text-brass">
-                  {selectedPlanForModal.price}
+                <div className="text-right">
+                  <div className="text-lg font-bold font-mono text-brass">
+                    {sandboxModalOrder.priceFormatted}
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold">
+                    UPI · Cards · NetBanking
+                  </span>
                 </div>
               </div>
 
-              <p className="text-[11px] text-text-muted leading-relaxed">
-                You are activating {selectedPlanForModal.name}. All features, AI agents, specialized tools, and workflows will be unlocked immediately for your workspace.
-              </p>
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[11px] leading-relaxed">
+                <div className="font-bold flex items-center gap-1.5 mb-1">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span>Ready for Live Razorpay Keys</span>
+                </div>
+                Your Razorpay keys are currently in placeholder mode in <code className="bg-surface px-1 py-0.5 rounded border border-line">.env.local</code>. You can simulate a successful Razorpay payment now to test order creation, cryptographic verification, and plan activation!
+              </div>
             </div>
 
-            <div className="pt-3 border-t border-line flex items-center justify-end gap-2">
+            <div className="pt-3 border-t border-line flex items-center justify-end gap-2.5">
               <button
                 type="button"
-                onClick={() => setSelectedPlanForModal(null)}
-                className="px-3 py-1.5 rounded-lg border border-line text-text-muted hover:text-text cursor-pointer"
+                onClick={() => setSandboxModalOrder(null)}
+                className="px-4 py-2 rounded-xl border border-line text-xs font-semibold text-text-muted hover:text-text cursor-pointer hover:bg-surface-2 transition-all"
               >
                 Cancel
               </button>
@@ -449,18 +698,87 @@ export default function SubscriptionPage() {
                 type="button"
                 disabled={isProcessing}
                 onClick={() => {
-                  setIsProcessing(true);
-                  setTimeout(() => {
-                    setIsProcessing(false);
-                    ensureSessionAndOpenDashboard(selectedPlanForModal.id, selectedPlanForModal.name);
-                    setSelectedPlanForModal(null);
-                  }, 800);
+                  verifyPaymentAndActivate({
+                    razorpay_order_id: sandboxModalOrder.orderId,
+                    razorpay_payment_id: `pay_sim_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                    razorpay_signature: `sig_mock_${Date.now()}`,
+                    planId: sandboxModalOrder.planId,
+                    planName: sandboxModalOrder.planName,
+                    userEmail: sandboxModalOrder.userEmail,
+                    userName: sandboxModalOrder.userName,
+                    amount: sandboxModalOrder.amount,
+                    isSandboxMode: true,
+                  });
                 }}
-                className="px-4 py-2 rounded-xl btn-gold-gradient font-bold btn-tactile hover:brightness-105 cursor-pointer disabled:opacity-50 shadow-md"
+                className="px-5 py-2.5 rounded-xl btn-gold-gradient text-xs font-bold btn-tactile hover:brightness-105 cursor-pointer disabled:opacity-50 shadow-md flex items-center gap-2"
               >
-                {isProcessing ? "Activating OS…" : `Confirm & Launch OS`}
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Verifying Payment…</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Simulate Successful Payment (Test)</span>
+                  </>
+                )}
               </button>
             </div>
+          </div>
+        </PortalModal>
+      )}
+
+      {/* ============================================================== */}
+      {/* CELEBRATORY PAYMENT SUCCESS MODAL                              */}
+      {/* ============================================================== */}
+      {paymentSuccessModal && (
+        <PortalModal isOpen={Boolean(paymentSuccessModal)} onClose={() => {}}>
+          <div
+            className="w-full max-w-md p-6 rounded-3xl border border-emerald-500/30 bg-surface shadow-2xl space-y-5 text-center animate-scale-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 mx-auto">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">
+                Payment Confirmed
+              </span>
+              <h2 className="text-xl font-extrabold text-text tracking-tight">
+                Welcome to {paymentSuccessModal.planName}!
+              </h2>
+              <p className="text-xs text-text-muted leading-relaxed max-w-sm mx-auto">
+                Your payment was verified and processed successfully. All specialized executive tools, AI assistants, and automated workflows are now active.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-surface-2 border border-line text-left text-xs space-y-1 font-mono">
+              <div className="flex justify-between text-text-muted">
+                <span>Plan Tier:</span>
+                <span className="text-text font-bold uppercase">{paymentSuccessModal.planId}</span>
+              </div>
+              <div className="flex justify-between text-text-muted">
+                <span>Payment Reference:</span>
+                <span className="text-emerald-500 truncate max-w-[180px]">{paymentSuccessModal.paymentId}</span>
+              </div>
+              <div className="flex justify-between text-text-muted">
+                <span>Status:</span>
+                <span className="text-emerald-500 font-bold">Active Workspace</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = "/dashboard";
+              }}
+              className="w-full py-3 rounded-xl btn-gold-gradient font-bold text-xs btn-tactile hover:brightness-105 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Launch Business OS Dashboard</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </PortalModal>
       )}

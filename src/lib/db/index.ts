@@ -538,6 +538,35 @@ try {
     details TEXT DEFAULT '{}',
     created_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS subscriptions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    user_email TEXT NOT NULL,
+    business_id TEXT,
+    plan_id TEXT NOT NULL,
+    plan_name TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    currency TEXT DEFAULT 'INR',
+    status TEXT NOT NULL DEFAULT 'active',
+    razorpay_order_id TEXT,
+    razorpay_payment_id TEXT,
+    created_at TEXT NOT NULL,
+    current_period_end TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS payment_transactions (
+    id TEXT PRIMARY KEY,
+    order_id TEXT NOT NULL,
+    payment_id TEXT,
+    user_email TEXT NOT NULL,
+    plan_id TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    currency TEXT DEFAULT 'INR',
+    status TEXT NOT NULL,
+    raw_response TEXT,
+    created_at TEXT NOT NULL
+  );
 `);
 
   // Migrate existing registered_users table if business_profile column is missing
@@ -1541,6 +1570,199 @@ export function getLiveBusinessContext(businessId = DEFAULT_BUSINESS_ID) {
     integrations: tools.map(t => ({ toolKey: t.tool_key, name: t.name, status: t.status })),
     uploads: uploads.map(u => ({ id: u.id, fileName: u.file_name, metricsSummary: u.metrics_summary }))
   };
+}
+
+export function createPaymentOrderRecord(data: {
+  orderId: string;
+  userEmail: string;
+  planId: string;
+  amount: number;
+  currency?: string;
+  status?: string;
+  rawResponse?: any;
+}) {
+  const id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date().toISOString();
+  try {
+    db.prepare(`
+      INSERT INTO payment_transactions (id, order_id, payment_id, user_email, plan_id, amount, currency, status, raw_response, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      data.orderId,
+      null,
+      data.userEmail.trim().toLowerCase(),
+      data.planId,
+      data.amount,
+      data.currency || 'INR',
+      data.status || 'created',
+      data.rawResponse ? JSON.stringify(data.rawResponse) : null,
+      now
+    );
+  } catch (err) {
+    console.warn("[Payments DB] createPaymentOrderRecord error:", err);
+  }
+  return { id, ...data, createdAt: now };
+}
+
+export function confirmPaymentAndActivateSubscription(data: {
+  orderId: string;
+  paymentId: string;
+  userEmail: string;
+  userName?: string;
+  planId: string;
+  planName: string;
+  amount: number;
+  currency?: string;
+  rawResponse?: any;
+}) {
+  const now = new Date().toISOString();
+  const cleanEmail = data.userEmail.trim().toLowerCase();
+
+  // 1. Update payment transaction record
+  try {
+    db.prepare(`
+      UPDATE payment_transactions
+      SET payment_id = ?, status = 'success', raw_response = COALESCE(?, raw_response)
+      WHERE order_id = ? OR (user_email = ? AND plan_id = ? AND status = 'created')
+    `).run(
+      data.paymentId,
+      data.rawResponse ? JSON.stringify(data.rawResponse) : null,
+      data.orderId,
+      cleanEmail,
+      data.planId
+    );
+  } catch (err) {
+    console.warn("[Payments DB] Update transaction warning:", err);
+  }
+
+  // 2. Compute 30 days period end
+  const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const subId = `sub_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}_${data.planId}`;
+
+  // 3. Insert or update active subscription
+  try {
+    const existing = db.prepare("SELECT id FROM subscriptions WHERE user_email = ?").get(cleanEmail) as any;
+    if (existing) {
+      db.prepare(`
+        UPDATE subscriptions
+        SET plan_id = ?, plan_name = ?, amount = ?, currency = ?, status = 'active',
+            razorpay_order_id = ?, razorpay_payment_id = ?, current_period_end = ?
+        WHERE user_email = ?
+      `).run(
+        data.planId,
+        data.planName,
+        data.amount,
+        data.currency || 'INR',
+        data.orderId,
+        data.paymentId,
+        periodEnd,
+        cleanEmail
+      );
+    } else {
+      db.prepare(`
+        INSERT INTO subscriptions (id, user_id, user_email, business_id, plan_id, plan_name, amount, currency, status, razorpay_order_id, razorpay_payment_id, created_at, current_period_end)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)
+      `).run(
+        subId,
+        null,
+        cleanEmail,
+        DEFAULT_BUSINESS_ID,
+        data.planId,
+        data.planName,
+        data.amount,
+        data.currency || 'INR',
+        data.orderId,
+        data.paymentId,
+        now,
+        periodEnd
+      );
+    }
+  } catch (err) {
+    console.warn("[Payments DB] Subscriptions table error:", err);
+  }
+
+  // 4. Create an automated onboarding notification in tasks
+  try {
+    const taskId = `task_pay_${Date.now()}`;
+    db.prepare(`
+      INSERT INTO tasks (id, business_id, title, owner, gap, priority, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      taskId,
+      DEFAULT_BUSINESS_ID,
+      `[Subscription Activated] Welcome to ${data.planName}! Premium AI C-Suite & Workflows Unlocked.`,
+      data.userName || 'Founder',
+      'Monetization & Commercial',
+      'high',
+      'done',
+      now
+    );
+  } catch {}
+
+  return { success: true, subscriptionId: subId, planId: data.planId, periodEnd };
+}
+
+export function getUserActiveSubscription(email: string) {
+  if (!email) return null;
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const sub = db.prepare("SELECT * FROM subscriptions WHERE LOWER(user_email) = ? AND status = 'active'").get(cleanEmail);
+    return sub || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+export function getUserPaymentHistory(email: string) {
+  if (!email) return [];
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    return db.prepare("SELECT * FROM payment_transactions WHERE LOWER(user_email) = ? ORDER BY created_at DESC").all(cleanEmail) as any[];
+  } catch (err) {
+    return [];
+  }
+}
+
+export function getPaymentTransactionByOrder(orderId: string) {
+  try {
+    return (db.prepare("SELECT * FROM payment_transactions WHERE order_id = ? ORDER BY created_at DESC LIMIT 1").get(orderId) as any) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function markPaymentFailed(orderId: string, paymentId: string | null, rawResponse?: any) {
+  try {
+    db.prepare(`
+      UPDATE payment_transactions SET status = 'failed', payment_id = COALESCE(?, payment_id), raw_response = COALESCE(?, raw_response)
+      WHERE order_id = ? AND status != 'success'
+    `).run(paymentId, rawResponse ? JSON.stringify(rawResponse) : null, orderId);
+  } catch (err) {
+    console.warn("[Payments DB] markPaymentFailed error:", err);
+  }
+}
+
+export function extendSubscriptionPeriod(email: string, days = 30) {
+  try {
+    const clean = email.trim().toLowerCase();
+    const sub = db.prepare("SELECT id, current_period_end FROM subscriptions WHERE LOWER(user_email) = ?").get(clean) as any;
+    if (!sub) return null;
+    const base = Math.max(Date.now(), sub.current_period_end ? new Date(sub.current_period_end).getTime() : 0);
+    const end = new Date(base + days * 86400000).toISOString();
+    db.prepare("UPDATE subscriptions SET status = 'active', current_period_end = ? WHERE id = ?").run(end, sub.id);
+    return end;
+  } catch {
+    return null;
+  }
+}
+
+export function getAllPaymentTransactions(limit = 100) {
+  try {
+    return db.prepare("SELECT * FROM payment_transactions ORDER BY created_at DESC LIMIT ?").all(limit) as any[];
+  } catch (err) {
+    return [];
+  }
 }
 
 export { db };

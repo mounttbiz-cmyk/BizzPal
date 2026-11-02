@@ -19,6 +19,11 @@ import {
   Mail,
   ExternalLink,
   Zap,
+  CheckCircle2,
+  RefreshCw,
+  AlertTriangle,
+  ShieldCheck,
+  ArrowUpRight,
 } from "lucide-react";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
 
@@ -51,6 +56,32 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<PlanTier | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  // Sub-tabs: 'tiers' | 'gateway'
+  const [subTab, setSubTab] = useState<"tiers" | "gateway">("tiers");
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [gatewayStatus, setGatewayStatus] = useState<any>(null);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+
+  const fetchTransactions = async () => {
+    setLoadingTransactions(true);
+    try {
+      const res = await fetch("/api/payments/transactions?admin=true");
+      const data = await res.json();
+      if (data.success) {
+        setTransactions(data.transactions || []);
+        setGatewayStatus(data.gatewayStatus || null);
+      }
+    } catch (e) {
+      console.warn("Failed to load transactions:", e);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -291,30 +322,84 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-center">
-          <button
-            type="button"
-            onClick={handleResetDefaults}
-            disabled={saving}
-            className="px-3 py-2 rounded-xl text-xs font-semibold border border-line text-text-muted hover:text-text hover:bg-surface-2 flex items-center gap-1.5 transition-all cursor-pointer"
-            title="Reset to default tiers"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Reset Defaults</span>
-          </button>
+          {subTab === "tiers" && (
+            <>
+              <button
+                type="button"
+                onClick={handleResetDefaults}
+                disabled={saving}
+                className="px-3 py-2 rounded-xl text-xs font-semibold border border-line text-text-muted hover:text-text hover:bg-surface-2 flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Reset to default tiers"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Reset Defaults</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 transition-all shadow-md shadow-blue-500/20 cursor-pointer shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Pricing Tier</span>
-          </button>
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 transition-all shadow-md shadow-blue-500/20 cursor-pointer shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>New Pricing Tier</span>
+              </button>
+            </>
+          )}
+
+          {subTab === "gateway" && (
+            <button
+              type="button"
+              onClick={fetchTransactions}
+              disabled={loadingTransactions}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-surface-2 hover:bg-surface border border-line text-text flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingTransactions ? "animate-spin" : ""}`} />
+              <span>Refresh Ledger</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Plan Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Sub-tab Pill Switch */}
+      <div className="flex items-center gap-2 border-b border-line pb-3">
+        <button
+          type="button"
+          onClick={() => setSubTab("tiers")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            subTab === "tiers"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-surface text-text-muted hover:text-text border border-line"
+          }`}
+        >
+          <CreditCard className="w-3.5 h-3.5" />
+          <span>Pricing Tiers ({planList.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSubTab("gateway");
+            fetchTransactions();
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            subTab === "gateway"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-surface text-text-muted hover:text-text border border-line"
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5" />
+          <span>Razorpay Gateway & Ledger</span>
+          {transactions.length > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full bg-surface-2 text-[10px] font-mono">
+              {transactions.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* VIEW 1: Pricing Tiers Grid */}
+      {subTab === "tiers" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {planList.map((plan, index) => {
           const isPopular = Boolean(plan.isPopular);
           const isEnabled = plan.enabled !== false;
@@ -460,7 +545,148 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
+
+      {/* VIEW 2: Razorpay Gateway & Ledger */}
+      {subTab === "gateway" && (
+        <div className="space-y-6">
+          {/* Gateway Status Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl bg-surface border border-line space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                Gateway Operational Mode
+              </span>
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    gatewayStatus?.isLive ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                  }`}
+                />
+                <span className="text-sm font-bold text-text">
+                  {gatewayStatus?.mode || "Sandbox Simulation"}
+                </span>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                {gatewayStatus?.isLive
+                  ? "Live Razorpay keys detected. Processing real UPI & card payments."
+                  : "Running in Sandbox Test mode. To switch to live, paste your Key & Secret in .env.local."}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface border border-line space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                Key ID Status
+              </span>
+              <div className="flex items-center gap-2">
+                <ShieldCheck
+                  className={`w-4 h-4 ${
+                    gatewayStatus?.keyConfigured ? "text-emerald-500" : "text-amber-500"
+                  }`}
+                />
+                <span className="text-sm font-bold text-text font-mono">
+                  {gatewayStatus?.keyPrefix || "Placeholder Mode"}
+                </span>
+              </div>
+              <p className="text-[11px] text-text-muted">
+                {gatewayStatus?.keyConfigured ? "Public Key verified." : "NEXT_PUBLIC_RAZORPAY_KEY_ID needed for live."}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface border border-line space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                Webhook Listener Endpoint
+              </span>
+              <div className="text-xs font-mono text-text bg-surface-2 p-1.5 rounded border border-line truncate select-all">
+                /api/payments/razorpay/webhook
+              </div>
+              <p className="text-[11px] text-text-muted">
+                Add this URL in Razorpay Dashboard → Settings → Webhooks for automatic sync.
+              </p>
+            </div>
+          </div>
+
+          {/* Transactions Ledger Table */}
+          <div className="p-5 rounded-2xl bg-surface border border-line space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-line">
+              <div>
+                <h3 className="text-sm font-bold text-text">Payment Transactions & Subscriptions Ledger</h3>
+                <p className="text-xs text-text-muted">
+                  Audit log of orders created, signatures verified, and subscription activations.
+                </p>
+              </div>
+              <span className="text-xs font-bold text-text-muted">
+                Total: {transactions.length} record{transactions.length === 1 ? "" : "s"}
+              </span>
+            </div>
+
+            {loadingTransactions ? (
+              <div className="py-12 text-center text-xs text-text-muted flex items-center justify-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                <span>Loading payment ledger…</span>
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="py-12 text-center space-y-2">
+                <CreditCard className="w-8 h-8 text-text-muted mx-auto opacity-50" />
+                <p className="text-xs font-semibold text-text">No payment transactions recorded yet</p>
+                <p className="text-[11px] text-text-muted max-w-sm mx-auto">
+                  When a customer activates a plan on /subscription, their Order ID, Payment ID, and verified status will be audited here in real-time.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-line text-[10px] uppercase font-bold text-text-muted tracking-wider">
+                      <th className="py-2.5 px-3">Order / Payment ID</th>
+                      <th className="py-2.5 px-3">Customer Email</th>
+                      <th className="py-2.5 px-3">Plan Tier</th>
+                      <th className="py-2.5 px-3">Amount</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line font-mono text-[11px]">
+                    {transactions.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-surface-2/50 transition-colors">
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-text">{tx.order_id}</div>
+                          <div className="text-[10px] text-text-muted">{tx.payment_id || "Awaiting Payment"}</div>
+                        </td>
+                        <td className="py-3 px-3 font-sans text-text">{tx.user_email}</td>
+                        <td className="py-3 px-3">
+                          <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold uppercase text-[10px]">
+                            {tx.plan_id}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 font-bold text-text">
+                          ₹{((tx.amount || 0) / 100).toLocaleString("en-IN")}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              tx.status === "success"
+                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                : tx.status === "created"
+                                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                                : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+                            }`}
+                          >
+                            {tx.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-text-muted font-sans text-[11px]">
+                          {tx.created_at ? new Date(tx.created_at).toLocaleString() : "Recently"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* MODAL: ADD / EDIT PLAN */}
       {mounted && isModalOpen && createPortal(
