@@ -38,3 +38,6 @@ next-env.d.ts
 *.db-wal
 *.db-shm
 
+
+# local database (contains user/business data - never commit)
+/data/
