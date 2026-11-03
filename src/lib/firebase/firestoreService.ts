@@ -1,5 +1,37 @@
 import { db as firestoreDb, isFirebaseConfigured } from "./config";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc as rawGetDoc, setDoc as rawSetDoc } from "firebase/firestore";
+import type { DocumentReference, SetOptions } from "firebase/firestore";
+
+/**
+ * Speed guard: if Firestore is misconfigured/offline, the SDK keeps retrying for a long time and
+ * every config read/save would hang. Cap each call, and after a failure skip Firestore for a
+ * cool-down so requests fall straight through to the local database.
+ */
+const FIRESTORE_TIMEOUT_MS = 2500;
+const FIRESTORE_COOLDOWN_MS = 60_000;
+let firestoreBlockedUntil = 0;
+
+async function guard<T>(op: () => Promise<T>): Promise<T> {
+  if (Date.now() < firestoreBlockedUntil) throw new Error("Firestore temporarily skipped (recent failure)");
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      op(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Firestore timeout")), FIRESTORE_TIMEOUT_MS);
+      }),
+    ]);
+  } catch (err) {
+    firestoreBlockedUntil = Date.now() + FIRESTORE_COOLDOWN_MS;
+    throw err;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+const getDoc = (ref: DocumentReference) => guard(() => rawGetDoc(ref));
+const setDoc = (ref: DocumentReference, data: any, options?: SetOptions) =>
+  guard(() => (options ? rawSetDoc(ref, data, options) : rawSetDoc(ref, data)));
 
 /**
  * Universal Firestore persistence bridge for Vercel / serverless runtime.
