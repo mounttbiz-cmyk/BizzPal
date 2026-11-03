@@ -151,7 +151,11 @@ export function Nav ({ menuOpen, setMenuOpen, data }) {
     return () => removeEventListener('keydown', esc);
   }, [menuOpen, setMenuOpen]);
 
-  const brand = data?.brand || 'BizzPal';
+  // Brand spelling is fixed: "BizzPal" + small gold TM. A saved config may hold
+  // "BIZZPAL" / "bizzpal"; any casing of the brand name resolves to the canonical wordmark.
+  const rawBrand = data?.brand || 'BizzPal';
+  const isBizzPal = /^\s*bizzpal\s*(™|&trade;)?\s*$/i.test(rawBrand);
+  const brand = isBizzPal ? 'BizzPal' : rawBrand;
   const logoUrl = data?.logoUrl || '/logo-icon.png';
   const logoHref = data?.logoHref || '#hero';
   const rawLinks = Array.isArray(data?.links) ? data.links : DEFAULT_NAV_LINKS;
@@ -172,7 +176,7 @@ export function Nav ({ menuOpen, setMenuOpen, data }) {
             className="brand__logo-img"
           />
           <span className="wm">
-            {brand === 'BizzPal' || brand === 'BizzPal™' ? (
+            {isBizzPal ? (
               <>
                 <span className="wm__a">Bizz</span>
                 <span className="wm__b">Pal</span>

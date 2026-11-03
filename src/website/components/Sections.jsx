@@ -38,7 +38,9 @@ export function AnnouncementBanner({ data }) {
 export function Hero({ ready, data }) {
   const rawEyebrow = data?.eyebrow || 'Artificial Intelligence · BizzPal.ai';
   const eyebrow = rawEyebrow.replace(/bizzpal\.in/gi, 'BizzPal.ai');
-  const word = data?.word || 'BizzPal™';
+  // Brand spelling is fixed: "BizzPal" + small TM, regardless of casing saved in config.
+  const rawWord = data?.word || 'BizzPal™';
+  const word = /^\s*bizzpal\s*(™|&trade;)?\s*$/i.test(rawWord) ? 'BizzPal™' : rawWord;
   const subtitle = data?.subtitle || 'Your Business. Powered by Intelligence.';
   const primaryCtaText = data?.primaryCtaText || 'Explore BizzPal';
   const primaryCtaHref = data?.primaryCtaHref || '#s01';
@@ -60,7 +62,9 @@ export function Hero({ ready, data }) {
                 className={
                   char === ' '
                     ? 'inline-block w-3 md:w-5'
-                    : (idx < Math.ceil(word.length / 2) ? 'ch ch--s' : 'ch ch--g')
+                    : char === '™'
+                      ? 'ch ch--tm'
+                      : (idx < Math.ceil(word.replace('™', '').length / 2) ? 'ch ch--s' : 'ch ch--g')
                 }
                 aria-hidden="true"
                 style={{ transitionDelay: `${0.30 + Math.min(idx * 0.05, 0.75)}s` }}
