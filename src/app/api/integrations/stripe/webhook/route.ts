@@ -1,9 +1,20 @@
 import { NextResponse } from "next/server";
 import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
+import { verifyStripeSignature } from "@/lib/webhookAuth";
 
 export async function POST(req: Request) {
   try {
     const rawBody = await req.text();
+
+    // Only genuine, signed Stripe events are accepted. Without this anyone could post fake payments.
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      return NextResponse.json({ error: "Stripe webhook secret not configured" }, { status: 503 });
+    }
+    if (!verifyStripeSignature(rawBody, req.headers.get("stripe-signature"), webhookSecret)) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    }
+
     let event: any;
 
     try {
@@ -14,9 +25,15 @@ export async function POST(req: Request) {
 
     const eventId = event.id || `evt_${Date.now()}`;
     const eventType = event.type || "payment_intent.succeeded";
-    const amount = event.data?.object?.amount ? Number(event.data.object.amount) / 100 : 25000;
+    // No made-up default amount: a missing amount counts as 0.
+    const amount = event.data?.object?.amount ? Number(event.data.object.amount) / 100 : 0;
     const currency = event.data?.object?.currency || "inr";
     const now = new Date().toISOString();
+
+    // Ignore replays of an event we already processed (prevents double-counting revenue).
+    if (event.id && db.prepare("SELECT 1 FROM stripe_events WHERE id = ?").get(event.id)) {
+      return NextResponse.json({ received: true, eventId: event.id, duplicate: true });
+    }
 
     // 1. Store the incoming Stripe event
     db.prepare(`

@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
 import { generateDynamicCheckInQuestions } from "@/lib/checkin/generateQuestions";
+import { verifySharedToken } from "@/lib/webhookAuth";
 
 // Outbound scheduled job trigger for WhatsApp check-in
-export async function POST() {
+export async function POST(req: Request) {
   try {
+    // Only the scheduler (holding the shared token) may trigger outbound messages.
+    const secret = process.env.WHATSAPP_WEBHOOK_TOKEN;
+    if (!secret) {
+      return NextResponse.json({ error: "Trigger token not configured" }, { status: 503 });
+    }
+    if (!verifySharedToken(req, secret)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const business = db.prepare("SELECT * FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID) as any;
     if (!business) {
       return NextResponse.json({ error: "Business not found" }, { status: 404 });

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
+import { authorizeWhatsApp } from "@/lib/webhookAuth";
 
 // Inbound webhook for WhatsApp replies (Twilio / Meta format)
 export async function POST(req: Request) {
@@ -8,12 +9,22 @@ export async function POST(req: Request) {
     let sender = "";
     let messageBody = "";
 
+    // Read the raw body once so the signature can be checked against exactly what was sent.
+    const rawBody = await req.text();
+    const auth = authorizeWhatsApp(req, rawBody);
+    if (auth === "unconfigured") {
+      return NextResponse.json({ error: "WhatsApp webhook secret not configured" }, { status: 503 });
+    }
+    if (auth !== "ok") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     if (contentType.includes("application/x-www-form-urlencoded")) {
-      const formData = await req.formData();
-      sender = (formData.get("From") as string) || "";
-      messageBody = (formData.get("Body") as string) || "";
+      const formData = new URLSearchParams(rawBody);
+      sender = formData.get("From") || "";
+      messageBody = formData.get("Body") || "";
     } else {
-      const json = await req.json();
+      const json = JSON.parse(rawBody || "{}");
       // Handle Meta Cloud API format or generic JSON
       if (json?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {
         const msg = json.entry[0].changes[0].value.messages[0];
