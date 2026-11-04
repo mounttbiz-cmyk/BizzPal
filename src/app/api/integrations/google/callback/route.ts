@@ -9,12 +9,14 @@ export async function GET(req: NextRequest) {
   let returnTo = "/integrations";
   let requestOrigin = "";
   let source = "integration";
+  let inviteToken = "";
   if (stateRaw) {
     try {
       const parsed = JSON.parse(Buffer.from(stateRaw, "base64url").toString("utf8"));
       if (parsed.returnTo) returnTo = parsed.returnTo;
       if (parsed.origin) requestOrigin = parsed.origin;
       if (parsed.source) source = parsed.source;
+      if (typeof parsed.inviteToken === "string") inviteToken = parsed.inviteToken;
     } catch {}
   }
 
@@ -114,6 +116,29 @@ export async function GET(req: NextRequest) {
     const name = profile.name || email.split("@")[0] || "Google User";
     const picture = profile.picture || null;
     const now = new Date().toISOString();
+
+    // Teammate invite: confirm the Google-verified email against the invite, then stop.
+    // This returns before anything below touches the integrations tables.
+    if (source === "invite") {
+      const { acceptInvite } = await import("@/lib/team/invites");
+      const result = acceptInvite(inviteToken, email, profile.verified_email === true);
+      const safeToken = /^[A-Za-z0-9_-]{20,64}$/.test(inviteToken) ? inviteToken : "";
+      const payload = JSON.stringify({ type: "BIZZPAL_INVITE_RESULT", decision: result.decision, email })
+        .replace(/</g, "\\u003c");
+      const target = JSON.stringify(currentOrigin).replace(/</g, "\\u003c");
+      const fallback = `/join/${safeToken}`;
+      return new NextResponse(
+        `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>BizzPal</title></head>
+<body style="font-family:system-ui,sans-serif;background:#0b0f19;color:#f8fafc;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+<p>Finishing up…</p>
+<script>
+  var msg = ${payload};
+  if (window.opener) { try { window.opener.postMessage(msg, ${target}); } catch (e) {} setTimeout(function () { window.close(); }, 150); }
+  else { window.location.href = ${JSON.stringify(fallback)}; }
+</script></body></html>`,
+        { headers: { "Content-Type": "text/html; charset=utf-8" } }
+      );
+    }
 
     const configData = {
       connectedEmail: email,

@@ -24,7 +24,9 @@ export async function GET(req: NextRequest) {
   // Get optional state parameter (e.g. source: 'onboarding' | 'integrations' | 'settings' | 'auth')
   const returnTo = req.nextUrl.searchParams.get("returnTo") || "/integrations";
   const source = req.nextUrl.searchParams.get("source") || "integration";
-  const state = Buffer.from(JSON.stringify({ returnTo, origin, source })).toString("base64url");
+  // For teammate invites the token rides along so the callback can confirm the Google-verified email.
+  const inviteToken = source === "invite" ? (req.nextUrl.searchParams.get("invite") || "") : "";
+  const state = Buffer.from(JSON.stringify({ returnTo, origin, source, inviteToken })).toString("base64url");
 
   // Google OAuth 2.0 Authorization URL
   const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -34,7 +36,7 @@ export async function GET(req: NextRequest) {
 
   // When source is 'auth' (Sign in / Sign up), request ONLY standard non-sensitive identity scopes.
   // Sensitive scopes (calendar.readonly) are only for integrations and trigger Google 500 / unverified errors during login.
-  const scope = source === "auth"
+  const scope = source === "auth" || source === "invite"
     ? "openid email profile"
     : "openid email profile https://www.googleapis.com/auth/calendar.readonly";
 
