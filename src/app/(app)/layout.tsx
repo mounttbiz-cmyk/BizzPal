@@ -20,8 +20,11 @@ export default function MainAppLayout({
         const stored = localStorage.getItem("bizzpal_business_profile");
         if (stored) {
           const parsed = JSON.parse(stored);
+          const cleanName = (parsed.name && parsed.name.startsWith("GSTIN ") && (parsed.tradeName || parsed.legalName))
+            ? (parsed.tradeName || parsed.legalName)
+            : parsed.name;
           return {
-            name: parsed.name || "BizzPal Enterprise",
+            name: cleanName || "BizzPal Enterprise",
             industry: parsed.industry || "saas",
             industryLabel: parsed.industryLabel || "Technology & Enterprise Services",
           };
@@ -41,8 +44,11 @@ export default function MainAppLayout({
         const stored = localStorage.getItem("bizzpal_business_profile");
         if (stored) {
           const parsed = JSON.parse(stored);
+          const cleanName = (parsed.name && parsed.name.startsWith("GSTIN ") && (parsed.tradeName || parsed.legalName))
+            ? (parsed.tradeName || parsed.legalName)
+            : parsed.name;
           setBusinessProfile({
-            name: parsed.name || "BizzPal Enterprise",
+            name: cleanName || "BizzPal Enterprise",
             industry: parsed.industry || "saas",
             industryLabel: parsed.industryLabel || "Technology & Enterprise Services",
           });

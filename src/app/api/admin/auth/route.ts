@@ -79,8 +79,9 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (err: any) {
+    console.error("Admin auth error:", err);
     return NextResponse.json(
-      { success: false, error: "Authentication failed." },
+      { success: false, error: err?.message || "Authentication failed." },
       { status: 500 }
     );
   }

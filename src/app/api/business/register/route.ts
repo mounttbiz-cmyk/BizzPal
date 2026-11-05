@@ -65,9 +65,10 @@ export async function POST(req: Request) {
   const needs: string[] = (Array.isArray(body?.needs) ? body.needs : []).map((n: any) => str(n, 200)).filter(Boolean).slice(0, 25);
   const founderName = str(body?.founderName, 100) || email.split("@")[0];
 
+  const customCompanyName = str(body?.companyName, 120);
   const legalName: string = rec.legalName || "";
   const tradeName: string = rec.tradeName || "";
-  const name = tradeName || legalName || (domain ? domainLabel(domain.subject) : `GSTIN ${gstinRow.subject}`);
+  const name = customCompanyName || tradeName || legalName || (domain ? domainLabel(domain.subject) : `GSTIN ${gstinRow.subject}`);
   const industryLabel = selected.map((s) => (s === "other" ? customIndustry : INDUSTRIES[s])).join(", ");
   const now = new Date().toISOString();
   const bizId = `biz_${email.replace(/[^a-zA-Z0-9]/g, "_")}`;

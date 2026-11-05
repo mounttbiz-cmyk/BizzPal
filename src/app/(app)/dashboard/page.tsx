@@ -231,6 +231,8 @@ function DashboardContent() {
     if (saved.name) {
       if (saved.name.includes("Acme")) {
         setCompanyName("My Enterprise");
+      } else if (saved.name.startsWith("GSTIN ") && (saved.tradeName || saved.legalName || saved.customBusinessType)) {
+        setCompanyName(saved.tradeName || saved.legalName || saved.name.replace(/^GSTIN\s+/, ""));
       } else {
         setCompanyName(saved.name);
       }

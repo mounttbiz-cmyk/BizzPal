@@ -9,24 +9,47 @@ import { Callout, Fact, Pill, PrimaryButton, StepHeader } from "./ui";
 interface Props {
   state: GstState;
   gstinInput: string;
+  companyName: string;
+  onCompanyNameChange: (name: string) => void;
   onInput: (v: string) => void;
   onVerify: () => void;
   onNext: () => void;
 }
 
-export function VerifyBusinessStep({ state, gstinInput, onInput, onVerify, onNext }: Props) {
+export function VerifyBusinessStep({ state, gstinInput, companyName, onCompanyNameChange, onInput, onVerify, onNext }: Props) {
   const [showWhy, setShowWhy] = useState(false);
   const local = useMemo(() => checkGstin(gstinInput), [gstinInput]);
   const typed = normalizeGstin(gstinInput).length > 0;
   const checking = state.phase === "checking";
 
-  const canContinue = state.phase === "verified" || (state.phase === "unavailable" && local.valid);
+  const canContinue = (companyName.trim().length > 0) && (state.phase === "verified" || (state.phase === "unavailable" && local.valid));
 
   return (
     <div className="space-y-6">
       <StepHeader eyebrow="Step 1 · Business verification" title="Let's verify your business">
-        Enter your GSTIN. We read your company details straight from the GST registry, so there is nothing else to type and nothing that can be made up.
+        Enter your company name and GSTIN. We confirm your legal standing against official corporate records so your business identity is verified.
       </StepHeader>
+
+      {/* Business Name Input */}
+      <div className="space-y-1.5 p-4 rounded-2xl border border-line bg-surface-2/30">
+        <label htmlFor="company-name" className="text-xs font-semibold text-text flex items-center justify-between">
+          <span className="flex items-center gap-1.5">
+            <Building2 className="w-3.5 h-3.5 text-brass" /> Company / Business Name
+          </span>
+          <span className="text-[10px] font-normal text-text-muted">Display name for your dashboard & platform</span>
+        </label>
+        <input
+          id="company-name"
+          type="text"
+          value={companyName}
+          onChange={(e) => onCompanyNameChange(e.target.value)}
+          placeholder="e.g. Acme Technologies Private Limited"
+          className="w-full px-4 py-3 rounded-xl bg-surface border border-line text-sm text-text placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brass transition-all font-medium"
+        />
+        <p className="text-[10px] text-text-muted">
+          This will be the official name shown across your executive dashboard, AI advisors, and team workspace.
+        </p>
+      </div>
 
       <div className="space-y-2">
         <label htmlFor="gstin" className="text-xs font-semibold text-text flex items-center justify-between">

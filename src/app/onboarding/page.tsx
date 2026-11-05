@@ -75,6 +75,7 @@ export default function OnboardingPage() {
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx].id;
 
+  const [companyNameInput, setCompanyNameInput] = useState("");
   const [gstinInput, setGstinInput] = useState("");
   const [gst, setGst] = useState<GstState>({ phase: "idle" });
   const [domainInput, setDomainInput] = useState("");
@@ -125,6 +126,7 @@ export default function OnboardingPage() {
     try { d = JSON.parse(localStorage.getItem(draftKey) || "null"); } catch {}
     draftRef.current = d;
     if (d) {
+      if (typeof d.companyNameInput === "string") setCompanyNameInput(d.companyNameInput);
       if (typeof d.gstinInput === "string") setGstinInput(d.gstinInput);
       if (typeof d.domainInput === "string") setDomainInput(d.domainInput);
       if (Array.isArray(d.industries)) setIndustries(d.industries);
@@ -142,9 +144,9 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (!draftKey || !draftReady || done) return;
     try {
-      localStorage.setItem(draftKey, JSON.stringify({ stepIdx, maxStep, gstinInput, domainInput, domainSkipped: domain.phase === "skipped", ifscInput, bankSkipped: bank.phase === "skipped", industries, customIndustry, needs, customNeeds }));
+      localStorage.setItem(draftKey, JSON.stringify({ stepIdx, maxStep, companyNameInput, gstinInput, domainInput, domainSkipped: domain.phase === "skipped", ifscInput, bankSkipped: bank.phase === "skipped", industries, customIndustry, needs, customNeeds }));
     } catch {}
-  }, [draftKey, draftReady, done, stepIdx, maxStep, gstinInput, domainInput, domain.phase, ifscInput, bank.phase, industries, customIndustry, needs, customNeeds]);
+  }, [draftKey, draftReady, done, stepIdx, maxStep, companyNameInput, gstinInput, domainInput, domain.phase, ifscInput, bank.phase, industries, customIndustry, needs, customNeeds]);
 
   // ---- resume: restore whatever the SERVER already holds as verified ----
   useEffect(() => {
@@ -339,6 +341,7 @@ export default function OnboardingPage() {
       const needTitles = needs.map((id) => priorityOptions.find((p) => p.id === id)).filter(Boolean).map((p) => (p!.id.startsWith("custom_need_") ? p!.title : p!.id));
       const { status, data } = await postJson("/api/business/register", {
         email,
+        companyName: companyNameInput.trim() || displayName,
         founderName,
         industries,
         customIndustry: customIndustry.trim(),
@@ -363,7 +366,7 @@ export default function OnboardingPage() {
   const registryOk = gst.phase === "verified";
   const siteOk = domain.phase === "verified";
   const emailOk = domain.phase === "verified" && domain.emailMatches;
-  const displayName = registryOk ? gst.record.tradeName || gst.record.legalName : "";
+  const displayName = companyNameInput.trim() || (registryOk ? gst.record.tradeName || gst.record.legalName : "");
   const bankOk = bank.phase === "verified";
   const liveSources = paySources.filter((x) => x.status === "connected");
   const confirmedTeam = invites.filter((i) => i.status === "verified").length;
@@ -510,7 +513,15 @@ export default function OnboardingPage() {
         ) : (
         <section key={step} className="p-5 sm:p-8 rounded-2xl border border-line bg-surface shadow-theme min-w-0 animate-fade-in">
           {step === "business" && (
-            <VerifyBusinessStep state={gst} gstinInput={gstinInput} onInput={(v) => { setGstinInput(v); if (gst.phase === "error" || gst.phase === "unavailable") setGst({ phase: "idle" }); }} onVerify={verifyGstin} onNext={() => go("website")} />
+            <VerifyBusinessStep
+              state={gst}
+              gstinInput={gstinInput}
+              companyName={companyNameInput}
+              onCompanyNameChange={setCompanyNameInput}
+              onInput={(v) => { setGstinInput(v); if (gst.phase === "error" || gst.phase === "unavailable") setGst({ phase: "idle" }); }}
+              onVerify={verifyGstin}
+              onNext={() => go("website")}
+            />
           )}
           {step === "website" && (
             <VerifyWebsiteStep

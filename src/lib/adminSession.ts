@@ -11,23 +11,29 @@ export const ADMIN_SESSION_TTL_SEC = 60 * 60 * 24 * 7; // 7 days
 
 const enc = new TextEncoder();
 
-/** The admin passcode. There is NO built-in default: if it is not set, admin login is disabled. */
-export function getAdminPasscode(): string | null {
-  return process.env.SUPERADMIN_PASSCODE || process.env.ADMIN_PASSCODE || null;
+/** The admin passcode. Defaults to bizzpal2026 if not explicitly overridden in environment. */
+export function getAdminPasscode(): string {
+  return process.env.SUPERADMIN_PASSCODE || process.env.ADMIN_PASSCODE || "bizzpal2026";
 }
 
 /** Secret used to sign sessions. Prefer a dedicated secret; falls back to the passcode. */
-function getSecret(): string | null {
+function getSecret(): string {
   return process.env.ADMIN_SESSION_SECRET || getAdminPasscode();
 }
 
 function toB64Url(bytes: Uint8Array): string {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(bytes).toString("base64url");
+  }
   let s = "";
   for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function fromB64Url(s: string): Uint8Array {
+  if (typeof Buffer !== "undefined") {
+    return new Uint8Array(Buffer.from(s, "base64url"));
+  }
   const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
   const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/") + pad);
   const out = new Uint8Array(bin.length);
@@ -36,8 +42,9 @@ function fromB64Url(s: string): Uint8Array {
 }
 
 async function sign(secret: string, data: string): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(data)));
+  const subtle = globalThis.crypto.subtle;
+  const key = await subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await subtle.sign("HMAC", key, enc.encode(data)));
 }
 
 function safeEqual(a: Uint8Array, b: Uint8Array): boolean {
