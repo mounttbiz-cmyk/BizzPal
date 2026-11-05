@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { cleanEmail, computeLevel, ensureVerificationSchema, listVerifications } from "@/lib/verification/store";
 import { totalRevenue } from "@/lib/payments/store";
 import { listInvites, verifiedCount } from "@/lib/team/invites";
+import { getHrisConnection } from "@/lib/team/hris";
 
 export const dynamic = "force-dynamic";
 
@@ -110,10 +111,14 @@ export async function POST(req: Request) {
     `).run(`int_${bizId}_${key}`, bizId, key, label[key][0], label[key][1], status, now);
   }
 
-  // Real figures only: revenue comes from the connected payment provider, headcount from confirmed invites.
+  // Real figures only: revenue comes from the connected payment provider,
+  // headcount from verified HRIS/HCM active roster or confirmed email invites.
   const rev = totalRevenue(email);
   const confirmed = verifiedCount(email);
-  const teamSize = 1 + confirmed; // the founder plus teammates who confirmed their work email
+  const { summary: hrisSummary } = getHrisConnection(email);
+  const hrisHeadcount = hrisSummary?.activeHeadcount || 0;
+  // If enterprise HRIS or verified directory is connected, use verified core active headcount; otherwise count verified invites
+  const teamSize = hrisHeadcount > 0 ? hrisHeadcount : 1 + confirmed;
   db.prepare("UPDATE businesses SET team_size = ?, monthly_revenue = COALESCE(?, monthly_revenue), financials_source = COALESCE(?, financials_source) WHERE id = ?")
     .run(teamSize, rev ? rev.revenueInr : null, rev ? rev.sources.join("+") : null, bizId);
   const invitedCount = listInvites(email).length;

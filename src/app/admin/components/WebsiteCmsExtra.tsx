@@ -309,11 +309,10 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                         nav: { ...nav, logoUrl: "/logo-icon.png" },
                       })
                     }
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                      !nav.logoUrl || nav.logoUrl === "/logo-icon.png"
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${!nav.logoUrl || nav.logoUrl === "/logo-icon.png"
                         ? "bg-brass/15 border-brass text-text"
                         : "bg-surface-2 border-line text-text-muted hover:text-text"
-                    }`}
+                      }`}
                   >
                     Official 3D Gold Icon
                   </button>
@@ -405,11 +404,10 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                         nav: { ...nav, ctaEnabled: nav.ctaEnabled !== false ? false : true },
                       })
                     }
-                    className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
-                      nav.ctaEnabled !== false
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-colors cursor-pointer ${nav.ctaEnabled !== false
                         ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
                         : "bg-surface-2 border-line text-text-muted"
-                    }`}
+                      }`}
                   >
                     {nav.ctaEnabled !== false ? "VISIBLE" : "HIDDEN"}
                   </button>
@@ -460,11 +458,10 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
               {(nav.links || []).map((link: any, i: number) => (
                 <div
                   key={i}
-                  className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border text-xs transition-all ${
-                    link.enabled !== false
+                  className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border text-xs transition-all ${link.enabled !== false
                       ? "bg-surface-2 border-line"
                       : "bg-surface-2/40 border-dashed border-line opacity-50"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="font-bold text-text truncate">{link.label}</span>
@@ -938,11 +935,10 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                 },
               })
             }
-            className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors cursor-pointer ${
-              announcement.enabled
+            className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors cursor-pointer ${announcement.enabled
                 ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
                 : "bg-surface-2 border-line text-text-muted"
-            }`}
+              }`}
           >
             {announcement.enabled ? "ACTIVE & VISIBLE" : "HIDDEN"}
           </button>

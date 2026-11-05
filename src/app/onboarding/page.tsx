@@ -88,6 +88,8 @@ export default function OnboardingPage() {
   const [paySources, setPaySources] = useState<PaySource[]>([]);
   const [payTotal, setPayTotal] = useState<PayTotal | null>(null);
   const [invites, setInvites] = useState<InviteRow[]>([]);
+  const [hrisHeadcount, setHrisHeadcount] = useState<number>(0);
+  const [hrisProviderName, setHrisProviderName] = useState<string>("");
   const updatePay = useCallback((src: PaySource[], tot: PayTotal | null) => { setPaySources(src); setPayTotal(tot); }, []);
   const updateInvites = useCallback((rows: InviteRow[]) => setInvites(rows), []);
 
@@ -177,6 +179,17 @@ export default function OnboardingPage() {
       try {
         const ir = await fetch(`/api/team/invites?email=${encodeURIComponent(email)}`);
         if (ir.ok) { const d = await ir.json(); setInvites(d.invites || []); }
+      } catch {}
+      try {
+        const hr = await fetch(`/api/team/hris?email=${encodeURIComponent(email)}`);
+        if (hr.ok) {
+          const hd = await hr.json();
+          if (hd.summary) {
+            setHrisHeadcount(hd.summary.activeHeadcount || 0);
+            const provMeta = hd.catalog?.find((c: any) => c.id === hd.summary.provider);
+            setHrisProviderName(provMeta?.name || hd.summary.provider);
+          }
+        }
       } catch {}
     })();
   }, [email]);
@@ -354,6 +367,12 @@ export default function OnboardingPage() {
   const bankOk = bank.phase === "verified";
   const liveSources = paySources.filter((x) => x.status === "connected");
   const confirmedTeam = invites.filter((i) => i.status === "verified").length;
+  const totalTeamCount = hrisHeadcount > 0 ? hrisHeadcount : confirmedTeam;
+  const teamLabel = hrisHeadcount > 0
+    ? `${hrisHeadcount} employees synced from ${hrisProviderName || "HRIS"}`
+    : confirmedTeam > 0
+    ? `${confirmedTeam} teammate${confirmedTeam === 1 ? "" : "s"} confirmed`
+    : "Teammates confirmed by Google or HRIS";
 
   if (!ready) {
     return <div className="min-h-screen bg-bg flex items-center justify-center text-xs text-text-muted">Loading…</div>;
@@ -461,7 +480,7 @@ export default function OnboardingPage() {
               <TrustRow ok={emailOk} skipped={!siteOk} label="Sign-in email on that website" />
               <TrustRow ok={bankOk} skipped={bank.phase === "skipped"} label="Bank account matches GST name" />
               <TrustRow ok={liveSources.length > 0} label={payTotal ? `Revenue ${inr(payTotal.revenueInr)} from provider` : "Revenue from payment provider"} />
-              <TrustRow ok={confirmedTeam > 0} label={confirmedTeam > 0 ? `${confirmedTeam} teammate${confirmedTeam === 1 ? "" : "s"} confirmed` : "Teammates confirmed by Google"} />
+              <TrustRow ok={totalTeamCount > 0} label={teamLabel} />
             </ul>
             <p className="text-[10px] text-text-muted leading-relaxed">Each tick is checked by our server. Nothing here is self-declared.</p>
           </div>
@@ -484,7 +503,7 @@ export default function OnboardingPage() {
               <TrustRow ok={siteOk} skipped={!siteOk} label="Controls company website" />
               <TrustRow ok={bankOk} skipped={!bankOk} label="Bank account matches GST name" />
               <TrustRow ok={liveSources.length > 0} skipped={liveSources.length === 0} label={liveSources.length ? `Revenue from ${liveSources.map((x) => x.provider === "razorpay" ? "Razorpay" : "Stripe").join(" + ")}` : "No payment provider connected yet"} />
-              <TrustRow ok={confirmedTeam > 0} skipped={confirmedTeam === 0} label={confirmedTeam > 0 ? `${confirmedTeam} teammate${confirmedTeam === 1 ? "" : "s"} confirmed` : "No teammates confirmed yet"} />
+              <TrustRow ok={totalTeamCount > 0} skipped={totalTeamCount === 0} label={totalTeamCount > 0 ? teamLabel : "No teammates or HRIS synced yet"} />
             </ul>
             <p className="text-[11px] text-text-muted">Taking you to choose your plan…</p>
           </section>

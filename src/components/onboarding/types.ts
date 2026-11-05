@@ -62,6 +62,28 @@ export interface InviteRow {
   link: string; sameDomain: boolean | null; createdAt: string; verifiedAt: string | null;
 }
 
+export interface HrisSyncData {
+  provider: string;
+  totalRecords: number;
+  activeHeadcount: number;
+  onLeaveHeadcount: number;
+  contractorHeadcount: number;
+  syncedAt: string;
+  employees: Array<{
+    id: string;
+    name: string;
+    email: string;
+    jobTitle: string;
+    department: string;
+    manager?: string;
+    location?: string;
+    hireDate?: string;
+    salary?: string;
+    employmentType: string;
+    status: string;
+  }>;
+}
+
 export type StepId = "business" | "website" | "bank" | "payments" | "team" | "sources" | "industry" | "priorities";
 export interface StepDef { id: StepId; label: string; hint: string; phase: "Verify" | "Connect" | "Tailor" }
 
