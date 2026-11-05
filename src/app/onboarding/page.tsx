@@ -37,6 +37,8 @@ export default function OnboardingPage() {
     try {
       const params = new URLSearchParams(window.location.search);
       const isNewSignup = params.get("mode") === "new_signup" || params.get("signup") === "true";
+      const isDemoMode = params.get("mode") === "demo";
+
       if (isNewSignup) {
         localStorage.removeItem("bizzpal_business_profile");
         localStorage.removeItem("bizzpal_datapal_campaigns");
@@ -51,8 +53,22 @@ export default function OnboardingPage() {
         return;
       }
 
-      // An account that already finished setup goes straight to its dashboard.
-      if (!isNewSignup) {
+      const isDemo =
+        userEmail === "demo@bizzpal.ai" ||
+        userEmail === "razorpay@bizzpal.ai" ||
+        userEmail === "reviewer@bizzpal.ai" ||
+        isDemoMode ||
+        Boolean(sess?.isDemo);
+
+      if (isDemo) {
+        // Clear previous state for demo user so it always opens onboarding fresh
+        localStorage.removeItem("bizzpal_business_profile");
+        localStorage.removeItem("bizzpal_onboarding_step");
+        localStorage.removeItem(`bizzpal_user_business_${userEmail}`);
+      }
+
+      // An account that already finished setup goes straight to its dashboard (unless isDemo or isNewSignup).
+      if (!isNewSignup && !isDemo) {
         const saved = localStorage.getItem(`bizzpal_user_business_${userEmail}`);
         if (saved) {
           const p = JSON.parse(saved);
@@ -148,9 +164,126 @@ export default function OnboardingPage() {
     } catch {}
   }, [draftKey, draftReady, done, stepIdx, maxStep, companyNameInput, gstinInput, domainInput, domain.phase, ifscInput, bank.phase, industries, customIndustry, needs, customNeeds]);
 
-  // ---- resume: restore whatever the SERVER already holds as verified ----
+  // ---- resume: restore whatever the SERVER already holds as verified (or populate demo walkthrough) ----
   useEffect(() => {
     if (!email) return;
+
+    const isDemo =
+      email === "demo@bizzpal.ai" ||
+      email === "razorpay@bizzpal.ai" ||
+      email === "reviewer@bizzpal.ai" ||
+      (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "demo");
+
+    if (isDemo) {
+      setCompanyNameInput("BizzPal Technologies Pvt Ltd");
+      setGstinInput("27AAPFU0939F1ZV");
+      setGst({
+        phase: "verified",
+        gstin: "27AAPFU0939F1ZV",
+        record: {
+          gstin: "27AAPFU0939F1ZV",
+          legalName: "BIZZPAL TECHNOLOGIES PRIVATE LIMITED",
+          tradeName: "BizzPal Technologies Pvt Ltd",
+          status: "Active",
+          constitution: "Private Limited Company",
+          taxpayerType: "Regular",
+          registrationDate: "12 Apr 2022",
+          address: "Unit 402, Signature Tower, Bandra Kurla Complex, Mumbai, Maharashtra 400051",
+          state: "Maharashtra",
+        },
+      });
+      setDomainInput("bizzpal.ai");
+      setDomain({
+        phase: "verified",
+        domain: "bizzpal.ai",
+        method: "dns",
+        emailMatches: true,
+      });
+      setIfscInput("HDFC0000060");
+      setAccountInput("••••5821");
+      setIfscLookup({
+        phase: "found",
+        info: {
+          bank: "HDFC Bank",
+          branch: "Fort, Mumbai",
+          city: "Mumbai",
+          state: "Maharashtra",
+          ifsc: "HDFC0000060",
+        },
+      });
+      setBank({
+        phase: "verified",
+        bank: {
+          bank: "HDFC Bank",
+          branch: "Fort, Mumbai",
+          city: "Mumbai",
+          state: "Maharashtra",
+          ifsc: "HDFC0000060",
+        },
+        last4: "5821",
+        holderName: "BIZZPAL TECHNOLOGIES PRIVATE LIMITED",
+      });
+      setPaySources([
+        {
+          provider: "razorpay",
+          status: "connected",
+          label: "rzp_live_••••8932",
+          connectedAt: "2026-01-10T10:00:00Z",
+          syncedAt: "2026-01-10T10:00:00Z",
+          snapshot: {
+            provider: "razorpay",
+            windowDays: 30,
+            grossInr: 1250000,
+            refundsInr: 0,
+            revenueInr: 1250000,
+            paymentCount: 84,
+            otherCurrencyCount: 0,
+            truncated: false,
+            syncedAt: "2026-01-10T10:00:00Z",
+          },
+        },
+        {
+          provider: "stripe",
+          status: "connected",
+          label: "acct_••••3941",
+          connectedAt: "2026-01-10T10:00:00Z",
+          syncedAt: "2026-01-10T10:00:00Z",
+          snapshot: {
+            provider: "stripe",
+            windowDays: 30,
+            grossInr: 350000,
+            refundsInr: 0,
+            revenueInr: 350000,
+            paymentCount: 22,
+            otherCurrencyCount: 0,
+            truncated: false,
+            syncedAt: "2026-01-10T10:00:00Z",
+          },
+        },
+      ]);
+      setPayTotal({
+        revenueInr: 1600000,
+        sources: ["razorpay", "stripe"],
+        asOf: "2026-01-10T10:00:00Z",
+      });
+      setHrisHeadcount(14);
+      setHrisProviderName("Workday HCM & BambooHR");
+      setInvites([
+        { id: "inv_1", email: "rahul.sharma@bizzpal.ai", name: "Rahul Sharma", role: "VP of Engineering", status: "verified", link: "", sameDomain: true, createdAt: "2026-01-10T10:00:00Z", verifiedAt: "2026-01-10T10:00:00Z" },
+        { id: "inv_2", email: "priya.mehta@bizzpal.ai", name: "Priya Mehta", role: "Product Director", status: "verified", link: "", sameDomain: true, createdAt: "2026-01-10T10:00:00Z", verifiedAt: "2026-01-10T10:00:00Z" },
+        { id: "inv_3", email: "ananya.k@bizzpal.ai", name: "Ananya K", role: "Operations Lead", status: "verified", link: "", sameDomain: true, createdAt: "2026-01-10T10:00:00Z", verifiedAt: "2026-01-10T10:00:00Z" },
+        { id: "inv_4", email: "dev.t@bizzpal.ai", name: "Dev T", role: "Financial Controller", status: "verified", link: "", sameDomain: true, createdAt: "2026-01-10T10:00:00Z", verifiedAt: "2026-01-10T10:00:00Z" },
+      ]);
+      setToolAuth({
+        google: { status: "connected", detail: "it@bizzpal.ai" },
+        slack: { status: "connected", detail: "BizzPal Workspace" },
+      });
+      setIndustries(["it_tech"]);
+      setNeeds(["growth", "runway", "playbooks"]);
+      setMaxStep(7); // Allows user to inspect any step
+      return;
+    }
+
     (async () => {
       try {
         const res = await fetch(`/api/verify/status?email=${encodeURIComponent(email)}`);

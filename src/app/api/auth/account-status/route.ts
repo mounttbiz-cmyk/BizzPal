@@ -24,7 +24,7 @@ const DEMO_BUSINESS_PROFILE = {
   status: "active",
   website: "https://bizzpal.ai",
   connectedTools: ["google", "razorpay", "workday", "salesforce"],
-  completedAt: "2026-01-15T00:00:00.000Z",
+  completedAt: null,
 };
 
 export async function GET(request: Request) {

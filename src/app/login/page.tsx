@@ -494,27 +494,14 @@ export default function LoginPage() {
             passLower === "demo";
 
           if (validDemoPass) {
-            const demoBiz = {
-              name: "BizzPal Technologies Pvt Ltd",
-              legalName: "BIZZPAL TECHNOLOGIES PRIVATE LIMITED",
-              founderName: fullName || "Demo Founder",
-              gstin: "27AAPFU0939F1ZV",
-              industry: "it_tech",
-              industryLabel: "IT & Technology Services",
-              revenue: 1250000,
-              monthlyRevenue: 1250000,
-              annualRevenue: 15000000,
-              burn: 320000,
-              monthlyBurn: 320000,
-              cash: 4500000,
-              cashOnHand: 4500000,
-              teamSize: 14,
-              plan: "growth",
-              status: "active",
-              website: "https://bizzpal.ai",
-              connectedTools: ["google", "razorpay", "workday", "salesforce"],
-              completedAt: new Date().toISOString(),
-            };
+            // For Demo ID: Clear previous demo states so it always enters fresh into the auto-filled onboarding flow
+            localStorage.removeItem("bizzpal_business_profile");
+            localStorage.removeItem("bizzpal_onboarding_step");
+            localStorage.removeItem(`bizzpal_user_business_${cleanEmail}`);
+            localStorage.removeItem(`bizzpal_onboarding_draft_${cleanEmail}`);
+            localStorage.removeItem("bizzpal_datapal_campaigns");
+            localStorage.setItem("bizzpal_subscription_plan", "growth");
+            localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, "growth");
 
             const userSession = {
               id: "usr_demo_razorpay",
@@ -522,28 +509,14 @@ export default function LoginPage() {
               name: fullName || "Demo Founder",
               role: "owner",
               provider: "password",
+              isDemo: true,
               authenticatedAt: new Date().toISOString(),
             };
 
             localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
-            localStorage.setItem("bizzpal_business_profile", JSON.stringify(demoBiz));
-            localStorage.setItem(`bizzpal_user_business_${cleanEmail}`, JSON.stringify(demoBiz));
-            localStorage.setItem("bizzpal_subscription_plan", "growth");
-            localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, "growth");
 
-            fetch("/api/auth/account-status", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: cleanEmail,
-                name: fullName || "Demo Founder",
-                provider: "password",
-                uid: "usr_demo_razorpay",
-                businessProfile: demoBiz,
-              }),
-            }).catch(() => {});
-
-            router.push("/dashboard");
+            // Direct demo login to the auto-filled onboarding registration steps
+            router.push("/onboarding?mode=demo");
             return;
           } else {
             setErrorInfo({
@@ -1122,33 +1095,6 @@ export default function LoginPage() {
                         </>
                       )}
                     </button>
-
-                    {/* Razorpay / Compliance Reviewer Demo Banner */}
-                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5 mt-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 font-bold text-amber-500 text-[11px] uppercase tracking-wider">
-                          <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-                          <span>Razorpay / Compliance Demo ID</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEmail("demo@bizzpal.ai");
-                            setPassword("BizzPal@2026");
-                            setFullName("Demo Founder");
-                            setAuthMode("signin");
-                            setErrorInfo(null);
-                          }}
-                          className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 font-bold transition-colors cursor-pointer"
-                        >
-                          Auto-fill
-                        </button>
-                      </div>
-                      <div className="text-[11px] text-text-muted flex flex-col gap-0.5 font-mono">
-                        <div>ID: <span className="text-text font-semibold">demo@bizzpal.ai</span></div>
-                        <div>Password: <span className="text-text font-semibold">BizzPal@2026</span></div>
-                      </div>
-                    </div>
                   </form>
                 </>
               ) : (

@@ -40,131 +40,108 @@ export async function extractRealBusinessLeads(
   const locationParts = [config.areaPincode, config.city, config.state, countryName].filter(Boolean);
   const locationTerm = locationParts.join(", ") || countryName;
 
-  // 1. TRY GOOGLE PLACES API (NEW) WITH GOOGLE MAPS API KEY
+  // 1. TRY GOOGLE PLACES API (NEW) WITH GOOGLE MAPS API KEY (WITH AUTOMATIC PAGINATION)
   if (googleApiKey && googleApiKey.trim().length > 10) {
     try {
       const googleQuery = `${queryTerm} in ${locationTerm}`.trim();
 
-      // Modern Google Places API (New) - v1/places:searchText
-      const newPlacesRes = await fetch("https://places.googleapis.com/v1/places:searchText", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": googleApiKey,
-          "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.websiteUri,places.nationalPhoneNumber,places.internationalPhoneNumber,places.types,places.id,places.googleMapsUri,places.businessStatus"
-        },
-        body: JSON.stringify({
+      // Modern Google Places API (New) - v1/places:searchText with multi-page token traversal
+      let collectedPlaces: any[] = [];
+      let pageToken: string | undefined = undefined;
+      const seenIds = new Set<string>();
+
+      // Loop up to 3 pages (fetching up to 60 live businesses)
+      for (let page = 1; page <= 3; page++) {
+        const reqBody: any = {
           textQuery: googleQuery,
-          maxResultCount: 20
-        }),
-        next: { revalidate: 60 }
-      });
-
-      if (newPlacesRes.ok) {
-        const newData = await newPlacesRes.json();
-        if (Array.isArray(newData.places) && newData.places.length > 0) {
-          const googleLeads: DataPalBusinessLead[] = newData.places.map((place: any, idx: number) => {
-            const name = place.displayName?.text || place.name || `${queryTerm} Establishment`;
-            const realWebsite = place.websiteUri || null;
-            const hasWebsite = Boolean(realWebsite);
-            const rating = place.rating ? parseFloat(place.rating) : 4.4;
-            const reviewsCount = place.userRatingCount || 0;
-
-            const isNormalExtract = config.requirement.toLowerCase().includes("normal");
-            const isMissingWebsite = !isNormalExtract && (config.requirement.toLowerCase().includes("website") || !hasWebsite);
-
-            const realPhone = place.nationalPhoneNumber || place.internationalPhoneNumber || null;
-            const fallbackPhone = `${phonePrefix} ${Math.floor(Math.random() * 89999 + 10000)} ${Math.floor(Math.random() * 89999 + 10000)}`;
-            const phone = realPhone || fallbackPhone;
-
-            let emailDomain = "gmail.com";
-            if (realWebsite) {
-              try {
-                const parsedUrl = new URL(realWebsite);
-                emailDomain = parsedUrl.hostname.replace(/^www\./, "");
-              } catch { }
-            }
-            const cleanPrefix = name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 15) || "contact";
-            const email = realWebsite ? `info@${emailDomain}` : `${cleanPrefix}@gmail.com`;
-
-            const primaryType = (place.types && place.types[0] ? place.types[0].replace(/_/g, " ") : targetCategory) || "Commercial Establishment";
-
-            return {
-              id: `gplace_${place.id || Date.now()}_${idx}`,
-              name,
-              category: primaryType.charAt(0).toUpperCase() + primaryType.slice(1),
-              website: isMissingWebsite ? null : realWebsite,
-              phone,
-              email,
-              address: place.formattedAddress || locationTerm,
-              city: config.city || "City",
-              state: config.state || "State",
-              country: countryName,
-              postalCode: config.areaPincode || undefined,
-              rating,
-              reviewsCount,
-              existingPresence: hasWebsite ? "Google Maps Verified, Official Website" : "Google Maps Verified, No Website",
-              source: "Google Maps & Places (Live API)",
-              notes: isNormalExtract
-                ? `Live Google Maps Place: ${reviewsCount} reviews (${rating}★). Verified business pin.`
-                : isMissingWebsite
-                ? `High Priority Gap: Claimed Google Maps pin with ${reviewsCount} reviews (${rating}★) but NO website domain.`
-                : `Active Google Maps business listing with ${reviewsCount} reviews. Ready for ${config.requirement} pitch.`,
-              verified: true,
-              opportunityLevel: isMissingWebsite ? "Critical" : rating >= 4.5 ? "High" : "Medium",
-              extractedAt: new Date().toISOString(),
-            };
-          });
-
-          return { leads: googleLeads, sourceMode: "google_places_live" };
+          maxResultCount: 20,
+        };
+        if (pageToken) {
+          reqBody.pageToken = pageToken;
         }
+
+        const newPlacesRes = await fetch("https://places.googleapis.com/v1/places:searchText", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": googleApiKey,
+            "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.websiteUri,places.nationalPhoneNumber,places.internationalPhoneNumber,places.types,places.id,places.googleMapsUri,places.businessStatus,nextPageToken"
+          },
+          body: JSON.stringify(reqBody),
+          next: { revalidate: 60 }
+        });
+
+        if (!newPlacesRes.ok) break;
+
+        const newData = await newPlacesRes.json();
+        if (Array.isArray(newData.places)) {
+          for (const p of newData.places) {
+            if (p.id && !seenIds.has(p.id)) {
+              seenIds.add(p.id);
+              collectedPlaces.push(p);
+            }
+          }
+        }
+
+        pageToken = newData.nextPageToken;
+        if (!pageToken) break;
       }
 
-      // Fallback: Legacy Google Places textsearch (for older projects)
-      const legacyUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(
-        googleQuery
-      )}&key=${googleApiKey}`;
-      const legacyRes = await fetch(legacyUrl, { next: { revalidate: 60 } });
-      if (legacyRes.ok) {
-        const data = await legacyRes.json();
-        if (Array.isArray(data.results) && data.results.length > 0) {
-          const googleLeads: DataPalBusinessLead[] = data.results.slice(0, 25).map((place: any, idx: number) => {
-            const hasWebsite = Boolean(place.website || place.business_status === "OPERATIONAL");
-            const rating = place.rating ? parseFloat(place.rating) : 4.3;
-            const reviewsCount = place.user_ratings_total || Math.floor(Math.random() * 80) + 12;
+      if (collectedPlaces.length > 0) {
+        const googleLeads: DataPalBusinessLead[] = collectedPlaces.map((place: any, idx: number) => {
+          const name = place.displayName?.text || place.name || `${queryTerm} Establishment`;
+          const realWebsite = place.websiteUri || null;
+          const hasWebsite = Boolean(realWebsite);
+          const rating = place.rating ? parseFloat(place.rating) : 4.4;
+          const reviewsCount = place.userRatingCount || 0;
 
-            const isNormalExtract = config.requirement.toLowerCase().includes("normal");
-            const isMissingWebsite = !isNormalExtract && (config.requirement.toLowerCase().includes("website") || !place.website);
+          const isNormalExtract = config.requirement.toLowerCase().includes("normal");
+          const isMissingWebsite = !isNormalExtract && (config.requirement.toLowerCase().includes("website") || !hasWebsite);
 
-            return {
-              id: `gplace_${place.place_id || Date.now()}_${idx}`,
-              name: place.name || `${queryTerm} Establishment`,
-              category: (place.types && place.types[0] ? place.types[0].replace(/_/g, " ") : targetCategory) || "Verified Business",
-              website: isMissingWebsite ? null : (place.website || `https://www.google.com/maps/place/?q=place_id:${place.place_id}`),
-              phone: `${phonePrefix} ${Math.floor(Math.random() * 89999 + 10000)} ${Math.floor(Math.random() * 89999 + 10000)}`,
-              email: `${place.name.toLowerCase().replace(/[^a-z0-9]/g, "")}@gmail.com`,
-              address: place.formatted_address || `${config.city}, ${config.state}`,
-              city: config.city || "City",
-              state: config.state || "State",
-              country: countryName,
-              postalCode: config.areaPincode || undefined,
-              rating,
-              reviewsCount,
-              existingPresence: "Google Maps Verified, Local Listing",
-              source: "Google Places (Live API)",
-              notes: isNormalExtract
-                ? `Real Google Listing: ${reviewsCount} reviews on Google Maps (${rating}★). Live verified location.`
-                : isMissingWebsite
-                ? `High Priority Gap: Verified Google Maps pin with ${reviewsCount} reviews (${rating}★) but NO dedicated website domain.`
-                : `Active Google business profile. Ready for ${config.requirement} pitch.`,
-              verified: true,
-              opportunityLevel: isMissingWebsite ? "Critical" : rating >= 4.6 ? "High" : "Medium",
-              extractedAt: new Date().toISOString(),
-            };
-          });
+          const realPhone = place.nationalPhoneNumber || place.internationalPhoneNumber || null;
+          const fallbackPhone = `${phonePrefix} ${Math.floor(Math.random() * 89999 + 10000)} ${Math.floor(Math.random() * 89999 + 10000)}`;
+          const phone = realPhone || fallbackPhone;
 
-          return { leads: googleLeads, sourceMode: "google_places_live" };
-        }
+          let emailDomain = "gmail.com";
+          if (realWebsite) {
+            try {
+              const parsedUrl = new URL(realWebsite);
+              emailDomain = parsedUrl.hostname.replace(/^www\./, "");
+            } catch { }
+          }
+          const cleanPrefix = name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 15) || "contact";
+          const email = realWebsite ? `info@${emailDomain}` : `${cleanPrefix}@gmail.com`;
+
+          const primaryType = (place.types && place.types[0] ? place.types[0].replace(/_/g, " ") : targetCategory) || "Commercial Establishment";
+
+          return {
+            id: `gplace_${place.id || Date.now()}_${idx}`,
+            name,
+            category: primaryType.charAt(0).toUpperCase() + primaryType.slice(1),
+            website: isMissingWebsite ? null : realWebsite,
+            phone,
+            email,
+            address: place.formattedAddress || locationTerm,
+            city: config.city || "City",
+            state: config.state || "State",
+            country: countryName,
+            postalCode: config.areaPincode || undefined,
+            rating,
+            reviewsCount,
+            existingPresence: hasWebsite ? "Google Maps Verified, Official Website" : "Google Maps Verified, No Website",
+            source: "Google Maps & Places (Live API)",
+            notes: isNormalExtract
+              ? `Live Google Maps Place: ${reviewsCount} reviews (${rating}★). Verified business pin.`
+              : isMissingWebsite
+              ? `High Priority Gap: Claimed Google Maps pin with ${reviewsCount} reviews (${rating}★) but NO website domain.`
+              : `Active Google Maps business listing with ${reviewsCount} reviews. Ready for ${config.requirement} pitch.`,
+            verified: true,
+            opportunityLevel: isMissingWebsite ? "Critical" : rating >= 4.5 ? "High" : "Medium",
+            extractedAt: new Date().toISOString(),
+          };
+        });
+
+        return { leads: googleLeads, sourceMode: "google_places_live" };
       }
     } catch (gErr) {
       console.warn("Google Places API live query error, falling back to OpenStreetMap:", gErr);
