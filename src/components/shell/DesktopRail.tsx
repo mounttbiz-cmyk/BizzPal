@@ -21,6 +21,7 @@ interface DesktopRailProps {
   navItems: NavItem[];
   companyName?: string;
   industry?: string;
+  companyLogo?: string | null;
   onOpenSearch?: () => void;
 }
 
@@ -28,9 +29,36 @@ export function DesktopRail({
   navItems,
   companyName = "Apex Labs",
   industry = "B2B SaaS",
+  companyLogo,
   onOpenSearch,
 }: DesktopRailProps) {
   const pathname = usePathname();
+  const [logo, setLogo] = React.useState<string | null>(companyLogo || null);
+
+  React.useEffect(() => {
+    if (companyLogo) {
+      setLogo(companyLogo);
+      return;
+    }
+    const syncLogo = () => {
+      try {
+        const p = localStorage.getItem("bizzpal_business_profile");
+        if (p) {
+          const parsed = JSON.parse(p);
+          setLogo(parsed.logoUrl || parsed.logo || parsed.logo_url || null);
+        }
+      } catch {}
+    };
+    syncLogo();
+    window.addEventListener("bizzpal_business_data_updated", syncLogo);
+    window.addEventListener("bizzpal_profile_updated", syncLogo);
+    window.addEventListener("storage", syncLogo);
+    return () => {
+      window.removeEventListener("bizzpal_business_data_updated", syncLogo);
+      window.removeEventListener("bizzpal_profile_updated", syncLogo);
+      window.removeEventListener("storage", syncLogo);
+    };
+  }, [companyLogo]);
 
   const groups: { key: NavItem["group"]; label: string }[] = [
     { key: "core", label: "Core" },
@@ -253,9 +281,15 @@ export function DesktopRail({
         <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-2 border border-line text-xs">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="relative">
-              <div className="w-8 h-8 rounded-full bg-gold/10 border border-gold/30 text-gold font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
-                {initials}
-              </div>
+              {logo ? (
+                <div className="w-8 h-8 rounded-full bg-white dark:bg-surface p-0.5 shrink-0 flex items-center justify-center overflow-hidden">
+                  <img src={logo} alt={companyName} className="w-full h-full object-contain" />
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gold/10 border border-gold/30 text-gold font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
+                  {initials}
+                </div>
+              )}
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-surface" />
             </div>
             <div className="truncate">

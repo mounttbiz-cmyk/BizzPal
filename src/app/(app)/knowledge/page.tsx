@@ -106,7 +106,7 @@ export default function KnowledgeHubPage() {
         "Advisable to lock in annual vendor contracts before anticipated year-end repricing."
       ],
       badgeColor: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-      executiveAdvisor: "Marcus (CFO AI)",
+      executiveAdvisor: "CFO",
     },
     {
       id: "news-2",
@@ -123,7 +123,7 @@ export default function KnowledgeHubPage() {
         "CFO team must audit active contractor GSTIN validity monthly."
       ],
       badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-      executiveAdvisor: "Marcus (CFO AI)",
+      executiveAdvisor: "CFO",
     },
     {
       id: "news-3",
@@ -140,7 +140,7 @@ export default function KnowledgeHubPage() {
         "Venture debt yields average 12.5% to 14.2%, preserving valuable founder equity dilution."
       ],
       badgeColor: "bg-purple-500/15 text-purple-400 border-purple-500/30",
-      executiveAdvisor: "Astra (CEO AI)",
+      executiveAdvisor: "CEO",
     },
     {
       id: "news-4",
@@ -157,7 +157,7 @@ export default function KnowledgeHubPage() {
         "Breach notification SLA mandated within 72 hours to the Data Protection Board."
       ],
       badgeColor: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-      executiveAdvisor: "Elena (Marketing AI)",
+      executiveAdvisor: "Marketing",
     },
     {
       id: "news-5",
@@ -174,7 +174,7 @@ export default function KnowledgeHubPage() {
         "Recommended action: Enable Stripe / Razorpay Auto-Debit for monthly retainer clients."
       ],
       badgeColor: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
-      executiveAdvisor: "David (Operations AI)",
+      executiveAdvisor: "Operations",
     },
     {
       id: "news-6",
@@ -191,7 +191,7 @@ export default function KnowledgeHubPage() {
         "Optimal for financing enterprise sales team ramp periods with predictable payback."
       ],
       badgeColor: "bg-purple-500/15 text-purple-400 border-purple-500/30",
-      executiveAdvisor: "Marcus (CFO AI)",
+      executiveAdvisor: "CFO",
     },
   ]);
 
@@ -206,7 +206,7 @@ export default function KnowledgeHubPage() {
       version: "v2.4",
       author: "COO / Operations",
       indexed: true,
-      content: `### 1. Scope & Objective\nThis document codifies the mandatory onboarding standard for all enterprise clients. Compliance is tracked automatically by Astra AI.\n\n### 2. Immediate 48-Hour Protocol\n- **T+2 Hours**: Account setup in CRM and assignment of senior account lead.\n- **T+24 Hours**: Kickoff alignment call, discovery survey sign-off, and security verification.\n- **T+48 Hours**: Infrastructure configuration and access provisioning.\n\n### 3. Escalation Criteria\nAny blocker exceeding 4 hours must be escalated to the Executive Operations Slack Channel.`,
+      content: `### 1. Scope & Objective\nThis document codifies the mandatory onboarding standard for all enterprise clients. Compliance is tracked automatically by CEO AI.\n\n### 2. Immediate 48-Hour Protocol\n- **T+2 Hours**: Account setup in CRM and assignment of senior account lead.\n- **T+24 Hours**: Kickoff alignment call, discovery survey sign-off, and security verification.\n- **T+48 Hours**: Infrastructure configuration and access provisioning.\n\n### 3. Escalation Criteria\nAny blocker exceeding 4 hours must be escalated to the Executive Operations Slack Channel.`,
     },
     {
       id: "doc-2",
@@ -217,7 +217,7 @@ export default function KnowledgeHubPage() {
       version: "v3.1",
       author: "CFO / Finance",
       indexed: true,
-      content: `### Financial Controls Policy\n- Any vendor contract exceeding ₹50,000/yr requires dual sign-off from Department Head and CFO.\n- Discretionary SaaS subscriptions are audited monthly by Marcus AI.\n- Target cash runway must never breach 6.0 months without board disclosure.`,
+      content: `### Financial Controls Policy\n- Any vendor contract exceeding ₹50,000/yr requires dual sign-off from Department Head and CFO.\n- Discretionary SaaS subscriptions are audited monthly by CFO AI.\n- Target cash runway must never breach 6.0 months without board disclosure.`,
     },
     {
       id: "doc-3",
@@ -301,7 +301,17 @@ export default function KnowledgeHubPage() {
       if (savedDocs) {
         const parsed = JSON.parse(savedDocs);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setDocs(parsed);
+          const sanitizedDocs = parsed.map((d: KnowledgeDoc) => ({
+            ...d,
+            content: (d.content || "")
+              .replace(/Astra\s*\(CEO\s*AI\)/gi, "CEO")
+              .replace(/Astra\s*AI/gi, "CEO AI")
+              .replace(/Marcus\s*\(CFO\s*AI\)/gi, "CFO")
+              .replace(/Marcus\s*AI/gi, "CFO AI")
+              .replace(/Elena\s*\(Marketing\s*AI\)/gi, "Marketing")
+              .replace(/Elena\s*AI/gi, "Marketing AI"),
+          }));
+          setDocs(sanitizedDocs);
         }
       }
 
@@ -309,7 +319,19 @@ export default function KnowledgeHubPage() {
       if (savedNews) {
         const parsed = JSON.parse(savedNews);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setNewsList(parsed);
+          const sanitizedNews = parsed.map((n: BusinessNewsItem) => {
+            let adv = n.executiveAdvisor || "CEO";
+            if (adv.includes("Astra") || adv.includes("CEO")) adv = "CEO";
+            else if (adv.includes("Marcus") || adv.includes("CFO")) adv = "CFO";
+            else if (adv.includes("Elena") || adv.includes("Marketing")) adv = "Marketing";
+            else if (adv.includes("David") || adv.includes("Operations")) adv = "Operations";
+            else if (adv.includes("Vikram") || adv.includes("Sales")) adv = "Sales";
+            return {
+              ...n,
+              executiveAdvisor: adv,
+            };
+          });
+          setNewsList(sanitizedNews);
         }
       }
     } catch (e) {}
@@ -338,7 +360,7 @@ export default function KnowledgeHubPage() {
         businessImpact: newImpact.trim() || "Direct operational relevance for executive leadership.",
         keyTakeaways: newContent ? newContent.split("\n").filter(l => l.trim().length > 0) : ["Monitored for forward strategic impact."],
         badgeColor: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-        executiveAdvisor: "Astra (CEO AI)",
+        executiveAdvisor: "CEO",
       };
 
       setNewsList(prev => {

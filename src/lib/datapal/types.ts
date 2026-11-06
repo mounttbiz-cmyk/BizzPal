@@ -71,6 +71,8 @@ export interface DataPalSearchConfig {
   city: string;
   areaPincode?: string;
   selectedCategories: string[];
+  requestedCount?: number;
+  accountKey?: string;
   filters: DataPalSearchFilters;
   servicePitch?: {
     text?: string;

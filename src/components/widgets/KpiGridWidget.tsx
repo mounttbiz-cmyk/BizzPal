@@ -87,14 +87,15 @@ export function KpiGridWidget() {
 
   useEffect(() => {
     const handleTimeframe = (e: any) => {
-      const tf = e.detail?.timeframe;
-      if (tf === "7D Trend") {
+      const tf = e.detail?.timeframe || "";
+      if (tf === "7 Days" || tf === "7D Trend") {
         setSparklinePoints("0,16 15,12 30,15 45,8 60,6 75,2");
-      } else if (tf === "Month to Date") {
+      } else if (tf === "1 Month" || tf === "Month to Date") {
         setSparklinePoints("0,22 15,18 30,14 45,11 60,9 75,4");
-      } else if (tf === "Q3 Live") {
-        setSparklinePoints("0,20 15,19 30,13 45,10 60,5 75,1");
+      } else if (tf.startsWith("Custom")) {
+        setSparklinePoints("0,18 15,14 30,11 45,8 60,4 75,1");
       } else {
+        // Live Today or default
         setSparklinePoints("0,20 15,16 30,17 45,9 60,7 75,3");
       }
     };
@@ -192,12 +193,9 @@ export function KpiGridWidget() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {isUploaded ? (
-              <StatusBadge label="Uploaded Data Synced" tone="live" pulse />
-            ) : (
-              <StatusBadge label="Live Stream" tone="neutral" />
-            )}
+          <div className="flex items-center gap-1.5 text-xs text-text-muted font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[11px]">{isUploaded ? "Uploaded Data Synced" : "Live Stream"}</span>
           </div>
         </div>
 

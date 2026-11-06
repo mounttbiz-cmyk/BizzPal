@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { KeyRound, Lock, ArrowLeft, ShieldAlert } from "lucide-react";
+import { KeyRound, Lock, ArrowLeft, ShieldAlert, Check } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import Link from "next/link";
 
@@ -12,6 +12,7 @@ export default function AdminLoginPage() {
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,14 +34,23 @@ export default function AdminLoginPage() {
           authenticatedAt: new Date().toISOString(),
         };
         localStorage.setItem("bizzpal_admin_session", JSON.stringify(adminSession));
-        router.push("/admin");
+        setLoading(false);
+        setSuccess(true);
+        try {
+          router.push("/admin");
+        } catch (e) {}
+        setTimeout(() => {
+          if (typeof window !== "undefined") {
+            window.location.href = "/admin";
+          }
+        }, 250);
       } else {
+        setLoading(false);
         setError(data.error || "Invalid Superadmin credentials.");
       }
     } catch {
-      setError("Network or server error during authentication.");
-    } finally {
       setLoading(false);
+      setError("Network or server error during authentication.");
     }
   };
 
@@ -104,12 +114,32 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
+            {success && (
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-fade-in shadow-xs">
+                <Check className="w-4 h-4 shrink-0 text-emerald-500" />
+                <span>Passcode verified! Entering Superadmin dashboard...</span>
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-2.5 rounded-lg bg-amber text-black font-bold text-xs shadow-md hover:brightness-110 btn-tactile transition-all"
+              disabled={loading || success}
+              className={`w-full py-2.5 rounded-lg font-bold text-xs shadow-md btn-tactile transition-all flex items-center justify-center gap-2 ${
+                success
+                  ? "bg-emerald-600 text-white cursor-wait"
+                  : "bg-amber text-black hover:brightness-110"
+              }`}
             >
-              {loading ? "Authenticating..." : "Enter Developer Superadmin"}
+              {success ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>Authorized! Redirecting...</span>
+                </>
+              ) : loading ? (
+                <span>Authenticating...</span>
+              ) : (
+                "Enter Developer Superadmin"
+              )}
             </button>
           </form>
         </div>

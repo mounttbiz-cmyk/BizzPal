@@ -575,6 +575,27 @@ try {
   } catch (e) {
     // column already exists
   }
+
+  // Migrate existing businesses table if logo_url column is missing
+  try {
+    db.exec(`ALTER TABLE businesses ADD COLUMN logo_url TEXT`);
+  } catch (e) {
+    // column already exists
+  }
+
+  // Migrate existing registered_users table for last_login_at
+  try {
+    db.exec(`ALTER TABLE registered_users ADD COLUMN last_login_at TEXT`);
+  } catch (e) {
+    // column already exists
+  }
+
+  // Migrate existing businesses table for last_login_at
+  try {
+    db.exec(`ALTER TABLE businesses ADD COLUMN last_login_at TEXT`);
+  } catch (e) {
+    // column already exists
+  }
 } catch (err) {
   console.warn("[SQLite] Schema initialization handled safely:", err);
 }
@@ -601,7 +622,7 @@ export function getRegisteredUser(email: string): any {
   if (!email) return null;
   try {
     const cleanEmail = email.trim().toLowerCase();
-    const row = db.prepare("SELECT id, email, name, provider, business_profile, created_at FROM registered_users WHERE LOWER(email) = ?").get(cleanEmail) as any;
+    const row = db.prepare("SELECT id, email, name, provider, business_profile, last_login_at, created_at FROM registered_users WHERE LOWER(email) = ?").get(cleanEmail) as any;
     if (!row) return null;
     let businessProfile = null;
     if (row.business_profile) {
@@ -653,6 +674,7 @@ export function saveUserBusinessProfile(email: string, profile: any): boolean {
           monthly_burn = COALESCE(?, monthly_burn),
           cash_on_hand = COALESCE(?, cash_on_hand),
           connected_tools = COALESCE(?, connected_tools),
+          logo_url = COALESCE(?, logo_url),
           updated_at = ?
         WHERE id = ?
       `).run(
@@ -667,6 +689,7 @@ export function saveUserBusinessProfile(email: string, profile: any): boolean {
         p.monthlyBurn !== undefined ? Number(p.monthlyBurn) : (p.burn ? Number(p.burn) : null),
         p.cashOnHand !== undefined ? Number(p.cashOnHand) : (p.cash ? Number(p.cash) : null),
         p.connectedTools ? JSON.stringify(p.connectedTools) : null,
+        p.logoUrl || p.logo || p.logo_url || null,
         now,
         bizId
       );
@@ -677,8 +700,8 @@ export function saveUserBusinessProfile(email: string, profile: any): boolean {
         INSERT INTO businesses (
           id, name, founder_name, industry, industry_label, website, team_size,
           annual_revenue, monthly_revenue, monthly_burn, cash_on_hand,
-          connected_tools, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          connected_tools, logo_url, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         bizId,
         bizName,
@@ -692,6 +715,7 @@ export function saveUserBusinessProfile(email: string, profile: any): boolean {
         Number(p.monthlyBurn || p.burn || 0),
         Number(p.cashOnHand || p.cash || 0),
         JSON.stringify(p.connectedTools || []),
+        p.logoUrl || p.logo || p.logo_url || null,
         now,
         now
       );
@@ -729,6 +753,22 @@ export function deleteRegisteredUser(email: string): boolean {
 }
 
 /**
+ * Record exact login timestamp for user and their associated enterprise
+ */
+export function recordUserLogin(email: string, loginTime?: string): void {
+  if (!email) return;
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const now = loginTime || new Date().toISOString();
+    db.prepare("UPDATE registered_users SET last_login_at = ? WHERE LOWER(email) = ?").run(now, cleanEmail);
+    const bizId = `biz_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    db.prepare("UPDATE businesses SET last_login_at = ? WHERE id = ?").run(now, bizId);
+  } catch (err) {
+    console.warn("recordUserLogin error:", err);
+  }
+}
+
+/**
  * Record a newly registered user into SQLite with optional initial business profile
  * and ensure an enterprise record is created in businesses table
  */
@@ -745,16 +785,17 @@ export function registerUser(email: string, name?: string, provider?: string, ui
         UPDATE registered_users SET 
           name = COALESCE(?, name), 
           provider = COALESCE(?, provider),
-          business_profile = COALESCE(?, business_profile)
+          business_profile = COALESCE(?, business_profile),
+          last_login_at = ?
         WHERE LOWER(email) = ?
-      `).run(name || null, provider || null, profileJson, cleanEmail);
+      `).run(name || null, provider || null, profileJson, now, cleanEmail);
     } else {
       const idExists = uid ? db.prepare("SELECT id FROM registered_users WHERE id = ?").get(uid) : false;
       const id = (uid && !idExists) ? uid : `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       db.prepare(`
-        INSERT INTO registered_users (id, email, name, provider, business_profile, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(id, cleanEmail, name || "", provider || "email", profileJson, now);
+        INSERT INTO registered_users (id, email, name, provider, business_profile, last_login_at, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(id, cleanEmail, name || "", provider || "email", profileJson, now, now);
     }
 
     // Automatically ensure this user appears in businesses table for Superadmin
@@ -769,16 +810,17 @@ export function registerUser(email: string, name?: string, provider?: string, ui
         UPDATE businesses SET
           name = COALESCE(?, name),
           founder_name = COALESCE(?, founder_name),
+          last_login_at = COALESCE(?, last_login_at),
           updated_at = ?
         WHERE id = ?
-      `).run(bizName, founder, now, bizId);
+      `).run(bizName, founder, now, now, bizId);
     } else {
       db.prepare(`
         INSERT INTO businesses (
           id, name, founder_name, industry, industry_label, website, team_size,
           annual_revenue, monthly_revenue, monthly_burn, cash_on_hand,
-          connected_tools, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          connected_tools, logo_url, last_login_at, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         bizId,
         bizName,
@@ -792,6 +834,8 @@ export function registerUser(email: string, name?: string, provider?: string, ui
         Number(p.monthlyBurn || p.burn || 0),
         Number(p.cashOnHand || p.cash || 0),
         JSON.stringify(p.connectedTools || []),
+        p.logoUrl || null,
+        now,
         now,
         now
       );
@@ -909,8 +953,8 @@ if (teamCountRow.count === 0) {
     },
     {
       id: "mem_astra",
-      name: "Astra (CEO Copilot)",
-      email: "astra.ai@bizzpal.internal",
+      name: "CEO Advisor",
+      email: "ceo.ai@bizzpal.internal",
       role: "Executive",
       department: "Autonomous Strategy",
       two_factor: 1,
@@ -919,8 +963,8 @@ if (teamCountRow.count === 0) {
     },
     {
       id: "mem_marcus",
-      name: "Marcus (CFO Copilot)",
-      email: "marcus.ai@bizzpal.internal",
+      name: "CFO Advisor",
+      email: "cfo.ai@bizzpal.internal",
       role: "Executive",
       department: "Autonomous Finance",
       two_factor: 1,

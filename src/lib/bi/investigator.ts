@@ -138,7 +138,7 @@ Produce an evidence-based investigation.
       title: `Audit ${kpi.name} variance with department leads`,
       description: `Schedule a 30-minute cross-functional review to examine unit-level drivers behind the ${changePct}% shift in ${kpi.name}.`,
       targetDepartment: kpi.metricKey.includes("burn") ? "Finance & Ops" : "Growth & Sales",
-      suggestedOwner: kpi.metricKey.includes("burn") ? "Marcus (CFO)" : "Astra (CEO)",
+      suggestedOwner: kpi.metricKey.includes("burn") ? "CFO" : "CEO",
       priority: severity === "critical" ? "high" : "medium",
       expectedImpact: `Re-anchor target trajectory within 14 business days.`,
       status: "recommended",

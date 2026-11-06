@@ -23,6 +23,8 @@ import {
   ChevronUp,
   Layers,
   ArrowRight,
+  ShieldCheck,
+  Plus,
 } from "lucide-react";
 import {
   DataPalBusinessLead,
@@ -44,6 +46,12 @@ import {
   pushLeadsToBizzPalTasks,
   saveCampaign,
 } from "@/lib/datapal/storage";
+import {
+  getDataPalCreditStatus,
+  recordCreditUsage,
+  getAccountKey,
+  DataPalCreditStatus,
+} from "@/lib/datapal/credits";
 import { useFeatureFlag } from "@/lib/datapal/featureFlags";
 
 // Redesigned DataPal Components
@@ -56,6 +64,7 @@ import { ReviewGenerateCard } from "@/components/datapal/ReviewGenerateCard";
 import { PitchAngleStep } from "@/components/datapal/PitchAngleStep";
 import { AdvancedOptions } from "@/components/datapal/AdvancedOptions";
 import { AiMatcherDrawer } from "@/components/datapal/AiMatcherDrawer";
+import { DataPalCreditsModal } from "@/components/datapal/DataPalCreditsModal";
 
 export default function DataPalPage() {
   // Navigation tabs: 'search' | 'leads' | 'history'
@@ -127,6 +136,11 @@ export default function DataPalPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [pushTaskStatus, setPushTaskStatus] = useState<string | null>(null);
 
+  // Extraction Quantity & Credit Quota state (Requirements 3, 4 & 5)
+  const [requestedCount, setRequestedCount] = useState<number>(50);
+  const [isCreditsModalOpen, setIsCreditsModalOpen] = useState(false);
+  const [creditStatus, setCreditStatus] = useState<DataPalCreditStatus>(() => getDataPalCreditStatus());
+
   // Stored API settings
   const [apiSettings, setApiSettings] = useState<DataPalApiSettings>({
     apiKey: "",
@@ -135,7 +149,7 @@ export default function DataPalPage() {
     isLiveConnected: false,
   });
 
-  // Load stored campaigns and settings on mount
+  // Load stored campaigns, settings, and credit balance on mount
   useEffect(() => {
     const loadedCampaigns = getStoredCampaigns();
     setCampaigns(loadedCampaigns);
@@ -144,6 +158,16 @@ export default function DataPalPage() {
     }
     const settings = getStoredApiSettings();
     setApiSettings(settings);
+
+    // Sync credit status
+    setCreditStatus(getDataPalCreditStatus());
+    const onCreditsUpdate = () => {
+      setCreditStatus(getDataPalCreditStatus());
+    };
+    window.addEventListener("bizzpal_datapal_credits_updated", onCreditsUpdate);
+    return () => {
+      window.removeEventListener("bizzpal_datapal_credits_updated", onCreditsUpdate);
+    };
   }, []);
 
   // Category selection handler
@@ -256,6 +280,15 @@ export default function DataPalPage() {
 
     const queryTerm = trimmedQuery || selectedSubcategory || chosenCategoryName || effectiveCategories[0];
 
+    // Check quota before extracting
+    if (creditStatus.remainingQuota <= 0) {
+      setIsCreditsModalOpen(true);
+      return;
+    }
+
+    const effectiveRequestedCount = Math.min(requestedCount, creditStatus.remainingQuota > 0 ? creditStatus.remainingQuota : requestedCount);
+    const accountKey = getAccountKey();
+
     // Build configuration
     const config: DataPalSearchConfig = {
       searchQuery: queryTerm,
@@ -265,6 +298,8 @@ export default function DataPalPage() {
       city: isAllCities ? "ALL" : primaryCity,
       areaPincode: postalCode || area,
       selectedCategories: effectiveCategories,
+      requestedCount: effectiveRequestedCount,
+      accountKey,
       filters: {
         mustHavePhone: advancedRulesEnabled ? mustHavePhone : true,
         mustHaveEmail: advancedRulesEnabled ? mustHaveEmail : false,
@@ -367,10 +402,14 @@ export default function DataPalPage() {
       setActiveCampaign(newCampaign);
       setSelectedLeadIds(new Set());
 
+      // Deduct from DataPal extraction quota
+      recordCreditUsage(newCampaign.results.length, accountKey);
+      setCreditStatus(getDataPalCreditStatus(accountKey));
+
       setTimeout(() => {
         setIsExtracting(false);
         setActiveTab("leads");
-        setSuccessToast(`Extracted ${newCampaign.results.length} verified records successfully!`);
+        setSuccessToast(`Extracted ${newCampaign.results.length} verified records (0 duplicates against past searches)!`);
         setTimeout(() => setSuccessToast(null), 4000);
       }, 500);
     } catch {
@@ -406,7 +445,11 @@ export default function DataPalPage() {
       setCampaigns(updated);
       setActiveCampaign(newCampaign);
       setActiveTab("leads");
-      setSuccessToast(`Extracted ${newCampaign.results.length} verified records successfully!`);
+
+      recordCreditUsage(newCampaign.results.length, accountKey);
+      setCreditStatus(getDataPalCreditStatus(accountKey));
+
+      setSuccessToast(`Extracted ${newCampaign.results.length} verified records (0 duplicates against past searches)!`);
       setTimeout(() => setSuccessToast(null), 4000);
     }
   };
@@ -804,6 +847,11 @@ export default function DataPalPage() {
                 isExtracting={isExtracting}
                 extractProgress={extractProgress}
                 extractStatusText={extractStatusText}
+                requestedCount={requestedCount}
+                onRequestedCountChange={setRequestedCount}
+                remainingQuota={creditStatus.remainingQuota}
+                totalQuota={creditStatus.totalAllowed}
+                onOpenCreditsModal={() => setIsCreditsModalOpen(true)}
                 onGenerate={handleStartExtraction}
               />
             </div>
@@ -852,12 +900,26 @@ export default function DataPalPage() {
                       </span>
                       <span>•</span>
                       <span>{activeCampaign.results.length} records extracted</span>
+                      <span>•</span>
+                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Zero Duplicates (Filtered against past searches)
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreditsModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brass/10 border border-brass/30 text-xs font-bold text-brass hover:bg-brass hover:text-white transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Buy more credit ({creditStatus.remainingQuota} left)</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleExportExcel}
@@ -1342,6 +1404,13 @@ export default function DataPalPage() {
           }}
         />
       )}
+      {/* DataPal Credits & Pay-As-You-Go Top Up Modal */}
+      <DataPalCreditsModal
+        isOpen={isCreditsModalOpen}
+        onClose={() => setIsCreditsModalOpen(false)}
+        status={creditStatus}
+        onUpdated={() => setCreditStatus(getDataPalCreditStatus())}
+      />
     </div>
   );
 }

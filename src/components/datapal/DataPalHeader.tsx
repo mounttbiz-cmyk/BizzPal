@@ -19,13 +19,6 @@ export function DataPalHeader({ className = "" }: DataPalHeaderProps) {
             <h1 className="text-base sm:text-lg font-bold text-text truncate tracking-tight font-sans">
               DataPal Extraction Engine
             </h1>
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-2 border border-line text-text-muted shrink-0">
-              Data scraping
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Live</span>
-            </span>
           </div>
           <p className="text-xs text-text-muted truncate mt-0.5">
             Search any business, professional or audience and get verified contact data

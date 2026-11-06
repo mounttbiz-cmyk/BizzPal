@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isUserRegistered, registerUser, getRegisteredUser, saveUserBusinessProfile, deleteRegisteredUser } from "@/lib/db";
+import { isUserRegistered, registerUser, getRegisteredUser, saveUserBusinessProfile, deleteRegisteredUser, recordUserLogin } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +53,7 @@ export async function GET(request: Request) {
       name: user?.name || (isDemo ? "Demo Founder" : null),
       provider: user?.provider || (isDemo ? "password" : null),
       businessProfile: user?.businessProfile || (isDemo ? DEMO_BUSINESS_PROFILE : null),
+      lastLoginAt: user?.last_login_at || null,
     });
   } catch (err: any) {
     console.error("Account status check error:", err);
@@ -63,10 +64,14 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, name, provider, uid, businessProfile } = body;
+    const { email, name, provider, uid, businessProfile, action, lastLoginAt } = body;
 
     if (!email) {
       return NextResponse.json({ success: false, error: "Email is required" }, { status: 400 });
+    }
+
+    if (action === "login" || lastLoginAt) {
+      recordUserLogin(email, lastLoginAt);
     }
 
     const success = registerUser(email, name, provider, uid, businessProfile);

@@ -5,11 +5,10 @@ import Link from "next/link";
 import {
   BookOpen,
   ShieldCheck,
-  Zap,
   CheckCircle2,
   AlertTriangle,
   ArrowRight,
-  Bot,
+  MessageSquare,
   Search,
   ChevronRight,
   Clock,
@@ -25,6 +24,7 @@ import {
 } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
+import { useCustomAdvisors } from "@/lib/advisors";
 
 interface Playbook {
   id: string;
@@ -52,7 +52,7 @@ const DEFAULT_PLAYBOOKS: Playbook[] = [
     id: "pb-01",
     title: "Top 3 Client Concentration De-Risking Protocol",
     category: "ceo",
-    roleLabel: "Astra (CEO AI)",
+    roleLabel: "CEO",
     triggerCondition: "Top 3 clients account for > 40% of gross monthly revenue",
     severity: "Critical",
     impactTarget: "Reduce top concentration to < 25% within 90 days",
@@ -79,7 +79,7 @@ const DEFAULT_PLAYBOOKS: Playbook[] = [
         phaseTitle: "Phase 3: Revenue Floor Governance (Days 46–90)",
         steps: [
           "Set automated alert trigger in Gap Register if any single client breaches 20% concentration.",
-          "Review monthly client revenue distribution with Marcus (CFO AI).",
+          "Review monthly client revenue distribution with CFO.",
         ],
       },
     ],
@@ -93,18 +93,18 @@ const DEFAULT_PLAYBOOKS: Playbook[] = [
     id: "pb-02",
     title: "Cash Runway Extension & Burn Compression Protocol",
     category: "cfo",
-    roleLabel: "Marcus (CFO AI)",
+    roleLabel: "CFO",
     triggerCondition: "Verified liquid operational runway drops below 8.0 months",
     severity: "Critical",
     impactTarget: "Stretch forward runway by +3.5 months with zero core product disruption",
     summary: "Emergency financial governance protocol to reduce discretionary vendor expenses, compress server burn, and prioritize upfront customer collections.",
-    primaryOwner: "Marcus (CFO) & Founder",
+    primaryOwner: "CFO & Founder",
     phases: [
       {
         phaseTitle: "Phase 1: 48-Hour Discretionary Expense Freeze (Days 1–3)",
         steps: [
           "Audit all recurring SaaS vendor subscriptions and cancel unused / duplicate licenses.",
-          "Implement dual-executive authorization requirement on any expenditure > ₹25,000.",
+          "Implement dual-executive authorization requirement on any expenditure > ₹25,00,000.",
           "Pause non-essential hiring and transition backfills to milestone-based contractor retainers.",
         ],
       },
@@ -134,12 +134,12 @@ const DEFAULT_PLAYBOOKS: Playbook[] = [
     id: "pb-03",
     title: "Enterprise Deal Velocity & POC Compression Framework",
     category: "cmo",
-    roleLabel: "Elena (CMO / Sales AI)",
+    roleLabel: "Marketing",
     triggerCondition: "Average enterprise sales cycle exceeds 60 days or POC conversion drops < 40%",
     severity: "High",
     impactTarget: "Compress sales cycle to 24 days and increase POC-to-paid closing to 65%",
     summary: "Structured Mutual Action Plan (MAP) playbook to eliminate procurement delays, establish early security compliance sign-off, and close high-ticket deals faster.",
-    primaryOwner: "Head of Growth & Founder",
+    primaryOwner: "Head of Marketing & Founder",
     phases: [
       {
         phaseTitle: "Phase 1: Mutual Action Plan (MAP) Deployment",
@@ -172,12 +172,12 @@ const DEFAULT_PLAYBOOKS: Playbook[] = [
     id: "pb-04",
     title: "Gross Margin Floor & Delivery Pricing Governance",
     category: "cfo",
-    roleLabel: "Marcus (CFO AI)",
+    roleLabel: "CFO",
     triggerCondition: "Gross delivery margins dip below 65% across project delivery pods",
     severity: "High",
     impactTarget: "Restore gross margin floor to 75%+ across all client deliverables",
     summary: "Operational framework to eliminate scope creep, mandate billable hourly rate minimums, and curb unbilled contractor hours.",
-    primaryOwner: "Operations Lead & Marcus (CFO)",
+    primaryOwner: "Operations & CFO",
     phases: [
       {
         phaseTitle: "Phase 1: Real-Time Gross Margin Audit",
@@ -210,12 +210,12 @@ const DEFAULT_PLAYBOOKS: Playbook[] = [
     id: "pb-05",
     title: "Key Man Dependency & Founder Decoupling SOP",
     category: "coo",
-    roleLabel: "Astra (CEO AI)",
+    roleLabel: "Operations",
     triggerCondition: "Founder or single technical lead is on critical path for > 60% of client deliveries",
     severity: "High",
     impactTarget: "Eliminate single-point failure risks and transition founder to strategic leadership",
     summary: "Playbook for institutionalizing delivery knowledge, standardizing technical SOPs, and assigning pod leads to customer engagements.",
-    primaryOwner: "Founder & Operations Lead",
+    primaryOwner: "Founder & Operations",
     phases: [
       {
         phaseTitle: "Phase 1: Delivery Bottleneck Audit",
@@ -248,12 +248,12 @@ const DEFAULT_PLAYBOOKS: Playbook[] = [
     id: "pb-06",
     title: "Net Revenue Retention & Account Expansion Engine",
     category: "cmo",
-    roleLabel: "Elena (Growth AI)",
+    roleLabel: "Marketing",
     triggerCondition: "Net Revenue Retention (NRR) falls below 105% or annual churn breaches 12%",
     severity: "Medium",
     impactTarget: "Elevate NRR to 120%+ via automated telemetry triggers and upsell tiers",
     summary: "Systematic post-sale account review cadence that monitors customer adoption drops and presents value-add expansion tiers before contract renewal.",
-    primaryOwner: "Customer Success & Growth",
+    primaryOwner: "Customer Success & Marketing",
     phases: [
       {
         phaseTitle: "Phase 1: Health Score Telemetry Setup",
@@ -286,12 +286,12 @@ const DEFAULT_PLAYBOOKS: Playbook[] = [
     id: "pb-07",
     title: "Working Capital & DSO Acceleration Protocol",
     category: "cfo",
-    roleLabel: "Marcus (CFO AI)",
+    roleLabel: "CFO",
     triggerCondition: "Days Sales Outstanding (DSO) exceeds 50 days with trapped receivables",
     severity: "High",
     impactTarget: "Compress DSO to < 35 days and unlock ₹12L+ in trapped cash flow",
     summary: "Aggressive cash collection cycle optimization combining automated milestone billing, structured payment gateways, and early settlement incentives.",
-    primaryOwner: "Finance Lead & Marcus (CFO)",
+    primaryOwner: "Finance & CFO",
     phases: [
       {
         phaseTitle: "Phase 1: Collections Automation",
@@ -311,7 +311,7 @@ const DEFAULT_PLAYBOOKS: Playbook[] = [
         phaseTitle: "Phase 3: Work-Stop Escalation Rules",
         steps: [
           "Enforce mandatory delivery suspension policy when customer invoice exceeds 30 days overdue.",
-          "Conduct weekly receivables review with Marcus (CFO AI).",
+          "Conduct weekly receivables review with CFO.",
         ],
       },
     ],
@@ -324,12 +324,12 @@ const DEFAULT_PLAYBOOKS: Playbook[] = [
     id: "pb-08",
     title: "Client Incident Escalation & SLA Protection",
     category: "coo",
-    roleLabel: "Astra (CEO AI)",
+    roleLabel: "Operations",
     triggerCondition: "Production downtime, critical bug report, or deliverable delay reported",
     severity: "Critical",
     impactTarget: "Zero customer churn resulting from operational incidents",
     summary: "Immediate crisis mitigation standard ensuring transparent communication, rapid root cause remediation, and preservation of executive trust.",
-    primaryOwner: "Operations Lead & CTO",
+    primaryOwner: "Operations & CTO",
     phases: [
       {
         phaseTitle: "Phase 1: T+15 Minute Response Standard",
@@ -360,8 +360,30 @@ const DEFAULT_PLAYBOOKS: Playbook[] = [
   },
 ];
 
+const sanitizePlaybook = (p: Playbook): Playbook => {
+  let cleanRole = p.roleLabel;
+  if (cleanRole.includes("Astra") || cleanRole.includes("CEO AI") || cleanRole.includes("CEO")) cleanRole = "CEO";
+  else if (cleanRole.includes("Marcus") || cleanRole.includes("CFO AI") || cleanRole.includes("CFO")) cleanRole = "CFO";
+  else if (cleanRole.includes("Elena") || cleanRole.includes("CMO") || cleanRole.includes("Growth AI") || cleanRole.includes("Sales AI") || cleanRole.includes("Marketing")) cleanRole = "Marketing";
+  else if (cleanRole.includes("COO") || cleanRole.includes("Operations")) cleanRole = "Operations";
+
+  let cleanOwner = (p.primaryOwner || "")
+    .replace(/Astra\s*\(CEO\s*AI\)/gi, "CEO")
+    .replace(/Marcus\s*\(CFO\s*AI\)/gi, "CFO")
+    .replace(/Marcus\s*\(CFO\)/gi, "CFO")
+    .replace(/Elena\s*\(CMO\s*\/\s*Sales\s*AI\)/gi, "Marketing")
+    .replace(/Elena/gi, "Marketing");
+
+  return {
+    ...p,
+    roleLabel: cleanRole,
+    primaryOwner: cleanOwner,
+  };
+};
+
 export default function ExecutivePlaybooksPage() {
-  const [playbooks, setPlaybooks] = useState<Playbook[]>(DEFAULT_PLAYBOOKS);
+  const { ceoName, cfoName, marketingName, opsName } = useCustomAdvisors();
+  const [playbooks, setPlaybooks] = useState<Playbook[]>(() => DEFAULT_PLAYBOOKS.map(sanitizePlaybook));
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [activePlaybook, setActivePlaybook] = useState<Playbook | null>(null);
@@ -376,7 +398,7 @@ export default function ExecutivePlaybooksPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState<Playbook["category"]>("ceo");
-  const [newRoleLabel, setNewRoleLabel] = useState("Astra (CEO AI)");
+  const [newRoleLabel, setNewRoleLabel] = useState("CEO");
   const [newTrigger, setNewTrigger] = useState("");
   const [newSeverity, setNewSeverity] = useState<Playbook["severity"]>("High");
   const [newImpact, setNewImpact] = useState("");
@@ -428,7 +450,8 @@ export default function ExecutivePlaybooksPage() {
       if (savedPlaybooks) {
         const parsed = JSON.parse(savedPlaybooks);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setPlaybooks(parsed);
+          const sanitized = parsed.map(sanitizePlaybook);
+          setPlaybooks(sanitized);
         }
       }
     } catch (e) {
@@ -538,19 +561,13 @@ export default function ExecutivePlaybooksPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-line">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-brass/10 border border-brass/30 flex items-center justify-center text-brass">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-brass/10 border border-brass/20 flex items-center justify-center text-brass">
               <BookOpen className="w-4 h-4" />
             </div>
-            <h1 className="text-lg font-bold text-text">Executive Playbooks</h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider">
-              {playbooks.length} Active Protocols
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold uppercase tracking-wider">
-              PRO
-            </span>
+            <h1 className="text-lg sm:text-xl font-bold text-text">Executive Playbooks</h1>
           </div>
-          <p className="text-xs text-text-muted mt-1 font-medium">
+          <p className="text-xs text-text-muted mt-1.5 leading-relaxed font-normal">
             Battle-tested operational playbooks and step-by-step executive protocols to handle cash crunches, key employee exits, and price increases.
           </p>
         </div>
@@ -559,10 +576,10 @@ export default function ExecutivePlaybooksPage() {
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="px-3 py-1.5 rounded-lg bg-cyan-500 text-slate-950 font-bold text-xs shadow-sm hover:brightness-110 active:scale-95 btn-tactile inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+            className="px-3.5 py-2 rounded-xl btn-gold-gradient text-slate-950 font-bold text-xs shadow-sm hover:brightness-105 active:scale-95 btn-tactile inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Create Custom Playbook</span>
+            <span>Create Custom Playbook</span>
           </button>
 
           {/* Search */}
@@ -573,7 +590,7 @@ export default function ExecutivePlaybooksPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search playbooks, triggers, SOPs…"
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brass"
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-brass shadow-2xs"
             />
           </div>
         </div>
@@ -592,22 +609,22 @@ export default function ExecutivePlaybooksPage() {
       )}
 
       {/* Role Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1">
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-2 border border-line overflow-x-auto text-xs">
         {[
           { id: "all", label: `All Playbooks (${playbooks.length})` },
-          { id: "ceo", label: `CEO / Strategy (${playbooks.filter(p => p.category === "ceo").length})` },
-          { id: "cfo", label: `CFO / Solvency (${playbooks.filter(p => p.category === "cfo").length})` },
-          { id: "cmo", label: `CMO / Growth (${playbooks.filter(p => p.category === "cmo").length})` },
-          { id: "coo", label: `COO / Operations (${playbooks.filter(p => p.category === "coo").length})` },
+          { id: "ceo", label: `${ceoName} / Strategy (${playbooks.filter(p => p.category === "ceo").length})` },
+          { id: "cfo", label: `${cfoName} / Solvency (${playbooks.filter(p => p.category === "cfo").length})` },
+          { id: "cmo", label: `${marketingName} (${playbooks.filter(p => p.category === "cmo").length})` },
+          { id: "coo", label: `${opsName} (${playbooks.filter(p => p.category === "coo").length})` },
         ].map(cat => (
           <button
             key={cat.id}
             type="button"
             onClick={() => setSelectedCategory(cat.id)}
-            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all cursor-pointer ${
               selectedCategory === cat.id
-                ? "bg-brass text-white shadow-xs"
-                : "bg-surface border border-line text-text-muted hover:text-text"
+                ? "bg-surface text-text font-semibold shadow-2xs border border-line"
+                : "text-text-muted hover:text-text"
             }`}
           >
             {cat.label}
@@ -617,15 +634,27 @@ export default function ExecutivePlaybooksPage() {
 
       {/* Playbooks Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredPlaybooks.map(pb => (
+        {filteredPlaybooks.map(pb => {
+          const displayRole =
+            pb.category === "ceo"
+              ? ceoName
+              : pb.category === "cfo"
+              ? cfoName
+              : pb.category === "cmo"
+              ? marketingName
+              : pb.category === "coo"
+              ? opsName
+              : pb.roleLabel;
+
+          return (
           <div
             key={pb.id}
             className="p-5 rounded-xl border border-line bg-surface hover:border-line-strong transition-all flex flex-col justify-between space-y-4 shadow-xs group"
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-bold text-brass bg-brass-soft px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  {pb.roleLabel}
+                <span className="text-xs font-bold text-text">
+                  {displayRole}
                 </span>
                 <div className="flex items-center gap-1.5">
                   {pb.id.startsWith("custom-pb") && (
@@ -642,13 +671,13 @@ export default function ExecutivePlaybooksPage() {
                     </button>
                   )}
                   <span
-                    className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase border ${
+                    className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${
                       pb.severity === "Critical"
-                        ? "text-rust border-rust/30 bg-rust/10"
-                        : "text-amber-400 border-amber-400/30 bg-amber-400/10"
+                        ? "text-rust bg-rust/10 border border-rust/20"
+                        : "text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20"
                     }`}
                   >
-                    {pb.severity} Trigger
+                    {pb.severity}
                   </span>
                 </div>
               </div>
@@ -699,16 +728,17 @@ export default function ExecutivePlaybooksPage() {
                 <ChevronRight className="w-3 h-3" />
               </button>
               <Link
-                href={`/chat?message=${encodeURIComponent(`Astra & Marcus, execute diagnostic review for '${pb.title}' under our current business telemetry for ${companyName}.`)}`}
-                className="text-xs font-semibold text-text-muted hover:text-text inline-flex items-center gap-1 p-1 rounded hover:bg-surface-2"
+                href={`/chat?message=${encodeURIComponent(`Review our diagnostic protocol for '${pb.title}' under our current business telemetry for ${companyName}.`)}`}
+                className="text-xs font-semibold text-text-muted hover:text-text inline-flex items-center gap-1.5 p-1 rounded hover:bg-surface-2 transition-colors"
                 title="Consult AI Executive"
               >
-                <Bot className="w-3.5 h-3.5 text-brass" />
+                <MessageSquare className="w-3.5 h-3.5 text-brass" />
                 <span className="text-[11px]">Consult AI</span>
               </Link>
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {/* Interactive Playbook Modal */}
@@ -785,10 +815,10 @@ export default function ExecutivePlaybooksPage() {
               {/* Modal Footer Bar */}
               <div className="p-4 border-t border-line bg-surface-2/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <Link
-                  href={`/chat?message=${encodeURIComponent(`Astra, let's execute the '${activePlaybook.title}' playbook for ${companyName}. Walk me through Phase 1 immediately.`)}`}
-                  className="text-xs font-semibold text-brass hover:underline inline-flex items-center gap-1"
+                  href={`/chat?message=${encodeURIComponent(`Let's execute the '${activePlaybook.title}' playbook for ${companyName}. Walk me through Phase 1 immediately.`)}`}
+                  className="text-xs font-semibold text-brass hover:underline inline-flex items-center gap-1.5"
                 >
-                  <Bot className="w-3.5 h-3.5" />
+                  <MessageSquare className="w-3.5 h-3.5" />
                   <span>Launch in AI Workspace →</span>
                 </Link>
 
@@ -813,7 +843,7 @@ export default function ExecutivePlaybooksPage() {
                       </>
                     ) : (
                       <>
-                        <Zap className="w-3.5 h-3.5 text-white" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
                         <span>Execute Playbook into Tasks</span>
                       </>
                     )}
@@ -865,17 +895,17 @@ export default function ExecutivePlaybooksPage() {
                       onChange={e => {
                         const cat = e.target.value as any;
                         setNewCategory(cat);
-                        if (cat === "ceo") setNewRoleLabel("Astra (CEO AI)");
-                        else if (cat === "cfo") setNewRoleLabel("Marcus (CFO AI)");
-                        else if (cat === "cmo") setNewRoleLabel("Elena (CMO AI)");
-                        else setNewRoleLabel("COO (Operations)");
+                        if (cat === "ceo") setNewRoleLabel("CEO");
+                        else if (cat === "cfo") setNewRoleLabel("CFO");
+                        else if (cat === "cmo") setNewRoleLabel("Marketing");
+                        else setNewRoleLabel("Operations");
                       }}
                       className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass cursor-pointer"
                     >
                       <option value="ceo">CEO / Strategy</option>
                       <option value="cfo">CFO / Solvency</option>
-                      <option value="cmo">CMO / Growth</option>
-                      <option value="coo">COO / Operations</option>
+                      <option value="cmo">Marketing</option>
+                      <option value="coo">Operations</option>
                     </select>
                   </div>
 

@@ -21,7 +21,14 @@ import {
   Palette,
   Layers,
   X,
-  ExternalLink
+  ExternalLink,
+  Upload,
+  Landmark,
+  Megaphone,
+  Handshake,
+  Settings2,
+  Compass,
+  RotateCcw,
 } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { useAuth } from "@/lib/firebase/authContext";
@@ -29,6 +36,12 @@ import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { saveUserProfileToFirestore } from "@/lib/firebase/firestore";
 import { BUSINESS_DATA_UPDATED_EVENT } from "@/lib/upload/events";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import {
+  saveStoredCustomAdvisors,
+  getStoredCustomAdvisors,
+  LEGACY_NAMES,
+  DEFAULT_EXECUTIVE_AGENTS,
+} from "@/lib/advisors";
 
 export default function BusinessProfileSettingsPage() {
   const router = useRouter();
@@ -36,6 +49,7 @@ export default function BusinessProfileSettingsPage() {
 
   // Profile fields state
   const [businessName, setBusinessName] = useState("");
+  const [businessLogo, setBusinessLogo] = useState<string | null>(null);
   const [founderName, setFounderName] = useState("");
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
@@ -46,6 +60,17 @@ export default function BusinessProfileSettingsPage() {
   const [monthlyBurn, setMonthlyBurn] = useState<number | string>(0);
   const [cashOnHand, setCashOnHand] = useState<number | string>(0);
   const [provider, setProvider] = useState("email");
+
+  // Executive Advisors Customization state
+  const [advisors, setAdvisors] = useState<Record<string, { name: string; avatar?: string }>>({
+    ceo: { name: "CEO" },
+    cfo: { name: "CFO" },
+    marketing: { name: "Marketing" },
+    sales: { name: "Sales" },
+    hr: { name: "HR & Talent" },
+    operations: { name: "Operations" },
+    strategy: { name: "Strategy" },
+  });
 
   // UI state
   const [isSaving, setIsSaving] = useState(false);
@@ -79,6 +104,7 @@ export default function BusinessProfileSettingsPage() {
       const profileStr = localStorage.getItem("bizzpal_business_profile");
       if (profileStr) {
         const p = JSON.parse(profileStr);
+        if (p.logoUrl || p.logo || p.logo_url) setBusinessLogo(p.logoUrl || p.logo || p.logo_url);
         if (p.name) setBusinessName(p.name);
         if (p.founderName) setFounderName(p.founderName);
         if (p.website) setWebsite(p.website);
@@ -93,9 +119,50 @@ export default function BusinessProfileSettingsPage() {
         // Fallback default
         setBusinessName("Apex Analytics");
       }
+
+      // 3. Backend fallback check
+      fetch("/api/business/intake")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.success && d.business) {
+            if (d.business.logoUrl) {
+              setBusinessLogo((prev) => prev || d.business.logoUrl);
+            }
+            if (d.business.name) {
+              setBusinessName((prev) => (!prev || prev === "Apex Analytics" ? d.business.name : prev));
+            }
+          }
+        })
+        .catch(() => {});
     } catch (e) {
       console.error("Error reading business profile for settings:", e);
     }
+  }, []);
+
+  // Sync executive advisors from stored custom configuration
+  useEffect(() => {
+    const syncAdvisorsFromStorage = () => {
+      try {
+        const stored = getStoredCustomAdvisors();
+        setAdvisors({
+          ceo: { name: stored.ceo?.name && !LEGACY_NAMES.has(stored.ceo.name.toLowerCase()) ? stored.ceo.name : "CEO" },
+          cfo: { name: stored.cfo?.name && !LEGACY_NAMES.has(stored.cfo.name.toLowerCase()) ? stored.cfo.name : "CFO" },
+          marketing: { name: stored.marketing?.name && !LEGACY_NAMES.has(stored.marketing.name.toLowerCase()) ? stored.marketing.name : "Marketing" },
+          sales: { name: stored.sales?.name && !LEGACY_NAMES.has(stored.sales.name.toLowerCase()) ? stored.sales.name : "Sales" },
+          hr: { name: stored.hr?.name && !LEGACY_NAMES.has(stored.hr.name.toLowerCase()) ? stored.hr.name : "HR & Talent" },
+          operations: { name: stored.operations?.name && !LEGACY_NAMES.has(stored.operations.name.toLowerCase()) ? stored.operations.name : "Operations" },
+          strategy: { name: stored.strategy?.name && !LEGACY_NAMES.has(stored.strategy.name.toLowerCase()) ? stored.strategy.name : "Strategy" },
+        });
+      } catch {}
+    };
+
+    syncAdvisorsFromStorage();
+    window.addEventListener("bizzpal_advisors_updated", syncAdvisorsFromStorage);
+    window.addEventListener("storage", syncAdvisorsFromStorage);
+    return () => {
+      window.removeEventListener("bizzpal_advisors_updated", syncAdvisorsFromStorage);
+      window.removeEventListener("storage", syncAdvisorsFromStorage);
+    };
   }, []);
 
   // Calculate live runway preview
@@ -131,6 +198,7 @@ export default function BusinessProfileSettingsPage() {
         website: cleanWebsite,
         industry,
         industryLabel,
+        logoUrl: businessLogo || null,
         teamSize: numTeam,
         revenue: numRevenue,
         monthlyRevenue: numRevenue,
@@ -140,67 +208,13 @@ export default function BusinessProfileSettingsPage() {
         updatedAt: new Date().toISOString(),
       };
 
-      // 1. Update localStorage
+      // 1. Update localStorage immediately (guarantees local sync instantly)
       localStorage.setItem("bizzpal_business_profile", JSON.stringify(updatedProfile));
       if (email) {
         localStorage.setItem(`bizzpal_user_business_${email.trim().toLowerCase()}`, JSON.stringify(updatedProfile));
       }
 
-      // 2. Persist to SQLite intake endpoint
-      try {
-        await fetch("/api/business/intake", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: cleanBusinessName,
-            founderName: cleanFounderName,
-            website: cleanWebsite,
-            industry,
-            industryLabel,
-            teamSize: numTeam,
-            monthlyRevenue: numRevenue,
-            annualRevenue: numAnnual,
-            monthlyBurn: numBurn,
-            cashOnHand: numCash,
-          }),
-        });
-      } catch (e) {}
-
-      // 3. Persist to SQLite account-status ledger
-      if (email) {
-        try {
-          await fetch("/api/auth/account-status", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: email.trim().toLowerCase(),
-              name: cleanFounderName,
-              businessProfile: updatedProfile,
-            }),
-          });
-        } catch (e) {}
-      }
-
-      // 3.5 Persist securely to Firebase Firestore & Realtime Database
-      try {
-        let currentUserId = user?.uid;
-        if (!currentUserId) {
-          const sessStr = localStorage.getItem("bizzpal_user_session");
-          if (sessStr) currentUserId = JSON.parse(sessStr).id;
-        }
-        if (currentUserId && isFirebaseConfigured) {
-          await saveUserProfileToFirestore(currentUserId, {
-            email: email.trim().toLowerCase(),
-            displayName: cleanFounderName,
-            role: "owner",
-            businessProfile: updatedProfile,
-          });
-        }
-      } catch (fbErr) {
-        console.warn("Failed to sync profile to Firebase", fbErr);
-      }
-
-      // 4. Dispatch global custom window events so AppShell & widgets update immediately
+      // 2. Dispatch global custom window events immediately so UI headers, roasters & widgets reflect changes
       window.dispatchEvent(
         new CustomEvent(BUSINESS_DATA_UPDATED_EVENT, {
           detail: updatedProfile,
@@ -212,8 +226,99 @@ export default function BusinessProfileSettingsPage() {
         })
       );
 
+      // 3. Save customized executive advisors
+      try {
+        const currentCustom = getStoredCustomAdvisors();
+        const nextCustom: Record<string, { name?: string; avatar?: string }> = { ...currentCustom };
+        Object.entries(advisors).forEach(([key, val]) => {
+          const trimmed = val.name.trim();
+          nextCustom[key] = {
+            ...nextCustom[key],
+            name: trimmed || undefined,
+          };
+        });
+        saveStoredCustomAdvisors(nextCustom);
+      } catch (e) {
+        console.error("Failed to save custom advisors from settings:", e);
+      }
+
+      // Helper: execute remote async tasks with a strict safety timeout so slow networks/Firebase never stall the UI
+      const withTimeout = (p: Promise<any>, ms = 1500) =>
+        Promise.race([
+          p,
+          new Promise((resolve) => setTimeout(() => resolve(null), ms)),
+        ]);
+
+      // 3. Persist concurrently to SQLite intake, account-status, and Firebase in the background
+      const remoteTasks: Promise<any>[] = [];
+
+      // 3a. SQLite intake endpoint
+      remoteTasks.push(
+        withTimeout(
+          fetch("/api/business/intake", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: cleanBusinessName,
+              founderName: cleanFounderName,
+              website: cleanWebsite,
+              industry,
+              industryLabel,
+              logoUrl: businessLogo || null,
+              teamSize: numTeam,
+              monthlyRevenue: numRevenue,
+              annualRevenue: numAnnual,
+              monthlyBurn: numBurn,
+              cashOnHand: numCash,
+            }),
+          }).catch(() => {})
+        )
+      );
+
+      // 3b. SQLite account-status ledger
+      if (email) {
+        remoteTasks.push(
+          withTimeout(
+            fetch("/api/auth/account-status", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: email.trim().toLowerCase(),
+                name: cleanFounderName,
+                businessProfile: updatedProfile,
+              }),
+            }).catch(() => {})
+          )
+        );
+      }
+
+      // 3c. Cloud Firestore & Realtime Database
+      let currentUserId = user?.uid;
+      if (!currentUserId) {
+        const sessStr = localStorage.getItem("bizzpal_user_session");
+        if (sessStr) currentUserId = JSON.parse(sessStr).id;
+      }
+      if (currentUserId && isFirebaseConfigured) {
+        remoteTasks.push(
+          withTimeout(
+            saveUserProfileToFirestore(currentUserId, {
+              email: email.trim().toLowerCase(),
+              displayName: cleanFounderName,
+              role: "owner",
+              businessProfile: updatedProfile,
+            }).catch((fbErr) => {
+              console.warn("Failed to sync profile to Firebase", fbErr);
+            })
+          )
+        );
+      }
+
+      // Await all remote tasks with timeout (maximum 1.5 seconds wait)
+      await Promise.allSettled(remoteTasks);
+
+      // Immediate success feedback
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 4000);
+      setTimeout(() => setSaveSuccess(false), 3500);
     } catch (err: any) {
       setSaveError(err.message || "Failed to update business profile.");
     } finally {
@@ -311,6 +416,13 @@ export default function BusinessProfileSettingsPage() {
             <Layers className="w-3.5 h-3.5" />
             <span>Connected Business Tools</span>
           </Link>
+          <a
+            href="#executive-advisors"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-text-muted hover:text-text bg-surface border border-line flex items-center gap-1.5 transition-colors"
+          >
+            <Briefcase className="w-3.5 h-3.5" />
+            <span>Executive Advisors</span>
+          </a>
         </div>
       </div>
 
@@ -351,6 +463,82 @@ export default function BusinessProfileSettingsPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Company / Brand Logo */}
+            <div className="space-y-2 sm:col-span-2 p-4 rounded-xl border border-line bg-surface-2/40">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-text flex items-center gap-1.5">
+                  <Upload className="w-3.5 h-3.5 text-brass" />
+                  <span>Company / Brand Logo</span>
+                </label>
+                {businessLogo && (
+                  <button
+                    type="button"
+                    onClick={() => setBusinessLogo(null)}
+                    className="text-[11px] text-rust hover:underline cursor-pointer font-medium"
+                  >
+                    Remove Logo
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-4">
+                {businessLogo ? (
+                  <div className="w-14 h-14 shrink-0 flex items-center justify-center">
+                    <img
+                      src={businessLogo}
+                      alt={businessName || "Business Logo"}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brass/20 via-brass/10 to-surface-2 border border-brass/30 text-brass font-extrabold text-base flex items-center justify-center shrink-0 shadow-xs select-none">
+                    {businessName
+                      .split(" ")
+                      .filter(Boolean)
+                      .map((w) => w[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase() || "BP"}
+                  </div>
+                )}
+                <div className="space-y-1.5 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface hover:bg-surface-2 border border-line text-xs font-semibold text-text cursor-pointer transition-colors shadow-2xs">
+                      <Upload className="w-3.5 h-3.5 text-brass" />
+                      <span>{businessLogo ? "Change Logo" : "Upload Logo Image"}</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) {
+                            alert("Please choose an image under 2MB.");
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            const res = ev.target?.result as string;
+                            if (res) setBusinessLogo(res);
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
+                    {businessLogo && (
+                      <span className="text-[11px] text-jade font-medium inline-flex items-center gap-1">
+                        <Check className="w-3 h-3 text-jade" />
+                        <span>Active Logo</span>
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-text-muted">
+                    Displayed across your executive dashboard header, sidebar profile, and AI reports. PNG, SVG, or JPG (max 2MB).
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Business / Company Name */}
             <div className="space-y-1.5 sm:col-span-2">
               <label className="text-xs font-semibold text-text flex items-center justify-between">
@@ -531,14 +719,256 @@ export default function BusinessProfileSettingsPage() {
           </div>
         </div>
 
+        {/* Executive Advisors Customization Card */}
+        <div id="executive-advisors" className="p-5 sm:p-6 rounded-xl border border-line bg-surface shadow-theme space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-line">
+            <div>
+              <h2 className="text-xs font-bold text-text uppercase tracking-wider flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-brass" />
+                <span>Executive Advisors & Leadership Roles</span>
+              </h2>
+              <p className="text-xs text-text-muted mt-0.5">
+                Customize default names and titles for your AI leadership team. Changes reflect across the AI Workspace, Dashboard, Briefings, and Playbooks.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const defaults = {
+                  ceo: { name: "CEO" },
+                  cfo: { name: "CFO" },
+                  marketing: { name: "Marketing" },
+                  sales: { name: "Sales" },
+                  hr: { name: "HR & Talent" },
+                  operations: { name: "Operations" },
+                  strategy: { name: "Strategy" },
+                };
+                setAdvisors(defaults);
+                saveStoredCustomAdvisors({});
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold text-text-muted hover:text-text border border-line bg-surface-2 transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset Defaults</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* CEO */}
+            <div className="p-3.5 rounded-xl border border-line bg-surface-2/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                    <Briefcase className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-text block">Chief Executive Officer</span>
+                    <span className="text-[10px] text-text-muted">Company Direction & Strategy</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface border border-line font-mono text-text-muted">
+                  Default: CEO
+                </span>
+              </div>
+              <input
+                type="text"
+                value={advisors.ceo?.name || ""}
+                onChange={(e) => setAdvisors(prev => ({ ...prev, ceo: { ...prev.ceo, name: e.target.value } }))}
+                placeholder="e.g. CEO, CEO Head, Founder"
+                maxLength={30}
+                className="w-full px-3 py-2 rounded-lg border border-line bg-surface text-text text-xs focus:outline-none focus:border-brass focus:ring-1 focus:ring-brass transition-all font-medium"
+              />
+            </div>
+
+            {/* CFO */}
+            <div className="p-3.5 rounded-xl border border-line bg-surface-2/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                    <Landmark className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-text block">Chief Financial Officer</span>
+                    <span className="text-[10px] text-text-muted">Cash, Runway & Governance</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface border border-line font-mono text-text-muted">
+                  Default: CFO
+                </span>
+              </div>
+              <input
+                type="text"
+                value={advisors.cfo?.name || ""}
+                onChange={(e) => setAdvisors(prev => ({ ...prev, cfo: { ...prev.cfo, name: e.target.value } }))}
+                placeholder="e.g. CFO, Finance Head"
+                maxLength={30}
+                className="w-full px-3 py-2 rounded-lg border border-line bg-surface text-text text-xs focus:outline-none focus:border-brass focus:ring-1 focus:ring-brass transition-all font-medium"
+              />
+            </div>
+
+            {/* Marketing */}
+            <div className="p-3.5 rounded-xl border border-line bg-surface-2/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                    <Megaphone className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-text block">Chief Marketing Officer</span>
+                    <span className="text-[10px] text-text-muted">Demand & Customer Acquisition</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface border border-line font-mono text-text-muted">
+                  Default: Marketing
+                </span>
+              </div>
+              <input
+                type="text"
+                value={advisors.marketing?.name || ""}
+                onChange={(e) => setAdvisors(prev => ({ ...prev, marketing: { ...prev.marketing, name: e.target.value } }))}
+                placeholder="e.g. Marketing, CMO, Growth Lead"
+                maxLength={30}
+                className="w-full px-3 py-2 rounded-lg border border-line bg-surface text-text text-xs focus:outline-none focus:border-brass focus:ring-1 focus:ring-brass transition-all font-medium"
+              />
+            </div>
+
+            {/* Sales */}
+            <div className="p-3.5 rounded-xl border border-line bg-surface-2/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                    <Handshake className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-text block">Sales & Revenue</span>
+                    <span className="text-[10px] text-text-muted">Pipeline & Deal Velocity</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface border border-line font-mono text-text-muted">
+                  Default: Sales
+                </span>
+              </div>
+              <input
+                type="text"
+                value={advisors.sales?.name || ""}
+                onChange={(e) => setAdvisors(prev => ({ ...prev, sales: { ...prev.sales, name: e.target.value } }))}
+                placeholder="e.g. Sales, VP Sales, Commercial Lead"
+                maxLength={30}
+                className="w-full px-3 py-2 rounded-lg border border-line bg-surface text-text text-xs focus:outline-none focus:border-brass focus:ring-1 focus:ring-brass transition-all font-medium"
+              />
+            </div>
+
+            {/* HR & Talent */}
+            <div className="p-3.5 rounded-xl border border-line bg-surface-2/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                    <Users className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-text block">HR & Talent</span>
+                    <span className="text-[10px] text-text-muted">Hiring, Capacity & Culture</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface border border-line font-mono text-text-muted">
+                  Default: HR & Talent
+                </span>
+              </div>
+              <input
+                type="text"
+                value={advisors.hr?.name || ""}
+                onChange={(e) => setAdvisors(prev => ({ ...prev, hr: { ...prev.hr, name: e.target.value } }))}
+                placeholder="e.g. HR & Talent, People Lead"
+                maxLength={30}
+                className="w-full px-3 py-2 rounded-lg border border-line bg-surface text-text text-xs focus:outline-none focus:border-brass focus:ring-1 focus:ring-brass transition-all font-medium"
+              />
+            </div>
+
+            {/* Operations */}
+            <div className="p-3.5 rounded-xl border border-line bg-surface-2/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center">
+                    <Settings2 className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-text block">Operations (COO)</span>
+                    <span className="text-[10px] text-text-muted">Efficiency, SLAs & Processes</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface border border-line font-mono text-text-muted">
+                  Default: Operations
+                </span>
+              </div>
+              <input
+                type="text"
+                value={advisors.operations?.name || ""}
+                onChange={(e) => setAdvisors(prev => ({ ...prev, operations: { ...prev.operations, name: e.target.value } }))}
+                placeholder="e.g. Operations, COO, Ops Lead"
+                maxLength={30}
+                className="w-full px-3 py-2 rounded-lg border border-line bg-surface text-text text-xs focus:outline-none focus:border-brass focus:ring-1 focus:ring-brass transition-all font-medium"
+              />
+            </div>
+
+            {/* Strategy */}
+            <div className="p-3.5 rounded-xl border border-line bg-surface-2/40 space-y-2 sm:col-span-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center">
+                    <Compass className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-text block">Strategy</span>
+                    <span className="text-[10px] text-text-muted">Defensibility, Moats & Market Expansion</span>
+                  </div>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface border border-line font-mono text-text-muted">
+                  Default: Strategy
+                </span>
+              </div>
+              <input
+                type="text"
+                value={advisors.strategy?.name || ""}
+                onChange={(e) => setAdvisors(prev => ({ ...prev, strategy: { ...prev.strategy, name: e.target.value } }))}
+                placeholder="e.g. Strategy, Chief Strategy Officer"
+                maxLength={30}
+                className="w-full px-3 py-2 rounded-lg border border-line bg-surface text-text text-xs focus:outline-none focus:border-brass focus:ring-1 focus:ring-brass transition-all font-medium"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Save Changes CTA Bar */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+          <div>
+            {saveSuccess && (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold animate-fade-in">
+                <Check className="w-4 h-4 shrink-0 text-emerald-500" />
+                <span>Profile changes saved & synced across workspace!</span>
+              </div>
+            )}
+            {saveError && (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rust/10 border border-rust/30 text-rust text-xs font-semibold animate-fade-in">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{saveError}</span>
+              </div>
+            )}
+          </div>
           <button
             type="submit"
             disabled={isSaving}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brass hover:brightness-110 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all btn-tactile disabled:opacity-50 cursor-pointer"
+            className={`inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-white text-xs font-bold shadow-md hover:shadow-lg transition-all btn-tactile cursor-pointer disabled:opacity-75 ${
+              saveSuccess
+                ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
+                : "bg-brass hover:brightness-110"
+            }`}
           >
-            {isSaving ? (
+            {saveSuccess ? (
+              <>
+                <Check className="w-4 h-4" />
+                <span>Saved Successfully!</span>
+              </>
+            ) : isSaving ? (
               <>
                 <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 <span>Saving Changes…</span>

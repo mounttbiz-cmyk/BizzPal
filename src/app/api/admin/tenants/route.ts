@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const businesses = db.prepare("SELECT * FROM businesses ORDER BY updated_at DESC").all() as any[];
-    const users = db.prepare("SELECT id, email, name, provider, business_profile, created_at FROM registered_users ORDER BY created_at DESC").all() as any[];
+    const users = db.prepare("SELECT id, email, name, provider, business_profile, last_login_at, created_at FROM registered_users ORDER BY created_at DESC").all() as any[];
 
     // Ensure every registered user has a corresponding enterprise in businesses
     const existingBizIds = new Set(businesses.map((b) => b.id));
@@ -146,6 +146,8 @@ export async function GET() {
         ownerName: matchingUser?.name || null,
         authProvider: matchingUser?.provider || null,
         isRegisteredUser: Boolean(matchingUser),
+        logoUrl: b.logo_url || null,
+        lastLoginAt: matchingUser?.last_login_at || b.last_login_at || b.updated_at || b.created_at || null,
         createdAt: b.created_at,
         updatedAt: b.updated_at,
       };
@@ -160,6 +162,7 @@ export async function GET() {
           email: u.email,
           name: u.name,
           provider: u.provider || "email",
+          lastLoginAt: u.last_login_at || u.created_at || null,
           createdAt: u.created_at,
         })),
         stats: {
@@ -193,6 +196,7 @@ export async function PUT(request: Request) {
       cashOnHand,
       teamSize,
       website,
+      logoUrl,
       setActive,
     } = body;
 
@@ -214,6 +218,7 @@ export async function PUT(request: Request) {
         cash_on_hand = COALESCE(?, cash_on_hand),
         team_size = COALESCE(?, team_size),
         website = COALESCE(?, website),
+        logo_url = COALESCE(?, logo_url),
         updated_at = ?
       WHERE id = ?
     `).run(
@@ -227,6 +232,7 @@ export async function PUT(request: Request) {
       cashOnHand !== undefined ? Number(cashOnHand) : null,
       teamSize !== undefined ? Number(teamSize) : null,
       website !== undefined ? website : null,
+      logoUrl !== undefined ? logoUrl : null,
       now,
       id
     );
@@ -283,6 +289,7 @@ export async function POST(request: Request) {
       cashOnHand = 0,
       teamSize = 5,
       website = "",
+      logoUrl = null,
     } = body;
 
     if (!name || !name.trim()) {
@@ -296,8 +303,8 @@ export async function POST(request: Request) {
       INSERT INTO businesses (
         id, name, founder_name, industry, industry_label, website, team_size,
         annual_revenue, monthly_revenue, monthly_burn, cash_on_hand,
-        connected_tools, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        connected_tools, logo_url, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       name.trim(),
@@ -311,6 +318,7 @@ export async function POST(request: Request) {
       Number(monthlyBurn),
       Number(cashOnHand),
       JSON.stringify([]),
+      logoUrl || null,
       now,
       now
     );

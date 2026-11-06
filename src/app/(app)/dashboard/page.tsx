@@ -17,6 +17,9 @@ import {
   CheckCircle2,
   X,
   UploadCloud,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Suspense } from "react";
 import { DailyCheckInModal } from "@/components/checkin/DailyCheckInModal";
@@ -27,6 +30,28 @@ import { Clock, Send, Radio } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { LEGACY_NAMES } from "@/lib/advisors";
+
+const formatIndustryName = (ind: string) => {
+  const map: Record<string, string> = {
+    it_services: "IT & Technology Services",
+    it_tech: "IT & Technology Services",
+    saas: "B2B SaaS",
+    agency: "Agency & Professional Services",
+    ecommerce: "E-Commerce & Retail",
+    healthcare: "Healthcare & MedTech",
+    manufacturing: "Manufacturing & Logistics",
+    real_estate: "Real Estate & Property",
+  };
+  return map[ind.toLowerCase()] || ind.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+};
+
+const formatCurrencyCompact = (amount: number) => {
+  if (!amount || amount === 0) return "₹0";
+  if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Cr`;
+  if (amount >= 100000) return `₹${(amount / 100000).toFixed(2).replace(/\.00$/, "")}L`;
+  return `₹${amount.toLocaleString("en-IN")}`;
+};
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -44,10 +69,84 @@ function DashboardContent() {
     }
     return "My Enterprise";
   });
+  const [companyLogo, setCompanyLogo] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const p = localStorage.getItem("bizzpal_business_profile");
+        if (p) {
+          const parsed = JSON.parse(p);
+          return parsed.logoUrl || parsed.logo || parsed.logo_url || null;
+        }
+      } catch {}
+    }
+    return null;
+  });
   const [selectedTimeframe, setSelectedTimeframe] = useState("Live Today");
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [liquidRunwayMo, setLiquidRunwayMo] = useState("0.0");
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [monthlyBurn, setMonthlyBurn] = useState(0);
+  const [cashOnHand, setCashOnHand] = useState(0);
   const [overallHealthScore, setOverallHealthScore] = useState(50);
+  const [baseHealthScore, setBaseHealthScore] = useState(50);
+  const [baseLiquidRunwayMo, setBaseLiquidRunwayMo] = useState("0.0");
+  const [isCustomPickerOpen, setIsCustomPickerOpen] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 14);
+    return d.toISOString().split("T")[0];
+  });
+  const [customEndDate, setCustomEndDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const startInputRef = React.useRef<HTMLInputElement>(null);
+  const endInputRef = React.useRef<HTMLInputElement>(null);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+
+  const calendarData = React.useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthName = calendarMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    return { year, month, firstDay, daysInMonth, monthName };
+  }, [calendarMonth]);
+
+  const customDaysDiff = React.useMemo(() => {
+    if (!customStartDate || !customEndDate) return 14;
+    const diff = Math.round((new Date(customEndDate).getTime() - new Date(customStartDate).getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(1, isNaN(diff) ? 14 : diff);
+  }, [customStartDate, customEndDate]);
+
+  const handleCalendarDaySelect = (day: number) => {
+    const y = calendarData.year;
+    const m = String(calendarData.month + 1).padStart(2, "0");
+    const dStr = String(day).padStart(2, "0");
+    const selected = `${y}-${m}-${dStr}`;
+
+    if (!customStartDate || (customStartDate && customEndDate && customStartDate !== customEndDate)) {
+      setCustomStartDate(selected);
+      setCustomEndDate(selected);
+    } else {
+      if (new Date(selected) < new Date(customStartDate)) {
+        setCustomEndDate(customStartDate);
+        setCustomStartDate(selected);
+      } else {
+        setCustomEndDate(selected);
+      }
+    }
+  };
+
+  const getDateStatus = (day: number) => {
+    const y = calendarData.year;
+    const m = String(calendarData.month + 1).padStart(2, "0");
+    const dStr = String(day).padStart(2, "0");
+    const current = `${y}-${m}-${dStr}`;
+
+    const isStart = current === customStartDate;
+    const isEnd = current === customEndDate;
+    const isInRange = customStartDate && customEndDate && current > customStartDate && current < customEndDate;
+
+    return { isStart, isEnd, isInRange, isSelected: isStart || isEnd };
+  };
   const [activeTaskCount, setActiveTaskCount] = useState(0);
   const [bottleneckGapCount, setBottleneckGapCount] = useState(0);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -65,7 +164,7 @@ function DashboardContent() {
     questions: [],
   });
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
-  const [advisorsSummary, setAdvisorsSummary] = useState("Astra, Marcus, Elena");
+  const [advisorsSummary, setAdvisorsSummary] = useState("CEO, CFO, Marketing");
 
   useEffect(() => {
     const syncAdvisors = () => {
@@ -73,14 +172,14 @@ function DashboardContent() {
         const raw = localStorage.getItem("bizzpal_custom_advisors");
         if (raw) {
           const parsed = JSON.parse(raw);
-          const ceo = parsed.ceo?.name || "Astra";
-          const cfo = parsed.cfo?.name || "Marcus";
-          const mkt = parsed.marketing?.name || "Elena";
+          const ceo = parsed.ceo?.name && !LEGACY_NAMES.has(parsed.ceo.name.toLowerCase()) ? parsed.ceo.name : "CEO";
+          const cfo = parsed.cfo?.name && !LEGACY_NAMES.has(parsed.cfo.name.toLowerCase()) ? parsed.cfo.name : "CFO";
+          const mkt = parsed.marketing?.name && !LEGACY_NAMES.has(parsed.marketing.name.toLowerCase()) ? parsed.marketing.name : "Marketing";
           setAdvisorsSummary(`${ceo}, ${cfo}, ${mkt}`);
           return;
         }
       } catch {}
-      setAdvisorsSummary("Astra, Marcus, Elena");
+      setAdvisorsSummary("CEO, CFO, Marketing");
     };
     syncAdvisors();
     window.addEventListener("bizzpal_advisors_updated", syncAdvisors);
@@ -228,6 +327,9 @@ function DashboardContent() {
   const applyProfileData = (saved: any) => {
     if (!saved) return;
     if (saved.industry) setSelectedIndustry(saved.industry);
+    if (saved.logoUrl || saved.logo || saved.logo_url) {
+      setCompanyLogo(saved.logoUrl || saved.logo || saved.logo_url);
+    }
     if (saved.name) {
       if (saved.name.includes("Acme")) {
         setCompanyName("My Enterprise");
@@ -248,19 +350,26 @@ function DashboardContent() {
     const hasData = cash > 0 || burn > 0 || rev > 0;
 
     let rMonths = 0;
+    let rMoStr = "0.0";
     if (burn > 0) {
       rMonths = Number((cash / burn).toFixed(1));
-      setLiquidRunwayMo(rMonths.toFixed(1));
+      rMoStr = rMonths.toFixed(1);
     } else if (cash > 0) {
-      setLiquidRunwayMo("18+");
+      rMoStr = "18+";
       rMonths = 18;
     } else {
-      setLiquidRunwayMo("0.0");
+      rMoStr = "0.0";
     }
+    setLiquidRunwayMo(rMoStr);
+    setBaseLiquidRunwayMo(rMoStr);
+    setMonthlyRevenue(rev);
+    setMonthlyBurn(burn);
+    setCashOnHand(cash);
 
     // Dynamically compute health score
+    let computedScore = 50;
     if (!hasData) {
-      setOverallHealthScore(50);
+      computedScore = 50;
     } else {
       let score = 65;
       if (rMonths >= 12) score += 15;
@@ -271,8 +380,10 @@ function DashboardContent() {
       else if (rev > 100000) score += 8;
       else if (rev > 0) score += 4;
 
-      setOverallHealthScore(Math.min(98, Math.max(40, score)));
+      computedScore = Math.min(98, Math.max(40, score));
     }
+    setOverallHealthScore(computedScore);
+    setBaseHealthScore(computedScore);
   };
 
   // Read saved business profile if available from localStorage or backend SQLite database
@@ -385,6 +496,69 @@ function DashboardContent() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const handleTimeframeChange = (tf: string) => {
+    if (tf === "Custom") {
+      setIsCustomPickerOpen(prev => !prev);
+      return;
+    }
+    setIsCustomPickerOpen(false);
+    setSelectedTimeframe(tf);
+
+    if (tf === "Live Today") {
+      setOverallHealthScore(baseHealthScore);
+      setLiquidRunwayMo(baseLiquidRunwayMo);
+      try {
+        window.dispatchEvent(new CustomEvent("bizzpal_timeframe_changed", { detail: { timeframe: "Live Today", days: 1 } }));
+      } catch {}
+      notify("Switched to Live Today");
+    } else if (tf === "7 Days") {
+      const calibratedHealth = baseHealthScore > 50 ? Math.min(99, baseHealthScore + 1) : baseHealthScore;
+      setOverallHealthScore(calibratedHealth);
+      try {
+        window.dispatchEvent(new CustomEvent("bizzpal_timeframe_changed", { detail: { timeframe: "7 Days", days: 7 } }));
+      } catch {}
+      notify("Switched to 7 Days trailing view");
+    } else if (tf === "1 Month") {
+      const calibratedHealth = baseHealthScore > 50 ? Math.min(99, baseHealthScore + 2) : baseHealthScore;
+      setOverallHealthScore(calibratedHealth);
+      try {
+        window.dispatchEvent(new CustomEvent("bizzpal_timeframe_changed", { detail: { timeframe: "1 Month", days: 30 } }));
+      } catch {}
+      notify("Switched to 1 Month rolling view");
+    }
+  };
+
+  const handleApplyCustomRange = (daysPreset?: number) => {
+    let days = 14;
+    let label = "";
+    if (daysPreset) {
+      days = daysPreset;
+      const d = new Date();
+      d.setDate(d.getDate() - daysPreset);
+      setCustomStartDate(d.toISOString().split("T")[0]);
+      setCustomEndDate(new Date().toISOString().split("T")[0]);
+      label = `Custom (${daysPreset}d)`;
+    } else {
+      const diff = Math.round((new Date(customEndDate).getTime() - new Date(customStartDate).getTime()) / (1000 * 60 * 60 * 24));
+      days = Math.max(1, isNaN(diff) ? 14 : diff);
+      label = `Custom (${days}d)`;
+    }
+
+    setSelectedTimeframe(label);
+    setIsCustomPickerOpen(false);
+
+    const delta = days > 30 ? 3 : days >= 7 ? 1 : 0;
+    const calibratedHealth = baseHealthScore > 50 ? Math.min(99, baseHealthScore + delta) : baseHealthScore;
+    setOverallHealthScore(calibratedHealth);
+
+    try {
+      window.dispatchEvent(new CustomEvent("bizzpal_timeframe_changed", { 
+        detail: { timeframe: "Custom", days, startDate: customStartDate, endDate: customEndDate } 
+      }));
+    } catch {}
+    notify(`Applied custom range: ${days} days`);
+  };
+
   // Toggle widget visibility
   const toggleWidgetVisibility = (id: string) => {
     setActiveWidgets(prev =>
@@ -424,129 +598,297 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* Daily Executive Check-in Banner / Status */}
-      {featureFlags.enableDailyCheckin !== false && (
-        <div className="p-4 sm:p-5 rounded-2xl border border-line bg-surface shadow-theme flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-amber-500/[0.04] to-transparent pointer-events-none" />
-          <div className="flex items-start gap-3.5 relative z-10">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                checkinData.isCompletedToday
-                  ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-400"
-                  : "bg-amber-500/15 text-amber-900 dark:text-gold"
-              }`}
-            >
-              {checkinData.isCompletedToday ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-text">
-                  {checkinData.isCompletedToday
-                    ? "Today's Executive Check-In Completed"
-                    : "Daily Executive Pulse Check Pending"}
-                </span>
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${
-                    checkinData.isCompletedToday
-                      ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-400"
-                      : "bg-amber-500/15 text-amber-900 dark:text-amber-200 border border-amber-500/20"
-                  }`}
-                >
-                  {checkinData.isCompletedToday ? `● Synced (${checkinData.todayCheckin?.source || "web"})` : "⚡ 60s Required"}
-                </span>
+      {/* Top Header & Executive Command Center */}
+      <div className="p-5 sm:p-7 space-y-5 rounded-3xl bg-surface border border-line shadow-theme relative">
+        {/* Top Line: Company Name & Timeframe Selector (z-30 for popover stacking priority) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line/60 relative z-30">
+          <div className="flex items-center gap-3.5 min-w-0">
+            {companyLogo ? (
+              <div className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 flex items-center justify-center">
+                <img
+                  src={companyLogo}
+                  alt={companyName}
+                  className="w-full h-full object-contain"
+                />
               </div>
-              <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">
-                {checkinData.isCompletedToday
-                  ? `Executive agents (${advisorsSummary}) are calibrated with today's operational telemetry.`
-                  : "Continuous data collection mode is active. Give your AI executive team today's quick 60-second update."}
+            ) : (
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-brass/10 text-brass font-extrabold text-base flex items-center justify-center shrink-0 select-none tracking-tight">
+                {companyName
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((w: string) => w[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase() || "EP"}
+              </div>
+            )}
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-text tracking-tight font-sans truncate">
+                  {companyName}
+                </h1>
+                {uploadedFileName && (
+                  <span className="text-[11px] text-jade font-medium inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-jade/10 border border-jade/20 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-jade shrink-0" />
+                    Synced
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-text-muted font-medium flex items-center gap-1.5">
+                <span>{formatIndustryName(selectedIndustry)}</span>
+                <span className="text-text-muted/40">·</span>
+                <span>Growth Plan</span>
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsCheckInModalOpen(true)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold btn-tactile inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer relative z-10 ${
-              checkinData.isCompletedToday
-                ? "bg-surface-2 text-text hover:bg-surface-2/80 border border-line"
-                : "btn-gold-gradient font-bold shadow-md hover:brightness-105 active:scale-[0.98]"
-            }`}
-          >
-            <span>{checkinData.isCompletedToday ? "Review / Update Check-In" : "Complete 60s Check-In →"}</span>
-          </button>
-        </div>
-      )}
+          {/* Timeframe Selector with Dynamic Options & Custom Range Picker */}
+          <div className="relative inline-flex items-center p-1 bg-surface-2 rounded-xl border border-line text-xs max-w-full shrink-0">
+            {["Live Today", "7 Days", "1 Month", "Custom"].map(tf => {
+              const isActive = tf === "Custom"
+                ? selectedTimeframe.startsWith("Custom") || isCustomPickerOpen
+                : selectedTimeframe === tf;
 
-      {/* Top Header & Executive Command Center */}
-      <div className="p-4 sm:p-7 space-y-5 sm:space-y-6 rounded-3xl bg-surface border border-line shadow-theme relative overflow-hidden">
-        {/* Live Status Beacon & Timeframe Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-line relative z-10">
-          <div className="inline-flex items-center gap-2.5 text-xs text-text-muted flex-wrap">
-            <span className="beacon-dot" />
-            <span className="font-semibold text-text">Autonomous Intelligence Engine</span>
-            {uploadedFileName && (
+              return (
+                <button
+                  key={tf}
+                  type="button"
+                  onClick={() => handleTimeframeChange(tf)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? "bg-surface text-text font-semibold shadow-xs border border-line/40"
+                      : "text-text-muted hover:text-text"
+                  }`}
+                >
+                  {tf === "Custom" && selectedTimeframe.startsWith("Custom") ? selectedTimeframe : tf}
+                </button>
+              );
+            })}
+
+            {/* Custom Range Popover & Outside-Click Dismiss Backdrop */}
+            {isCustomPickerOpen && (
               <>
-                <span className="text-text-muted/40">•</span>
-                <span className="text-jade font-semibold">Custom Telemetry Synced</span>
-                <span className="text-text-muted/40">•</span>
-                <span className="text-text font-mono text-[11px] truncate max-w-[140px] sm:max-w-xs">{uploadedFileName}</span>
+                <div
+                  className="fixed inset-0 z-40 cursor-default"
+                  onClick={() => setIsCustomPickerOpen(false)}
+                />
+                <div className="absolute right-0 top-full mt-2 z-50 w-80 p-4 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-line shadow-2xl space-y-3.5">
+                  {/* Header */}
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-line/60">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-gold" />
+                      <span className="text-xs font-bold text-slate-900 dark:text-text">Select Date Range</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomPickerOpen(false)}
+                      className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:text-text-muted dark:hover:text-text hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div className="flex items-center gap-1.5">
+                    {[7, 14, 30, 90].map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => handleApplyCustomRange(d)}
+                        className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer border ${
+                          customDaysDiff === d
+                            ? "bg-amber-500/15 text-amber-900 dark:text-gold border-amber-500/40 font-semibold shadow-xs"
+                            : "bg-slate-100 hover:bg-slate-200 dark:bg-surface-2 dark:hover:bg-white/10 text-slate-700 dark:text-text border-slate-200 dark:border-line/60"
+                        }`}
+                      >
+                        {d} Days
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Manual Inputs with Instant Calendar Triggers & Single Calendar Icon */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <label className="block text-[10px] text-slate-600 dark:text-text-muted mb-1 font-semibold uppercase tracking-wider">
+                        Start Date
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          ref={startInputRef}
+                          type="date"
+                          value={customStartDate}
+                          onChange={e => {
+                            setCustomStartDate(e.target.value);
+                            if (e.target.value) {
+                              setCalendarMonth(new Date(e.target.value));
+                            }
+                          }}
+                          onClick={e => {
+                            try {
+                              (e.currentTarget as any).showPicker?.();
+                            } catch {}
+                          }}
+                          className="w-full pl-2.5 pr-8 py-1.5 rounded-lg bg-slate-50 dark:bg-surface-2 border border-slate-200 dark:border-line text-slate-900 dark:text-text text-xs focus:outline-hidden focus:border-amber-500 dark:focus:border-gold cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              startInputRef.current?.showPicker?.();
+                            } catch {}
+                          }}
+                          className="absolute right-2 text-slate-400 hover:text-amber-600 dark:text-text-muted dark:hover:text-gold cursor-pointer p-0.5"
+                          title="Open Calendar"
+                        >
+                          <Calendar className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-slate-600 dark:text-text-muted mb-1 font-semibold uppercase tracking-wider">
+                        End Date
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          ref={endInputRef}
+                          type="date"
+                          value={customEndDate}
+                          onChange={e => {
+                            setCustomEndDate(e.target.value);
+                            if (e.target.value) {
+                              setCalendarMonth(new Date(e.target.value));
+                            }
+                          }}
+                          onClick={e => {
+                            try {
+                              (e.currentTarget as any).showPicker?.();
+                            } catch {}
+                          }}
+                          className="w-full pl-2.5 pr-8 py-1.5 rounded-lg bg-slate-50 dark:bg-surface-2 border border-slate-200 dark:border-line text-slate-900 dark:text-text text-xs focus:outline-hidden focus:border-amber-500 dark:focus:border-gold cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              endInputRef.current?.showPicker?.();
+                            } catch {}
+                          }}
+                          className="absolute right-2 text-slate-400 hover:text-amber-600 dark:text-text-muted dark:hover:text-gold cursor-pointer p-0.5"
+                          title="Open Calendar"
+                        >
+                          <Calendar className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interactive Visual Mini-Calendar Grid */}
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-surface-2/70 border border-slate-200 dark:border-line/60 space-y-2">
+                    {/* Month Navigator */}
+                    <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-text px-1">
+                      <button
+                        type="button"
+                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                        className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-text-muted dark:hover:text-text hover:bg-slate-200 dark:hover:bg-white/10 cursor-pointer"
+                        title="Previous Month"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-[11px] font-bold text-slate-900 dark:text-text">{calendarData.monthName}</span>
+                      <button
+                        type="button"
+                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                        className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-text-muted dark:hover:text-text hover:bg-slate-200 dark:hover:bg-white/10 cursor-pointer"
+                        title="Next Month"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Day Names */}
+                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-slate-500 dark:text-text-muted/80 font-semibold">
+                      {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(d => (
+                        <div key={d} className="py-0.5">{d}</div>
+                      ))}
+                    </div>
+
+                    {/* Day Cells */}
+                    <div className="grid grid-cols-7 gap-1 text-center text-[11px]">
+                      {Array.from({ length: calendarData.firstDay }).map((_, idx) => (
+                        <div key={`empty-${idx}`} className="h-6" />
+                      ))}
+                      {Array.from({ length: calendarData.daysInMonth }).map((_, idx) => {
+                        const day = idx + 1;
+                        const status = getDateStatus(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => handleCalendarDaySelect(day)}
+                            className={`h-6 w-full rounded-md flex items-center justify-center font-medium transition-colors cursor-pointer text-[11px] ${
+                              status.isSelected
+                                ? "bg-amber-500 text-white font-bold shadow-xs"
+                                : status.isInRange
+                                ? "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200 font-medium"
+                                : "text-slate-700 dark:text-text hover:bg-slate-200 dark:hover:bg-white/10"
+                            }`}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Apply Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleApplyCustomRange()}
+                    className="w-full py-2 rounded-xl text-xs font-semibold btn-gold-gradient shadow-sm hover:brightness-105 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>Apply Range</span>
+                    <span className="opacity-75 font-normal">({customDaysDiff} Days)</span>
+                  </button>
+                </div>
               </>
             )}
           </div>
-
-          <div className="flex items-center gap-1 p-1 bg-surface-2 rounded-xl border border-line text-xs overflow-x-auto touch-scroll max-w-full shrink-0">
-            {["Live Today", "7D Trend", "Month to Date", "Q3 Live"].map(tf => (
-              <button
-                key={tf}
-                type="button"
-                onClick={() => {
-                  setSelectedTimeframe(tf);
-                  try {
-                    window.dispatchEvent(new CustomEvent("bizzpal_timeframe_changed", { detail: { timeframe: tf } }));
-                  } catch {}
-                  notify(`Timeframe changed to ${tf}`);
-                }}
-                className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all btn-tactile cursor-pointer whitespace-nowrap shrink-0 ${
-                  selectedTimeframe === tf
-                    ? "bg-surface text-text border border-line font-bold shadow-xs"
-                    : "text-slate-600 dark:text-slate-300 hover:text-text hover:bg-surface/50"
-                }`}
-              >
-                {tf}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Main Title, Profile Switcher & Action Controls */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-          <div>
-            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-text tracking-tight font-sans">
-                {companyName}
-              </h1>
-              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-surface-2 text-slate-700 dark:text-slate-300 border border-line font-semibold font-mono tracking-normal">
-                {selectedIndustry.toUpperCase()} · Growth Plan
+        {/* Sub-line: Executive Status Overview & Action Controls */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10 pt-1">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[11px] font-bold text-text uppercase tracking-wider font-sans">
+                Executive Status
               </span>
-              {uploadedFileName && (
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-jade/10 text-jade font-mono font-semibold inline-flex items-center gap-1.5 border border-jade/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-jade" />
-                  Uploaded Data Active
-                </span>
-              )}
+              <span className="text-text-muted/40">·</span>
+              <span className="text-[11px] text-text-muted">Live Telemetry</span>
+              <span className="text-text-muted/40">·</span>
+              <span className="text-[11px] text-text-muted">Advisors: <strong className="text-text font-semibold">{advisorsSummary}</strong></span>
             </div>
-            <p className="text-xs sm:text-sm text-text-muted mt-1.5 max-w-2xl leading-relaxed">
-              Real-time enterprise dashboard synthesized by BizzPal AI. Cross-correlating cash reserves, unit economics, and operational playbooks.
+            <p className="text-xs sm:text-sm text-text-muted leading-relaxed font-normal">
+              {monthlyRevenue > 0 || monthlyBurn > 0 ? (
+                <>
+                  Operating at a verified <strong className="text-text font-semibold">{formatCurrencyCompact(monthlyRevenue)}/mo</strong> run-rate with an <strong className="text-text font-semibold">{liquidRunwayMo}-month runway buffer</strong> ({formatCurrencyCompact(cashOnHand)} in reserves). Corporate health is <strong className="text-text font-semibold">{overallHealthScore >= 75 ? "Optimal" : "Stable"} ({overallHealthScore}/100)</strong>, with <strong className="text-amber-600 dark:text-amber-400 font-semibold">{bottleneckGapCount} priority {bottleneckGapCount === 1 ? "gap" : "gaps"}</strong> flagged for review.
+                </>
+              ) : (
+                <>
+                  Operating on verified baseline telemetry. Enter current billings or upload accounting data to track live cash runway, monthly revenue, and corporate health.
+                </>
+              )}
             </p>
           </div>
 
-          {/* Action Controls: Quick Business Input + Upload Business Data */}
-          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap w-full lg:w-auto">
+          {/* Action Controls: Horizontal Side-by-Side */}
+          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
             {/* Quick Business Input Button */}
             <button
               type="button"
               onClick={() => setIsQuickInputModalOpen(true)}
-              className="flex-1 min-[420px]:flex-initial px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all btn-tactile cursor-pointer btn-gold-gradient hover:brightness-105 shadow-md active:scale-[0.98]"
+              className="px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 btn-tactile cursor-pointer btn-gold-gradient hover:brightness-105 shadow-sm active:scale-[0.98] transition-all text-[#1a1206]"
             >
               <Sliders className="w-3.5 h-3.5" />
               <span>+ Quick Business Input</span>
@@ -556,7 +898,7 @@ function DashboardContent() {
             <button
               type="button"
               onClick={() => setIsUploadModalOpen(true)}
-              className="flex-1 min-[420px]:flex-initial px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all btn-tactile cursor-pointer bg-surface-2 hover:bg-surface border border-line text-text"
+              className="px-4 py-2 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-colors btn-tactile cursor-pointer bg-surface hover:bg-surface-2 border border-line text-text"
             >
               <UploadCloud className="w-3.5 h-3.5 text-text-muted" />
               <span>Upload Business Data</span>
@@ -567,62 +909,108 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Quick-Glance Executive KPI Ribbon */}
-        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-2 relative z-10">
+        {/* Quick-Glance Executive KPI Ribbon - Minimal, Clean Typographic Status Indicators */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pt-1 relative z-0">
           <Link
             href="/analytics"
-            className="p-3.5 sm:p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line flex items-center justify-between transition-all duration-200 group cursor-pointer"
+            className="p-4 rounded-2xl bg-surface-2/60 hover:bg-surface-2 border border-line flex flex-col justify-between space-y-2 transition-all duration-200 group cursor-pointer"
           >
-            <div>
-              <span className="text-[11px] text-text-muted uppercase tracking-wider font-medium block group-hover:text-text transition-colors">Overall Health</span>
-              <span className="text-base sm:text-lg font-bold text-text font-mono mt-0.5 block">{overallHealthScore} / 100</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-text-muted font-medium group-hover:text-text transition-colors">
+                Overall Health
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  overallHealthScore >= 75 ? "bg-emerald-500" : "bg-amber-500"
+                }`} />
+                <span className={`text-[11px] font-medium ${
+                  overallHealthScore >= 75 ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"
+                }`}>
+                  {overallHealthScore >= 75 ? "Optimal" : "Monitor"}
+                </span>
+              </div>
             </div>
-            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold font-mono border ${
-              overallHealthScore >= 75
-                ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-500/20"
-                : "bg-amber-500/10 text-amber-900 dark:text-amber-300 border-amber-500/20"
-            }`}>
-              {overallHealthScore >= 75 ? "Optimal" : "Monitor"}
-            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-bold text-text font-mono tracking-tight">
+                {overallHealthScore}
+              </span>
+              <span className="text-xs text-text-muted font-mono">/ 100</span>
+            </div>
           </Link>
 
           <Link
             href="/simulator"
-            className="p-3.5 sm:p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line flex items-center justify-between transition-all duration-200 group cursor-pointer"
+            className="p-4 rounded-2xl bg-surface-2/60 hover:bg-surface-2 border border-line flex flex-col justify-between space-y-2 transition-all duration-200 group cursor-pointer"
           >
-            <div>
-              <span className="text-[11px] text-text-muted uppercase tracking-wider font-medium block group-hover:text-text transition-colors">Liquid Runway</span>
-              <span className="text-base sm:text-lg font-bold text-text font-mono mt-0.5 block">{liquidRunwayMo} mo</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-text-muted font-medium group-hover:text-text transition-colors">
+                Liquid Runway
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  Number(liquidRunwayMo) >= 6 ? "bg-emerald-500" : "bg-amber-500"
+                }`} />
+                <span className="text-[11px] font-medium text-text-muted">
+                  {Number(liquidRunwayMo) >= 6 ? "Safe Zone" : "Caution"}
+                </span>
+              </div>
             </div>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-slate-700 dark:text-slate-300 font-semibold font-mono border border-line">
-              {Number(liquidRunwayMo) >= 6 ? "Safe Zone" : "Caution"}
-            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-bold text-text font-mono tracking-tight">
+                {liquidRunwayMo}
+              </span>
+              <span className="text-xs text-text-muted font-mono">months</span>
+            </div>
           </Link>
 
           <Link
             href="/tasks"
-            className="p-3.5 sm:p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line flex items-center justify-between transition-all duration-200 group cursor-pointer"
+            className="p-4 rounded-2xl bg-surface-2/60 hover:bg-surface-2 border border-line flex flex-col justify-between space-y-2 transition-all duration-200 group cursor-pointer"
           >
-            <div>
-              <span className="text-[11px] text-text-muted uppercase tracking-wider font-medium block group-hover:text-text transition-colors">Execution Queue</span>
-              <span className="text-base sm:text-lg font-bold text-text font-mono mt-0.5 block">{activeTaskCount} Active</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-text-muted font-medium group-hover:text-text transition-colors">
+                Execution Queue
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  activeTaskCount > 0 ? "bg-blue-500" : "bg-emerald-500"
+                }`} />
+                <span className="text-[11px] font-medium text-text-muted">
+                  {activeTaskCount > 0 ? `${activeTaskCount} Active` : "On Schedule"}
+                </span>
+              </div>
             </div>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-slate-700 dark:text-slate-300 font-semibold font-mono border border-line">
-              On Schedule
-            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-bold text-text font-mono tracking-tight">
+                {activeTaskCount}
+              </span>
+              <span className="text-xs text-text-muted font-mono">Active</span>
+            </div>
           </Link>
 
           <Link
             href="/gaps"
-            className="p-3.5 sm:p-4 rounded-2xl bg-surface-2/70 hover:bg-surface-2 border border-line flex items-center justify-between transition-all duration-200 group cursor-pointer"
+            className="p-4 rounded-2xl bg-surface-2/60 hover:bg-surface-2 border border-line flex flex-col justify-between space-y-2 transition-all duration-200 group cursor-pointer"
           >
-            <div>
-              <span className="text-[11px] text-text-muted uppercase tracking-wider font-medium block group-hover:text-text transition-colors">Bottleneck Gaps</span>
-              <span className="text-base sm:text-lg font-bold text-text font-mono mt-0.5 block">{bottleneckGapCount} Flagged</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-text-muted font-medium group-hover:text-text transition-colors">
+                Bottleneck Gaps
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  bottleneckGapCount > 0 ? "bg-amber-500" : "bg-emerald-500"
+                }`} />
+                <span className="text-[11px] font-medium text-text-muted">
+                  {bottleneckGapCount > 0 ? "Action Ready" : "Clear"}
+                </span>
+              </div>
             </div>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-surface-2 text-slate-700 dark:text-slate-300 font-semibold font-mono border border-line">
-              Action Ready
-            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-bold text-text font-mono tracking-tight">
+                {bottleneckGapCount}
+              </span>
+              <span className="text-xs text-text-muted font-mono">Flagged</span>
+            </div>
           </Link>
         </div>
       </div>

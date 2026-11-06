@@ -42,7 +42,7 @@ const DEFAULT_FALLBACK_PLANS: PlanTier[] = [
     actionType: "self_serve",
     features: [
       "Business Dashboard",
-      "CEO AI Assistant (Astra)",
+      "CEO Executive Advisor",
       "Company Health Score",
       "Profit & ROI Calculators",
       "Save up to 5 Documents & SOPs",

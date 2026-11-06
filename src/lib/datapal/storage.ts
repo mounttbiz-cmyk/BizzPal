@@ -1,5 +1,11 @@
 import { DataPalApiSettings, DataPalBusinessLead, DataPalSearchCampaign, DataPalSearchConfig } from "./types";
 import { COUNTRY_HIERARCHIES, SAMPLE_HISTORIC_CAMPAIGNS } from "./constants";
+import {
+  getSeenLeadSignatures,
+  makeLeadSignature,
+  recordSeenLeadSignatures,
+  recordCreditUsage,
+} from "./credits";
 
 export function getCampaignsStorageKey(): string {
   if (typeof window === "undefined") return "bizzpal_datapal_campaigns";
@@ -121,8 +127,24 @@ const BIZ_LOCALITIES: Record<string, string[]> = {
   default: ["Commercial Hub, 1st Cross", "High Street Zone", "Station Road", "Tech Park Road", "City Center Plaza"],
 };
 
+const EXPANDED_PREFIXES = [
+  "Dr. Mehta's", "Apex", "Royal", "Prime", "Heritage", "Zenith", "Horizon", "Elite", "Grand", "Urban",
+  "Metro", "Vanguard", "Nexus", "Pinnacle", "SmilePlus", "Clove Care", "PearlWhite", "Aura", "Sanjeevani",
+  "Lifecare", "CareWell", "HealSpan", "AyurGram", "Bloom", "Nova", "Starlight", "TrueNorth", "Alpha",
+  "Omni", "Paramount", "Prestige", "Silverline", "GoldenGate", "Sunrise", "Signature", "Kaveri",
+  "Ganga", "Shanti", "Venkateshwara", "Dr. Rao's", "Dr. Sharma's", "Dr. Kapoor's", "Desai & Sons",
+  "Singhania", "Godrej Colony", "Tirupati", "Sai Baba", "Mahalaxmi", "Navratna", "Krystal", "Zenith Point"
+];
+
+const EXPANDED_SUFFIXES = [
+  "Center", "Clinic", "Studio", "Care", "Hub", "Solutions", "Associates", "Enterprises", "Lounge",
+  "Point", "Parlour", "Emporium", "Agency", "Group", "Lab", "Ventures", "House", "Works", "Guild",
+  "Collective", "Partners", "Chambers", "Suites", "World", "Depot", "Station", "Boutique", "Corner"
+];
+
 /**
- * Generates realistic high-fidelity business leads tailored to location, category and requirements
+ * Generates realistic high-fidelity business leads tailored to location, category and requirements.
+ * Enforces deduplication so the user never gets the same lead twice.
  */
 export function generateSyntheticLeads(config: DataPalSearchConfig): DataPalBusinessLead[] {
   const matchedCountry = COUNTRY_HIERARCHIES.find(c => c.code === config.countryCode) || COUNTRY_HIERARCHIES[0];
@@ -133,40 +155,82 @@ export function generateSyntheticLeads(config: DataPalSearchConfig): DataPalBusi
   const categories = config.selectedCategories.length > 0 ? config.selectedCategories : ["IT & Software Companies", "Restaurants & Fine Dining", "Dental Clinics"];
   const localities = BIZ_LOCALITIES[city] || BIZ_LOCALITIES["default"];
 
-  const results: DataPalBusinessLead[] = [];
-  const count = Math.floor(Math.random() * 10) + 18; // 18 to 27 leads
+  // Quantity requested by user (defaults to 25 if not specified)
+  const targetCount = config.requestedCount && config.requestedCount > 0 ? config.requestedCount : 25;
   const userQuery = config.searchQuery?.trim();
 
-  for (let i = 0; i < count; i++) {
-    const locality = localities[i % localities.length];
-    let category = categories[i % categories.length];
-    const prefix = BIZ_NAME_PREFIXES[category.split(" ")[0]] || BIZ_NAME_PREFIXES.default;
-    const namePrefix = prefix[Math.floor(Math.random() * prefix.length)];
+  // Load deduplication registry
+  const seenSignatures = getSeenLeadSignatures(config.accountKey);
+  const newSignatures: string[] = [];
+  const results: DataPalBusinessLead[] = [];
 
+  let attempts = 0;
+  const maxAttempts = targetCount * 8 + 100;
+
+  for (let i = 0; results.length < targetCount && attempts < maxAttempts; i++) {
+    attempts++;
+    const locality = localities[(i + attempts) % localities.length];
+    let category = categories[i % categories.length];
+
+    // Determine category and business name based on custom search query or standard category
     let bizName = "";
+    const namePrefix = EXPANDED_PREFIXES[(i * 3 + attempts) % EXPANDED_PREFIXES.length];
+    const suffix = EXPANDED_SUFFIXES[(i * 2 + attempts) % EXPANDED_SUFFIXES.length];
+
     if (userQuery && userQuery.length > 1) {
-      category = userQuery.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
-      const suffixes = ["Hub", "Care", "Services", "Center", "Associates", "Solutions", "Chambers", "Clinic", "Studio", "Enterprises"];
-      const suffix = suffixes[i % suffixes.length];
-      bizName = `${namePrefix} ${category} ${i % 3 === 0 ? suffix : ""}`.trim();
+      category = userQuery
+        .split(" ")
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" ");
+
+      // Natural business name variations
+      const variant = (i + attempts) % 4;
+      if (variant === 0) {
+        bizName = `${namePrefix} ${category}`;
+      } else if (variant === 1) {
+        bizName = `${category} ${suffix}`;
+      } else if (variant === 2) {
+        bizName = `${namePrefix} ${category} ${suffix}`;
+      } else {
+        bizName = `${namePrefix} & Co. (${category})`;
+      }
     } else {
-      bizName = `${namePrefix} ${category.split("&")[0].trim()} ${i > 4 ? "Hub" : "Center"}`;
+      const cleanCat = category.split("&")[0].trim();
+      bizName = `${namePrefix} ${cleanCat} ${suffix}`;
     }
+
+    // Generate unique phone
+    const partA = String(Math.floor(Math.random() * 89999) + 10000);
+    const partB = String(Math.floor(Math.random() * 89999) + 10000);
+    const phoneNum = `${phonePrefix} ${partA} ${partB}`;
+
+    // Deduplication check
+    const sig = makeLeadSignature({
+      name: bizName,
+      city,
+      phone: phoneNum,
+    });
+
+    if (seenSignatures.has(sig)) {
+      continue; // Skip duplicate lead already extracted in past sessions
+    }
+
+    seenSignatures.add(sig);
+    newSignatures.push(sig);
 
     const isNormalExtract = config.requirement.toLowerCase().includes("normal");
     const isMissingWebsite = !isNormalExtract && (config.requirement.toLowerCase().includes("website") || Math.random() < 0.35);
-    const hasPhone = config.filters.mustHavePhone ? true : Math.random() < 0.95;
-    const hasEmail = config.filters.mustHaveEmail ? true : Math.random() < 0.82;
+    const hasPhone = config.filters.mustHavePhone ? true : Math.random() < 0.96;
+    const hasEmail = config.filters.mustHaveEmail ? true : Math.random() < 0.85;
 
     const cleanCitySlug = city.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const cleanNameSlug = namePrefix.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const cleanNameSlug = bizName.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 14);
 
-    const phoneNum = `${phonePrefix} ${Math.floor(Math.random() * 90000) + 10000} ${Math.floor(Math.random() * 90000) + 10000}`;
     const email = hasEmail ? `${cleanNameSlug}.${cleanCitySlug}@gmail.com` : null;
-    const website = isMissingWebsite ? null : `https://${cleanNameSlug}${category.slice(0, 3).toLowerCase().replace(/[^a-z]/g, "")}.${config.countryCode.toLowerCase() === "in" ? "in" : "com"}`;
+    const website = isMissingWebsite ? null : `https://${cleanNameSlug}.${config.countryCode.toLowerCase() === "in" ? "in" : "com"}`;
 
     const rating = parseFloat((4.1 + Math.random() * 0.8).toFixed(1));
-    const reviewsCount = Math.floor(Math.random() * 320) + 28;
+    const reviewsCount = Math.floor(Math.random() * 380) + 18;
 
     let notes = "";
     let opportunityLevel: "Critical" | "High" | "Medium" | "Low" = "Medium";
@@ -197,22 +261,22 @@ export function generateSyntheticLeads(config: DataPalSearchConfig): DataPalBusi
       notes = `Established player in ${locality}. Ready for CRM expansion, customer loyalty automations, and WhatsApp business API.`;
     }
 
-    const sources = ["Google Maps & Places", "JustDial India", "IndiaMART B2B", "LinkedIn Company Search"];
-    const chosenSource = sources[i % sources.length];
+    const sources = ["Google Maps & Places", "JustDial India", "IndiaMART B2B", "LinkedIn Directory"];
+    const chosenSource = sources[(i + attempts) % sources.length];
 
     results.push({
-      id: `lead_${Date.now()}_${i}`,
+      id: `lead_${Date.now()}_${results.length}_${Math.random().toString(36).substring(2, 6)}`,
       name: bizName,
       category,
       website,
       phone: hasPhone ? phoneNum : null,
       email,
-      address: `Shop ${Math.floor(Math.random() * 40) + 1}, ${locality}, Near City Square`,
+      address: `Shop ${Math.floor(Math.random() * 60) + 1}, ${locality}, Near City Square`,
       city,
       state,
       country,
-      postalCode: config.areaPincode?.trim() ? config.areaPincode.trim() : country === "India" ? `4000${10 + (i % 80)}` : "90210",
-      rating: rating,
+      postalCode: config.areaPincode?.trim() ? config.areaPincode.trim() : country === "India" ? `4000${10 + (results.length % 80)}` : "90210",
+      rating,
       reviewsCount,
       existingPresence: isMissingWebsite ? "Google Maps, JustDial" : "Website, Google Maps, Instagram",
       source: chosenSource,
@@ -223,6 +287,9 @@ export function generateSyntheticLeads(config: DataPalSearchConfig): DataPalBusi
       extractedAt: new Date().toISOString(),
     });
   }
+
+  // Persist newly seen signatures to guarantee zero repetition in future extractions
+  recordSeenLeadSignatures(newSignatures, config.accountKey);
 
   return results;
 }

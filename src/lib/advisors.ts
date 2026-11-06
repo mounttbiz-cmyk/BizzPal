@@ -17,14 +17,14 @@ export interface AgentMeta {
 export const DEFAULT_EXECUTIVE_AGENTS: AgentMeta[] = [
   {
     id: "ceo",
-    name: "Astra",
-    role: "CEO AI",
-    avatar: "Crown",
-    badge: "Strategic Vision",
-    color: "text-brass bg-brass/10 border-brass/30",
-    summary: "Capital allocation, strategic decisions, board directives, and enterprise-level risk posture.",
+    name: "CEO",
+    role: "Chief Executive Officer",
+    avatar: "Briefcase",
+    badge: "Company Direction",
+    color: "text-amber-500 bg-amber-500/10 border-amber-500/30",
+    summary: "Company direction, capital allocation, executive priorities, and board-level directives.",
     quickTools: [
-      { name: "Scenario Planner", href: "/tools?tool=scenario_planner" },
+      { name: "Scenario Planner", href: "/simulator" },
       { name: "Gap Register", href: "/gaps" },
       { name: "Executive Briefings", href: "/reports" },
     ],
@@ -33,58 +33,59 @@ export const DEFAULT_EXECUTIVE_AGENTS: AgentMeta[] = [
       "Evaluate whether we should hire senior sales or double paid acquisition.",
       "Review client concentration risk under our current revenue structure.",
     ],
-    kpis: ["Net Runway Months", "Gross Burn Rate", "Customer Concentration"],
-    telemetryFeeds: ["QuickBooks (Live)", "Stripe Payments", "Bank Reserve Feeds"],
+    kpis: ["Liquid Runway", "Corporate Health", "Executive Priorities"],
+    telemetryFeeds: ["Executive Ledger", "Daily Check-Ins", "Gap Register"],
   },
   {
     id: "cfo",
-    name: "Marcus",
-    role: "CFO AI",
-    avatar: "TrendingUp",
-    badge: "Capital & Runway",
-    color: "text-jade bg-jade/10 border-jade/30",
+    name: "CFO",
+    role: "Chief Financial Officer",
+    avatar: "Landmark",
+    badge: "Cash & Budget",
+    color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/30",
     summary: "Cash flow underwriting, burn rate compression, unit economics, and solvency governance.",
     quickTools: [
-      { name: "Unit Economics Calculator", href: "/tools?tool=unit_economics" },
-      { name: "Break-Even Engine", href: "/tools?tool=break_even" },
-      { name: "Cash Forecast", href: "/analytics" },
+      { name: "Cash Flow Forecast", href: "/tools?tool=cashflow" },
+      { name: "Profit Calculator", href: "/tools?tool=profit" },
+      { name: "Break-Even Calculator", href: "/tools?tool=breakeven" },
+      { name: "ROI Calculator", href: "/tools?tool=roi" },
     ],
     promptSuggestions: [
-      "Calculate our exact CAC payback period based on our last 3 months data.",
+      "Analyze our net burn against current liquid cash reserves.",
+      "What is our exact CAC payback period based on our last 3 months data?",
       "What is our break-even revenue requirement if operating costs increase 15%?",
-      "Audit our current cloud and SaaS expenditure for margin leakage.",
     ],
     kpis: ["Operating Margin", "CAC Payback", "Net Cash Burn"],
     telemetryFeeds: ["Stripe Invoicing", "Razorpay Ledger", "Expense Logs"],
   },
   {
     id: "marketing",
-    name: "Elena",
-    role: "Marketing AI",
-    avatar: "Target",
-    badge: "Demand & Growth",
-    color: "text-purple-400 bg-purple-400/10 border-purple-400/30",
-    summary: "Inbound funnel economics, organic CAC reduction, positioning, and conversion velocity.",
+    name: "Marketing",
+    role: "Head of Marketing",
+    avatar: "Megaphone",
+    badge: "Growth & Leads",
+    color: "text-purple-500 bg-purple-500/10 border-purple-500/30",
+    summary: "Inbound funnel economics, organic CAC reduction, brand positioning, and conversion velocity.",
     quickTools: [
-      { name: "Audience Profiler", href: "/tools?tool=audience_profiler" },
-      { name: "Competitor Intel", href: "/tools?tool=competitor_intel" },
-      { name: "Playbooks Hub", href: "/playbooks" },
+      { name: "CAC Calculator", href: "/tools?tool=cac" },
+      { name: "Pricing Simulator", href: "/tools?tool=pricing" },
+      { name: "Knowledge Hub", href: "/knowledge" },
     ],
     promptSuggestions: [
       "Where is the highest-leverage dropoff in our primary conversion funnel?",
       "How do we decrease blended CAC while sustaining lead volume?",
-      "Design an enterprise positioning angle that out-converts commoditized competitors.",
+      "Suggest high-converting inbound positioning angles for our market.",
     ],
     kpis: ["Blended CAC", "MQL-to-SQL Velocity", "Organic Share of Voice"],
     telemetryFeeds: ["Google Analytics 4", "Meta Ads Manager", "HubSpot CRM"],
   },
   {
     id: "sales",
-    name: "Vikram",
-    role: "Sales AI",
-    avatar: "Zap",
-    badge: "Deal Velocity",
-    color: "text-blue-400 bg-blue-400/10 border-blue-400/30",
+    name: "Sales",
+    role: "Head of Sales",
+    avatar: "Handshake",
+    badge: "Deals & Revenue",
+    color: "text-blue-500 bg-blue-500/10 border-blue-500/30",
     summary: "Deal qualification, pipeline velocity, pricing power resistance, and contract expansion.",
     quickTools: [
       { name: "Decision Simulator", href: "/simulator" },
@@ -101,32 +102,32 @@ export const DEFAULT_EXECUTIVE_AGENTS: AgentMeta[] = [
   },
   {
     id: "hr",
-    name: "Sarah",
-    role: "HR & Talent AI",
+    name: "HR & Talent",
+    role: "Head of People & HR",
     avatar: "Users",
-    badge: "Talent & Culture",
-    color: "text-rose-400 bg-rose-400/10 border-rose-400/30",
+    badge: "Hiring & Team",
+    color: "text-rose-500 bg-rose-500/10 border-rose-500/30",
     summary: "Headcount capacity modeling, key-person dependency risks, retention, and compensation benchmarks.",
     quickTools: [
-      { name: "Capacity Modeler", href: "/tools?tool=capacity" },
+      { name: "Hiring Simulator", href: "/tools?tool=hiring" },
       { name: "Team Governance", href: "/team" },
       { name: "Hiring Playbooks", href: "/playbooks" },
     ],
     promptSuggestions: [
       "Do we have sufficient engineering capacity to support our Q3 product roadmap?",
       "Quantify the key-person delivery risk across our core client accounts.",
-      "Benchmark our developer base salary structure against Indian enterprise tier averages.",
+      "Benchmark our developer salary structure against enterprise tier averages.",
     ],
     kpis: ["Revenue Per FTE", "Key-Person Risk Factor", "Quarterly Retention %"],
     telemetryFeeds: ["BambooHR", "Slack Telemetry", "Payroll Ledger"],
   },
   {
     id: "operations",
-    name: "David",
-    role: "Operations AI",
-    avatar: "Workflow",
-    badge: "Efficiency & SLAs",
-    color: "text-cyan-400 bg-cyan-400/10 border-cyan-500/30",
+    name: "Operations",
+    role: "Head of Operations",
+    avatar: "Settings2",
+    badge: "Daily Operations",
+    color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/30",
     summary: "Fulfillment bottlenecks, delivery SLAs, cross-team handoffs, and vendor cost optimization.",
     quickTools: [
       { name: "Workflows Builder", href: "/workflows" },
@@ -143,11 +144,11 @@ export const DEFAULT_EXECUTIVE_AGENTS: AgentMeta[] = [
   },
   {
     id: "strategy",
-    name: "Rohan",
-    role: "Strategy AI",
+    name: "Strategy",
+    role: "Chief Strategy Officer",
     avatar: "Compass",
-    badge: "Moats & Expansion",
-    color: "text-orange-400 bg-orange-400/10 border-orange-400/30",
+    badge: "Market Strategy",
+    color: "text-orange-500 bg-orange-500/10 border-orange-500/30",
     summary: "Defensibility analysis, competitive moats, market expansion playbooks, and strategic partnerships.",
     quickTools: [
       { name: "Market Entry Simulator", href: "/tools?tool=market_entry" },
@@ -186,41 +187,203 @@ export function saveStoredCustomAdvisors(data: CustomAdvisorStore) {
   }
 }
 
+export const LEGACY_NAMES = new Set(["astra", "marcus", "elena", "vikram", "sarah", "david", "rohan"]);
+const LEGACY_AVATARS = new Set(["crown", "zap", "workflow", "target", "trendingup"]);
+
 export function resolveEffectiveAgents(custom: CustomAdvisorStore = {}): AgentMeta[] {
   return DEFAULT_EXECUTIVE_AGENTS.map(agent => {
     const customData = custom[agent.id];
     if (!customData) return agent;
+
+    const storedName = customData.name?.trim();
+    const storedAvatar = customData.avatar?.trim();
+
+    // Auto-upgrade legacy character names or deprecated default avatars
+    const effectiveName =
+      storedName && !LEGACY_NAMES.has(storedName.toLowerCase())
+        ? storedName
+        : agent.name;
+
+    const effectiveAvatar =
+      storedAvatar && !LEGACY_AVATARS.has(storedAvatar.toLowerCase())
+        ? storedAvatar
+        : agent.avatar;
+
     return {
       ...agent,
-      name: customData.name?.trim() || agent.name,
-      avatar: customData.avatar || agent.avatar,
+      name: effectiveName,
+      avatar: effectiveAvatar,
     };
   });
 }
 
+export function useCustomAdvisors() {
+  const [store, setStore] = useState<CustomAdvisorStore>(() => getStoredCustomAdvisors());
+
+  useEffect(() => {
+    const handleSync = () => {
+      setStore(getStoredCustomAdvisors());
+    };
+    handleSync();
+    window.addEventListener("bizzpal_advisors_updated", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      window.removeEventListener("bizzpal_advisors_updated", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, []);
+
+  const getAdvisorName = (id: string, fallback?: string): string => {
+    const key = id === "coo" ? "operations" : id === "cmo" ? "marketing" : id;
+    const item = store[key] || store[id];
+    const val = item?.name?.trim();
+    if (val && !LEGACY_NAMES.has(val.toLowerCase())) {
+      return val;
+    }
+    if (fallback) return fallback;
+    const def = DEFAULT_EXECUTIVE_AGENTS.find(a => a.id === key || a.id === id);
+    return def ? def.name : "Advisor";
+  };
+
+  const ceoName = getAdvisorName("ceo", "CEO");
+  const cfoName = getAdvisorName("cfo", "CFO");
+  const marketingName = getAdvisorName("marketing", "Marketing");
+  const salesName = getAdvisorName("sales", "Sales");
+  const hrName = getAdvisorName("hr", "HR & Talent");
+  const opsName = getAdvisorName("operations", "Operations");
+  const strategyName = getAdvisorName("strategy", "Strategy");
+
+  const effectiveAgents = resolveEffectiveAgents(store);
+
+  const updateAdvisor = (id: string, name: string, avatar?: string) => {
+    const key = id === "coo" ? "operations" : id === "cmo" ? "marketing" : id;
+    const current = getStoredCustomAdvisors();
+    const updated: CustomAdvisorStore = {
+      ...current,
+      [key]: {
+        name: name.trim() || undefined,
+        avatar: avatar || current[key]?.avatar || current[id]?.avatar,
+      },
+    };
+    saveStoredCustomAdvisors(updated);
+    setStore(updated);
+  };
+
+  const saveAllAdvisors = (nextStore: CustomAdvisorStore) => {
+    saveStoredCustomAdvisors(nextStore);
+    setStore(nextStore);
+  };
+
+  const resetAdvisor = (id: string) => {
+    const key = id === "coo" ? "operations" : id === "cmo" ? "marketing" : id;
+    const current = getStoredCustomAdvisors();
+    const next = { ...current };
+    delete next[key];
+    delete next[id];
+    saveStoredCustomAdvisors(next);
+    setStore(next);
+  };
+
+  const resetAllAdvisors = () => {
+    saveStoredCustomAdvisors({});
+    setStore({});
+  };
+
+  return {
+    store,
+    getAdvisorName,
+    ceoName,
+    cfoName,
+    marketingName,
+    salesName,
+    hrName,
+    opsName,
+    strategyName,
+    effectiveAgents,
+    updateAdvisor,
+    saveAllAdvisors,
+    resetAdvisor,
+    resetAllAdvisors,
+  };
+}
+
 export function getAdvisorGreeting(agent: AgentMeta, companyProfile?: any): string {
   const cName = companyProfile?.name || "your enterprise";
-  const runway = companyProfile?.burn && companyProfile?.cash
-    ? (companyProfile.cash / companyProfile.burn).toFixed(1)
-    : (companyProfile?.cash ? "18+" : "7.2");
+  const founder = companyProfile?.founderName ? `, ${companyProfile.founderName}` : "";
 
   switch (agent.id) {
     case "ceo":
-      return `Good day. I am ${agent.name}, your ${agent.role}. I monitor company runway, capital allocation, and top-tier execution priorities for ${cName}. What strategic directive shall we review today?`;
+      return `Good day${founder}. Welcome to your CEO Advisory desk.
+
+Here is what I can do for you and ${cName}:
+• Oversee company direction, capital allocation, and top execution priorities.
+• Evaluate high-stakes strategic trade-offs, scenario models, and board-level decisions.
+• Safeguard your cash runway and align quarterly growth objectives across your entire leadership team.
+
+What strategic challenge or priority shall we tackle today?`;
+
     case "cfo":
-      return `${agent.name} online. Cash burn, working capital, and unit economics are under surveillance. Your current liquid runway stands at ${runway} months. What financial model should we analyze?`;
+      return `Hello${founder}. Welcome to your CFO Financial Governance desk.
+
+Here is what I can do for you and ${cName}:
+• Underwrite financial solvency, track net cash burn, and model real-time liquid runway.
+• Audit unit economics including CAC payback, gross margins, and customer lifetime value (LTV).
+• Calculate break-even milestones, identify margin leakages, and optimize capital expenditure.
+
+What financial model, budget, or runway forecast should we analyze?`;
+
     case "marketing":
-      return `${agent.name} ready. I'm tracking your inbound channel distribution, CAC payback velocity, and positioning resonance. How can we accelerate demand today?`;
+      return `Hello${founder}. Welcome to your Marketing & Demand Generation desk.
+
+Here is what I can do for you and ${cName}:
+• Accelerate customer acquisition and drive high-converting inbound and outbound funnels.
+• Lower blended customer acquisition cost (CAC) and sharpen product positioning against competitors.
+• Design organic content engines, evaluate ad channel efficiency (ROAS), and scale market reach.
+
+How can we accelerate your market growth and lead volume today?`;
+
     case "sales":
-      return `${agent.name} ready. Let's look at pipeline velocity, deal size qualification, proposal win rates, and enterprise client expansions. What pipeline are we closing?`;
+      return `Hello${founder}. Welcome to your Sales & Revenue Growth desk.
+
+Here is what I can do for you and ${cName}:
+• Accelerate pipeline velocity, qualify high-value enterprise leads, and close stalled opportunities.
+• Overcome pricing resistance, structure multi-tier annual contracts, and drive account expansion.
+• Optimize sales conversion rates, proposal win percentages, and rep quotas.
+
+Which pipeline deal or revenue milestone shall we close today?`;
+
     case "hr":
-      return `Hi there, ${agent.name} here. I specialize in headcount planning, talent retention benchmarks, compensation parity, and operational hiring velocity.`;
+      return `Hello${founder}. Welcome to your People, HR & Talent Governance desk.
+
+Here is what I can do for you and ${cName}:
+• Model headcount capacity to ensure your team can deliver on company roadmaps.
+• Benchmark executive and technical compensation packages against current industry averages.
+• Diagnose key-person dependencies, mitigate operational turnover risk, and build a high-retention culture.
+
+What hiring, compensation, or team capacity decision can I help you evaluate?`;
+
     case "operations":
-      return `${agent.name} active. I optimize your day-to-day workflow pipelines, eliminate manual friction, and ensure customer delivery SLAs remain in the top quartile.`;
+      return `Hello${founder}. Welcome to your Operations & Process Optimization desk.
+
+Here is what I can do for you and ${cName}:
+• Eliminate bottlenecks in your delivery cycles and ensure customer fulfillment SLAs stay on target.
+• Automate cross-department handoffs, client onboarding protocols, and routine workflows.
+• Audit software licenses, vendor contracts, and recurring operating overhead for cost waste.
+
+Where are you feeling operational friction, or which workflow should we streamline?`;
+
     case "strategy":
-      return `${agent.name} here. I analyze competitive defensibility, market expansion opportunities, pricing power moats, and strategic alliances.`;
+      return `Hello${founder}. Welcome to your Strategic Moats & Market Expansion desk.
+
+Here is what I can do for you and ${cName}:
+• Analyze competitive moats, pricing power defensibility, and long-term positioning barriers.
+• Identify high-margin market expansion vectors, new product tiers, and partnership opportunities.
+• Stress-test your business model against legacy competitors and macroeconomic disruptions.
+
+What market opportunity or strategic advantage would you like to explore?`;
+
     default:
-      return `Good day. I am ${agent.name}, your ${agent.role}. How can I assist you with ${cName} today?`;
+      return `Hello${founder}. I am your ${agent.name} advisor for ${cName}. I am here to help you analyze business telemetry, solve operational hurdles, and scale efficiently. What shall we work on today?`;
   }
 }
 

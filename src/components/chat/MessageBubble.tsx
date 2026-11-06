@@ -45,7 +45,7 @@ export function MessageBubble({
 
   const senderName = isUser
     ? companyProfile?.founderName || "You"
-    : `${activeAgent.name} (${activeAgent.role})`;
+    : activeAgent.name;
 
   return (
     <div
@@ -189,11 +189,13 @@ export function MessageBubble({
                 </div>
               )}
 
-              {/* Recommended Playbooks */}
-              {message.nextSteps && message.nextSteps.length > 0 && onSelectPlaybook && (
+              {/* Tools & Recommendations Toggleable Section */}
+              {((message.nextSteps && message.nextSteps.length > 0) || message.id.startsWith("msg_init_")) && onSelectPlaybook && (
                 <PlaybookActions
-                  playbooks={message.nextSteps}
-                  onSelectPlaybook={onSelectPlaybook}
+                  playbooks={message.nextSteps || []}
+                  tools={activeAgent.quickTools || []}
+                  promptSuggestions={activeAgent.promptSuggestions || []}
+                  onSelectAction={onSelectPlaybook}
                   disabled={isTyping}
                 />
               )}

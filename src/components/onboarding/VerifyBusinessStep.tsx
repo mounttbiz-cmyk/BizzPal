@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { AlertTriangle, BadgeCheck, Building2, Info, MapPin, ShieldCheck } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Building2, Info, MapPin, ShieldCheck, Upload } from "lucide-react";
 import { checkGstin, normalizeGstin } from "@/lib/verification/gstin";
 import type { GstState } from "./types";
 import { Callout, Fact, Pill, PrimaryButton, StepHeader } from "./ui";
@@ -10,13 +10,15 @@ interface Props {
   state: GstState;
   gstinInput: string;
   companyName: string;
+  logoUrl?: string | null;
   onCompanyNameChange: (name: string) => void;
+  onLogoChange?: (logo: string | null) => void;
   onInput: (v: string) => void;
   onVerify: () => void;
   onNext: () => void;
 }
 
-export function VerifyBusinessStep({ state, gstinInput, companyName, onCompanyNameChange, onInput, onVerify, onNext }: Props) {
+export function VerifyBusinessStep({ state, gstinInput, companyName, logoUrl, onCompanyNameChange, onLogoChange, onInput, onVerify, onNext }: Props) {
   const [showWhy, setShowWhy] = useState(false);
   const local = useMemo(() => checkGstin(gstinInput), [gstinInput]);
   const typed = normalizeGstin(gstinInput).length > 0;
@@ -49,6 +51,63 @@ export function VerifyBusinessStep({ state, gstinInput, companyName, onCompanyNa
         <p className="text-[10px] text-text-muted">
           This will be the official name shown across your executive dashboard, AI advisors, and team workspace.
         </p>
+      </div>
+
+      {/* Business Logo Upload */}
+      <div className="space-y-2 p-4 rounded-2xl border border-line bg-surface-2/30">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-text flex items-center gap-1.5">
+            <Upload className="w-3.5 h-3.5 text-brass" /> Business / Brand Logo
+          </label>
+          {logoUrl && onLogoChange && (
+            <button
+              type="button"
+              onClick={() => onLogoChange(null)}
+              className="text-[11px] text-rust hover:underline cursor-pointer"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-3.5 p-3 rounded-xl border border-dashed border-line bg-surface">
+          {logoUrl ? (
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+              <img src={logoUrl} alt="Company logo preview" className="w-full h-full object-contain" />
+            </div>
+          ) : (
+            <div className="w-12 h-12 rounded-xl bg-surface-2 border border-line text-text-muted text-[10px] flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5 text-text-muted/50" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0 space-y-1">
+            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 hover:bg-surface-2/80 border border-line text-xs font-semibold text-text cursor-pointer transition-colors shadow-2xs">
+              <Upload className="w-3.5 h-3.5 text-brass" />
+              <span>{logoUrl ? "Change Logo" : "Upload Logo Image"}</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !onLogoChange) return;
+                  if (file.size > 2 * 1024 * 1024) {
+                    alert("Please select an image under 2MB.");
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    const res = ev.target?.result as string;
+                    if (res) onLogoChange(res);
+                  };
+                  reader.readAsDataURL(file);
+                }}
+              />
+            </label>
+            <p className="text-[10px] text-text-muted">
+              Displayed prominently on your executive dashboard and reports. PNG, SVG, or JPG (max 2MB).
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-2">

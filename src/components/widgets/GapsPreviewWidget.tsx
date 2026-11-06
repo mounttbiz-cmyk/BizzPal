@@ -110,13 +110,10 @@ export function GapsPreviewWidget() {
                 </span>
               </div>
             </div>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold font-mono border ${
-              topGaps.length > 0
-                ? "bg-rust/15 text-rust border-rust/30"
-                : "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30"
-            }`}>
-              {topGaps.length} {topGaps.length === 1 ? "Identified" : "Identified"}
-            </span>
+            <div className="flex items-center gap-1.5 text-xs text-text-muted font-medium">
+              <span className={`w-1.5 h-1.5 rounded-full ${topGaps.length > 0 ? "bg-amber-500" : "bg-emerald-500"}`} />
+              <span>{topGaps.length} flagged</span>
+            </div>
           </div>
 
           <div className="space-y-2.5 pt-3">
@@ -139,24 +136,16 @@ export function GapsPreviewWidget() {
                     <span className="text-xs font-semibold text-text leading-snug group-hover:text-brass transition-colors">
                       {gap.title}
                     </span>
-                    <span
-                      className={`text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase font-mono tracking-wide shrink-0 ${
-                        gap.severity === "critical"
-                          ? "bg-rust/20 text-rust border border-rust/30"
-                          : "bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30"
-                      }`}
-                    >
+                    <span className="text-[10px] font-bold uppercase font-mono tracking-wider shrink-0 text-amber-600 dark:text-amber-400">
                       {gap.severity}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-text-muted">
                     <span className="font-mono text-text font-medium">{gap.impact}</span>
-                    <span className="text-line-strong">·</span>
-                    <span className="px-1.5 py-0.2 rounded bg-surface border border-line text-[10px] capitalize font-medium">
-                      {gap.effort}
-                    </span>
-                    <span className="text-line-strong">·</span>
-                    <span className="text-cyan-800 dark:text-cyan-400 text-[10px] font-medium">{gap.category}</span>
+                    <span className="text-text-muted/40">·</span>
+                    <span className="capitalize">{gap.effort}</span>
+                    <span className="text-text-muted/40">·</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-medium">{gap.category}</span>
                   </div>
                 </div>
               ))

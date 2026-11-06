@@ -2,52 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-:root, [data-theme="dark"] {
+:root, [data-theme="light"], .light {
   /* Font Variables */
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: 'Newsreader', Georgia, serif;
   --font-space-grotesk: 'Space Grotesk', sans-serif;
   --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* BizzPal Signature Champagne Gold & Warm Obsidian Palette */
-  --bg:          #08090C;   /* Deep luxury obsidian void */
-  --surface:     #0F1218;   /* Elevated warm obsidian surface */
-  --surface-2:   #161922;   /* Interactive slate layer */
-  --line:        rgba(255, 255, 255, 0.08);   /* Subtle neutral structural hairline */
-  --line-strong: rgba(255, 255, 255, 0.16);   /* Emphasized hairline */
-  --text:        #F8F9FA;   /* Crisp diamond white */
-  --text-muted:  #94A3B8;   /* Slate 400 - high contrast against dark surface */
-  
-  /* Tasteful Champagne Gold & Luxury Brass — warm, rich, and balanced (NOT loud yellow/mustard) */
-  --gold:        #DFBA73;   /* Refined Metallic Champagne Gold */
-  --gold-light:  #F7ECD1;   /* Soft Champagne shimmer */
-  --gold-dark:   #A37C2C;   /* Burnished deep bronze gold */
-  --gold-glow:   rgba(223, 186, 115, 0.20);
-  --brass:       #DFBA73;   /* Warm luxury brass */
-  --brass-soft:  rgba(223, 186, 115, 0.12);
-  --cyan:        #38BDF8;   /* Crisp executive cyan */
-  --cyan-soft:   rgba(56, 189, 248, 0.08);
-  --violet:      #A78BFA;   /* Subtle executive violet */
-  --violet-soft: rgba(167, 139, 250, 0.08);
-  --jade:        #10B981;   /* Live operational emerald */
-  --rust:        #F43F5E;   /* Crimson alert */
-  --amber:       #F59E0B;   /* Warm amber */
-  --shadow:      0 12px 36px 0 rgba(0, 0, 0, 0.6);
-  --grid:        rgba(223, 186, 115, 0.02);
-
-  /* Motion tokens (§4.1) */
-  --dur-instant: 90ms;
-  --dur-fast:    150ms;
-  --dur-base:    240ms;
-  --dur-slow:    420ms;
-  --dur-story:   1200ms;
-
-  --ease-out:    cubic-bezier(.2,.8,.2,1);
-  --ease-in:     cubic-bezier(.4,0,1,1);
-  --ease-spring: cubic-bezier(.34,1.4,.64,1);
-}
-
-[data-theme="light"] {
+  /* Crisp Neutral Luxury Light Palette */
   --bg:          #F8FAFC;   /* Crisp neutral clean platinum */
   --surface:     #FFFFFF;   /* Pure crisp white card surface */
   --surface-2:   #F1F5F9;   /* Clean elevated surface */
@@ -70,6 +32,43 @@
   --amber:       #B45309;   /* Amber 700 - 5.1:1 contrast */
   --shadow:      0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 20px rgba(0, 0, 0, 0.05);
   --grid:        #F1F5F9;
+
+  /* Motion tokens (§4.1) */
+  --dur-instant: 90ms;
+  --dur-fast:    150ms;
+  --dur-base:    240ms;
+  --dur-slow:    420ms;
+  --dur-story:   1200ms;
+
+  --ease-out:    cubic-bezier(.2,.8,.2,1);
+  --ease-in:     cubic-bezier(.4,0,1,1);
+  --ease-spring: cubic-bezier(.34,1.4,.64,1);
+}
+
+[data-theme="dark"], .dark {
+  /* BizzPal Signature Champagne Gold & Warm Obsidian Palette */
+  --bg:          #08090C;   /* Deep luxury obsidian void */
+  --surface:     #0F1218;   /* Elevated warm obsidian surface */
+  --surface-2:   #161922;   /* Interactive slate layer */
+  --line:        rgba(255, 255, 255, 0.08);   /* Subtle neutral structural hairline */
+  --line-strong: rgba(255, 255, 255, 0.16);   /* Emphasized hairline */
+  --text:        #F8F9FA;   /* Crisp diamond white */
+  --text-muted:  #94A3B8;   /* Slate 400 - high contrast against dark surface */
+  --gold:        #DFBA73;   /* Refined Metallic Champagne Gold */
+  --gold-light:  #F7ECD1;   /* Soft Champagne shimmer */
+  --gold-dark:   #A37C2C;   /* Burnished deep bronze gold */
+  --gold-glow:   rgba(223, 186, 115, 0.20);
+  --brass:       #DFBA73;   /* Warm luxury brass */
+  --brass-soft:  rgba(223, 186, 115, 0.12);
+  --cyan:        #38BDF8;   /* Crisp executive cyan */
+  --cyan-soft:   rgba(56, 189, 248, 0.08);
+  --violet:      #A78BFA;   /* Subtle executive violet */
+  --violet-soft: rgba(167, 139, 250, 0.08);
+  --jade:        #10B981;   /* Live operational emerald */
+  --rust:        #F43F5E;   /* Crimson alert */
+  --amber:       #F59E0B;   /* Warm amber */
+  --shadow:      0 12px 36px 0 rgba(0, 0, 0, 0.6);
+  --grid:        rgba(223, 186, 115, 0.02);
 }
 
 /* Sleek custom scrollbars matching BizzPal brass/slate design across the whole dashboard & website */

@@ -394,7 +394,7 @@ export default function TeamPage() {
                   <td className="p-3 text-center text-rust">✕ Restricted</td>
                 </tr>
                 <tr>
-                  <td className="p-3 font-semibold text-text">Autonomous AI Copilots (Astra / Marcus)</td>
+                  <td className="p-3 font-semibold text-text">Autonomous Executive Advisors (CEO / CFO)</td>
                   <td className="p-3 text-center text-jade font-bold">✓ Full</td>
                   <td className="p-3 text-center text-jade font-bold">✓ Full</td>
                   <td className="p-3 text-center text-jade font-bold">✓ Full</td>

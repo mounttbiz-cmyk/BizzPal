@@ -100,7 +100,7 @@ const DEFAULT_WORKFLOWS: WorkflowItem[] = [
   {
     id: "wf_bulk_email_100",
     name: "Autonomous 100-Lead Batch Email Outreach & Engagement Engine",
-    description: "Ingests 100 verified target leads → enriches firmographics → Elena (Marketing AI) drafts hyper-personalized copy per recipient → spam guard audit & 1-click batch dispatch (20/min throttled) → syncs CRM status → tracks opens, replies & booked meetings in real time.",
+    description: "Ingests 100 verified target leads → enriches firmographics → Marketing drafts hyper-personalized copy per recipient → spam guard audit & 1-click batch dispatch (20/min throttled) → syncs CRM status → tracks opens, replies & booked meetings in real time.",
     category: "outreach",
     status: "active",
     executionsCount: 52,
@@ -131,7 +131,7 @@ const DEFAULT_WORKFLOWS: WorkflowItem[] = [
         stepNumber: 3,
         stageName: "AI Reasoning & Rules",
         title: "1-to-1 AI Personalization & Spam Guard",
-        subtitle: "Elena (Marketing AI) writes bespoke icebreakers & value propositions; runs MX/DKIM spam-score check",
+        subtitle: "Marketing writes bespoke icebreakers & value propositions; runs MX/DKIM spam-score check",
         telemetryData: "100 distinct tailored emails synthesized. Average spam vulnerability score: 0.1/10 (Safe Deliverability).",
         icon: "brain",
         status: "completed",
@@ -172,7 +172,7 @@ const DEFAULT_WORKFLOWS: WorkflowItem[] = [
   {
     id: "wf_lead_qualification",
     name: "Enterprise Inbound Lead Auto-Qualification & Executive Dispatch",
-    description: "Inbound demo request → retrieve company firmographics → Elena & Vikram AI score ICP → route enterprise deals with human AE signoff → update CRM → monitor reply SLA.",
+    description: "Inbound demo request → retrieve company firmographics → Marketing & Sales score ICP → route enterprise deals with human AE signoff → update CRM → monitor reply SLA.",
     category: "sales",
     status: "active",
     executionsCount: 184,
@@ -203,7 +203,7 @@ const DEFAULT_WORKFLOWS: WorkflowItem[] = [
         stepNumber: 3,
         stageName: "AI Reasoning & Rules",
         title: "ICP Scoring & Deal Structuring",
-        subtitle: "Elena (Marketing AI) evaluates fit score & suggested ACV",
+        subtitle: "Marketing evaluates fit score & suggested ACV",
         telemetryData: "Score: 94/100 (Tier 1 ICP). Recommended contract ACV: ₹8,50,000/yr",
         icon: "brain",
         status: "completed",
@@ -213,7 +213,7 @@ const DEFAULT_WORKFLOWS: WorkflowItem[] = [
         stepNumber: 4,
         stageName: "Action / Approval",
         title: "AE Assignment & Custom Deck Dispatch",
-        subtitle: "Assign Senior AE Vikram & send personalized executive briefing",
+        subtitle: "Assign Senior AE & send personalized executive briefing",
         telemetryData: "Assigned: Rahul S. (Sr AE). Executive email personalized with benchmark deck.",
         icon: "user",
         status: "completed",
@@ -244,7 +244,7 @@ const DEFAULT_WORKFLOWS: WorkflowItem[] = [
   {
     id: "wf_solvency_guard",
     name: "CFO Solvency Alarm & Discretionary Burn Freeze",
-    description: "Net burn spike (>12% MoM) → retrieve banking & ledger feeds → Marcus (CFO AI) root cause audit → founder 1-click approval → freeze unapproved vendors → monitor runway recovery.",
+    description: "Net burn spike (>12% MoM) → retrieve banking & ledger feeds → CFO root cause audit → founder 1-click approval → freeze unapproved vendors → monitor runway recovery.",
     category: "finance",
     status: "active",
     executionsCount: 29,
@@ -422,7 +422,7 @@ export default function WorkflowsPage() {
     setSentLog([
       "[Batch Init] Uploaded 100 enterprise target leads from target_cohort_q3.csv",
       "[Enrichment] 100/100 accounts enriched via Clearbit & LinkedIn APIs (Verified MX records)",
-      "[AI Personalization] Elena (Marketing AI) generated 100 bespoke 1-to-1 icebreakers and pain-point value propositions",
+      "[AI Personalization] Marketing generated 100 bespoke 1-to-1 icebreakers and pain-point value propositions",
       "[Spam Guard] SPF, DKIM, DMARC alignment verified. Spam score 0.08 / 10.0 (Green / Inbox Primary)",
     ]);
 
@@ -694,7 +694,7 @@ export default function WorkflowsPage() {
               When an outreach batch of 100 prospects is triggered, BizzPal runs a closed-loop sequence:
               <strong className="text-text font-semibold"> (1) Ingest Leads</strong> from CSV/CRM →
               <strong className="text-text font-semibold"> (2) Enrich Signals</strong> with verified MX/LinkedIn data →
-              <strong className="text-text font-semibold"> (3) Elena AI Synthesizes Personalized Messaging</strong> with anti-spam scoring →
+              <strong className="text-text font-semibold"> (3) Marketing Synthesizes Personalized Messaging</strong> with anti-spam scoring →
               <strong className="text-text font-semibold"> (4) Throttled Dispatch</strong> (20/min via authenticated relay to guard domain reputation) →
               <strong className="text-text font-semibold"> (5) CRM State Sync</strong> →
               <strong className="text-text font-semibold"> (6) Outcome Tracking</strong> for booked discovery calls.
@@ -1075,7 +1075,7 @@ export default function WorkflowsPage() {
                   <span className="text-[10px] font-bold uppercase tracking-wider">Stage 3-4: AI & Throttle</span>
                 </div>
                 <p className="text-xs font-bold text-text">1-to-1 Personalization</p>
-                <p className="text-[10.5px] text-text-muted leading-relaxed">Elena AI drafts tailored value props. Throttles at 20 emails/min to preserve inbox placement.</p>
+                <p className="text-[10.5px] text-text-muted leading-relaxed">Marketing drafts tailored value props. Throttles at 20 emails/min to preserve inbox placement.</p>
               </div>
               <div className="p-3.5 rounded-xl bg-surface-2 border border-line space-y-1">
                 <div className="flex items-center gap-1.5 text-emerald-500">

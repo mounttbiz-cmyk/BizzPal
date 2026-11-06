@@ -63,7 +63,7 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
     tagline: "Live Google OAuth 2.0 integration for real executive calendar telemetry, Gmail briefings, and Drive synchronization.",
     services: ["Google OAuth 2.0", "Google Calendar API", "Executive Workload Diagnostics", "Google Drive"],
     permissions: ["Read authorized executive Google Profile", "Read executive calendar meetings & focus blocks"],
-    usedBy: ["CEO AI (Astra)", "Executive Workload Analyzer", "Operations AI", "Daily Check-In Filter"],
+    usedBy: ["CEO", "Executive Workload Analyzer", "Operations", "Daily Check-In Filter"],
     configSummary: "Live OAuth connection active with instant profile synchronization.",
   },
   {
@@ -73,7 +73,7 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
     tagline: "Enterprise Single Sign-On, Outlook executive communications, OneDrive repositories, and Teams alerts bot.",
     services: ["Entra ID SSO", "Outlook Calendar Telemetry", "Teams Briefings Bot"],
     permissions: ["Single sign-on authentication", "Post alerts to #executive-briefings"],
-    usedBy: ["Operations AI", "CEO AI (Astra)", "Marcus (CFO AI)"],
+    usedBy: ["Operations", "CEO", "CFO"],
     configSummary: "Microsoft 365 Entra ID connection active.",
   },
   {
@@ -83,7 +83,7 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
     tagline: "Sync company page follower analytics, campaign ROAS, B2B lead generation, and executive thought leadership.",
     services: ["Company Page Analytics", "Campaign Manager API", "Lead Gen Forms"],
     permissions: ["Read follower growth & post metrics", "Extract ad campaign ROAS"],
-    usedBy: ["Marketing AI (Elena)", "Sales AI (Vikram)", "CEO AI (Astra)"],
+    usedBy: ["Marketing", "Sales", "CEO"],
     configSummary: "LinkedIn Marketing Developer link active.",
   },
   {
@@ -93,7 +93,7 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
     tagline: "Meta Business Suite telemetry, Facebook & Instagram Ads CAC/ROAS, Pixel events, and WhatsApp API.",
     services: ["Marketing API", "Instagram Graph API", "WhatsApp Business Cloud"],
     permissions: ["Read ad spend & campaign metrics", "Read WhatsApp conversation threads"],
-    usedBy: ["Marketing AI (Elena)", "Growth AI", "Daily Check-In Filter"],
+    usedBy: ["Marketing", "Growth Strategy", "Daily Check-In Filter"],
     configSummary: "Meta Graph API token active.",
   },
   {
@@ -103,7 +103,7 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
     tagline: "Live telemetry for ARR/MRR collections, invoices, subscription churn, and automated revenue reconciliation.",
     services: ["Charges & Payments API", "Subscriptions Telemetry", "Inbound Webhook Engine"],
     permissions: ["Read customer charges & invoices", "Listen for live payment webhook events"],
-    usedBy: ["Marcus (CFO AI)", "Adaptive Analytics", "Decision Simulator", "Daily Check-In Filter"],
+    usedBy: ["CFO", "Adaptive Analytics", "Decision Simulator", "Daily Check-In Filter"],
     configSummary: "End-to-end verified with live webhook endpoint and persistent event logging.",
   },
   {
@@ -113,7 +113,7 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
     tagline: "Real-time executive briefing alerts, solvency alarms, and approval bots.",
     services: ["Bot Notifications", "Slash Commands (/bizzpal)", "Interactive Approvals"],
     permissions: ["Post messages to #boardroom", "Listen for executive slash commands"],
-    usedBy: ["Astra (CEO AI)", "Marcus (CFO AI)", "Solvency Alarms"],
+    usedBy: ["CEO", "CFO", "Solvency Alarms"],
     configSummary: "Webhook link for executive broadcasts and daily briefing delivery.",
   },
   {
@@ -123,7 +123,7 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
     tagline: "General ledger sync, vendor expense tracking, and Indian GST tax compliance.",
     services: ["Chart of Accounts", "Bills & Expenses", "Vendor Invoices"],
     permissions: ["Read ledger transactions", "Extract vendor line-item burn"],
-    usedBy: ["Marcus (CFO AI)", "Budget Planner", "Daily Check-In Filter"],
+    usedBy: ["CFO", "Budget Planner", "Daily Check-In Filter"],
     configSummary: "OAuth token / Org ID link for continuous burn synchronization.",
   },
   {
@@ -133,7 +133,7 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
     tagline: "Meeting load telemetry, client discovery calls, and executive time-burn diagnostics.",
     services: ["Calendar Events API", "Executive Workload Analyzer"],
     permissions: ["Read executive calendar metadata", "Analyze meeting load per FTE"],
-    usedBy: ["Operations AI", "Astra (CEO AI)", "Tasks & Execution"],
+    usedBy: ["Operations", "CEO", "Tasks & Execution"],
     configSummary: "Google Workspace service account sync.",
   },
   {
@@ -143,7 +143,7 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
     tagline: "Escalated ticket volume, SLA response times, and customer churn indicators.",
     services: ["Ticket Metrics", "SLA Breach Telemetry", "Customer Satisfaction (CSAT)"],
     permissions: ["Read ticket volume counts", "Extract open critical incidents"],
-    usedBy: ["Support AI", "Gap Register", "Daily Check-In Filter"],
+    usedBy: ["Customer Support", "Gap Register", "Daily Check-In Filter"],
     configSummary: "API key connection to support portal.",
   },
   {
@@ -153,7 +153,7 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
     tagline: "Sync executive communication, scheduling, and strategic Drive docs.",
     services: ["Gmail Telemetry", "Google Drive", "Google Sheets"],
     permissions: ["Read authorized executive emails", "Read business files in Drive"],
-    usedBy: ["CEO AI (Astra)", "Sales AI (Vikram)", "Tasks & Execution"],
+    usedBy: ["CEO", "Sales", "Tasks & Execution"],
     configSummary: "Domain-wide delegation active.",
   },
   {

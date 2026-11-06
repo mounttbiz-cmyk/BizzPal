@@ -30,6 +30,7 @@ import {
   X
 } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
+import { useCustomAdvisors } from "@/lib/advisors";
 
 interface LeadershipDecision {
   id: string;
@@ -123,7 +124,7 @@ const BRIEFING_EDITIONS: Record<string, BriefingEdition> = {
     operationalSignals: [
       {
         title: "Gross Margin Expansion (83.8%)",
-        desc: "Margin widened by 240 bps due to automated cloud provisioning rules implemented in Marcus CFO automation workflow.",
+        desc: "Margin widened by 240 bps due to automated cloud provisioning rules implemented in CFO automation workflow.",
       },
       {
         title: "Enterprise Conversion SLA 98.9%",
@@ -335,6 +336,7 @@ const BRIEFING_EDITIONS: Record<string, BriefingEdition> = {
 };
 
 export default function ReportsPage() {
+  const { ceoName, cfoName, marketingName } = useCustomAdvisors();
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedBriefingId, setSelectedBriefingId] = useState("briefing-current");
@@ -419,7 +421,7 @@ export default function ReportsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: `[Directive] ${targetDec.title}`,
-          owner: targetDec.category === "finance" ? "CFO Marcus" : "Founder",
+          owner: targetDec.category === "finance" ? "CFO" : "Founder",
           gap: "Executive Briefing",
           priority: "high",
           category: targetDec.category.toUpperCase(),
@@ -434,7 +436,7 @@ export default function ReportsPage() {
           ...d,
           status: action,
           actionTakenAt: action === "pending" ? undefined : "Just now",
-          delegatedTo: delegatedTo || (action === "delegated" ? "Astra (CEO AI)" : undefined),
+          delegatedTo: delegatedTo || (action === "delegated" ? "CEO" : undefined),
         };
       }
       return d;
@@ -677,10 +679,10 @@ export default function ReportsPage() {
               <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-2 border border-line">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-brass text-white flex items-center justify-center font-bold text-[10px]">
-                    A
+                    {ceoName.charAt(0) || "C"}
                   </div>
                   <div>
-                    <span className="font-semibold text-text block">Astra (CEO AI)</span>
+                    <span className="font-semibold text-text block">{ceoName}</span>
                     <span className="text-[10px] text-text-muted">Strategic Priorities & Growth</span>
                   </div>
                 </div>
@@ -690,10 +692,10 @@ export default function ReportsPage() {
               <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-2 border border-line">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px]">
-                    M
+                    {cfoName.charAt(0) || "F"}
                   </div>
                   <div>
-                    <span className="font-semibold text-text block">Marcus (CFO AI)</span>
+                    <span className="font-semibold text-text block">{cfoName}</span>
                     <span className="text-[10px] text-text-muted">Burn, Runway & Solvency</span>
                   </div>
                 </div>
@@ -706,10 +708,10 @@ export default function ReportsPage() {
               <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-2 border border-line">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-[10px]">
-                    E
+                    {marketingName.charAt(0) || "M"}
                   </div>
                   <div>
-                    <span className="font-semibold text-text block">Elena (CMO AI)</span>
+                    <span className="font-semibold text-text block">{marketingName}</span>
                     <span className="text-[10px] text-text-muted">Pipeline, Inbound & CAC</span>
                   </div>
                 </div>
@@ -950,7 +952,7 @@ export default function ReportsPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDecisionAction(dec.id, "delegated", "Astra (CEO AI)")}
+                              onClick={() => handleDecisionAction(dec.id, "delegated", "CEO")}
                               className="px-3 py-1.5 rounded-lg bg-surface border border-line hover:border-line-strong text-xs font-semibold text-text btn-tactile cursor-pointer inline-flex items-center gap-1"
                             >
                               <BrainCircuit className="w-3.5 h-3.5 text-brass" />

@@ -24,6 +24,7 @@ import {
   X
 } from "lucide-react";
 import { ProvenanceBadge } from "@/components/ui/Badge";
+import { useCustomAdvisors } from "@/lib/advisors";
 
 interface ScenarioOption {
   id: string;
@@ -507,6 +508,7 @@ const PRESET_QUERIES = [
 ];
 
 export default function SimulatorPage() {
+  const { ceoName, cfoName } = useCustomAdvisors();
   // Business Profile Context
   const [profile, setProfile] = useState<CompanyProfileContext>({
     companyName: "My Enterprise",
@@ -912,12 +914,12 @@ export default function SimulatorPage() {
       <div className="p-6 rounded-2xl border border-brass/40 bg-surface shadow-xl space-y-4 ring-1 ring-brass/20">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-xl shrink-0 shadow-inner">
-              👑
+            <div className="w-10 h-10 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-inner">
+              <Compass className="w-5 h-5" />
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-text">Astra (CEO AI) & Marcus (CFO AI) Consensus</span>
+                <span className="text-xs font-bold text-text">{ceoName} & {cfoName} Consensus</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-jade/10 text-jade border border-jade/20 font-bold uppercase">
                   {simulationResult.consensusBadge}
                 </span>

@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Suspense } from "react";
 import { createPortal } from "react-dom";
+import { useCustomAdvisors } from "@/lib/advisors";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 import { UpgradeModal } from "@/components/shell/UpgradeModal";
@@ -347,6 +348,7 @@ function getInitialToolsList(): BusinessTool[] {
 }
 
 function ToolsContent() {
+  const { ceoName, cfoName, marketingName } = useCustomAdvisors();
   const searchParams = useSearchParams();
   const [toolsList, setToolsList] = useState<BusinessTool[]>(getInitialToolsList);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -890,10 +892,10 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-slate-200 dark:border-white/10">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`Marcus, analyze our current net margin of ${netMargin}% on ₹${calcRevenue.toLocaleString("en-IN")} monthly revenue. What are the best cost levers to improve operating cash?`)}`}
+                            href={`/chat?message=${encodeURIComponent(`${cfoName}, analyze our current net margin of ${netMargin}% on ₹${calcRevenue.toLocaleString("en-IN")} monthly revenue. What are the best cost levers to improve operating cash?`)}`}
                             className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
                           >
-                            Consult Marcus (CFO AI) →
+                            Consult {cfoName} →
                           </Link>
                         </div>
                       </div>
@@ -970,10 +972,10 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-slate-200 dark:border-white/10">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`Marcus, our break-even target is ₹${breakevenRevenue.toLocaleString("en-IN")} across ${breakevenUnits} contracts/mo. What's our quickest path to achieving this?`)}`}
+                            href={`/chat?message=${encodeURIComponent(`${cfoName}, our break-even target is ₹${breakevenRevenue.toLocaleString("en-IN")} across ${breakevenUnits} contracts/mo. What's our quickest path to achieving this?`)}`}
                             className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
                           >
-                            Analyze with CFO AI →
+                            Analyze with {cfoName} →
                           </Link>
                         </div>
                       </div>
@@ -1052,10 +1054,10 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-slate-200 dark:border-white/10">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`Elena, evaluate our LTV to CAC ratio of ${ltvToCacRatio}x (CAC: ₹${calculatedCAC.toLocaleString("en-IN")}, LTV: ₹${calculatedLTV.toLocaleString("en-IN")}). How should we optimize our demand funnel?`)}`}
+                            href={`/chat?message=${encodeURIComponent(`${marketingName}, evaluate our LTV to CAC ratio of ${ltvToCacRatio}x (CAC: ₹${calculatedCAC.toLocaleString("en-IN")}, LTV: ₹${calculatedLTV.toLocaleString("en-IN")}). How should we optimize our demand funnel?`)}`}
                             className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
                           >
-                            Consult Elena (Marketing AI) on CAC →
+                            Consult {marketingName} on CAC →
                           </Link>
                         </div>
                       </div>
@@ -1132,10 +1134,10 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-slate-200 dark:border-white/10">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`Marcus, our cash runway is ${runwayMonths} months with net monthly outflow of ₹${Math.abs(netCashFlow).toLocaleString("en-IN")}. What cash stabilization steps do you advise?`)}`}
+                            href={`/chat?message=${encodeURIComponent(`${cfoName}, our cash runway is ${runwayMonths} months with net monthly outflow of ₹${Math.abs(netCashFlow).toLocaleString("en-IN")}. What cash stabilization steps do you advise?`)}`}
                             className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
                           >
-                            Plan Cash Runway with Marcus →
+                            Plan Cash Runway with {cfoName} →
                           </Link>
                         </div>
                       </div>
@@ -1290,10 +1292,10 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-slate-200 dark:border-white/10">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`Marcus, evaluate a business loan EMI of ₹${emiMonthlyAmount.toLocaleString("en-IN")}/mo on ₹${emiPrincipal.toLocaleString("en-IN")} borrowing. What is our optimal debt-to-cash strategy?`)}`}
+                            href={`/chat?message=${encodeURIComponent(`${cfoName}, evaluate a business loan EMI of ₹${emiMonthlyAmount.toLocaleString("en-IN")}/mo on ₹${emiPrincipal.toLocaleString("en-IN")} borrowing. What is our optimal debt-to-cash strategy?`)}`}
                             className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
                           >
-                            Consult Marcus (CFO AI) on Loan Amortization →
+                            Consult {cfoName} on Loan Amortization →
                           </Link>
                         </div>
                       </div>
@@ -1406,10 +1408,10 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-slate-200 dark:border-white/10">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`Marcus, analyze our GST cash outflow of ₹${gstNetPayable.toLocaleString("en-IN")} after ₹${gstItc.toLocaleString("en-IN")} ITC offset. How should we optimize working capital around GST filing deadlines?`)}`}
+                            href={`/chat?message=${encodeURIComponent(`${cfoName}, analyze our GST cash outflow of ₹${gstNetPayable.toLocaleString("en-IN")} after ₹${gstItc.toLocaleString("en-IN")} ITC offset. How should we optimize working capital around GST filing deadlines?`)}`}
                             className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
                           >
-                            Verify GST Filing with CFO AI →
+                            Verify GST Filing with {cfoName} →
                           </Link>
                         </div>
                       </div>
@@ -1519,10 +1521,10 @@ function ToolsContent() {
 
                         <div className="pt-2 border-t border-slate-200 dark:border-white/10">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`Marcus, our cash conversion cycle is ${wcCcc} days with ₹${wcTrappedCash.toLocaleString("en-IN")} trapped in working capital. How do we compress DSO from ${wcDso} days?`)}`}
+                            href={`/chat?message=${encodeURIComponent(`${cfoName}, our cash conversion cycle is ${wcCcc} days with ₹${wcTrappedCash.toLocaleString("en-IN")} trapped in working capital. How do we compress DSO from ${wcDso} days?`)}`}
                             className="w-full block py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
                           >
-                            Optimize Cash Conversion with Marcus →
+                            Optimize Cash Conversion with {cfoName} →
                           </Link>
                         </div>
                       </div>
@@ -1601,10 +1603,10 @@ function ToolsContent() {
 
                         <div className="pt-2 border-t border-slate-200 dark:border-white/10">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`Marcus, our sales rep wants to offer a ${discPercent}% discount on a ₹${discDealPrice.toLocaleString("en-IN")} deal. This drops our gross margin from ${discBaseMargin}% to ${discNewMargin}% and requires ${discExtraVolumeNeeded}% more volume. Should we approve this discount?`)}`}
+                            href={`/chat?message=${encodeURIComponent(`${cfoName}, our sales rep wants to offer a ${discPercent}% discount on a ₹${discDealPrice.toLocaleString("en-IN")} deal. This drops our gross margin from ${discBaseMargin}% to ${discNewMargin}% and requires ${discExtraVolumeNeeded}% more volume. Should we approve this discount?`)}`}
                             className="w-full block py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
                           >
-                            Analyze Discount Risk with Marcus →
+                            Analyze Discount Risk with {cfoName} →
                           </Link>
                         </div>
                       </div>
@@ -1694,10 +1696,10 @@ function ToolsContent() {
 
                         <div className="pt-2 border-t border-slate-200 dark:border-white/10">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`Astra & Marcus, our current Net Revenue Retention is ${nrrPercentage}% with ₹${nrrChurnMrr.toLocaleString("en-IN")} monthly churn. What accounts are at risk and how do we drive account expansion?`)}`}
+                            href={`/chat?message=${encodeURIComponent(`${ceoName} & ${cfoName}, our current Net Revenue Retention is ${nrrPercentage}% with ₹${nrrChurnMrr.toLocaleString("en-IN")} monthly churn. What accounts are at risk and how do we drive account expansion?`)}`}
                             className="w-full block py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
                           >
-                            Review Retention Playbook with Astra →
+                            Review Retention Playbook with {ceoName} →
                           </Link>
                         </div>
                       </div>
@@ -1790,10 +1792,10 @@ function ToolsContent() {
 
                         <div className="pt-2 border-t border-slate-200 dark:border-white/10">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`Marcus, an employee with ₹${empBaseCtc.toLocaleString("en-IN")} base CTC costs us ₹${empLoadedAnnual.toLocaleString("en-IN")} fully loaded. How should we price their services to maintain 40% gross margins?`)}`}
+                            href={`/chat?message=${encodeURIComponent(`${cfoName}, an employee with ₹${empBaseCtc.toLocaleString("en-IN")} base CTC costs us ₹${empLoadedAnnual.toLocaleString("en-IN")} fully loaded. How should we price their services to maintain 40% gross margins?`)}`}
                             className="w-full block py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
                           >
-                            Evaluate Hiring Economics with Marcus →
+                            Evaluate Hiring Economics with {cfoName} →
                           </Link>
                         </div>
                       </div>

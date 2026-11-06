@@ -101,8 +101,8 @@ export default function HelpPage() {
     },
     {
       id: "faq-4",
-      question: "How do Astra (CEO AI) and Marcus (CFO AI) generate strategic advice?",
-      answer: "Astra and Marcus synthesize deterministic rules with your live company numbers. Astra focuses on growth, client concentration, and organizational bottlenecks, while Marcus conducts capital audits, runway analysis, and unit economic checks.",
+      question: "How do the CEO and CFO advisors generate strategic advice?",
+      answer: "The CEO and CFO synthesize deterministic rules with your live company numbers. CEO focuses on growth, client concentration, and organizational bottlenecks, while CFO conducts capital audits, runway analysis, and unit economic checks.",
       category: "ai",
     },
     {

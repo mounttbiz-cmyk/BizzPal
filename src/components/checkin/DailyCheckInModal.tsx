@@ -306,7 +306,7 @@ export function DailyCheckInModal({
             <div className="pt-3 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-1.5 text-[11px] text-text-muted">
                 <Info className="w-3.5 h-3.5 text-brass shrink-0" />
-                <span>Synchronizes Astra, Marcus & Elena daily executive briefings.</span>
+                <span>Synchronizes CEO, CFO & Marketing daily executive briefings.</span>
               </div>
               <button
                 type="submit"

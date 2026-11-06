@@ -21,7 +21,7 @@ import {
   FileCode,
   HardDrive,
   Cpu,
-  Sparkles,
+  Activity,
   X,
   ExternalLink,
 } from "lucide-react";
@@ -328,7 +328,7 @@ export function DocumentsManager() {
           <div className="flex items-center justify-between text-xs text-text-muted">
             <span className="font-medium">Index Health</span>
             <div className="w-6 h-6 rounded-lg bg-brass/10 flex items-center justify-center text-brass">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Activity className="w-3.5 h-3.5" />
             </div>
           </div>
           <div className="flex items-center gap-2">

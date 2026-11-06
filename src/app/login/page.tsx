@@ -21,6 +21,7 @@ import {
   Cpu,
   RefreshCw,
   HelpCircle,
+  Upload,
 } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { useAuth } from "@/lib/firebase/authContext";
@@ -54,12 +55,37 @@ export default function LoginPage() {
   const [copiedEnv, setCopiedEnv] = useState(false);
   const [copiedUri, setCopiedUri] = useState(false);
   const [fullName, setFullName] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [businessLogo, setBusinessLogo] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [adminPasscode, setAdminPasscode] = useState("");
   const [errorInfo, setErrorInfo] = useState<AuthErrorInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [authSuccess, setAuthSuccess] = useState(false);
+  const [authSuccessMsg, setAuthSuccessMsg] = useState("");
   const [activeRedirectUri, setActiveRedirectUri] = useState("http://localhost:3000/api/integrations/google/callback");
+
+  /**
+   * Helper: Instant and guaranteed navigation with immediate visual feedback
+   */
+  const handleSuccessfulAuth = (targetUrl: string, message?: string) => {
+    setLoading(false);
+    setAuthSuccess(true);
+    setAuthSuccessMsg(message || (authMode === "register" ? "Account created! Redirecting to setup..." : "Login successful! Loading your dashboard..."));
+
+    // 1. Next.js App Router client transition
+    try {
+      router.push(targetUrl);
+    } catch (e) {}
+
+    // 2. High-reliability fallback navigation so the user is never stuck waiting or forced to refresh
+    setTimeout(() => {
+      if (typeof window !== "undefined") {
+        window.location.href = targetUrl;
+      }
+    }, 250);
+  };
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
@@ -265,19 +291,6 @@ export default function LoginPage() {
       } catch (e) { }
     }
 
-    // Try fetching the exact registered business profile from database
-    if (!businessProfile && cleanEmail) {
-      try {
-        const res = await fetch(`/api/auth/account-status?email=${encodeURIComponent(cleanEmail)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.businessProfile && (data.businessProfile.name || data.businessProfile.revenue !== undefined)) {
-            businessProfile = data.businessProfile;
-          }
-        }
-      } catch (e) {}
-    }
-
     if (!businessProfile) {
       const fallbackName = displayName || fullName || "Founder";
       businessProfile = {
@@ -315,11 +328,22 @@ export default function LoginPage() {
     const userPlan = localStorage.getItem(`bizzpal_subscription_plan_${cleanEmail}`) || "free";
     localStorage.setItem("bizzpal_subscription_plan", userPlan);
 
-    router.push("/dashboard");
+    // Instant UI feedback and guaranteed redirect without delay
+    handleSuccessfulAuth("/dashboard", "Login successful! Loading your dashboard...");
 
-    // Background sync
+    // Background sync & record login time (non-blocking)
     (async () => {
       try {
+        fetch("/api/auth/account-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: cleanEmail,
+            action: "login",
+            lastLoginAt: new Date().toISOString(),
+          }),
+        }).catch(() => {});
+
         const res = await fetch(`/api/auth/account-status?email=${encodeURIComponent(cleanEmail)}`);
         if (res.ok) {
           const data = await res.json();
@@ -445,7 +469,7 @@ export default function LoginPage() {
                   body: JSON.stringify({ email: userEmail, name: userName, provider: "google", uid }),
                 }).catch(() => {});
 
-                router.push("/onboarding?mode=new_signup");
+                handleSuccessfulAuth("/onboarding?mode=new_signup", "Google account connected! Starting setup...");
               } else {
                 await restoreAndNavigateOldUser(userEmail, userName, uid);
               }
@@ -515,8 +539,19 @@ export default function LoginPage() {
 
             localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
 
+            fetch("/api/auth/account-status", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: cleanEmail,
+                name: fullName || "Demo Founder",
+                action: "login",
+                lastLoginAt: new Date().toISOString(),
+              }),
+            }).catch(() => {});
+
             // Direct demo login to the auto-filled onboarding registration steps
-            router.push("/onboarding?mode=demo");
+            handleSuccessfulAuth("/onboarding?mode=demo", "Demo credentials verified! Opening workspace...");
             return;
           } else {
             setErrorInfo({
@@ -593,6 +628,14 @@ export default function LoginPage() {
             localStorage.setItem("bizzpal_subscription_plan", "free");
             localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, "free");
 
+            const initialProfile = {
+              name: businessName.trim() || `${fullName || 'Founder'}'s Enterprise`,
+              founderName: fullName || "Founder",
+              logoUrl: businessLogo || null,
+            };
+            localStorage.setItem("bizzpal_business_profile", JSON.stringify(initialProfile));
+            localStorage.setItem(`bizzpal_user_business_${cleanEmail}`, JSON.stringify(initialProfile));
+
             const userSession = {
               id: authUser.uid,
               email: authUser.email || cleanEmail,
@@ -612,10 +655,11 @@ export default function LoginPage() {
                 name: fullName || "Founder",
                 provider: "email",
                 uid: authUser.uid,
+                businessProfile: initialProfile,
               }),
             }).catch(() => {});
 
-            router.push("/onboarding?mode=new_signup");
+            handleSuccessfulAuth("/onboarding?mode=new_signup", "Account created successfully! Preparing workspace...");
 
             saveUserProfileToFirestore(authUser.uid, {
               email: cleanEmail,
@@ -709,8 +753,9 @@ export default function LoginPage() {
           authenticatedAt: new Date().toISOString(),
         };
         localStorage.setItem("bizzpal_admin_session", JSON.stringify(adminSession));
-        router.push("/admin");
+        handleSuccessfulAuth("/admin", "Developer passcode verified! Accessing Superadmin...");
       } else {
+        setLoading(false);
         setErrorInfo({
           title: "Developer Passcode Invalid",
           message: data.error || "Incorrect developer passcode.",
@@ -718,13 +763,12 @@ export default function LoginPage() {
         });
       }
     } catch {
+      setLoading(false);
       setErrorInfo({
         title: "Authentication Error",
         message: "Network error validating developer passcode.",
         type: "credentials",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -898,6 +942,19 @@ export default function LoginPage() {
                     </p>
                   </div>
 
+                  {/* Instant Success Alert Banner */}
+                  {authSuccess && (
+                    <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 space-y-1 animate-fade-in shadow-xs">
+                      <div className="flex items-center gap-2 text-xs font-bold">
+                        <Check className="w-4 h-4 shrink-0 text-emerald-500" />
+                        <span>{authSuccessMsg || "Authenticated successfully! Redirecting..."}</span>
+                      </div>
+                      <p className="text-[11px] opacity-90 pl-6">
+                        Taking you straight into your executive workspace...
+                      </p>
+                    </div>
+                  )}
+
                   {/* Rich Error Alert Banner */}
                   {errorInfo && (
                     <div className="p-4 rounded-2xl bg-rust/10 border border-rust/30 text-rust space-y-3 animate-fade-in">
@@ -1020,22 +1077,94 @@ export default function LoginPage() {
                   {/* Email & Password Form */}
                   <form onSubmit={e => handleBusinessAuth(e, "email")} className="space-y-3.5">
                     {authMode === "register" && (
-                      <div>
-                        <label className="text-xs font-semibold text-text block mb-1">
-                          Founder / Owner Name *
-                        </label>
-                        <div className="relative flex items-center">
-                          <User className="w-3.5 h-3.5 text-text-muted absolute left-3.5" />
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Alex Morgan"
-                            value={fullName}
-                            onChange={e => setFullName(e.target.value)}
-                            className="w-full text-xs pl-9 pr-3.5 py-2.5 rounded-xl border border-line bg-surface-2 text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all"
-                          />
+                      <>
+                        <div>
+                          <label className="text-xs font-semibold text-text block mb-1">
+                            Founder / Owner Name *
+                          </label>
+                          <div className="relative flex items-center">
+                            <User className="w-3.5 h-3.5 text-text-muted absolute left-3.5" />
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Alex Morgan"
+                              value={fullName}
+                              onChange={e => setFullName(e.target.value)}
+                              className="w-full text-xs pl-9 pr-3.5 py-2.5 rounded-xl border border-line bg-surface-2 text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all"
+                            />
+                          </div>
                         </div>
-                      </div>
+
+                        <div>
+                          <label className="text-xs font-semibold text-text block mb-1">
+                            Company / Business Name
+                          </label>
+                          <div className="relative flex items-center">
+                            <Building2 className="w-3.5 h-3.5 text-text-muted absolute left-3.5" />
+                            <input
+                              type="text"
+                              placeholder="e.g. SalesPal Technologies"
+                              value={businessName}
+                              onChange={e => setBusinessName(e.target.value)}
+                              className="w-full text-xs pl-9 pr-3.5 py-2.5 rounded-xl border border-line bg-surface-2 text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-semibold text-text">
+                              Business Logo <span className="text-text-muted font-normal">(optional)</span>
+                            </label>
+                            {businessLogo && (
+                              <button
+                                type="button"
+                                onClick={() => setBusinessLogo(null)}
+                                className="text-[11px] text-rust hover:underline cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 p-2.5 rounded-xl border border-dashed border-line bg-surface-2/40">
+                            {businessLogo ? (
+                              <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+                                <img src={businessLogo} alt="Logo Preview" className="w-full h-full object-contain" />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-surface border border-line flex items-center justify-center text-text-muted shrink-0">
+                                <Building2 className="w-4 h-4 text-text-muted/60" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-line hover:bg-surface-2 text-[11px] font-semibold text-text cursor-pointer transition-colors shadow-2xs">
+                                <Upload className="w-3 h-3 text-text-muted" />
+                                <span>Upload Logo</span>
+                                <input
+                                  type="file"
+                                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    if (file.size > 2 * 1024 * 1024) {
+                                      alert("Please choose an image under 2MB");
+                                      return;
+                                    }
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) => {
+                                      const res = ev.target?.result as string;
+                                      if (res) setBusinessLogo(res);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }}
+                                />
+                              </label>
+                              <p className="text-[10px] text-text-muted mt-1 truncate">PNG, JPG, or SVG under 2MB</p>
+                            </div>
+                          </div>
+                        </div>
+                      </>
                     )}
 
                     <div>
@@ -1077,10 +1206,23 @@ export default function LoginPage() {
                     <button
                       id="btn-login-email"
                       type="submit"
-                      disabled={loading}
-                      className="w-full py-2.5 px-4 rounded-xl font-bold text-xs shadow-lg transition-all mt-2 active:scale-[0.99] flex items-center justify-center gap-2 btn-gold-gradient cursor-pointer"
+                      disabled={loading || authSuccess}
+                      className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs shadow-lg transition-all mt-2 active:scale-[0.99] flex items-center justify-center gap-2 ${
+                        authSuccess
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 cursor-wait"
+                          : "btn-gold-gradient cursor-pointer"
+                      }`}
                     >
-                      {loading ? (
+                      {authSuccess ? (
+                        <>
+                          <Check className="w-4 h-4 text-white animate-scale-in" />
+                          <span>
+                            {authMode === "register"
+                              ? "Account Created! Redirecting..."
+                              : "Login Successful! Redirecting..."}
+                          </span>
+                        </>
+                      ) : loading ? (
                         <>
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                           <span>Processing...</span>
@@ -1111,6 +1253,14 @@ export default function LoginPage() {
                     </p>
                   </div>
 
+                  {/* Superadmin Success Banner */}
+                  {authSuccess && (
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-fade-in shadow-xs">
+                      <Check className="w-4 h-4 shrink-0 text-emerald-500" />
+                      <span>{authSuccessMsg || "Passcode verified! Accessing Superadmin..."}</span>
+                    </div>
+                  )}
+
                   {errorInfo && (
                     <div className="p-3 rounded-xl bg-rust/10 border border-rust/30 text-rust text-xs font-medium">
                       {errorInfo.message}
@@ -1135,10 +1285,26 @@ export default function LoginPage() {
                   <div className="space-y-2 pt-2">
                     <button
                       type="submit"
-                      disabled={loading}
-                      className="w-full py-2.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs shadow-md hover:brightness-110 transition-all"
+                      disabled={loading || authSuccess}
+                      className={`w-full py-2.5 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2 ${
+                        authSuccess
+                          ? "bg-emerald-600 text-white shadow-emerald-500/20 cursor-wait"
+                          : "bg-amber-500 text-black hover:brightness-110 cursor-pointer"
+                      }`}
                     >
-                      {loading ? "Authenticating..." : "Authorize as Developer →"}
+                      {authSuccess ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          <span>Authorized! Redirecting to Superadmin...</span>
+                        </>
+                      ) : loading ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Validating Passcode...</span>
+                        </>
+                      ) : (
+                        <span>Authorize as Developer →</span>
+                      )}
                     </button>
                     <button
                       type="button"

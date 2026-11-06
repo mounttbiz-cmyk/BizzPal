@@ -14,6 +14,23 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(session);
         if (parsed && (parsed.email || parsed.uid || parsed.id)) {
           setChecked(true);
+          const email = parsed.email;
+          if (email && typeof window !== "undefined") {
+            const sessionRecordedKey = `bizzpal_session_recorded_${email}`;
+            const lastRec = sessionStorage.getItem(sessionRecordedKey);
+            if (!lastRec) {
+              sessionStorage.setItem(sessionRecordedKey, new Date().toISOString());
+              fetch("/api/auth/account-status", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  email,
+                  action: "login",
+                  lastLoginAt: new Date().toISOString(),
+                }),
+              }).catch(() => {});
+            }
+          }
           return;
         }
       }

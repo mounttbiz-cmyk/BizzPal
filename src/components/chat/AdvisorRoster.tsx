@@ -12,6 +12,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   UserX,
+  Plus,
 } from "lucide-react";
 
 interface AdvisorRosterProps {
@@ -131,11 +132,8 @@ export function AdvisorRoster({
       <div className="p-3.5 border-b border-line bg-surface-2/30 space-y-2.5 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-              Executive Roster
-            </span>
-            <span className="text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-              {agents.length} Active
+            <span className="text-sm sm:text-base font-bold text-text tracking-tight">
+              Team
             </span>
           </div>
 
@@ -233,24 +231,15 @@ export function AdvisorRoster({
                       />
                     </div>
 
-                    {/* Name + Role + Description */}
+                    {/* Name + Description (1-2 words what they do) */}
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span
-                          className={`text-xs font-bold truncate ${
-                            isActive ? "text-text font-bold" : "text-text/90"
-                          }`}
-                        >
-                          {agent.name}
-                        </span>
-                        <span
-                          className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold uppercase border shrink-0 ${getRoleBadgeClasses(
-                            agent.role
-                          )}`}
-                        >
-                          {shortRole}
-                        </span>
-                      </div>
+                      <span
+                        className={`text-xs font-bold truncate block ${
+                          isActive ? "text-text font-bold" : "text-text/90"
+                        }`}
+                      >
+                        {agent.name}
+                      </span>
                       <p className="text-[11px] text-text-muted truncate mt-0.5">
                         {agent.badge}
                       </p>
@@ -286,17 +275,16 @@ export function AdvisorRoster({
       </div>
 
       {/* Roster Footer / Session Controls */}
-      <div className="p-3 border-t border-line bg-surface-2/30 flex items-center justify-between text-xs shrink-0">
-        <span className="text-[11px] text-text-muted">Direct Session</span>
+      <div className="p-2.5 border-t border-line bg-surface-2/30 flex items-center justify-end text-xs shrink-0">
         <button
           type="button"
           onClick={onResetConversation}
-          aria-label="Reset conversation thread"
-          title="Reset conversation thread"
+          aria-label="Start a new chat thread"
+          title="Start a new chat thread"
           className="px-2.5 py-1 rounded-lg bg-surface border border-line text-[11px] text-text-muted hover:text-text hover:border-line-strong flex items-center gap-1.5 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brass"
         >
-          <RotateCcw className="w-3 h-3" />
-          <span>Reset</span>
+          <Plus className="w-3.5 h-3.5 text-brass" />
+          <span>New Chat</span>
         </button>
       </div>
     </aside>

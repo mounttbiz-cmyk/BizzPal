@@ -61,8 +61,8 @@ export function SimulatorHighlightWidget() {
                 <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-sans">
                   {scenarioTitle}
                 </h2>
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-mono font-semibold">
-                  Monte Carlo (1,000 runs)
+                <span className="text-[11px] text-text-muted font-medium">
+                  · 1,000 runs
                 </span>
               </div>
               <p className="text-[11px] text-text-muted">
@@ -72,7 +72,6 @@ export function SimulatorHighlightWidget() {
           </div>
 
           <div className="flex items-center gap-2">
-            <ProvenanceBadge type="estimate" citation="1,000 Monte Carlo iterations across triangular assumptions" />
             <button
               type="button"
               onClick={runMonteCarlo}

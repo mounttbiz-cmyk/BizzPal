@@ -41,3 +41,6 @@ next-env.d.ts
 
 # local database (contains user/business data - never commit)
 /data/
+
+# temporary archives
+*.tar.gz

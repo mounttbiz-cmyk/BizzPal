@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { ContainerTile } from "../ui/ContainerTile";
 import { CheckSquare, CheckCircle2, Circle, ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
+import { useCustomAdvisors } from "@/lib/advisors";
 
 interface TaskItem {
   id: string;
@@ -15,6 +16,7 @@ interface TaskItem {
 }
 
 export function TasksPreviewWidget() {
+  const { ceoName, cfoName } = useCustomAdvisors();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -107,17 +109,17 @@ export function TasksPreviewWidget() {
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setIsAdding(!isAdding)}
-                className="text-[10px] px-2 py-0.5 rounded-full bg-surface-2 hover:bg-surface border border-line text-text font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                className="text-xs px-2.5 py-1 rounded-lg bg-surface-2 hover:bg-surface-3 border border-line text-text font-medium flex items-center gap-1 cursor-pointer transition-colors"
               >
                 <Plus className="w-3 h-3" />
                 <span>Add Task</span>
               </button>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 font-semibold font-mono border border-cyan-500/30">
-                {tasks.filter(t => !t.completed).length} Pending
+              <span className="text-[11px] text-text-muted font-medium">
+                {tasks.filter(t => !t.completed).length} pending
               </span>
             </div>
           </div>
@@ -149,7 +151,7 @@ export function TasksPreviewWidget() {
                 </div>
                 <div className="text-xs font-semibold text-text">Execution Queue Clear</div>
                 <p className="text-[11px] text-text-muted max-w-xs mx-auto">
-                  No pending bottleneck tasks. Assign action items directly to Astra or Marcus.
+                  No pending bottleneck tasks. Assign action items directly to {ceoName} or {cfoName}.
                 </p>
               </div>
             ) : (

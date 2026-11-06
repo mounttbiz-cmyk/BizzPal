@@ -18,31 +18,31 @@ const FEEDS: Record<
     url: "https://news.google.com/rss/search?q=india+economy+business+RBI+monetary+policy&hl=en-IN&gl=IN&ceid=IN:en",
     categoryLabel: "Economy & Markets",
     badgeColor: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-    advisor: "Marcus (CFO AI)",
+    advisor: "CFO",
   },
   tax_compliance: {
     url: "https://news.google.com/rss/search?q=GST+india+tax+compliance+CBIC&hl=en-IN&gl=IN&ceid=IN:en",
     categoryLabel: "Tax & GST Compliance",
     badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-    advisor: "Marcus (CFO AI)",
+    advisor: "CFO",
   },
   funding: {
     url: "https://news.google.com/rss/search?q=startup+funding+india+venture+capital+valuation&hl=en-IN&gl=IN&ceid=IN:en",
     categoryLabel: "Funding & Valuation",
     badgeColor: "bg-purple-500/15 text-purple-400 border-purple-500/30",
-    advisor: "Astra (CEO AI)",
+    advisor: "CEO",
   },
   tech_ai: {
     url: "https://news.google.com/rss/search?q=AI+regulation+data+protection+enterprise+technology+india&hl=en-IN&gl=IN&ceid=IN:en",
     categoryLabel: "Tech & AI Regulations",
     badgeColor: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-    advisor: "Elena (Marketing AI)",
+    advisor: "Marketing",
   },
   saas_trends: {
     url: "https://news.google.com/rss/search?q=B2B+SaaS+enterprise+software+india+trends&hl=en-IN&gl=IN&ceid=IN:en",
     categoryLabel: "Industry Trends",
     badgeColor: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
-    advisor: "David (Operations AI)",
+    advisor: "Operations",
   },
 };
 

@@ -156,7 +156,7 @@ export function HealthScoreWidget({
   ];
 
   // SVG circular gauge calculation
-  const radius = 42;
+  const radius = 50;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (displayScore / 100) * circumference;
   const strokeColor = displayScore >= 80 ? "var(--gold)" : displayScore >= 65 ? "#38BDF8" : "#F43F5E";
@@ -181,24 +181,24 @@ export function HealthScoreWidget({
         </div>
 
         {/* Circular Gauge + Hero Score */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 py-4">
-          <div className="relative flex items-center justify-center shrink-0">
-            <svg className="w-28 h-28 transform -rotate-90">
+        <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-7 py-3">
+          <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 128 128" className="w-32 h-32 transform -rotate-90">
               <circle
-                cx="56"
-                cy="56"
+                cx="64"
+                cy="64"
                 r={radius}
                 stroke="currentColor"
-                strokeWidth="7"
+                strokeWidth="6"
                 fill="transparent"
                 className="text-surface-2"
               />
               <circle
-                cx="56"
-                cy="56"
+                cx="64"
+                cy="64"
                 r={radius}
                 stroke={strokeColor}
-                strokeWidth="7"
+                strokeWidth="6"
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
@@ -206,20 +206,28 @@ export function HealthScoreWidget({
                 className="transition-all duration-story ease-out-custom"
               />
             </svg>
-            <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-3xl sm:text-4xl font-black num-tabular text-text font-mono leading-none tracking-tight">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none pointer-events-none px-2">
+              <span className="text-3xl sm:text-4xl font-extrabold num-tabular text-text font-mono leading-none tracking-tight">
                 <AnimatedNumber value={String(displayScore)} />
               </span>
-              <span className="text-[10px] text-gold font-bold font-mono mt-1 uppercase tracking-wider">
+              <span
+                className={`text-[9px] font-bold font-sans mt-1.5 uppercase tracking-wide leading-none ${
+                  displayScore >= 80
+                    ? "text-gold"
+                    : displayScore >= 65
+                    ? "text-sky-500 dark:text-sky-400"
+                    : "text-rose-500 dark:text-rose-400"
+                }`}
+              >
                 {displayScore >= 80 ? "Optimal" : displayScore >= 65 ? "Stable" : "Calibrating"}
               </span>
             </div>
           </div>
 
-          <div className="flex-1 space-y-2 text-center sm:text-left">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 font-mono">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>{isFresh ? "Baseline Initiated" : "+ Live Calibrated"}</span>
+          <div className="flex-1 min-w-0 space-y-2 text-center sm:text-left">
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 shadow-xs" />
+              <span>{isFresh ? "Baseline Initiated" : "Live Calibrated"}</span>
             </div>
             <p className="text-xs text-text-muted leading-relaxed">
               Composite telemetry synthesized across cash runway, revenue per FTE, and operational benchmarks for {industryName}.

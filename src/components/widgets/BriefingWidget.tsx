@@ -8,6 +8,7 @@ import { BrainCircuit, LineChart, ArrowRight, TrendingUp, ShieldCheck, Zap } fro
 import Link from "next/link";
 
 import { useBusinessDataSync } from "@/lib/upload/events";
+import { useCustomAdvisors } from "@/lib/advisors";
 
 interface BriefingWidgetProps {
   companyName?: string;
@@ -16,8 +17,9 @@ interface BriefingWidgetProps {
 
 export function BriefingWidget({
   companyName: propCompanyName = "Your Enterprise",
-  ceoName = "Astra",
+  ceoName = "CEO",
 }: BriefingWidgetProps) {
+  const { ceoName: customCeoName } = useCustomAdvisors();
   const [companyName, setCompanyName] = useState(propCompanyName);
   const [founderName, setFounderName] = useState("Founder");
   const [industryLabel, setIndustryLabel] = useState("Technology");
@@ -25,30 +27,7 @@ export function BriefingWidget({
   const [burn, setBurn] = useState(0);
   const [cash, setCash] = useState(0);
   const [isUploaded, setIsUploaded] = useState(false);
-  const [activeCeoName, setActiveCeoName] = useState(ceoName);
-
-  useEffect(() => {
-    const syncCeo = () => {
-      try {
-        const raw = localStorage.getItem("bizzpal_custom_advisors");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed.ceo?.name) {
-            setActiveCeoName(parsed.ceo.name);
-            return;
-          }
-        }
-      } catch {}
-      setActiveCeoName(ceoName);
-    };
-    syncCeo();
-    window.addEventListener("bizzpal_advisors_updated", syncCeo);
-    window.addEventListener("storage", syncCeo);
-    return () => {
-      window.removeEventListener("bizzpal_advisors_updated", syncCeo);
-      window.removeEventListener("storage", syncCeo);
-    };
-  }, [ceoName]);
+  const activeCeoName = customCeoName || ceoName || "CEO";
 
   const applyProfile = (p: any) => {
     if (!p) return;
@@ -103,16 +82,18 @@ export function BriefingWidget({
                 <BrainCircuit className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-xs font-bold text-text uppercase tracking-wider font-sans flex items-center gap-1.5">
-                  <span>Executive AI Briefing</span>
-                  <StatusBadge label={isFresh ? "Calibrating" : "Autonomous"} tone="ai" />
+                <h2 className="text-xs font-bold text-text uppercase tracking-wider font-sans">
+                  Executive AI Briefing
                 </h2>
                 <span className="text-[10px] text-text-muted">
-                  Synthesized by {activeCeoName} (Chief Executive AI)
+                  Synthesized by {activeCeoName}
                 </span>
               </div>
             </div>
-            <StatusBadge label={isFresh ? "Fresh Baseline" : "Live Feed"} tone={isFresh ? "neutral" : "live"} pulse={!isFresh} />
+            <div className="flex items-center gap-1.5 text-xs font-medium text-text-muted">
+              <span className={`w-2 h-2 rounded-full ${isFresh ? "bg-amber-400" : "bg-emerald-500 animate-pulse"}`} />
+              <span className="text-[11px] font-medium text-text-muted">{isFresh ? "Fresh Baseline" : "Live Feed"}</span>
+            </div>
           </div>
 
           {/* Structured Intelligence Cards */}

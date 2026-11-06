@@ -66,6 +66,7 @@ export async function POST(req: Request) {
   const founderName = str(body?.founderName, 100) || email.split("@")[0];
 
   const customCompanyName = str(body?.companyName, 120);
+  const logoUrl = typeof body?.logoUrl === "string" ? body.logoUrl : null;
   const legalName: string = rec.legalName || "";
   const tradeName: string = rec.tradeName || "";
   const name = customCompanyName || tradeName || legalName || (domain ? domainLabel(domain.subject) : `GSTIN ${gstinRow.subject}`);
@@ -78,24 +79,26 @@ export async function POST(req: Request) {
     name, selected[0], industryLabel, customIndustry || null, founderName, domain?.subject || null,
     JSON.stringify(tools), legalName || null, tradeName || null, gstinRow.subject, fmt.pan || null,
     rec.state || fmt.state || null, rec.address || null, rec.constitution || null, rec.status || null,
-    rec.registrationDate || null, fmt.entityType || null, level, registryVerified ? now : null, now,
+    rec.registrationDate || null, fmt.entityType || null, level, registryVerified ? now : null,
+    logoUrl, now,
   ];
   if (exists) {
     // Financial columns are deliberately left untouched so values synced later are never clobbered.
     db.prepare(`
       UPDATE businesses SET name = ?, industry = ?, industry_label = ?, custom_industry = ?, founder_name = ?, website = ?,
         connected_tools = ?, legal_name = ?, trade_name = ?, gstin = ?, pan = ?, registered_state = ?, registered_address = ?,
-        constitution = ?, gst_status = ?, gst_registration_date = ?, entity_type = ?, verification_level = ?, verified_at = ?, updated_at = ?
+        constitution = ?, gst_status = ?, gst_registration_date = ?, entity_type = ?, verification_level = ?, verified_at = ?,
+        logo_url = COALESCE(?, logo_url), updated_at = ?
       WHERE id = ?
     `).run(...identity, bizId);
   } else {
     db.prepare(`
       INSERT INTO businesses (name, industry, industry_label, custom_industry, founder_name, website, connected_tools,
         legal_name, trade_name, gstin, pan, registered_state, registered_address, constitution, gst_status, gst_registration_date,
-        entity_type, verification_level, verified_at, created_at, updated_at,
+        entity_type, verification_level, verified_at, logo_url, created_at, updated_at,
         id, team_size, annual_revenue, monthly_revenue, monthly_burn, cash_on_hand, no_integrations, whatsapp_opt_in, financials_source)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 0, 0, 0, ?, 0, 'none')
-    `).run(...identity.slice(0, 19), now, now, bizId, tools.length === 0 ? 1 : 0);
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 0, 0, 0, ?, 0, 'none')
+    `).run(...identity.slice(0, 20), now, now, bizId, tools.length === 0 ? 1 : 0);
   }
 
   for (const key of TRACKED) {
@@ -130,6 +133,7 @@ export async function POST(req: Request) {
     name,
     founderName,
     email,
+    logoUrl: logoUrl || null,
     website: domain?.subject || "",
     industry: customIndustry || selected.map((s) => INDUSTRIES[s]).join(", "),
     industryLabel,

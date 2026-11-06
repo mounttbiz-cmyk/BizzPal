@@ -25,8 +25,8 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className="dark"
-      data-theme="dark"
+      className="light"
+      data-theme="light"
       suppressHydrationWarning
     >
       <head>

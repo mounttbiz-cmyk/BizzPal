@@ -3,22 +3,21 @@
 import React, { useState, useEffect } from "react";
 import { PortalModal } from "@/components/ui/PortalModal";
 import {
-  Crown,
-  TrendingUp,
-  BarChart3,
-  Target,
-  Zap,
-  Users,
-  Workflow,
-  Compass,
   Briefcase,
+  Landmark,
+  Megaphone,
+  Handshake,
+  Users,
+  Settings2,
+  Compass,
+  BarChart3,
+  Building2,
   ShieldCheck,
+  TrendingUp,
+  Coins,
   Bot,
   BrainCircuit,
-  DollarSign,
   Award,
-  Rocket,
-  Flame,
   X,
   RotateCcw,
   Check,
@@ -39,32 +38,35 @@ export const AVAILABLE_AGENT_ICONS: Record<
   string,
   { icon: React.ComponentType<LucideProps>; label: string; defaultFor?: string }
 > = {
-  Crown: { icon: Crown, label: "Crown (Leadership)", defaultFor: "CEO" },
-  TrendingUp: { icon: TrendingUp, label: "Trending Up (Finance)", defaultFor: "CFO" },
-  Target: { icon: Target, label: "Target (Marketing)", defaultFor: "Marketing" },
-  Zap: { icon: Zap, label: "Lightning (Sales)", defaultFor: "Sales" },
-  Users: { icon: Users, label: "Users (Talent & HR)", defaultFor: "HR" },
-  Workflow: { icon: Workflow, label: "Workflow (Operations)", defaultFor: "Operations" },
-  Compass: { icon: Compass, label: "Compass (Strategy)", defaultFor: "Strategy" },
-  Briefcase: { icon: Briefcase, label: "Briefcase (Executive)" },
-  ShieldCheck: { icon: ShieldCheck, label: "Shield (Governance)" },
-  Bot: { icon: Bot, label: "Bot (Autonomous AI)" },
-  BrainCircuit: { icon: BrainCircuit, label: "Brain (Intelligence)" },
+  Briefcase: { icon: Briefcase, label: "Briefcase (CEO / Leadership)", defaultFor: "CEO" },
+  Landmark: { icon: Landmark, label: "Landmark (CFO / Treasury)", defaultFor: "CFO" },
+  Megaphone: { icon: Megaphone, label: "Megaphone (Marketing / Growth)", defaultFor: "Marketing" },
+  Handshake: { icon: Handshake, label: "Handshake (Sales / Deals)", defaultFor: "Sales" },
+  Users: { icon: Users, label: "Users (HR & Talent)", defaultFor: "HR" },
+  Settings2: { icon: Settings2, label: "Settings (Operations / Systems)", defaultFor: "Operations" },
+  Compass: { icon: Compass, label: "Compass (Strategy / Direction)", defaultFor: "Strategy" },
+  TrendingUp: { icon: TrendingUp, label: "Trending Up (Growth)" },
   BarChart3: { icon: BarChart3, label: "Bar Chart (Analytics)" },
-  DollarSign: { icon: DollarSign, label: "Dollar (Treasury)" },
+  Building2: { icon: Building2, label: "Building (Enterprise)" },
+  ShieldCheck: { icon: ShieldCheck, label: "Shield (Governance)" },
+  Coins: { icon: Coins, label: "Coins (Capital & Revenue)" },
+  BrainCircuit: { icon: BrainCircuit, label: "Brain (Intelligence)" },
+  Bot: { icon: Bot, label: "Bot (AI Copilot)" },
   Award: { icon: Award, label: "Award (Milestones)" },
-  Rocket: { icon: Rocket, label: "Rocket (Scaling)" },
-  Flame: { icon: Flame, label: "Flame (Velocity)" },
 };
 
-// Map legacy emojis to modern SVG icon names
+// Map legacy emojis or deprecated icon names to modern professional executive icons
 const LEGACY_EMOJI_MAP: Record<string, string> = {
-  "👑": "Crown",
-  "📊": "TrendingUp",
-  "🎯": "Target",
-  "⚡": "Zap",
-  "🤝": "Users",
-  "⚙️": "Workflow",
+  "👑": "Briefcase",
+  "Crown": "Briefcase",
+  "📊": "Landmark",
+  "🎯": "Megaphone",
+  "Target": "Megaphone",
+  "⚡": "Handshake",
+  "Zap": "Handshake",
+  "🤝": "Handshake",
+  "⚙️": "Settings2",
+  "Workflow": "Settings2",
   "🧭": "Compass",
   "💼": "Briefcase",
   "👤": "Users",
@@ -118,7 +120,7 @@ export function CustomizeAdvisorModal({
   onReset,
 }: CustomizeAdvisorModalProps) {
   const [name, setName] = useState("");
-  const [selectedIcon, setSelectedIcon] = useState("Crown");
+  const [selectedIcon, setSelectedIcon] = useState("Briefcase");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

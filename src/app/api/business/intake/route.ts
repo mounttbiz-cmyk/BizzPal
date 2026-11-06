@@ -71,6 +71,7 @@ export async function GET(req: Request) {
         noIntegrations: Boolean(business.no_integrations),
         whatsappOptIn: Boolean(business.whatsapp_opt_in),
         whatsappNumber: business.whatsapp_number || "",
+        logoUrl: business.logo_url || null,
         dynamicAnswers,
       },
     });
@@ -100,6 +101,7 @@ export async function POST(req: Request) {
       noIntegrations = false,
       whatsappOptIn = false,
       whatsappNumber = "",
+      logoUrl,
       dynamicAnswers = {},
       rawText,
       structured,
@@ -148,6 +150,7 @@ export async function POST(req: Request) {
           no_integrations = COALESCE(?, no_integrations),
           whatsapp_opt_in = COALESCE(?, whatsapp_opt_in),
           whatsapp_number = COALESCE(?, whatsapp_number),
+          logo_url = COALESCE(?, logo_url),
           dynamic_intake_answers = COALESCE(?, dynamic_intake_answers),
           updated_at = ?
         WHERE id = ?
@@ -167,6 +170,7 @@ export async function POST(req: Request) {
         noIntegrations !== undefined ? (noIntegrations ? 1 : 0) : null,
         whatsappOptIn !== undefined ? (whatsappOptIn ? 1 : 0) : null,
         whatsappNumber ?? null,
+        logoUrl ?? null,
         dynamicAnswers ? JSON.stringify(dynamicAnswers) : null,
         now,
         targetBizId
@@ -177,8 +181,8 @@ export async function POST(req: Request) {
           id, name, industry, industry_label, custom_industry, founder_name, website,
           team_size, annual_revenue, monthly_revenue, monthly_burn, cash_on_hand,
           connected_tools, no_integrations, whatsapp_opt_in, whatsapp_number,
-          dynamic_intake_answers, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          logo_url, dynamic_intake_answers, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         targetBizId,
         name || "Untitled Enterprise",
@@ -196,6 +200,7 @@ export async function POST(req: Request) {
         noIntegrations ? 1 : 0,
         whatsappOptIn ? 1 : 0,
         whatsappNumber || null,
+        logoUrl || null,
         dynamicAnswers ? JSON.stringify(dynamicAnswers) : null,
         now,
         now
@@ -211,6 +216,7 @@ export async function POST(req: Request) {
         founderName,
         website,
         teamSize,
+        logoUrl,
         annualRevenue: finalAnnualRevenue,
         monthlyRevenue: finalMonthlyRevenue,
         revenue: finalMonthlyRevenue,

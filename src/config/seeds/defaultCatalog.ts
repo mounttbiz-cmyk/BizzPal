@@ -35,7 +35,7 @@ export const DEFAULT_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     isPopular: false,
     features: [
       "Business Dashboard",
-      "CEO AI Assistant (Astra)",
+      "CEO Executive Advisor",
       "Company Health Score",
       "Profit & ROI Calculators",
       "Save up to 5 Documents & SOPs",

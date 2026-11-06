@@ -15,13 +15,13 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeMode>("dark");
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("dark");
+  const [theme, setThemeState] = useState<ThemeMode>("light");
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
   const [mounted, setMounted] = useState(false);
 
   // Apply resolved theme to DOM
   const applyTheme = (mode: ThemeMode) => {
-    let resolved: ResolvedTheme = "dark";
+    let resolved: ResolvedTheme = "light";
     if (mode === "system") {
       resolved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     } else {
@@ -47,7 +47,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const cycleTheme = () => {
     setThemeState(prev => {
-      const cycleOrder: ThemeMode[] = ["dark", "light", "system"];
+      const cycleOrder: ThemeMode[] = ["light", "dark", "system"];
       const nextIndex = (cycleOrder.indexOf(prev) + 1) % cycleOrder.length;
       const nextMode = cycleOrder[nextIndex];
       localStorage.setItem("bizzpal-theme", nextMode);
@@ -58,12 +58,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem("bizzpal-theme") as ThemeMode | null;
-    const initialMode: ThemeMode = stored === "light" ? "light" : "dark";
+    const migrated = localStorage.getItem("bizzpal-theme-default-v3");
+    let stored = localStorage.getItem("bizzpal-theme") as ThemeMode | null;
+    if (!migrated) {
+      localStorage.setItem("bizzpal-theme", "light");
+      localStorage.setItem("bizzpal-theme-default-v3", "light");
+      stored = "light";
+    }
+    const initialMode: ThemeMode = stored === "dark" ? "dark" : "light";
     setThemeState(initialMode);
     applyTheme(initialMode);
     if (!stored || stored === "system") {
-      localStorage.setItem("bizzpal-theme", "dark");
+      localStorage.setItem("bizzpal-theme", "light");
     }
 
     // Keyboard shortcut: ⌘/Ctrl + Shift + L to cycle themes

@@ -6,10 +6,8 @@ import {
   Compass,
   TrendingUp,
   Target,
-  Zap,
   ArrowRight,
-  BrainCircuit,
-  Bot,
+  Briefcase,
   CheckCircle2,
   AlertTriangle,
   Layers,
@@ -17,12 +15,17 @@ import {
   DollarSign,
   ShieldCheck,
   RefreshCw,
-  GitBranch,
-  FileCheck,
   Plus,
   Trash2,
   Edit3,
-  X
+  X,
+  Calendar,
+  User,
+  SlidersHorizontal,
+  MessageSquare,
+  CheckSquare,
+  Clock,
+  Shield,
 } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
 
@@ -64,7 +67,7 @@ const DEFAULT_GROWTH_VECTORS: GrowthVector[] = [
     status: "Active",
     expectedImpact: "+22% Gross Margin",
     timeline: "Immediate (Ongoing)",
-    owner: "Astra (CEO AI) & Marcus (CFO)",
+    owner: "CEO & CFO",
     description: "Introduce modular feature packaging and value tiers. Grandfather legacy clients for 6 months while applying +15% expansion at contract renewals.",
     riskTier: "Low",
     milestones: [
@@ -137,7 +140,7 @@ export default function GrowthStrategyPage() {
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [monthlyBurn, setMonthlyBurn] = useState(0);
   const [cashOnHand, setCashOnHand] = useState(0);
-  const [ceoName, setCeoName] = useState("Astra");
+  const [ceoName, setCeoName] = useState("CEO");
 
   useEffect(() => {
     const syncCeo = () => {
@@ -145,7 +148,7 @@ export default function GrowthStrategyPage() {
         const raw = localStorage.getItem("bizzpal_custom_advisors");
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed.ceo?.name) setCeoName(parsed.ceo.name);
+          if (parsed.ceo?.name && parsed.ceo.name.toLowerCase() !== "astra") setCeoName(parsed.ceo.name);
         }
       } catch {}
     };
@@ -346,7 +349,7 @@ export default function GrowthStrategyPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title: `[Strategy] ${m.title}`,
-            owner: vector.owner.includes("Marcus") ? "CFO Marcus" : "Founder",
+            owner: vector.owner.includes("CFO") ? "CFO" : "Founder",
             gap: "Growth Vector",
             priority: "high",
             category: "Growth Strategy",
@@ -371,47 +374,41 @@ export default function GrowthStrategyPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-line">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-brass/10 border border-brass/30 flex items-center justify-center text-brass">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-brass/10 border border-brass/20 flex items-center justify-center text-brass">
               <Compass className="w-4 h-4" />
             </div>
-            <h1 className="text-lg font-bold text-text">Enterprise Growth Strategy</h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-500 dark:text-amber-300 border border-amber-500/30 font-bold uppercase tracking-wider">
-              {ceoName} AI Engine
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider">
-              Horizon 2026
-            </span>
+            <h1 className="text-lg sm:text-xl font-bold text-text">Growth Strategy</h1>
           </div>
-          <p className="text-xs text-text-muted mt-1 font-medium">
-            Formulate multi-quarter business expansion plans, defensive moat strategies, and competitive positioning vectors tailored for <span className="text-text font-semibold">{companyName}</span>.
+          <p className="text-xs text-text-muted mt-1.5 leading-relaxed font-normal">
+            Track business growth initiatives, milestones, and expansion targets for <span className="text-text font-semibold">{companyName}</span>.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={handleOpenAddModal}
-            className="px-3.5 py-1.5 rounded-lg btn-gold-gradient text-slate-950 font-bold text-xs shadow-md hover:brightness-110 active:scale-95 btn-tactile inline-flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl btn-gold-gradient text-slate-950 font-bold text-xs shadow-sm hover:brightness-105 active:scale-95 btn-tactile inline-flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Add Strategic Vector</span>
+            <span>Add Initiative</span>
           </button>
           <Link
             href="/simulator"
-            className="px-3 py-1.5 rounded-lg border border-line bg-surface hover:bg-surface-2 text-xs font-semibold text-text inline-flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-2 rounded-xl border border-line bg-surface hover:bg-surface-2 text-xs font-semibold text-text inline-flex items-center gap-1.5 transition-colors shadow-2xs"
           >
-            <Zap className="w-3.5 h-3.5 text-brass" />
+            <SlidersHorizontal className="w-3.5 h-3.5 text-text-muted" />
             <span>Simulate Scenarios</span>
           </Link>
           <Link
-            href={`/chat?message=${encodeURIComponent(`${ceoName}, review our current growth strategy for ${companyName}. What are the highest-leverage growth vectors to accelerate ARR past ₹${Math.round(annualRevenue * 1.5).toLocaleString("en-IN")}?`)}`}
-            className="px-3.5 py-1.5 rounded-lg bg-brass text-white font-bold text-xs shadow-sm hover:brightness-110 btn-tactile inline-flex items-center gap-1.5 cursor-pointer"
+            href={`/chat?message=${encodeURIComponent(`${ceoName}, review our current growth strategy for ${companyName}. What are the highest-leverage initiatives to accelerate our revenue growth?`)}`}
+            className="px-3.5 py-2 rounded-xl bg-brass hover:brightness-110 text-white font-bold text-xs shadow-sm active:scale-95 btn-tactile inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <Bot className="w-3.5 h-3.5" />
-            <span>Consult {ceoName} (CEO AI)</span>
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Consult {ceoName}</span>
           </Link>
         </div>
       </div>
@@ -428,166 +425,153 @@ export default function GrowthStrategyPage() {
         </div>
       )}
 
-      {/* Real Executive Key Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl border border-line bg-surface shadow-xs space-y-1">
-          <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">
+      {/* Executive Key Metrics */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="p-4 rounded-xl border border-line bg-surface shadow-theme space-y-1">
+          <span className="text-[11px] font-semibold text-text-muted block">
             Annual Run-Rate (ARR)
           </span>
-          <div className="text-xl font-extrabold text-text font-mono">
+          <div className="text-lg sm:text-xl font-bold text-text font-mono">
             ₹{annualRevenue.toLocaleString("en-IN")}
           </div>
-          <div className="text-[11px] text-jade font-semibold flex items-center gap-1">
+          <div className="text-[11px] text-jade font-medium flex items-center gap-1">
             <TrendingUp className="w-3 h-3" />
             <span>Target: ₹{Math.round(annualRevenue * 1.5).toLocaleString("en-IN")}</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-xl border border-line bg-surface shadow-xs space-y-1">
-          <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">
-            Net Revenue Retention (NRR)
+        <div className="p-4 rounded-xl border border-line bg-surface shadow-theme space-y-1">
+          <span className="text-[11px] font-semibold text-text-muted block">
+            Revenue Retention (NRR)
           </span>
-          <div className="text-xl font-extrabold text-text font-mono">
+          <div className="text-lg sm:text-xl font-bold text-text font-mono">
             {annualRevenue > 5000000 ? "118.4%" : "109.2%"}
           </div>
-          <div className="text-[11px] text-text-muted font-medium">
+          <div className="text-[11px] text-text-muted font-normal">
             Expansion outpacing churn
           </div>
         </div>
 
-        <div className="p-4 rounded-xl border border-line bg-surface shadow-xs space-y-1">
-          <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">
+        <div className="p-4 rounded-xl border border-line bg-surface shadow-theme space-y-1">
+          <span className="text-[11px] font-semibold text-text-muted block">
             Forward Runway
           </span>
-          <div className="text-xl font-extrabold text-cyan-400 font-mono">
-            {runwayMonths} Mo
+          <div className="text-lg sm:text-xl font-bold text-text font-mono">
+            {runwayMonths} Months
           </div>
-          <div className="text-[11px] text-text-muted font-medium truncate">
-            ₹{cashOnHand.toLocaleString("en-IN")} liquid reserves
+          <div className="text-[11px] text-text-muted font-normal truncate">
+            ₹{cashOnHand.toLocaleString("en-IN")} reserves
           </div>
         </div>
 
-        <div className="p-4 rounded-xl border border-line bg-surface shadow-xs space-y-1">
-          <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">
+        <div className="p-4 rounded-xl border border-line bg-surface shadow-theme space-y-1">
+          <span className="text-[11px] font-semibold text-text-muted block">
             LTV to CAC Ratio
           </span>
-          <div className="text-xl font-extrabold text-text font-mono">
+          <div className="text-lg sm:text-xl font-bold text-text font-mono">
             {monthlyRevenue > 300000 ? "4.2x" : "3.1x"}
           </div>
-          <div className="text-[11px] text-jade font-semibold">
-            High unit economics efficiency
+          <div className="text-[11px] text-jade font-medium">
+            Healthy unit economics
           </div>
         </div>
       </div>
 
-      {/* Astra Strategic Directive */}
-      <div className="p-5 rounded-2xl border border-brass/30 bg-brass/5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-brass/20 border border-brass/40 flex items-center justify-center text-brass shrink-0 mt-0.5">
-            <BrainCircuit className="w-5 h-5" />
+      {/* Executive Strategic Focus */}
+      <div className="p-4 sm:p-5 rounded-xl border border-line bg-surface shadow-theme flex items-start gap-3.5">
+        <div className="w-8 h-8 rounded-lg bg-brass/10 border border-brass/25 flex items-center justify-center text-brass shrink-0 mt-0.5">
+          <Briefcase className="w-4 h-4" />
+        </div>
+        <div className="space-y-1 flex-1 min-w-0">
+          <div className="text-xs font-bold text-text">
+            {ceoName} Executive Strategic Focus
           </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-extrabold text-text uppercase tracking-wider">
-                {ceoName} (CEO AI) Strategic Directive
-              </span>
-              <span className="text-[9px] px-2 py-0.2 rounded-full bg-brass/20 text-brass border border-brass/30 font-bold uppercase">
-                High-Leverage Vector
-              </span>
-            </div>
-            <p className="text-xs text-text-muted max-w-3xl leading-relaxed">
-              &ldquo;For <span className="text-text font-semibold">{companyName}</span>, our growth runway is {runwayMonths} months with ₹{cashOnHand.toLocaleString("en-IN")} in bank reserves. Focus executive capital on closing higher-ticket accounts and protecting pricing margins before scaling outbound marketing.&rdquo;
-            </p>
-          </div>
+          <p className="text-xs text-text-muted leading-relaxed font-normal">
+            &ldquo;For <span className="text-text font-medium">{companyName}</span>, our current runway is {runwayMonths} months with ₹{cashOnHand.toLocaleString("en-IN")} in reserves. Focus executive capital on closing higher-ticket accounts and protecting pricing margins before scaling outbound marketing.&rdquo;
+          </p>
         </div>
       </div>
 
-      {/* Main Growth Vectors Section */}
+      {/* Main Growth Initiatives */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-text uppercase tracking-wider">
-              Strategic Growth Vectors
+          <div>
+            <h2 className="text-sm font-bold text-text">
+              Growth Initiatives
             </h2>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-2 border border-line text-text-muted font-mono">
-              {vectors.length} Active Tracks
-            </span>
+            <p className="text-[11px] text-text-muted">
+              Select an initiative to view and update actionable milestones
+            </p>
           </div>
 
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          {/* Category Filter Tabs */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-2 border border-line overflow-x-auto">
             {["all", "Enterprise", "Monetization", "Product", "Partnerships"].map(cat => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all cursor-pointer shrink-0 ${
                   selectedCategory === cat
-                    ? "bg-amber-400/20 text-amber-900 dark:text-amber-300 border border-amber-500/40 font-bold shadow-xs"
-                    : "bg-surface border border-line text-text-muted hover:text-text hover:bg-surface-2"
+                    ? "bg-surface text-text font-semibold shadow-2xs border border-line"
+                    : "text-text-muted hover:text-text"
                 }`}
               >
-                {cat}
+                {cat === "all" ? "All Initiatives" : cat}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Vectors Grid & Detail Split */}
+        {/* Initiatives List & Detail Split */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Vectors List (Left) */}
+          {/* Initiatives List (Left) */}
           <div className="lg:col-span-6 space-y-3">
             {filteredVectors.map(vec => {
               const isSelected = vec.id === selectedVectorId;
               const completedMilestones = vec.milestones.filter(m => m.done).length;
-              const progressPct = Math.round((completedMilestones / (vec.milestones.length || 1)) * 100);
+              const totalMilestones = vec.milestones.length || 1;
+              const progressPct = Math.round((completedMilestones / totalMilestones) * 100);
 
               return (
                 <div
                   key={vec.id}
                   onClick={() => setSelectedVectorId(vec.id)}
-                  className={`p-4 rounded-xl border transition-all cursor-pointer space-y-3 btn-tactile ${
+                  className={`p-4 rounded-xl border transition-all cursor-pointer space-y-3 ${
                     isSelected
-                      ? "bg-surface-2 border-brass ring-1 ring-brass/40 shadow-sm"
-                      : "bg-surface border-line hover:border-line-strong"
+                      ? "bg-surface border-brass ring-1 ring-brass/30 shadow-theme"
+                      : "bg-surface border-line hover:border-line-strong hover:bg-surface-2/40"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase">
-                        {vec.category}
-                      </span>
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${
-                          vec.status === "Active" || vec.status === "In Flight"
-                            ? "bg-jade/10 text-jade border-jade/20"
-                            : "bg-surface text-text-muted border-line"
-                        }`}
-                      >
-                        {vec.status}
-                      </span>
+                    <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                      <span className="font-semibold text-text">{vec.category}</span>
+                      <span>·</span>
+                      <span className="text-[11px]">{vec.status}</span>
                     </div>
-                    <span className="text-xs font-bold text-jade font-mono">{vec.expectedImpact}</span>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                      {vec.expectedImpact}
+                    </span>
                   </div>
 
                   <div>
-                    <h3 className="text-xs sm:text-sm font-bold text-text">{vec.title}</h3>
+                    <h3 className="text-xs sm:text-sm font-bold text-text leading-snug">
+                      {vec.title}
+                    </h3>
                     <p className="text-[11px] text-text-muted mt-1 line-clamp-2 leading-relaxed">
                       {vec.description}
                     </p>
                   </div>
 
-                  {/* Progress Bar */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-[10px] text-text-muted">
-                      <span>Milestones Progress</span>
-                      <span className="font-mono font-semibold">
-                        {completedMilestones}/{vec.milestones.length} ({progressPct}%)
-                      </span>
+                  {/* Clean Progress Bar */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-text-muted">
+                      <span>{completedMilestones} of {vec.milestones.length} milestones complete</span>
+                      <span className="font-medium text-text">{progressPct}%</span>
                     </div>
-                    <div className="w-full h-1.5 rounded-full bg-surface border border-line overflow-hidden">
+                    <div className="w-full h-1.5 rounded-full bg-surface-2 border border-line overflow-hidden">
                       <div
-                        className="h-full bg-brass transition-all duration-500 rounded-full"
+                        className="h-full bg-brass rounded-full transition-all duration-300"
                         style={{ width: `${progressPct}%` }}
                       />
                     </div>
@@ -597,13 +581,13 @@ export default function GrowthStrategyPage() {
             })}
           </div>
 
-          {/* Selected Vector Deep-Dive (Right) */}
-          <div className="lg:col-span-6 p-5 rounded-2xl border border-line bg-surface shadow-xs space-y-5 flex flex-col justify-between">
+          {/* Selected Initiative Deep-Dive (Right) */}
+          <div className="lg:col-span-6 p-5 sm:p-6 rounded-xl border border-line bg-surface shadow-theme space-y-5 flex flex-col justify-between">
             <div className="space-y-4">
-              <div className="flex items-start justify-between pb-3 border-b border-line gap-3">
+              <div className="flex items-start justify-between pb-3.5 border-b border-line gap-3">
                 <div>
-                  <span className="text-[10px] font-bold text-brass uppercase tracking-wider block">
-                    Strategic Vector Focus
+                  <span className="text-[11px] font-semibold text-brass">
+                    {selectedVector.category} Initiative
                   </span>
                   <h3 className="text-sm sm:text-base font-bold text-text mt-0.5">
                     {selectedVector.title}
@@ -613,7 +597,7 @@ export default function GrowthStrategyPage() {
                   <button
                     type="button"
                     onClick={() => handleOpenEditModal(selectedVector)}
-                    title="Edit Vector"
+                    title="Edit Initiative"
                     className="p-1.5 rounded-lg border border-line hover:bg-surface-2 text-text-muted hover:text-text transition-colors cursor-pointer"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
@@ -621,69 +605,93 @@ export default function GrowthStrategyPage() {
                   <button
                     type="button"
                     onClick={() => handleDeleteVector(selectedVector.id)}
-                    title="Delete Vector"
-                    className="p-1.5 rounded-lg border border-line hover:bg-rose-500/10 text-text-muted hover:text-rose-400 transition-colors cursor-pointer"
+                    title="Delete Initiative"
+                    className="p-1.5 rounded-lg border border-line hover:bg-rose-500/10 text-text-muted hover:text-rose-500 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-text-muted">Expected Impact</span>
-                <span className="font-extrabold text-jade font-mono text-sm">
+              <div className="flex items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-surface-2 border border-line">
+                <span className="text-text-muted">Expected Growth Impact</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-sm">
                   {selectedVector.expectedImpact}
                 </span>
               </div>
 
-              <p className="text-xs text-text-muted leading-relaxed">
+              <p className="text-xs text-text-muted leading-relaxed font-normal">
                 {selectedVector.description}
               </p>
 
-              <div className="grid grid-cols-3 gap-2 text-[11px] pt-1">
-                <div className="p-2.5 rounded-lg bg-surface-2 border border-line">
-                  <span className="text-[10px] text-text-muted block">Timeline</span>
-                  <span className="font-bold text-text font-mono">{selectedVector.timeline}</span>
+              {/* Clean Metadata Row */}
+              <div className="grid grid-cols-3 gap-2.5 pt-1">
+                <div className="p-3 rounded-xl bg-surface-2 border border-line">
+                  <div className="flex items-center gap-1.5 text-text-muted text-[11px]">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Timeline</span>
+                  </div>
+                  <div className="text-xs font-semibold text-text mt-1 truncate">
+                    {selectedVector.timeline}
+                  </div>
                 </div>
-                <div className="p-2.5 rounded-lg bg-surface-2 border border-line">
-                  <span className="text-[10px] text-text-muted block">Executive Owner</span>
-                  <span className="font-bold text-text truncate block">{selectedVector.owner}</span>
+
+                <div className="p-3 rounded-xl bg-surface-2 border border-line">
+                  <div className="flex items-center gap-1.5 text-text-muted text-[11px]">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Owner</span>
+                  </div>
+                  <div className="text-xs font-semibold text-text mt-1 truncate">
+                    {selectedVector.owner}
+                  </div>
                 </div>
-                <div className="p-2.5 rounded-lg bg-surface-2 border border-line">
-                  <span className="text-[10px] text-text-muted block">Risk Profile</span>
-                  <span className="font-bold text-amber-400 font-mono">{selectedVector.riskTier} Risk</span>
+
+                <div className="p-3 rounded-xl bg-surface-2 border border-line">
+                  <div className="flex items-center gap-1.5 text-text-muted text-[11px]">
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Risk Tier</span>
+                  </div>
+                  <div className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1">
+                    {selectedVector.riskTier} Risk
+                  </div>
                 </div>
               </div>
 
-              {/* Actionable Milestones Checklist */}
+              {/* Actionable Milestones */}
               <div className="space-y-2 pt-2">
-                <span className="text-[10px] font-bold text-text uppercase tracking-wider block">
-                  Actionable Operational Milestones (Click to Toggle)
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-text">
+                    Operational Milestones
+                  </span>
+                  <span className="text-[11px] text-text-muted">
+                    Click to mark complete
+                  </span>
+                </div>
+
                 <div className="space-y-1.5">
                   {selectedVector.milestones.map((m, idx) => (
                     <div
                       key={idx}
                       onClick={() => handleToggleMilestone(selectedVector.id, idx)}
-                      className={`p-2.5 rounded-lg border text-xs flex items-center justify-between cursor-pointer transition-all ${
+                      className={`p-2.5 rounded-xl border text-xs flex items-center justify-between cursor-pointer transition-all ${
                         m.done
-                          ? "bg-jade/5 border-jade/30 text-text"
-                          : "bg-surface-2 border-line text-text-muted hover:text-text"
+                          ? "bg-emerald-500/5 border-emerald-500/20 text-text"
+                          : "bg-surface-2 border-line text-text-muted hover:text-text hover:border-line-strong"
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <div
                           className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${
-                            m.done ? "bg-jade border-jade text-white" : "border-line"
+                            m.done ? "bg-emerald-600 border-emerald-600 text-white" : "border-line bg-surface"
                           }`}
                         >
                           {m.done && <CheckCircle2 className="w-3.5 h-3.5" />}
                         </div>
-                        <span className={m.done ? "line-through text-text-muted font-medium" : "font-semibold"}>
+                        <span className={m.done ? "line-through text-text-muted" : "font-medium text-text"}>
                           {m.title}
                         </span>
                       </div>
-                      <span className="text-[10px] text-text-muted uppercase">
+                      <span className={`text-[10px] font-medium ${m.done ? "text-emerald-600 dark:text-emerald-400" : "text-text-muted"}`}>
                         {m.done ? "Completed" : "Pending"}
                       </span>
                     </div>
@@ -695,28 +703,26 @@ export default function GrowthStrategyPage() {
             {/* Bottom Actions */}
             <div className="pt-4 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-3">
               <span className="text-[11px] text-text-muted">
-                Execute this vector to auto-generate structured tasks.
+                Create structured tasks for your team from these milestones.
               </span>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => handleExecuteInitiative(selectedVector)}
-                  disabled={Boolean(executingId)}
-                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-brass text-white font-bold text-xs shadow-md hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all btn-tactile inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  {executingId ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Dispatching Tasks…</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-3.5 h-3.5 text-white" />
-                      <span>Execute Initiative into Tasks</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleExecuteInitiative(selectedVector)}
+                disabled={Boolean(executingId)}
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-brass hover:brightness-110 active:scale-95 text-white font-bold text-xs shadow-sm disabled:opacity-50 transition-all btn-tactile inline-flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                {executingId ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Creating Tasks…</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="w-3.5 h-3.5" />
+                    <span>Convert to Tasks</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -729,7 +735,7 @@ export default function GrowthStrategyPage() {
             <div className="flex items-center gap-2">
               <Compass className="w-5 h-5 text-brass" />
               <h2 className="text-base font-bold text-text">
-                {editingVector ? "Edit Strategic Growth Vector" : "Add Strategic Growth Vector"}
+                {editingVector ? "Edit Growth Initiative" : "Add Growth Initiative"}
               </h2>
             </div>
             <button
@@ -744,7 +750,7 @@ export default function GrowthStrategyPage() {
           <form onSubmit={handleSaveVector} className="space-y-4">
             <div>
               <label className="text-xs font-semibold text-text block mb-1">
-                Vector Title <span className="text-rose-500">*</span>
+                Initiative Title <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -899,7 +905,7 @@ export default function GrowthStrategyPage() {
                 type="submit"
                 className="px-5 py-2 rounded-xl bg-brass text-white text-xs font-bold shadow-md hover:brightness-110 active:scale-95 transition-all btn-tactile cursor-pointer"
               >
-                {editingVector ? "Save Changes" : "Create Vector"}
+                {editingVector ? "Save Changes" : "Create Initiative"}
               </button>
             </div>
           </form>

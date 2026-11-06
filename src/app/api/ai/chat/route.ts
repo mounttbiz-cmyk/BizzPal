@@ -138,54 +138,54 @@ export async function POST(req: NextRequest) {
     // Executive Agent Personas
     const agentRoles: Record<string, { title: string; focus: string; tone: string }> = {
       ceo: {
-        title: "Astra (CEO AI)",
+        title: "CEO",
         focus: "Executive strategy, cross-functional prioritization, founder sanity, market positioning, high-ticket deal closing, and existential risks.",
         tone: "Decisive, visionary, encouraging, authoritative.",
       },
       cfo: {
-        title: "Marcus (CFO AI)",
+        title: "CFO",
         focus: "Burn rate compression, liquid cash runway, gross margin health, unit economics (CAC/LTV), pricing models, and solvency governance.",
         tone: "Fiscally disciplined, data-first, razor-sharp, analytical.",
       },
       cmo: {
-        title: "Elena (Marketing AI)",
+        title: "Marketing",
         focus: "Customer acquisition cost (CAC), pipeline conversion velocity, inbound funnels, ICP qualification, messaging, and partner distribution channels.",
         tone: "Growth-oriented, energetic, conversion-focused, experimental.",
       },
       marketing: {
-        title: "Elena (Marketing AI)",
+        title: "Marketing",
         focus: "Customer acquisition cost (CAC), pipeline conversion velocity, inbound funnels, ICP qualification, messaging, and partner distribution channels.",
         tone: "Growth-oriented, energetic, conversion-focused, experimental.",
       },
       sales: {
-        title: "Vikram (Sales AI)",
+        title: "Sales",
         focus: "Pipeline velocity, high-ticket deal closing, objection handling, win rates, and contract expansion.",
         tone: "Sharp, persuasive, metric-focused, deal-driven.",
       },
       hr: {
-        title: "Sarah (HR & Talent AI)",
+        title: "HR & Talent",
         focus: "Headcount capacity modeling, key-person risk, compensation benchmarks, and talent velocity.",
         tone: "Empathetic, structured, culturally aligned, strategic.",
       },
       coo: {
-        title: "David (Operations AI)",
+        title: "Operations",
         focus: "Process optimization, vendor SLAs, operational friction, capacity constraints, and operational bottlenecks.",
         tone: "Systematic, efficiency-driven, pragmatic, operational.",
       },
       operations: {
-        title: "David (Operations AI)",
+        title: "Operations",
         focus: "Process optimization, vendor SLAs, operational friction, capacity constraints, and operational bottlenecks.",
         tone: "Systematic, efficiency-driven, pragmatic, operational.",
       },
       strategy: {
-        title: "Rohan (Strategy AI)",
+        title: "Strategy",
         focus: "Competitive moats, market expansion, SWOT evaluation, business model evolution, and defensibility.",
         tone: "Insightful, macro-economic, competitive, strategic.",
       },
     };
 
     const baseRole = agentRoles[agentId] || agentRoles.ceo;
-    const resolvedRoleTitle = customRoleTitle || (agentName ? `${agentName} (${agentRole || baseRole.title.split("(")[1] || "Executive AI"})` : baseRole.title);
+    const resolvedRoleTitle = customRoleTitle || (agentName ? (agentRole ? `${agentName} (${agentRole})` : agentName) : baseRole.title);
     const activeRole = {
       ...baseRole,
       title: resolvedRoleTitle,

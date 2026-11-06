@@ -37,6 +37,8 @@ interface Tenant {
   cashOnHand: number;
   runwayMonths: string;
   connectedTools: string[];
+  logoUrl?: string | null;
+  lastLoginAt?: string | null;
   ownerEmail?: string | null;
   ownerName?: string | null;
   authProvider?: string | null;
@@ -51,6 +53,24 @@ interface TenantsManagerProps {
   onRefresh: () => Promise<void>;
   notify: (msg: string) => void;
 }
+
+const formatDateTime = (dateStr?: string | null) => {
+  if (!dateStr) return "Never";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleString("en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return dateStr;
+  }
+};
 
 export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsManagerProps) {
   const [search, setSearch] = useState("");
@@ -91,6 +111,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
     cashOnHand: 1200000,
     teamSize: 5,
     website: "",
+    logoUrl: "",
   });
 
   const openCreateModal = () => {
@@ -106,6 +127,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
       cashOnHand: 1800000,
       teamSize: 6,
       website: "https://",
+      logoUrl: "",
     });
     setIsModalOpen(true);
   };
@@ -123,6 +145,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
       cashOnHand: t.cashOnHand,
       teamSize: t.teamSize,
       website: t.website || "",
+      logoUrl: t.logoUrl || "",
     });
     setIsModalOpen(true);
   };
@@ -331,6 +354,17 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
             >
               <div className="space-y-1.5 min-w-0">
                 <div className="flex items-center gap-2.5 flex-wrap">
+                  {t.logoUrl ? (
+                    <img
+                      src={t.logoUrl}
+                      alt={t.name}
+                      className="w-7 h-7 object-contain shrink-0"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-lg bg-brass/10 text-brass text-[10px] font-bold flex items-center justify-center shrink-0 border border-brass/20 shadow-xs">
+                      {t.name.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "EP"}
+                    </div>
+                  )}
                   <span className="font-extrabold text-sm text-text">{t.name}</span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-gold/10 text-gold font-semibold border border-gold/20">
                     {t.industryLabel}
@@ -362,6 +396,11 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
                       </span>
                     </>
                   )}
+                  <span>•</span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gold/10 border border-gold/25 text-gold text-[11px] font-mono">
+                    <Clock className="w-3 h-3 text-gold shrink-0" />
+                    <span>Last Login: <strong className="text-text font-semibold">{formatDateTime(t.lastLoginAt || t.updatedAt || t.createdAt)}</strong></span>
+                  </span>
                   <span>•</span>
                   <span>Team: {t.teamSize} members</span>
                   {t.website && (
@@ -571,6 +610,64 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
                   onChange={(e) => setForm({ ...form, website: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-[11px]"
                 />
+              </div>
+
+              {/* Business Logo Upload & Live Preview */}
+              <div className="p-3.5 rounded-xl bg-surface-2/50 border border-line space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-text">Enterprise Brand Logo</label>
+                  {form.logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, logoUrl: "" })}
+                      className="text-[11px] text-rust hover:underline cursor-pointer font-medium"
+                    >
+                      Remove Logo
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {form.logoUrl ? (
+                    <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+                      <img src={form.logoUrl} alt="Logo preview" className="w-full h-full object-contain" />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-surface border border-dashed border-line text-text-muted text-[10px] flex items-center justify-center text-center p-1 shrink-0">
+                      No Logo
+                    </div>
+                  )}
+                  <div className="flex-1 space-y-1.5">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-line hover:bg-surface-2 text-xs font-semibold text-text cursor-pointer transition-colors shadow-2xs">
+                      <span>Upload Logo File (PNG/JPG/SVG)</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) {
+                            alert("File is too large. Please select an image under 2MB.");
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            const res = ev.target?.result as string;
+                            if (res) setForm({ ...form, logoUrl: res });
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Or paste direct image URL (https://...)"
+                      value={form.logoUrl}
+                      onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
+                      className="w-full px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface border border-line text-text placeholder:text-text-muted/60"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Financial Inputs */}

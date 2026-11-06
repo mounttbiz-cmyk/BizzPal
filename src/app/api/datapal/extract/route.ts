@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateSyntheticLeads } from "@/lib/datapal/storage";
 import { extractRealBusinessLeads } from "@/lib/datapal/realExtractor";
-import { DataPalSearchConfig } from "@/lib/datapal/types";
+import { DataPalBusinessLead, DataPalSearchConfig } from "@/lib/datapal/types";
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,7 +53,20 @@ export async function POST(req: NextRequest) {
     // 2. LIVE FREE REAL-DATA EXTRACTION (OpenStreetMap Live + Google Places Free Tier)
     const { leads: realLeads, sourceMode } = await extractRealBusinessLeads(config, apiKey);
 
-    const leads = realLeads.length > 0 ? realLeads : generateSyntheticLeads(config);
+    const targetCount = config.requestedCount && config.requestedCount > 0 ? config.requestedCount : 25;
+    let leads: DataPalBusinessLead[] = [];
+    if (realLeads.length >= targetCount) {
+      leads = realLeads.slice(0, targetCount);
+    } else if (realLeads.length > 0) {
+      const needed = targetCount - realLeads.length;
+      const synthetic = generateSyntheticLeads({
+        ...config,
+        requestedCount: needed,
+      });
+      leads = [...realLeads, ...synthetic];
+    } else {
+      leads = generateSyntheticLeads(config);
+    }
     const campaignId = `camp_${Date.now()}`;
     const locationString = [config.areaPincode, config.city, config.state, config.countryCode === "IN" ? "India" : config.countryCode]
       .filter(Boolean)

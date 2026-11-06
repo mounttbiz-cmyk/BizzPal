@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Users, Search, Trash2, ShieldCheck, Mail, Key, Calendar, RotateCcw } from "lucide-react";
+import { Users, Search, Trash2, ShieldCheck, Mail, Key, Calendar, RotateCcw, Clock } from "lucide-react";
 
 interface UserItem {
   id: string;
   email: string;
   name: string;
   provider: string;
+  lastLoginAt?: string | null;
   createdAt: string;
 }
 
@@ -16,6 +17,24 @@ interface UsersManagerProps {
   onRefresh: () => Promise<void>;
   notify: (msg: string) => void;
 }
+
+const formatDateTime = (dateStr?: string | null) => {
+  if (!dateStr) return "Never";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleString("en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return dateStr;
+  }
+};
 
 export function UsersManager({ users, onRefresh, notify }: UsersManagerProps) {
   const [search, setSearch] = useState("");
@@ -126,10 +145,15 @@ export function UsersManager({ users, onRefresh, notify }: UsersManagerProps) {
 
                 <div className="flex items-center gap-3 text-[11px] text-text-muted font-mono flex-wrap">
                   <span className="break-all">ID: {u.id}</span>
+                  <span>•</span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gold/10 border border-gold/25 text-gold text-[11px] font-mono">
+                    <Clock className="w-3 h-3 text-gold shrink-0" />
+                    <span>Last Login: <strong className="text-text font-semibold">{formatDateTime(u.lastLoginAt || u.createdAt)}</strong></span>
+                  </span>
                   {u.createdAt && (
                     <>
                       <span>•</span>
-                      <span>Registered: {new Date(u.createdAt).toLocaleDateString()}</span>
+                      <span>Registered: {formatDateTime(u.createdAt)}</span>
                     </>
                   )}
                 </div>

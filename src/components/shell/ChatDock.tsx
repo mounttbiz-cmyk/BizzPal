@@ -47,9 +47,9 @@ export function ChatDock({
     {
       id: "msg_1",
       sender: "ceo",
-      senderName: "Astra",
-      role: "CEO AI",
-      avatar: "Crown",
+      senderName: "CEO",
+      role: "Chief Executive Officer",
+      avatar: "Briefcase",
       content: "Good morning. I've reviewed your latest telemetry and runway metrics. How can I assist with your executive priorities today?",
       timestamp: "09:00 AM",
       situation: "Active operations pipeline is healthy; cash runway sits at 8.0 months.",
@@ -66,8 +66,8 @@ export function ChatDock({
   ]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [ceoName, setCeoName] = useState("Astra");
-  const [cfoName, setCfoName] = useState("Marcus");
+  const [ceoName, setCeoName] = useState("CEO");
+  const [cfoName, setCfoName] = useState("CFO");
 
   useEffect(() => {
     const syncAdvisors = () => {
@@ -75,8 +75,14 @@ export function ChatDock({
         const raw = localStorage.getItem("bizzpal_custom_advisors");
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed.ceo?.name) setCeoName(parsed.ceo.name);
-          if (parsed.cfo?.name) setCfoName(parsed.cfo.name);
+          const cName = parsed.ceo?.name && parsed.ceo.name.toLowerCase() !== "astra" ? parsed.ceo.name : "CEO";
+          const fName = parsed.cfo?.name && parsed.cfo.name.toLowerCase() !== "marcus" ? parsed.cfo.name : "CFO";
+          setCeoName(cName);
+          setCfoName(fName);
+          setMessages(prev =>
+            prev.map(m => (m.id === "msg_1" ? { ...m, senderName: cName } : m))
+          );
+          return;
         }
       } catch {}
     };
@@ -149,8 +155,8 @@ export function ChatDock({
           const replyMsg: ChatMessage = {
             id: `ai_${Date.now()}`,
             sender: "cfo",
-            senderName: data.agent || "Marcus",
-            role: "CFO AI",
+            senderName: data.agent || cfoName || "CFO",
+            role: "CFO",
             avatar: "📊",
             content: data.text,
             timestamp: "Just now",
@@ -168,8 +174,8 @@ export function ChatDock({
         const replyMsg: ChatMessage = {
           id: `ai_${Date.now()}`,
           sender: "cfo",
-          senderName: "Marcus",
-          role: "CFO AI",
+          senderName: cfoName || "CFO",
+          role: "CFO",
           avatar: "📊",
           content: `Regarding "${question}": Based on your active telemetry, cash runway and capital allocation remain aligned with your baseline targets.`,
           timestamp: "Just now",
@@ -360,7 +366,7 @@ export function ChatDock({
         {isStreaming && (
           <div className="flex items-center gap-2 text-xs text-text-muted p-2 rounded-lg bg-surface-2 animate-pulse">
             <BrainCircuit className="w-4 h-4 text-brass animate-pulse" />
-            <span>Consulting Marcus (CFO) and verifying active ledger metrics…</span>
+            <span>Consulting {cfoName} and verifying active ledger metrics…</span>
           </div>
         )}
       </div>

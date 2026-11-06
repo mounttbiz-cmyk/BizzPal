@@ -294,11 +294,11 @@ const STATIC_SEARCH_ITEMS: SearchItem[] = [
     id: "nav_chat",
     title: "AI Workspace & Copilot",
     category: "Pages & Navigation",
-    description: "Chat with Astra (CEO), Marcus (CFO), and Elena (CMO) for strategic advisory.",
-    badge: "AI Copilot",
+    description: "Chat with CEO, CFO, and Marketing for strategic advisory.",
+    badge: "Executive Advisory",
     href: "/chat",
     icon: <Bot className="w-4 h-4 text-cyan-400" />,
-    keywords: ["chat", "copilot", "ai", "astra", "marcus", "elena", "advisor"],
+    keywords: ["chat", "copilot", "ai", "ceo", "cfo", "marketing", "advisor"],
   },
 
   // ==========================================

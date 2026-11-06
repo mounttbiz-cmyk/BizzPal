@@ -16,7 +16,6 @@ import { AdvisorRoster } from "@/components/chat/AdvisorRoster";
 import { AdvisorHeader } from "@/components/chat/AdvisorHeader";
 import { MobileAdvisorStrip } from "@/components/chat/MobileAdvisorStrip";
 import { ChatThread } from "@/components/chat/ChatThread";
-import { SuggestedPrompts } from "@/components/chat/SuggestedPrompts";
 import { Composer } from "@/components/chat/Composer";
 import { ChatHistoryDrawer, ChatHistoryPanel } from "@/components/chat/ChatHistoryDrawer";
 import { BrainCircuit, Building2, MessageSquare } from "lucide-react";
@@ -24,12 +23,12 @@ import { BrainCircuit, Building2, MessageSquare } from "lucide-react";
 const EXECUTIVE_AGENTS: AgentMeta[] = [
   {
     id: "ceo",
-    name: "Astra",
-    role: "CEO AI",
-    avatar: "Crown",
-    badge: "Strategic Vision",
+    name: "CEO",
+    role: "Chief Executive Officer",
+    avatar: "Briefcase",
+    badge: "Company Direction",
     color: "text-amber-500 bg-amber-500/10 border-amber-500/30",
-    summary: "Capital efficiency, enterprise scale milestones, founder alignment, and board-level directives.",
+    summary: "Company direction, capital allocation, executive priorities, and board-level directives.",
     quickTools: [
       { name: "Scenario Planner", href: "/simulator" },
       { name: "Gap Register", href: "/gaps" },
@@ -45,10 +44,10 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
   },
   {
     id: "cfo",
-    name: "Marcus",
-    role: "CFO AI",
-    avatar: "TrendingUp",
-    badge: "Capital & Runway",
+    name: "CFO",
+    role: "Chief Financial Officer",
+    avatar: "Landmark",
+    badge: "Cash & Budget",
     color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/30",
     summary: "Cash burn, liquidity runway, unit economics, INR tax/balance sheet discipline, and solvency alarms.",
     quickTools: [
@@ -67,10 +66,10 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
   },
   {
     id: "marketing",
-    name: "Elena",
-    role: "Marketing AI",
-    avatar: "Target",
-    badge: "Demand & Growth",
+    name: "Marketing",
+    role: "Head of Marketing",
+    avatar: "Megaphone",
+    badge: "Growth & Leads",
     color: "text-purple-500 bg-purple-500/10 border-purple-500/30",
     summary: "CAC, ROAS efficiency, organic funnels, brand positioning, and demand generation economics.",
     quickTools: [
@@ -88,10 +87,10 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
   },
   {
     id: "sales",
-    name: "Vikram",
-    role: "Sales AI",
-    avatar: "Zap",
-    badge: "Deal Velocity",
+    name: "Sales",
+    role: "Head of Sales",
+    avatar: "Handshake",
+    badge: "Deals & Revenue",
     color: "text-blue-500 bg-blue-500/10 border-blue-500/30",
     summary: "Pipeline velocity, enterprise deal structuring, lead scoring, and sales representative quotas.",
     quickTools: [
@@ -109,10 +108,10 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
   },
   {
     id: "hr",
-    name: "Sarah",
-    role: "HR & Talent AI",
+    name: "HR & Talent",
+    role: "Head of People & HR",
     avatar: "Users",
-    badge: "Talent & Culture",
+    badge: "Hiring & Team",
     color: "text-rose-500 bg-rose-500/10 border-rose-500/30",
     summary: "Headcount planning, talent retention, hiring cost, organizational structure, and compensation benchmarks.",
     quickTools: [
@@ -130,10 +129,10 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
   },
   {
     id: "operations",
-    name: "David",
-    role: "Operations AI",
-    avatar: "Workflow",
-    badge: "Efficiency & SLAs",
+    name: "Operations",
+    role: "Head of Operations",
+    avatar: "Settings2",
+    badge: "Daily Operations",
     color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/30",
     summary: "Process optimization, workflow automation, operational bottlenecks, vendor SLAs, and delivery margins.",
     quickTools: [
@@ -151,10 +150,10 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
   },
   {
     id: "strategy",
-    name: "Rohan",
-    role: "Strategy AI",
+    name: "Strategy",
+    role: "Chief Strategy Officer",
     avatar: "Compass",
-    badge: "Moats & Expansion",
+    badge: "Market Strategy",
     color: "text-orange-500 bg-orange-500/10 border-orange-400/30",
     summary: "Defensibility analysis, competitive moats, market expansion playbooks, and strategic partnerships.",
     quickTools: [
@@ -179,6 +178,7 @@ export default function ChatWorkspacePage() {
   const [isRosterCollapsed, setIsRosterCollapsed] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   const [customAdvisors, setCustomAdvisors] = useState<Record<string, { name?: string; avatar?: string }>>(() => {
     return getStoredCustomAdvisors();
@@ -242,12 +242,47 @@ export default function ChatWorkspacePage() {
               ? ["Open Cash Flow Forecast", "Analyze Tooling Overheads", "Calculate Break-Even Threshold"]
               : agent.id === "marketing"
               ? ["Audit Inbound Conversion Rates", "Calculate Blended CAC", "Plan ICP Retargeting Campaign"]
-              : ["Score Pipeline Deals", "Audit Stalled Leads", "Model Enterprise Contract Tiering"],
+              : agent.id === "sales"
+              ? ["Score Pipeline Deals", "Audit Stalled Leads", "Model Enterprise Contract Tiering"]
+              : agent.id === "hr"
+              ? ["Model Headcount Capacity", "Benchmark Salary Parity", "Review Key-Person Risk"]
+              : agent.id === "operations"
+              ? ["Identify Delivery Bottlenecks", "Audit Vendor Subscriptions", "Streamline Client Onboarding"]
+              : ["Evaluate Competitive Moats", "Model Expansion Scenarios", "Assess Market Entry Strategy"],
         },
       ];
     }
     return initConvs;
   });
+
+  // Keep initial greeting updated when effectiveAgents change (e.g. customized from Settings)
+  useEffect(() => {
+    setConversations(prev => {
+      let changed = false;
+      const next = { ...prev };
+      for (const agent of effectiveAgents) {
+        const list = next[agent.id];
+        if (list) {
+          next[agent.id] = list.map(m => {
+            if (m.id.startsWith("msg_init_")) {
+              const expectedName = `${agent.name} (${agent.role})`;
+              if (m.agentName !== expectedName || m.avatar !== agent.avatar) {
+                changed = true;
+                return {
+                  ...m,
+                  agentName: expectedName,
+                  avatar: agent.avatar,
+                  content: getAdvisorGreeting(agent, companyProfile),
+                };
+              }
+            }
+            return m;
+          });
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [effectiveAgents, companyProfile]);
 
   const handleSaveCustomAdvisor = (agentId: string, customData: { name: string; avatar: string }) => {
     const updated = {
@@ -445,6 +480,8 @@ export default function ChatWorkspacePage() {
 
     if (!textToSend) setInputMessage("");
     setIsTyping(true);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     const attachmentContext =
       attachmentsToSend && attachmentsToSend.length > 0
@@ -454,6 +491,7 @@ export default function ChatWorkspacePage() {
     try {
       const resp = await fetch("/api/ai/chat", {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: `${message}${attachmentContext}`,
@@ -475,7 +513,7 @@ export default function ChatWorkspacePage() {
           id: `agt_${Date.now()}`,
           sender: "agent",
           agentId: activeAgentId,
-          agentName: activeAgent.name + ` (${activeAgent.role})`,
+          agentName: activeAgent.name,
           avatar: activeAgent.avatar,
           timestamp: "Just now",
           content: responseContent,
@@ -487,12 +525,16 @@ export default function ChatWorkspacePage() {
           [activeAgentId]: [...(prev[activeAgentId] || []), agentMsg],
         }));
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === "AbortError" || err.message?.includes("aborted")) {
+        // User deliberately clicked Stop - do not inject error message
+        return;
+      }
       const fallbackMsg: ChatMessage = {
         id: `agt_err_${Date.now()}`,
         sender: "agent",
         agentId: activeAgentId,
-        agentName: activeAgent.name + ` (${activeAgent.role})`,
+        agentName: activeAgent.name,
         avatar: activeAgent.avatar,
         timestamp: "Just now",
         content: `Acknowledged for ${companyProfile?.name || "your enterprise"}.${
@@ -507,11 +549,21 @@ export default function ChatWorkspacePage() {
         [activeAgentId]: [...(prev[activeAgentId] || []), fallbackMsg],
       }));
     } finally {
+      abortControllerRef.current = null;
       setIsTyping(false);
     }
   };
 
+  const handleStopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsTyping(false);
+  };
+
   const handleResetConversation = () => {
+    handleStopGeneration();
     const defaultMsg = conversations[activeAgentId]?.[0];
     if (defaultMsg) {
       setConversations(prev => ({
@@ -543,39 +595,19 @@ export default function ChatWorkspacePage() {
         aria-label="Workspace Status Header"
         className="flex items-center justify-between pb-2 sm:pb-2.5 border-b border-line shrink-0 gap-2"
       >
-        {/* Left: App Title + Badge */}
+        {/* Left: App Title */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-2xs">
             <BrainCircuit className="w-4 h-4" />
           </div>
-          <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-text truncate tracking-tight font-sans">
-              <span className="hidden sm:inline">AI Executive Suite</span>
-              <span className="sm:hidden">AI Workspace</span>
-            </h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass/10 text-brass font-bold uppercase tracking-wider font-mono border border-brass/25 shrink-0">
-              7 advisors
-            </span>
-          </div>
+          <h1 className="text-base sm:text-lg font-bold text-text truncate tracking-tight font-sans">
+            <span className="hidden sm:inline">Executive Advisory</span>
+            <span className="sm:hidden">Executive Advisory</span>
+          </h1>
         </div>
 
-        {/* Right: Company Telemetry & Runway Pill */}
+        {/* Right: Mobile History Drawer Shortcut */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-2 sm:gap-2.5 text-xs bg-surface-2/60 border border-line px-2.5 sm:px-3 py-1.5 rounded-xl text-text-muted shrink-0 shadow-2xs">
-            <span className="font-semibold text-text truncate max-w-[100px] sm:max-w-none">
-              {enterpriseName}
-            </span>
-            <span className="text-text-muted/40 font-mono">·</span>
-            <span className="font-mono text-[11px] text-text font-bold">
-              {monthlyRevFormatted}
-            </span>
-            <span className="text-text-muted/40 font-mono">·</span>
-            <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-              Runway {runwayMonths}mo
-            </span>
-          </div>
-
-          {/* Mobile History Drawer Shortcut */}
           <button
             type="button"
             onClick={() => setIsHistoryOpen(true)}
@@ -622,6 +654,7 @@ export default function ChatWorkspacePage() {
           <AdvisorHeader
             activeAgent={activeAgent}
             onCustomize={() => setEditingAgent(activeAgent)}
+            onNewChat={handleResetConversation}
             onToggleHistory={() => setIsHistoryOpen(prev => !prev)}
             isHistoryOpen={isHistoryOpen}
             historyCount={currentMessages.length}
@@ -637,18 +670,12 @@ export default function ChatWorkspacePage() {
             onSelectPlaybook={handleSendMessage}
           />
 
-          {/* Suggested Prompts (Wrapped Chips / No Clipping) */}
-          <SuggestedPrompts
-            prompts={activeAgent.promptSuggestions}
-            onSelectPrompt={handleSendMessage}
-            disabled={isTyping}
-          />
-
-          {/* Composer (Sticky bottom dock with safe area padding) */}
+          {/* Composer (Sticky bottom dock with safe area padding & stop support) */}
           <Composer
             value={inputMessage}
             onChange={setInputMessage}
             onSend={attachments => handleSendMessage(undefined, attachments)}
+            onStop={handleStopGeneration}
             activeAgent={activeAgent}
             isTyping={isTyping}
           />

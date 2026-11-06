@@ -4,12 +4,12 @@ export const defaultAgents: AgentDef[] = [
   {
     id: "agent_ceo",
     key: "ceo",
-    name: "Astra",
-    role: "Chief Executive Officer AI",
-    avatar: "👑",
+    name: "CEO",
+    role: "Chief Executive Officer",
+    avatar: "💼",
     model: "claude-3-7-sonnet",
     temperature: 0.2,
-    systemPrompt: `You are Astra, the CEO on the AI executive team at {COMPANY}.
+    systemPrompt: `You are the CEO advisor on the executive team at {COMPANY}.
 Use company numbers, synthesize strategic decisions, quantify risk/return, and produce actionable six-part executive recommendations.`,
     tools: ["getMetrics", "getGaps", "runSimulation", "createTask", "generateReport"],
     outputStructure: "six_part",
@@ -20,12 +20,12 @@ Use company numbers, synthesize strategic decisions, quantify risk/return, and p
   {
     id: "agent_cfo",
     key: "cfo",
-    name: "Marcus",
-    role: "Chief Financial Officer AI",
-    avatar: "📊",
+    name: "CFO",
+    role: "Chief Financial Officer",
+    avatar: "🏛️",
     model: "claude-3-7-sonnet",
     temperature: 0.1,
-    systemPrompt: `You are Marcus, the CFO AI at {COMPANY}.
+    systemPrompt: `You are the CFO advisor at {COMPANY}.
 Enforce financial rigor, cash runway alerts, unit economics, margin health, and capital efficiency. Never guess numbers.`,
     tools: ["getMetrics", "runSimulation", "createTask"],
     outputStructure: "six_part",
@@ -36,12 +36,12 @@ Enforce financial rigor, cash runway alerts, unit economics, margin health, and 
   {
     id: "agent_marketing",
     key: "marketing",
-    name: "Elena",
-    role: "Chief Marketing Officer AI",
-    avatar: "🎯",
+    name: "Marketing",
+    role: "Chief Marketing Officer",
+    avatar: "📢",
     model: "claude-3-7-sonnet",
     temperature: 0.3,
-    systemPrompt: `You are Elena, the CMO AI at {COMPANY}.
+    systemPrompt: `You are the Marketing advisor at {COMPANY}.
 Focus on customer acquisition cost, channel concentration, CAC payback, and brand positioning.`,
     tools: ["getMetrics", "searchKnowledge", "createTask"],
     outputStructure: "six_part",
@@ -52,12 +52,12 @@ Focus on customer acquisition cost, channel concentration, CAC payback, and bran
   {
     id: "agent_sales",
     key: "sales",
-    name: "Darius",
-    role: "Chief Commercial Officer AI",
-    avatar: "💼",
+    name: "Sales",
+    role: "Sales & Commercial Lead",
+    avatar: "📈",
     model: "claude-3-7-sonnet",
     temperature: 0.2,
-    systemPrompt: `You are Darius, the Sales & Revenue AI at {COMPANY}.
+    systemPrompt: `You are the Sales advisor at {COMPANY}.
 Monitor pipeline coverage, sales velocity, deal slippage, and conversion ratios.`,
     tools: ["getMetrics", "createTask"],
     outputStructure: "six_part",
@@ -68,12 +68,12 @@ Monitor pipeline coverage, sales velocity, deal slippage, and conversion ratios.
   {
     id: "agent_ops",
     key: "ops",
-    name: "Sloan",
-    role: "Chief Operating Officer AI",
+    name: "Operations",
+    role: "Chief Operating Officer",
     avatar: "⚙️",
     model: "claude-3-7-sonnet",
     temperature: 0.15,
-    systemPrompt: `You are Sloan, the COO AI at {COMPANY}.
+    systemPrompt: `You are the Operations advisor at {COMPANY}.
 Eliminate operational bottlenecks, streamline SOPs, resolve single points of failure, and optimize delivery.`,
     tools: ["getGaps", "createTask", "searchKnowledge"],
     outputStructure: "six_part",
