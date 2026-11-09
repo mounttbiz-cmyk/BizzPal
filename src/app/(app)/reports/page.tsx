@@ -1,36 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  FileText,
-  Download,
-  Share2,
-  CheckCircle2,
-  AlertTriangle,
-  TrendingUp,
-  Calendar,
-  Clock,
-  ShieldCheck,
-  ChevronRight,
-  Printer,
-  Copy,
-  Check,
-  Activity,
-  ArrowUpRight,
-  Zap,
-  Target,
-  UserCheck,
-  XCircle,
-  BrainCircuit,
-  Layers,
-  History,
-  Info,
-  Plus,
-  Trash2,
-  X
-} from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
-import { useCustomAdvisors } from "@/lib/advisors";
 
 interface LeadershipDecision {
   id: string;
@@ -336,8 +308,7 @@ const BRIEFING_EDITIONS: Record<string, BriefingEdition> = {
 };
 
 export default function ReportsPage() {
-  const { ceoName, cfoName, marketingName } = useCustomAdvisors();
-  const [isGenerating, setIsGenerating] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedBriefingId, setSelectedBriefingId] = useState("briefing-current");
   const [companyName, setCompanyName] = useState("My Enterprise");
@@ -524,583 +495,377 @@ export default function ReportsPage() {
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const isCurrent = selectedBriefingId === "briefing-current";
+  const pendingCount = displayDecisions.filter(d => d.status === "pending").length;
+
+  const editions = [
+    { id: "briefing-current", title: "Week 37 briefing", cadence: "Current · last 7 days", note: pendingCount > 0 ? `${decisions.filter(d => d.status === "pending").length} decisions due` : "Up to date" },
+    { id: "briefing-monthly", title: "Monthly board synthesis", cadence: "September", note: "Archived" },
+    { id: "briefing-prev", title: "Week 36 review", cadence: "7 days ago", note: "Archived" },
+    { id: "briefing-q3", title: "Quarterly operating review", cadence: "Q3", note: "Archived" },
+  ];
+
+  const metrics = [
+    {
+      label: "Annual run-rate",
+      value: `₹${(isCurrent ? annualRevenue : activeEdition.annualRev).toLocaleString("en-IN")}`,
+      note: activeEdition.revDelta,
+    },
+    {
+      label: "Cash reserves",
+      value: `₹${(isCurrent ? cash : activeEdition.cash).toLocaleString("en-IN")}`,
+      note: "Liquid accounts",
+    },
+    {
+      label: "Runway",
+      value: isCurrent ? `${runwayMonths} months` : activeEdition.runway,
+      note: `Burn ₹${(isCurrent ? burn : activeEdition.burn).toLocaleString("en-IN")} / month`,
+    },
+    {
+      label: "Revenue per head",
+      value: isCurrent
+        ? `₹${Math.round(annualRevenue / (teamSize || 1)).toLocaleString("en-IN")}`
+        : activeEdition.fteEfficiency.replace(" / FTE", ""),
+      note: isCurrent ? `${teamSize} team ${teamSize === 1 ? "member" : "members"}` : "per team member",
+    },
+  ];
+
+  const inputClass =
+    "w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
+
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-line">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-brass/10 border border-brass/30 flex items-center justify-center text-brass">
-              <FileText className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-text">Executive Intelligence Briefing</h1>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider">
-                  Decision-Focused Intelligence
-                </span>
-              </div>
-              <p className="text-xs text-text-muted mt-1 font-medium">
-                Synthesizes financial health, key deviations, and top tactical directives into an executive briefing prepared for {founderName} and leadership at {companyName}.
-              </p>
-            </div>
-          </div>
+          <h1 className="text-xl font-bold text-text">Executive Briefing</h1>
+          <p className="text-sm text-text-muted mt-1">
+            Health, risks and decisions for {companyName}, prepared for {founderName}.
+          </p>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 border border-line text-text text-xs font-semibold hover:border-line-strong btn-tactile cursor-pointer"
+            className="px-3.5 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-text hover:bg-surface-2 cursor-pointer"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-jade" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copied ? "Copied Digest" : "Copy Digest"}</span>
+            {copied ? "Copied" : "Copy summary"}
           </button>
-
           <button
             type="button"
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 border border-line text-text text-xs font-semibold hover:border-line-strong btn-tactile cursor-pointer"
+            className="px-3.5 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-text hover:bg-surface-2 cursor-pointer"
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Print / PDF</span>
+            Print / PDF
           </button>
-
           <button
             type="button"
             onClick={handleGenerate}
             disabled={isGenerating}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-brass text-white text-xs font-semibold shadow-sm hover:brightness-110 btn-tactile disabled:opacity-50 cursor-pointer"
+            className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
           >
-            <FileText className="w-3.5 h-3.5" />
-            <span>{isGenerating ? "Synthesizing Briefing…" : "Generate Fresh Briefing"}</span>
+            {isGenerating ? "Generating…" : "Generate new briefing"}
           </button>
         </div>
       </div>
 
-      {/* Floating Notification Toast */}
       {activeNotification && (
-        <div className="p-3.5 rounded-xl bg-brass-soft border border-brass text-xs text-text font-medium flex items-center justify-between shadow-lg animate-fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-brass shrink-0" />
-            <span>{activeNotification}</span>
-          </div>
-          <span className="text-[10px] text-text-muted font-mono">Real-time ledger synced</span>
-        </div>
+        <p className="p-3 rounded-lg border border-line bg-surface-2 text-sm text-text">{activeNotification}</p>
       )}
 
-      {/* Main Layout: Briefing Feed & Historical Archive */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Cadence Selector & Historical Briefings Archive (4 cols) */}
-        <div className="lg:col-span-4 space-y-3">
-          <div className="text-xs font-semibold text-text-muted uppercase tracking-wider px-1 flex items-center justify-between">
-            <span>Cadence & Editions</span>
-            <span className="text-[10px] text-brass">Real-time Ledger Connected</span>
-          </div>
-
-          <div className="space-y-2">
-            {[
-              {
-                id: "briefing-current",
-                title: "Week 37 Executive Intelligence Briefing",
-                cadence: "Current · Trailing 7 Days",
-                sentiment: "Bullish Control",
-                status: "Live Active",
-                pendingCount: decisions.filter(d => d.status === "pending").length,
-              },
-              {
-                id: "briefing-monthly",
-                title: "Monthly Board Operations Synthesis",
-                cadence: "September Cycle",
-                sentiment: "Stable Runway",
-                status: "Archived",
-                pendingCount: 0,
-              },
-              {
-                id: "briefing-prev",
-                title: "Week 36 Solvency & Burn Health Review",
-                cadence: "7 days ago",
-                sentiment: "Target Met",
-                status: "Archived",
-                pendingCount: 0,
-              },
-              {
-                id: "briefing-q3",
-                title: "Quarterly Comprehensive Operating Review",
-                cadence: "Q3 Strategic Audit",
-                sentiment: "Expansion Ready",
-                status: "Archived",
-                pendingCount: 0,
-              },
-            ].map(item => {
-              const isSelected = selectedBriefingId === item.id;
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Editions */}
+        <aside className="lg:col-span-3 lg:sticky lg:top-6 self-start rounded-xl border border-line bg-surface p-2">
+          <h2 className="text-sm font-medium text-text px-3 pt-2 pb-2">Briefings</h2>
+          <ul className="space-y-0.5">
+            {editions.map(item => {
+              const selected = selectedBriefingId === item.id;
               return (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedBriefingId(item.id)}
-                  className={`p-3.5 rounded-xl border transition-all cursor-pointer btn-tactile ${
-                    isSelected
-                      ? "bg-surface border-brass shadow-theme ring-1 ring-brass/30"
-                      : "bg-surface-2/60 border-line hover:border-line-strong"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-text line-clamp-1">{item.title}</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-brass-soft text-brass font-bold uppercase shrink-0">
-                      {item.sentiment}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-text-muted mt-2">
-                    <span>{item.cadence}</span>
-                    {item.pendingCount > 0 ? (
-                      <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.2 rounded">
-                        {item.pendingCount} Decisions Due
-                      </span>
-                    ) : (
-                      <span>{item.status}</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* AI Synthesis Co-Pilots Card */}
-          <div className="p-4 rounded-xl border border-line bg-surface space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BrainCircuit className="w-4 h-4 text-brass" />
-                <span className="text-xs font-bold text-text">Synthesizing Co-Pilots</span>
-              </div>
-              <span className="text-[10px] text-jade font-mono font-semibold">● Real-time sync</span>
-            </div>
-            <div className="space-y-2 text-[11px]">
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-2 border border-line">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-brass text-white flex items-center justify-center font-bold text-[10px]">
-                    {ceoName.charAt(0) || "C"}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-text block">{ceoName}</span>
-                    <span className="text-[10px] text-text-muted">Strategic Priorities & Growth</span>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono text-brass">Auto-Routed</span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-2 border border-line">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px]">
-                    {cfoName.charAt(0) || "F"}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-text block">{cfoName}</span>
-                    <span className="text-[10px] text-text-muted">Burn, Runway & Solvency</span>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono text-emerald-500 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Active
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-2 border border-line">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-[10px]">
-                    {marketingName.charAt(0) || "M"}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-text block">{marketingName}</span>
-                    <span className="text-[10px] text-text-muted">Pipeline, Inbound & CAC</span>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono text-purple-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                  Active
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Active Executive Document (8 cols) */}
-        <div className="lg:col-span-8 p-6 sm:p-8 rounded-2xl border border-line bg-surface shadow-theme space-y-7">
-          {/* Briefing Header Banner */}
-          <div className="border-b border-line pb-4 space-y-2">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider">
-                Confidential · Executive Eyes Only
-              </span>
-              <span className="text-xs text-text-muted font-mono">
-                {activeEdition.periodLabel}
-              </span>
-            </div>
-
-            <h2 className="text-2xl font-extrabold text-text tracking-tight font-sans">
-              {activeEdition.title}: {companyName}
-            </h2>
-            <p className="text-xs text-text-muted">
-              Operating Sector: <span className="text-text font-medium">{industryName}</span> · Prepared for <span className="text-text font-medium">{founderName}</span> and C-Suite Leadership.
-            </p>
-          </div>
-
-          {/* Section 1: Health & Solvency Index Barometer */}
-          <div className="p-4 rounded-xl bg-surface-2 border border-line space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-brass" />
-                <h3 className="text-xs font-bold text-text uppercase tracking-wider">
-                  1. Health & Solvency Index Barometer
-                </h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-text-muted font-semibold">Overall Index:</span>
-                <span className="text-base font-extrabold font-mono text-brass">{selectedBriefingId === "briefing-current" ? healthScore : activeEdition.healthScore}/100</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 font-bold uppercase">
-                  {activeEdition.healthLabel}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-              <div className="p-3 rounded-xl bg-surface border border-line">
-                <span className="text-[10px] text-text-muted font-semibold uppercase block">Annualized Run-Rate</span>
-                <span className="text-sm font-bold font-mono text-text">₹{(selectedBriefingId === "briefing-current" ? annualRevenue : activeEdition.annualRev).toLocaleString()}</span>
-                <span className="text-[10px] text-emerald-500 font-medium flex items-center gap-0.5 mt-0.5">
-                  <ArrowUpRight className="w-3 h-3" /> {activeEdition.revDelta}
-                </span>
-              </div>
-              <div className="p-3 rounded-xl bg-surface border border-line">
-                <span className="text-[10px] text-text-muted font-semibold uppercase block">Verified Cash Reserves</span>
-                <span className="text-sm font-bold font-mono text-text">₹{(selectedBriefingId === "briefing-current" ? cash : activeEdition.cash).toLocaleString()}</span>
-                <span className="text-[10px] text-text-muted font-medium block mt-0.5">Liquid accounts</span>
-              </div>
-              <div className="p-3 rounded-xl bg-surface border border-line">
-                <span className="text-[10px] text-text-muted font-semibold uppercase block">Net Operating Runway</span>
-                <span className="text-sm font-bold font-mono text-emerald-500">{selectedBriefingId === "briefing-current" ? `${runwayMonths} Months` : activeEdition.runway}</span>
-                <span className="text-[10px] text-emerald-500 font-medium block mt-0.5">Burn ₹{(selectedBriefingId === "briefing-current" ? burn : activeEdition.burn).toLocaleString()}/mo</span>
-              </div>
-              <div className="p-3 rounded-xl bg-surface border border-line">
-                <span className="text-[10px] text-text-muted font-semibold uppercase block">FTE Capital Efficiency</span>
-                <span className="text-sm font-bold font-mono text-brass">
-                  {selectedBriefingId === "briefing-current" ? `₹${Math.round(annualRevenue / (teamSize || 1)).toLocaleString()} / FTE` : activeEdition.fteEfficiency}
-                </span>
-                <span className="text-[10px] text-text-muted font-medium block mt-0.5">{teamSize} team members</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: Operational Signals & Major Developments */}
-          <div className="space-y-3">
-            <h3 className="font-bold text-sm text-text flex items-center gap-2">
-              <span className="w-1.5 h-4 rounded-full bg-emerald-500" />
-              2. Operational Signals & Major Developments
-            </h3>
-            <p className="text-xs text-text-muted">
-              Deterministic highlights synthesized from CRM, banking, and customer delivery feeds for {activeEdition.cadence}:
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {activeEdition.operationalSignals.map((signal, idx) => (
-                <div key={idx} className="p-3.5 rounded-xl bg-surface-2 border border-line space-y-1.5">
-                  <div className="flex items-center gap-2 font-bold text-emerald-500 text-xs">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>{signal.title}</span>
-                  </div>
-                  <p className="text-xs text-text-muted leading-relaxed">
-                    {signal.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Section 3 & 4: Critical Risks & Strategic Opportunities */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Section 3: Critical Risks */}
-            <div className="space-y-2.5">
-              <h3 className="font-bold text-sm text-text flex items-center gap-2">
-                <span className="w-1.5 h-4 rounded-full bg-rust" />
-                3. Critical Risks & Vulnerabilities
-              </h3>
-              <div className="space-y-2">
-                {activeEdition.risks.map((risk, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-surface-2 border border-line space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-text">{risk.title}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                        risk.severity === "High" ? "bg-rust/15 text-rust" : "bg-amber-500/15 text-amber-500"
-                      }`}>
-                        {risk.severity}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-text-muted leading-relaxed">
-                      {risk.desc}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Section 4: Strategic Opportunities */}
-            <div className="space-y-2.5">
-              <h3 className="font-bold text-sm text-text flex items-center gap-2">
-                <span className="w-1.5 h-4 rounded-full bg-brass" />
-                4. Strategic Upside Opportunities
-              </h3>
-              <div className="space-y-2">
-                {activeEdition.opportunities.map((opp, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-surface-2 border border-line space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-text">{opp.title}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-jade/15 text-jade font-bold uppercase">
-                        {opp.badge}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-text-muted leading-relaxed">
-                      {opp.desc}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Section 5: Decisions Required (Interactive Directives) */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h3 className="font-bold text-sm text-text flex items-center gap-2">
-                <span className="w-1.5 h-4 rounded-full bg-brass" />
-                5. Decisions Required (Leadership Directives)
-              </h3>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddDecisionOpen(true)}
-                  className="px-2.5 py-1 rounded-lg bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 text-xs font-bold hover:bg-cyan-500/25 transition-all inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>+ Propose Decision</span>
-                </button>
-                <span className="text-xs text-text-muted font-medium">
-                  {displayDecisions.filter(d => d.status === "pending").length} pending founder action
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-text-muted">
-              Actionable directives generated by BizzPal executive reasoning engine. Approve, delegate to autonomous AI, or decline directly below:
-            </p>
-
-            <div className="space-y-3">
-              {displayDecisions.map(dec => {
-                const isPending = dec.status === "pending";
-                return (
-                  <div
-                    key={dec.id}
-                    className={`p-4 rounded-xl border transition-all ${
-                      dec.status === "approved"
-                        ? "bg-jade/5 border-jade/30"
-                        : dec.status === "delegated"
-                        ? "bg-brass/5 border-brass/30"
-                        : dec.status === "declined"
-                        ? "bg-surface-2/40 border-line opacity-60"
-                        : "bg-surface-2 border-line hover:border-line-strong"
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBriefingId(item.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg border-l-2 cursor-pointer ${
+                      selected ? "bg-surface-2 border-brass" : "border-transparent hover:bg-surface-2/60"
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold text-text">{dec.title}</span>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-surface border border-line text-text-muted uppercase font-mono">
-                            {dec.category}
-                          </span>
-                          <span className="text-[10px] font-semibold text-brass">
-                            {dec.aiConfidence}% AI Confidence
-                          </span>
-                          {dec.id.startsWith("dec-") && !["dec-1", "dec-2", "dec-3", "dec-4"].includes(dec.id) && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteDecision(dec.id, dec.title)}
-                              title="Delete Directive"
-                              className="p-1 rounded hover:bg-rose-500/10 text-text-muted hover:text-rose-400 transition-colors cursor-pointer ml-1"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                        <p className="text-xs text-text-muted leading-relaxed">
-                          {dec.recommendation}
-                        </p>
-                        <div className="flex items-center gap-2 text-[11px] font-medium text-emerald-500 pt-0.5">
-                          <Zap className="w-3 h-3 shrink-0" />
-                          <span>Impact: {dec.impact}</span>
-                        </div>
-                      </div>
+                    <p className={`text-sm ${selected ? "font-medium text-text" : "text-text"}`}>{item.title}</p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {item.cadence} · {item.note}
+                    </p>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </aside>
 
-                      {/* Directive Actions */}
-                      <div className="shrink-0 flex items-center gap-2 pt-1 sm:pt-0">
-                        {isPending ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleDecisionAction(dec.id, "approved")}
-                              className="px-3 py-1.5 rounded-lg bg-brass text-white text-xs font-bold hover:brightness-110 btn-tactile cursor-pointer shadow-xs inline-flex items-center gap-1"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Approve</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDecisionAction(dec.id, "delegated", "CEO")}
-                              className="px-3 py-1.5 rounded-lg bg-surface border border-line hover:border-line-strong text-xs font-semibold text-text btn-tactile cursor-pointer inline-flex items-center gap-1"
-                            >
-                              <BrainCircuit className="w-3.5 h-3.5 text-brass" />
-                              <span>Delegate</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDecisionAction(dec.id, "declined")}
-                              className="px-2.5 py-1.5 rounded-lg border border-line hover:bg-rose-500/10 text-xs font-semibold text-text-muted hover:text-rose-400 transition-colors cursor-pointer"
-                            >
-                              Decline
-                            </button>
-                          </>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            {dec.status === "approved" && (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-jade font-bold bg-jade/10 px-2.5 py-1 rounded-lg border border-jade/30">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Approved · In Execution</span>
-                              </span>
-                            )}
-                            {dec.status === "delegated" && (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-brass font-bold bg-brass/10 px-2.5 py-1 rounded-lg border border-brass/30">
-                                <BrainCircuit className="w-3.5 h-3.5" />
-                                <span>Delegated to {dec.delegatedTo}</span>
-                              </span>
-                            )}
-                            {dec.status === "declined" && (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-text-muted font-bold bg-surface px-2.5 py-1 rounded-lg border border-line">
-                                <span>Declined</span>
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleDecisionAction(dec.id, "pending")}
-                              className="text-[10px] text-text-muted underline hover:text-text cursor-pointer ml-1"
-                            >
-                              Reset
-                            </button>
-                          </div>
-                        )}
-                      </div>
+        {/* Document */}
+        <article className="lg:col-span-9 p-6 sm:p-8 rounded-xl border border-line bg-surface space-y-10">
+          <header className="space-y-1.5 pb-6 border-b border-line">
+            <p className="text-xs text-text-muted">{activeEdition.periodLabel}</p>
+            <h2 className="text-2xl font-bold text-text">{activeEdition.title}</h2>
+            <p className="text-sm text-text-muted">
+              {industryName} · Prepared for {founderName}
+            </p>
+          </header>
+
+          {/* Health */}
+          <section className="space-y-4">
+            <div className="flex items-baseline justify-between gap-3 flex-wrap">
+              <h3 className="text-base font-semibold text-text">Financial health</h3>
+              <p className="text-sm text-text-muted">
+                Score{" "}
+                <span className="text-text font-medium">{isCurrent ? healthScore : activeEdition.healthScore}/100</span>
+                {" · "}
+                {activeEdition.healthLabel}
+              </p>
+            </div>
+            <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {metrics.map(m => (
+                <div key={m.label} className="p-4 rounded-lg border border-line bg-surface-2/50">
+                  <dt className="text-xs text-text-muted">{m.label}</dt>
+                  <dd className="text-lg text-text mt-1.5">{m.value}</dd>
+                  <p className="text-xs text-text-muted mt-0.5">{m.note}</p>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          {/* Signals */}
+          <section className="space-y-3">
+            <h3 className="text-base font-semibold text-text">What happened</h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {activeEdition.operationalSignals.map((signal, idx) => (
+                <li key={idx} className="p-4 rounded-lg border border-line">
+                  <p className="text-sm font-medium text-text">{signal.title}</p>
+                  <p className="text-sm text-text-muted leading-relaxed mt-0.5">{signal.desc}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* Risks and opportunities */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section className="space-y-3">
+              <h3 className="text-base font-semibold text-text">Risks</h3>
+              <ul className="space-y-3">
+                {activeEdition.risks.map((risk, idx) => (
+                  <li key={idx} className="p-4 rounded-lg border border-line">
+                    <p className="text-sm font-medium text-text">
+                      {risk.title}{" "}
+                      <span className={`text-xs font-normal ${risk.severity === "High" ? "text-rust" : "text-text-muted"}`}>
+                        · {risk.severity.toLowerCase()}
+                      </span>
+                    </p>
+                    <p className="text-sm text-text-muted leading-relaxed mt-0.5">{risk.desc}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-base font-semibold text-text">Opportunities</h3>
+              <ul className="space-y-3">
+                {activeEdition.opportunities.map((opp, idx) => (
+                  <li key={idx} className="p-4 rounded-lg border border-line">
+                    <p className="text-sm font-medium text-text">
+                      {opp.title} <span className="text-xs font-normal text-text-muted">· {opp.badge}</span>
+                    </p>
+                    <p className="text-sm text-text-muted leading-relaxed mt-0.5">{opp.desc}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+
+          {/* Decisions */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h3 className="text-base font-semibold text-text">Decisions</h3>
+                <p className="text-sm text-text-muted mt-0.5">
+                  {pendingCount === 0 ? "Nothing waiting on you." : `${pendingCount} waiting for your decision.`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddDecisionOpen(true)}
+                className="px-3.5 py-2 rounded-lg border border-line text-sm font-medium text-text hover:bg-surface-2 cursor-pointer"
+              >
+                Add decision
+              </button>
+            </div>
+
+            <ul className="space-y-3">
+              {displayDecisions.map(dec => {
+                const isPending = dec.status === "pending";
+                const isCustom = dec.id.startsWith("dec-") && !["dec-1", "dec-2", "dec-3", "dec-4"].includes(dec.id);
+                return (
+                  <li key={dec.id} className={`p-5 rounded-lg border border-line flex flex-col lg:flex-row lg:items-start justify-between gap-4 ${dec.status === "declined" ? "opacity-60" : ""}`}>
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <p className="text-sm font-medium text-text">{dec.title}</p>
+                      <p className="text-xs text-text-muted capitalize">
+                        {dec.category} · {dec.aiConfidence}% confidence
+                      </p>
+                      <p className="text-sm text-text-muted leading-relaxed">{dec.recommendation}</p>
+                      <p className="text-sm text-text pt-1">Impact: {dec.impact}</p>
                     </div>
-                  </div>
+
+                    <div className="shrink-0 flex items-center gap-2">
+                      {isPending ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleDecisionAction(dec.id, "approved")}
+                            className="px-3.5 py-1.5 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDecisionAction(dec.id, "delegated", "CEO")}
+                            className="px-3.5 py-1.5 rounded-lg border border-line text-sm text-text hover:bg-surface-2 cursor-pointer"
+                          >
+                            Delegate
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDecisionAction(dec.id, "declined")}
+                            className="px-3 py-1.5 rounded-lg text-sm text-text-muted hover:text-text cursor-pointer"
+                          >
+                            Decline
+                          </button>
+                        </>
+                      ) : (
+                        <p className="text-sm text-text-muted">
+                          {dec.status === "approved" && "Approved"}
+                          {dec.status === "delegated" && `Delegated to ${dec.delegatedTo}`}
+                          {dec.status === "declined" && "Declined"}
+                          {" · "}
+                          <button
+                            type="button"
+                            onClick={() => handleDecisionAction(dec.id, "pending")}
+                            className="underline hover:text-text cursor-pointer"
+                          >
+                            Undo
+                          </button>
+                        </p>
+                      )}
+                      {isCustom && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDecision(dec.id, dec.title)}
+                          title="Delete"
+                          aria-label="Delete decision"
+                          className="p-1 rounded text-text-muted hover:text-rust cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </li>
                 );
               })}
-            </div>
-          </div>
-        </div>
+            </ul>
+          </section>
+        </article>
       </div>
 
-      {/* Propose Custom Decision Modal */}
       {isAddDecisionOpen && (
         <PortalModal isOpen={isAddDecisionOpen} onClose={() => setIsAddDecisionOpen(false)}>
-          <div className="relative w-full max-w-lg rounded-2xl bg-surface border border-line shadow-2xl p-6 space-y-4 animate-scale-up" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between border-b border-line pb-3">
-                <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-brass" />
-                  <h3 className="font-bold text-sm text-text">Propose Leadership Decision</h3>
+          <div className="w-full max-w-lg rounded-xl bg-surface border border-line shadow-lg p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-text">Add decision</h3>
+              <button
+                type="button"
+                onClick={() => setIsAddDecisionOpen(false)}
+                aria-label="Close"
+                className="p-1 rounded-lg text-text-muted hover:text-text cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCustomDecision} className="space-y-4 text-sm">
+              <div>
+                <label className="font-medium text-text block mb-1">Decision</label>
+                <input
+                  type="text"
+                  required
+                  value={newDecTitle}
+                  onChange={e => setNewDecTitle(e.target.value)}
+                  placeholder="e.g. Approve Q4 sales hiring"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-medium text-text block mb-1">Category</label>
+                  <select
+                    value={newDecCategory}
+                    onChange={e => setNewDecCategory(e.target.value as LeadershipDecision["category"])}
+                    className={inputClass}
+                  >
+                    <option value="finance">Finance</option>
+                    <option value="sales">Sales</option>
+                    <option value="operations">Operations</option>
+                    <option value="talent">Talent</option>
+                  </select>
                 </div>
+                <div>
+                  <label className="font-medium text-text block mb-1">Confidence (%)</label>
+                  <input
+                    type="number"
+                    min={70}
+                    max={99}
+                    value={newDecConfidence}
+                    onChange={e => setNewDecConfidence(Number(e.target.value))}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-medium text-text block mb-1">Expected impact</label>
+                <input
+                  type="text"
+                  value={newDecImpact}
+                  onChange={e => setNewDecImpact(e.target.value)}
+                  placeholder="e.g. +₹12,00,000 pipeline in 60 days"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className="font-medium text-text block mb-1">Rationale</label>
+                <textarea
+                  rows={2}
+                  value={newDecRecommendation}
+                  onChange={e => setNewDecRecommendation(e.target.value)}
+                  placeholder="Why this decision?"
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="pt-4 border-t border-line flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAddDecisionOpen(false)}
-                  className="p-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
+                  className="px-3.5 py-2 rounded-lg text-text-muted hover:text-text cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-brass text-white font-medium hover:brightness-110 cursor-pointer"
+                >
+                  Add decision
                 </button>
               </div>
-
-              <form onSubmit={handleSaveCustomDecision} className="space-y-3 text-xs">
-                <div>
-                  <label className="font-semibold text-text block mb-1">Decision Title</label>
-                  <input
-                    type="text"
-                    required
-                    value={newDecTitle}
-                    onChange={e => setNewDecTitle(e.target.value)}
-                    placeholder="e.g. Approve Q4 Enterprise SDR Hiring Sprint"
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-semibold text-text block mb-1">Category</label>
-                    <select
-                      value={newDecCategory}
-                      onChange={e => setNewDecCategory(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass cursor-pointer"
-                    >
-                      <option value="finance">Finance / Capital</option>
-                      <option value="sales">Sales & Revenue</option>
-                      <option value="operations">Operations & Tech</option>
-                      <option value="talent">Talent & Headcount</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="font-semibold text-text block mb-1">Confidence Score (%)</label>
-                    <input
-                      type="number"
-                      min={70}
-                      max={99}
-                      value={newDecConfidence}
-                      onChange={e => setNewDecConfidence(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="font-semibold text-text block mb-1">Projected Impact</label>
-                  <input
-                    type="text"
-                    value={newDecImpact}
-                    onChange={e => setNewDecImpact(e.target.value)}
-                    placeholder="e.g. +₹12,00,000 net pipeline within 60 days"
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-semibold text-text block mb-1">AI Recommendation & Rationale</label>
-                  <textarea
-                    rows={2}
-                    value={newDecRecommendation}
-                    onChange={e => setNewDecRecommendation(e.target.value)}
-                    placeholder="Provide executive context or rationale..."
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass"
-                  />
-                </div>
-
-                <div className="pt-2 border-t border-line flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddDecisionOpen(false)}
-                    className="px-3.5 py-1.5 rounded-lg border border-line text-xs text-text-muted hover:text-text cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-lg bg-brass text-white font-bold text-xs shadow-sm hover:brightness-110 btn-tactile cursor-pointer"
-                  >
-                    Submit Directive
-                  </button>
-                </div>
-              </form>
-            </div>
+            </form>
+          </div>
         </PortalModal>
       )}
     </div>

@@ -51,7 +51,7 @@ export function ChatHistoryPanel({
   return (
     <aside
       aria-label="Chat History Panel"
-      className="hidden xl:flex w-80 shrink-0 bg-surface border border-line rounded-2xl flex-col shadow-theme animate-fade-in overflow-hidden select-none"
+      className="hidden xl:flex w-80 shrink-0 bg-surface border border-line rounded-xl flex-col shadow-theme animate-fade-in overflow-hidden select-none"
     >
       {/* Header */}
       <div className="p-3.5 border-b border-line bg-surface-2/30 flex items-center justify-between shrink-0">
@@ -188,7 +188,7 @@ export function ChatHistoryDrawer({
       />
 
       {/* Drawer Body */}
-      <div className="relative w-full max-w-[320px] sm:max-w-[360px] h-full bg-surface border-l border-line p-4 sm:p-5 flex flex-col shadow-2xl z-10 animate-fade-in overflow-hidden">
+      <div className="relative w-full max-w-[320px] sm:max-w-[360px] h-full bg-surface border-l border-line p-4 sm:p-5 flex flex-col shadow-lg z-10 animate-fade-in overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between pb-3.5 border-b border-line shrink-0">
           <div className="flex items-center gap-2">

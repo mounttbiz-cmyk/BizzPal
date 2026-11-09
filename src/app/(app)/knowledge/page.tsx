@@ -1,36 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  BookOpen,
-  Search,
-  Plus,
-  FileText,
-  ShieldCheck,
-  BrainCircuit,
-  ExternalLink,
-  CheckCircle2,
-  Clock,
-  Filter,
-  X,
-  Share2,
-  Download,
-  FolderOpen,
-  Newspaper,
-  TrendingUp,
-  Globe,
-  Radio,
-  AlertCircle,
-  RefreshCw,
-  Building2,
-  Landmark,
-  Scale,
-  Zap,
-  ArrowUpRight
-} from "lucide-react";
+import { Search, Plus, ExternalLink, X, RefreshCw, Scale } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
-import { AskMemorySection } from "@/components/knowledge/AskMemorySection";
 import { DocumentsManager } from "@/components/knowledge/DocumentsManager";
 import { FactsManager } from "@/components/knowledge/FactsManager";
 
@@ -62,7 +35,7 @@ interface BusinessNewsItem {
 }
 
 export default function KnowledgeHubPage() {
-  const [activeTab, setActiveTab] = useState<"memory" | "documents" | "facts" | "playbooks" | "news">("memory");
+  const [activeTab, setActiveTab] = useState<"documents" | "facts" | "playbooks" | "news">("playbooks");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedNewsCategory, setSelectedNewsCategory] = useState<string>("all");
@@ -270,7 +243,7 @@ export default function KnowledgeHubPage() {
         } catch {}
         if (showToast) {
           setToastMessage(
-            `Live market intelligence refreshed — ${data.news.length} stories from ${data.sources} feeds!`
+            `News refreshed — ${data.news.length} stories from ${data.sources} feeds!`
           );
           setTimeout(() => setToastMessage(null), 4000);
         }
@@ -424,131 +397,61 @@ export default function KnowledgeHubPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Enterprise Platform Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line select-none">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-2xs">
-            <BookOpen className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base sm:text-lg font-bold text-text truncate tracking-tight font-sans">
-                Knowledge Hub & Company Memory
-              </h1>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-surface-2 border border-line text-text-muted shrink-0">
-                Context Engine
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Vector RAG Active</span>
-              </span>
-            </div>
-            <p className="text-xs text-text-muted truncate mt-0.5">
-              Persistent memory, vector-indexed documents, corporate ground truths, and live market intelligence powering {companyName}
-            </p>
-          </div>
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-4 border-b border-line">
+        <div>
+          <h1 className="text-xl font-bold text-text">Knowledge Hub</h1>
+          <p className="text-sm text-text-muted mt-1">
+            Documents, facts and market news that {companyName}&apos;s AI advisors use to answer questions.
+          </p>
         </div>
-
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleRefreshNews}
             disabled={isRefreshingNews}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text hover:bg-surface hover:border-line-strong transition-all cursor-pointer shadow-2xs disabled:opacity-50"
-            title="Refresh Live Business Feeds"
+            className="px-3.5 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-text hover:bg-surface-2 inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-brass ${isRefreshingNews ? "animate-spin" : ""}`} />
-            <span>Refresh News</span>
+            <RefreshCw className={`w-4 h-4 ${isRefreshingNews ? "animate-spin" : ""}`} />
+            Refresh news
           </button>
-
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brass text-white text-xs font-bold shadow-2xs hover:brightness-110 btn-tactile cursor-pointer"
+            className="px-3.5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 inline-flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Knowledge</span>
+            Add
           </button>
         </div>
       </header>
 
       {toastMessage && (
-        <div className="p-3 rounded-xl bg-brass/10 border border-brass/30 text-xs font-medium text-brass flex items-center gap-2 animate-fade-in shadow-2xs">
-          <CheckCircle2 className="w-4 h-4 text-brass shrink-0" />
-          <span>{toastMessage}</span>
-        </div>
+        <p className="p-3 rounded-lg border border-line bg-surface-2 text-sm text-text">{toastMessage}</p>
       )}
 
-      {/* Enterprise Underlined Tab Bar */}
-      <nav
-        aria-label="Knowledge hub navigation"
-        className="flex items-center gap-1 sm:gap-2 border-b border-line pb-0 select-none overflow-x-auto"
-      >
+      <nav aria-label="Knowledge hub sections" className="flex items-center gap-1 border-b border-line overflow-x-auto overflow-y-hidden">
         {[
-          { id: "memory" as const, label: "Ask Company Memory", icon: BrainCircuit, badge: "AI Core", live: true },
-          { id: "documents" as const, label: "Documents & Ingestion", icon: FileText, count: undefined },
-          { id: "facts" as const, label: "Corporate Facts", icon: ShieldCheck, count: undefined },
-          { id: "playbooks" as const, label: "SOPs & Playbooks", icon: BookOpen, count: docs.length },
-          { id: "news" as const, label: "Market Intelligence", icon: Newspaper, count: newsList.length },
-        ].map((tab) => {
-          const isActive = activeTab === tab.id;
-          const Icon = tab.icon;
-
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => setActiveTab(tab.id)}
-              className={`relative pb-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-                isActive
-                  ? "text-brass font-bold"
-                  : "text-text-muted hover:text-text"
-              }`}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span>{tab.label}</span>
-
-              {tab.live && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              )}
-
-              {tab.badge && (
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-brass/15 text-brass border border-brass/30">
-                  {tab.badge}
-                </span>
-              )}
-
-              {tab.count !== undefined && (
-                <span
-                  className={`text-[10px] font-sans font-bold px-1.5 py-0.2 rounded-full border ${
-                    isActive
-                      ? "bg-brass/15 border-brass/40 text-brass"
-                      : "bg-surface-2 border-line text-text-muted"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              )}
-
-              {/* Active Indicator Underline */}
-              {isActive && (
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-brass rounded-t-full shadow-xs"
-                />
-              )}
-            </button>
-          );
-        })}
+          { id: "playbooks" as const, label: "Playbooks" },
+          { id: "news" as const, label: "News" },
+          { id: "documents" as const, label: "Documents" },
+          { id: "facts" as const, label: "Facts" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 pb-2.5 -mb-px text-sm whitespace-nowrap border-b-2 cursor-pointer ${
+              activeTab === tab.id
+                ? "border-brass text-text font-semibold"
+                : "border-transparent text-text-muted hover:text-text"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </nav>
-
-      {/* SECTION: ASK COMPANY MEMORY */}
-      {activeTab === "memory" && (
-        <AskMemorySection companyName={companyName} />
-      )}
 
       {/* SECTION: COMPANY DOCUMENTS INGESTION */}
       {activeTab === "documents" && (
@@ -560,197 +463,99 @@ export default function KnowledgeHubPage() {
         <FactsManager />
       )}
 
-      {/* Search & Dynamic Filter Bar (For News & Playbooks) */}
       {(activeTab === "playbooks" || activeTab === "news") && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Search */}
-          <div className="relative w-full sm:w-80">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search playbooks, market news, tax rules…"
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:ring-1 focus:ring-brass"
-            />
-          </div>
-
-          {/* Dynamic Category Filters based on active tab */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder={activeTab === "news" ? "Search news…" : "Search playbooks…"}
+            className="flex-1 sm:max-w-sm px-3.5 py-2 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
+          />
           {activeTab === "news" ? (
-            <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
-              {[
-                { id: "all", label: "All News" },
-                { id: "economy", label: "Economy & Rates" },
-                { id: "tax_compliance", label: "Tax & GST" },
-                { id: "funding", label: "Valuations & VC" },
-                { id: "tech_ai", label: "Tech & DPDP" },
-                { id: "saas_trends", label: "B2B Trends" },
-              ].map(cat => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setSelectedNewsCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all btn-tactile cursor-pointer ${
-                    selectedNewsCategory === cat.id
-                      ? "bg-cyan-500 text-slate-950 border-cyan-500 font-bold shadow-xs"
-                      : "bg-surface-2 border-line text-text-muted hover:text-text"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
+            <select
+              value={selectedNewsCategory}
+              onChange={e => setSelectedNewsCategory(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-line bg-surface text-sm text-text cursor-pointer"
+              aria-label="News category"
+            >
+              <option value="all">All topics</option>
+              <option value="economy">Economy & rates</option>
+              <option value="tax_compliance">Tax & GST</option>
+              <option value="funding">Valuations & VC</option>
+              <option value="tech_ai">Tech & DPDP</option>
+              <option value="saas_trends">B2B trends</option>
+            </select>
           ) : (
-            <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
-              {[
-                { id: "all", label: "All Sectors" },
-                { id: "operations", label: "Operations" },
-                { id: "finance", label: "Finance" },
-                { id: "sales", label: "Sales & Growth" },
-                { id: "technology", label: "Tech & Security" },
-                { id: "governance", label: "Governance" },
-              ].map(cat => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize border transition-all btn-tactile cursor-pointer ${
-                    selectedCategory === cat.id
-                      ? "bg-brass text-white border-brass font-semibold"
-                      : "bg-surface-2 border-line text-text-muted hover:text-text"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
+            <select
+              value={selectedCategory}
+              onChange={e => setSelectedCategory(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-line bg-surface text-sm text-text cursor-pointer"
+              aria-label="Playbook category"
+            >
+              <option value="all">All departments</option>
+              <option value="operations">Operations</option>
+              <option value="finance">Finance</option>
+              <option value="sales">Sales & growth</option>
+              <option value="technology">Tech & security</option>
+              <option value="governance">Governance</option>
+            </select>
           )}
         </div>
       )}
 
-      {/* SECTION 1: LIVE BUSINESS NEWS & MARKET INTEL */}
       {activeTab === "news" && (
-        <div className="space-y-3.5">
-          <div className="flex items-center justify-between pb-1">
-            <div className="flex items-center gap-2">
-              <Newspaper className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-xs font-bold text-text uppercase tracking-wider font-sans">
-                Live Business News & Enterprise Intelligence Feed
-              </h2>
-            </div>
-            <span className="text-[11px] text-text-muted font-mono">Curated Daily</span>
-          </div>
-
+        <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredNews.map(news => (
-              <div
+              <button
                 key={news.id}
+                type="button"
                 onClick={() => setActiveNews(news)}
-                className="p-4 rounded-xl border border-line bg-surface hover:border-cyan-500/50 shadow-theme hover:shadow-md transition-all cursor-pointer flex flex-col justify-between space-y-3 btn-tactile group"
+                className="text-left p-4 rounded-xl border border-line bg-surface hover:border-line-strong flex flex-col gap-2 cursor-pointer"
               >
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border font-mono ${news.badgeColor}`}>
-                      {news.categoryLabel}
-                    </span>
-                    <span className="text-[10px] text-text-muted font-mono flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {news.publishedAt}
-                    </span>
-                  </div>
-
-                  <h3 className="text-xs font-bold text-text group-hover:text-cyan-400 transition-colors leading-snug">
-                    {news.title}
-                  </h3>
-
-                  <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
-                    {news.summary}
-                  </p>
-
-                  {/* Impact Highlight Box */}
-                  <div className="p-2.5 rounded-lg bg-cyan-500/5 border border-cyan-500/20 text-[11px] space-y-1">
-                    <span className="text-[10px] font-bold text-cyan-400 block uppercase tracking-wider">
-                      Business Impact:
-                    </span>
-                    <p className="text-text-muted line-clamp-2 leading-relaxed text-[11px]">
-                      {news.businessImpact}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-2.5 border-t border-line/60 flex items-center justify-between text-[10px] text-text-muted">
-                  <span className="font-semibold text-text">{news.source}</span>
-                  <span className="text-cyan-400 group-hover:underline flex items-center gap-0.5">
-                    <span>Executive Briefing</span>
-                    <ArrowUpRight className="w-3 h-3" />
-                  </span>
-                </div>
-              </div>
+                <p className="text-xs text-text-muted">
+                  {news.categoryLabel} · {news.publishedAt}
+                </p>
+                <h3 className="text-sm font-semibold text-text leading-snug">{news.title}</h3>
+                <p className="text-xs text-text-muted line-clamp-3 leading-relaxed">{news.businessImpact}</p>
+                <p className="text-xs text-text-muted mt-auto pt-2">{news.source}</p>
+              </button>
             ))}
           </div>
 
           {filteredNews.length === 0 && (
-            <div className="p-8 text-center rounded-xl border border-line bg-surface-2/40 text-xs text-text-muted">
-              No business news matched your filter.
-            </div>
+            <p className="p-8 text-center rounded-xl border border-line text-sm text-text-muted">
+              No news matches your filter.
+            </p>
           )}
         </div>
       )}
 
-      {/* SECTION 2: COMPANY SOPS & PLAYBOOKS */}
       {activeTab === "playbooks" && (
-        <div className="space-y-3.5 pt-2">
-          <div className="flex items-center justify-between pb-1">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-brass" />
-              <h2 className="text-xs font-bold text-text uppercase tracking-wider font-sans">
-                Internal Standard Operating Procedures (SOPs) & Playbooks
-              </h2>
-            </div>
-            <span className="text-[11px] text-text-muted font-mono">{filteredDocs.length} Documents</span>
-          </div>
-
+        <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredDocs.map(doc => (
-              <div
+              <button
                 key={doc.id}
+                type="button"
                 onClick={() => setActiveDoc(doc)}
-                className="p-4 rounded-xl border border-line bg-surface hover:border-brass/70 shadow-theme hover:shadow-md transition-all cursor-pointer flex flex-col justify-between space-y-4 btn-tactile"
+                className="text-left p-4 rounded-xl border border-line bg-surface hover:border-line-strong flex flex-col gap-2 cursor-pointer"
               >
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-surface-2 border border-line text-brass font-bold uppercase tracking-wider">
-                      {doc.category}
-                    </span>
-                    <span className="text-[10px] font-mono text-text-muted">
-                      {doc.version}
-                    </span>
-                  </div>
-
-                  <h3 className="text-xs font-bold text-text line-clamp-2 leading-snug">
-                    {doc.title}
-                  </h3>
-
-                  <p className="text-[11px] text-text-muted line-clamp-3 leading-relaxed">
-                    {doc.description}
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-line/60 flex items-center justify-between text-[10px] text-text-muted">
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>AI Synced</span>
-                  </div>
-                  <span>Updated {doc.updatedAt}</span>
-                </div>
-              </div>
+                <p className="text-xs text-text-muted capitalize">
+                  {doc.category} · {doc.version}
+                </p>
+                <h3 className="text-sm font-semibold text-text leading-snug">{doc.title}</h3>
+                <p className="text-xs text-text-muted line-clamp-3 leading-relaxed">{doc.description}</p>
+                <p className="text-xs text-text-muted mt-auto pt-2">Updated {doc.updatedAt}</p>
+              </button>
             ))}
           </div>
 
           {filteredDocs.length === 0 && (
-            <div className="p-8 text-center rounded-xl border border-line bg-surface-2/40 text-xs text-text-muted">
-              No internal documents matched your search.
-            </div>
+            <p className="p-8 text-center rounded-xl border border-line text-sm text-text-muted">
+              No playbooks match your search.
+            </p>
           )}
         </div>
       )}
@@ -763,11 +568,9 @@ export default function KnowledgeHubPage() {
               <div className="flex items-start justify-between gap-3 pb-3 border-b border-line">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border font-mono ${activeNews.badgeColor}`}>
-                      {activeNews.categoryLabel}
+                    <span className="text-xs text-text-muted">
+                      {activeNews.categoryLabel} · {activeNews.source} · {activeNews.publishedAt}
                     </span>
-                    <span className="text-[11px] text-text-muted">Source: <strong>{activeNews.source}</strong></span>
-                    <span className="text-[11px] text-text-muted">· {activeNews.publishedAt}</span>
                   </div>
                   <h2 className="text-base font-bold text-text mt-2 leading-snug">
                     {activeNews.title}
@@ -791,11 +594,8 @@ export default function KnowledgeHubPage() {
               </div>
 
               {/* Strategic Business Impact for User */}
-              <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 space-y-1.5">
-                <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold">
-                  <BrainCircuit className="w-4 h-4" />
-                  <span>Strategic Impact for {companyName} (Advisor: {activeNews.executiveAdvisor})</span>
-                </div>
+              <div className="p-4 rounded-lg bg-surface-2 border border-line space-y-1.5">
+                <p className="text-xs font-semibold text-text">Impact on {companyName}</p>
                 <p className="text-xs text-text leading-relaxed">
                   {activeNews.businessImpact}
                 </p>
@@ -807,7 +607,7 @@ export default function KnowledgeHubPage() {
                 <div className="space-y-1.5">
                   {activeNews.keyTakeaways.map((item, idx) => (
                     <div key={idx} className="flex items-start gap-2 text-xs text-text-muted">
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5 shrink-0" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-text-muted mt-1.5 shrink-0" />
                       <span>{item}</span>
                     </div>
                   ))}
@@ -818,7 +618,7 @@ export default function KnowledgeHubPage() {
             <div className="pt-4 border-t border-line flex items-center justify-between">
               <a
                 href="/chat"
-                className="text-xs font-semibold text-cyan-400 hover:underline flex items-center gap-1"
+                className="text-xs font-semibold text-brass hover:underline flex items-center gap-1"
               >
                 <span>Discuss this development with {activeNews.executiveAdvisor}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -842,7 +642,7 @@ export default function KnowledgeHubPage() {
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-3 pb-3 border-b border-line">
                 <div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-surface-2 border border-line text-brass font-bold uppercase">
+                  <span className="text-xs text-text-muted capitalize">
                     {activeDoc.category} · {activeDoc.version}
                   </span>
                   <h2 className="text-sm font-bold text-text mt-1.5 leading-snug">
@@ -873,16 +673,13 @@ export default function KnowledgeHubPage() {
             </div>
 
             <div className="pt-4 border-t border-line flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs text-emerald-500 font-semibold">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Indexed in AI Executive Brain</span>
-              </div>
+              <span className="text-xs text-text-muted">Available to your AI advisors</span>
               <button
                 type="button"
                 onClick={() => setActiveDoc(null)}
                 className="px-4 py-2 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer"
               >
-                Close Document
+                Close
               </button>
             </div>
           </div>
@@ -893,7 +690,7 @@ export default function KnowledgeHubPage() {
       <PortalModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)}>
         <div className="max-w-lg w-full bg-surface border border-line rounded-2xl shadow-2xl p-6 space-y-4 animate-scale-in">
           <div className="flex items-center justify-between pb-3 border-b border-line">
-            <h2 className="text-sm font-bold text-text">Add Knowledge or Market Intelligence</h2>
+            <h2 className="text-sm font-bold text-text">Add to Knowledge Hub</h2>
             <button
               type="button"
               onClick={() => setIsAddModalOpen(false)}
@@ -914,18 +711,18 @@ export default function KnowledgeHubPage() {
                   : "text-text-muted hover:text-text"
               }`}
             >
-              Company Playbook / SOP
+              Playbook
             </button>
             <button
               type="button"
               onClick={() => setEntryType("news")}
               className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 entryType === "news"
-                  ? "bg-cyan-500 text-slate-950 font-extrabold shadow-xs"
+                  ? "bg-brass text-white"
                   : "text-text-muted hover:text-text"
               }`}
             >
-              Business News / Intel
+              News item
             </button>
           </div>
 
@@ -1044,7 +841,7 @@ export default function KnowledgeHubPage() {
                 type="submit"
                 className="px-4 py-2 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer"
               >
-                {entryType === "news" ? "Publish Market Intel" : "Save & Index into AI"}
+                {entryType === "news" ? "Publish" : "Save"}
               </button>
             </div>
           </form>

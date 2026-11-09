@@ -2,28 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import {
-  Compass,
-  Play,
-  CheckCircle2,
-  Sliders,
-  ArrowRight,
-  RefreshCw,
-  Cpu,
-  GitBranch,
-  TrendingUp,
-  AlertTriangle,
-  FileCheck,
-  Zap,
-  RotateCcw,
-  Search,
-  HelpCircle,
-  Lightbulb,
-  Send,
-  Check,
-  X
-} from "lucide-react";
-import { ProvenanceBadge } from "@/components/ui/Badge";
+import { RefreshCw, Check } from "lucide-react";
 import { useCustomAdvisors } from "@/lib/advisors";
 
 interface ScenarioOption {
@@ -500,16 +479,17 @@ function generateSimulation(
 }
 
 const PRESET_QUERIES = [
-  { label: "Should I hire an IT guy?", icon: "⚡" },
-  { label: "What happens if we scale our engineering capacity?", icon: "🚀" },
-  { label: "Should we hire 3 full-time sales reps?", icon: "💼" },
-  { label: "Should we raise our pricing by 20%?", icon: "📈" },
-  { label: "Should we outsource marketing to an agency?", icon: "🎯" },
+  "Should I hire an IT guy?",
+  "What happens if we scale our engineering capacity?",
+  "Should we hire 3 full-time sales reps?",
+  "Should we raise our pricing by 20%?",
+  "Should we outsource marketing to an agency?",
 ];
+
+const cleanName = (name: string) => name.replace(/\s*\(Recommended\)\s*$/, "");
 
 export default function SimulatorPage() {
   const { ceoName, cfoName } = useCustomAdvisors();
-  // Business Profile Context
   const [profile, setProfile] = useState<CompanyProfileContext>({
     companyName: "My Enterprise",
     founderName: "Founder",
@@ -519,19 +499,15 @@ export default function SimulatorPage() {
     teamSize: 1,
   });
 
-  // Query & Simulation State
-  const [queryInput, setQueryInput] = useState<string>("Should I hire an IT guy?");
-  const [activeQuery, setActiveQuery] = useState<string>("Should I hire an IT guy?");
+  const [queryInput, setQueryInput] = useState("Should I hire an IT guy?");
+  const [activeQuery, setActiveQuery] = useState("Should I hire an IT guy?");
   const [isSimulating, setIsSimulating] = useState(false);
-  const [simulationProgress, setSimulationProgress] = useState(1000);
-  const [selectedScenarioId, setSelectedScenarioId] = useState<string>("");
+  const [selectedScenarioId, setSelectedScenarioId] = useState("");
 
-  // Execution State
-  const [hasExecutedPlan, setHasExecutedPlan] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionMessage, setExecutionMessage] = useState<string | null>(null);
 
-  // Load business profile from storage or database
+  // Load business profile from storage or the intake API
   useEffect(() => {
     try {
       const savedProfile = localStorage.getItem("bizzpal_business_profile");
@@ -566,402 +542,202 @@ export default function SimulatorPage() {
           })
           .catch(() => {});
       }
-    } catch (e) {
-      // ignore
+    } catch {
+      // ignore bad saved data
     }
   }, []);
 
-  // Generate simulation scenarios based on active query
-  const simulationResult = useMemo(() => {
-    return generateSimulation(activeQuery, profile);
-  }, [activeQuery, profile]);
+  const simulationResult = useMemo(() => generateSimulation(activeQuery, profile), [activeQuery, profile]);
 
-  // Sync selectedScenarioId to default recommended option when simulation changes
+  // Default to the recommended option whenever the simulation changes
   useEffect(() => {
-    const recommended = simulationResult.options.find(o => o.isRecommended);
-    if (recommended) {
-      setSelectedScenarioId(recommended.id);
-    } else if (simulationResult.options.length > 0) {
-      setSelectedScenarioId(simulationResult.options[0].id);
-    }
-    setHasExecutedPlan(false);
+    const pick = simulationResult.options.find(o => o.isRecommended) || simulationResult.options[0];
+    if (pick) setSelectedScenarioId(pick.id);
   }, [simulationResult]);
 
-  // Active scenario object
   const activeScenario =
-    simulationResult.options.find(s => s.id === selectedScenarioId) ||
-    simulationResult.options[0];
+    simulationResult.options.find(s => s.id === selectedScenarioId) || simulationResult.options[0];
 
-  // Execute query trigger
-  const handleSimulate = (qToRun?: string) => {
-    const targetQ = qToRun !== undefined ? qToRun : queryInput;
-    if (!targetQ.trim()) return;
-
+  const handleSimulate = (override?: string) => {
+    const q = (override ?? queryInput).trim();
+    if (!q) return;
+    setQueryInput(q);
     setIsSimulating(true);
-    let count = 0;
-    const interval = setInterval(() => {
-      count += 250;
-      setSimulationProgress(count);
-      if (count >= 1000) {
-        clearInterval(interval);
-        setActiveQuery(targetQ.trim());
-        setQueryInput(targetQ.trim());
-        setIsSimulating(false);
-      }
-    }, 90);
+    setTimeout(() => {
+      setActiveQuery(q);
+      setIsSimulating(false);
+    }, 600);
   };
 
   const handleExecutePlan = async () => {
     if (!activeScenario) return;
     setIsExecuting(true);
-
-    try {
-      // Persist generated tasks to SQLite API for closed-loop execution
-      for (const task of simulationResult.executionTasks) {
-        await fetch("/api/tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: `[${activeScenario.name.split(":")[0]}] ${task.title}`,
-            owner: task.owner,
-            gap: task.gap,
-            priority: task.priority,
-            category: task.category,
-            status: "todo",
-          }),
-        }).catch(() => {});
-      }
-    } catch (err) {
-      console.error("Failed to persist execution tasks", err);
+    for (const task of simulationResult.executionTasks) {
+      await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `[${activeScenario.name.split(":")[0]}] ${task.title}`,
+          owner: task.owner,
+          gap: task.gap,
+          priority: task.priority,
+          category: task.category,
+          status: "todo",
+        }),
+      }).catch(() => {});
     }
-
     setIsExecuting(false);
-    setHasExecutedPlan(true);
     setExecutionMessage(
-      `Plan Executed! Generated ${simulationResult.executionTasks.length} operational tasks in /tasks and scheduled workflow for '${activeScenario.name}'.`
+      `Created ${simulationResult.executionTasks.length} tasks for ${activeScenario.name.split(":")[0]}.`
     );
-
-    setTimeout(() => {
-      setExecutionMessage(null);
-    }, 6000);
+    setTimeout(() => setExecutionMessage(null), 6000);
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-line">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-brass/10 border border-brass/30 flex items-center justify-center text-brass">
-              <Compass className="w-4 h-4" />
-            </div>
-            <h1 className="text-lg font-bold text-text">Strategic Decision Simulator</h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider">
-              Monte Carlo Engine
-            </span>
-          </div>
-          <p className="text-xs text-text-muted mt-1 font-medium">
-            Model high-impact hiring, pricing, and capital choices in virtual simulations to compare financial risk and ROI before executing.
-          </p>
-        </div>
-
-        {/* Execution Status Badge */}
-        {hasExecutedPlan && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-jade/10 border border-jade/30 text-jade text-xs font-semibold animate-fade-in">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Execution Active in Operations</span>
-          </div>
-        )}
+      <div className="pb-4 border-b border-line">
+        <h1 className="text-xl font-bold text-text">Decision Simulator</h1>
+        <p className="text-sm text-text-muted mt-1">
+          Compare the cost, return and runway impact of a decision before you make it.
+        </p>
       </div>
 
       {executionMessage && (
-        <div className="p-3.5 rounded-xl bg-jade/10 border border-jade/30 text-xs text-jade flex items-center justify-between animate-fade-in shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>{executionMessage}</span>
-          </div>
-          <Link href="/tasks" className="underline font-bold text-text hover:text-jade">
-            Go to Tasks →
+        <div className="p-3 rounded-lg border border-jade/30 bg-jade/10 text-sm text-jade flex items-center justify-between">
+          <span>{executionMessage}</span>
+          <Link href="/tasks" className="font-medium underline">
+            View tasks
           </Link>
         </div>
       )}
 
-      {/* 5-Stage Closed Loop Breadcrumb Indicator */}
-      <div className="p-3.5 rounded-xl border border-line bg-surface flex items-center justify-between gap-2 overflow-x-auto text-[11px] shadow-xs">
-        {[
-          { num: "1", title: "Understand Context", active: true },
-          { num: "2", title: "Simulate Options", active: true },
-          { num: "3", title: "Compare Outcomes", active: true },
-          { num: "4", title: "AI Recommendation", active: true },
-          { num: "5", title: "Execute Plan", active: hasExecutedPlan },
-        ].map((step, idx) => (
-          <div key={idx} className="flex items-center gap-2 shrink-0">
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                step.active ? "bg-brass text-white" : "bg-surface-2 border border-line text-text-muted"
-              }`}
-            >
-              {step.num}
-            </div>
-            <span className={`font-semibold ${step.active ? "text-text" : "text-text-muted"}`}>
-              {step.title}
-            </span>
-            {idx < 4 && <span className="text-text-muted">→</span>}
-          </div>
-        ))}
-      </div>
-
-      {/* Interactive Query & Question Box */}
-      <div className="p-5 rounded-2xl border border-line bg-surface shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-brass/10 border border-brass/25 flex items-center justify-center text-brass">
-              <Cpu className="w-3.5 h-3.5" />
-            </div>
-            <span className="text-xs font-bold text-text uppercase tracking-wider">
-              Executive Decision Query
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-2 border border-line text-text-muted font-mono">
-              Calibrated to {profile.companyName}
-            </span>
-          </div>
-          <span className="text-[11px] text-text-muted">
-            Ask any strategic question to generate 3 compared scenario options
-          </span>
-        </div>
-
-        {/* Input Bar Form */}
+      <div className="space-y-3">
         <form
           onSubmit={e => {
             e.preventDefault();
             handleSimulate();
           }}
-          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+          className="flex flex-col sm:flex-row gap-2"
         >
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={queryInput}
-              onChange={e => setQueryInput(e.target.value)}
-              placeholder='Ask any decision e.g., "Should I hire an IT guy?", "Should we raise prices by 20%?"...'
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-line bg-surface-2 text-text text-xs placeholder:text-text-muted focus:outline-none focus:border-brass focus:ring-1 focus:ring-brass transition-all"
-            />
-            {queryInput && (
-              <button
-                type="button"
-                onClick={() => setQueryInput("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
+          <input
+            type="text"
+            value={queryInput}
+            onChange={e => setQueryInput(e.target.value)}
+            placeholder="Ask a decision, e.g. Should we raise prices by 20%?"
+            className="flex-1 px-3.5 py-2.5 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
+          />
           <button
             type="submit"
             disabled={isSimulating || !queryInput.trim()}
-            className="px-5 py-2.5 rounded-xl bg-brass text-white font-bold text-xs shadow-md hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all btn-tactile inline-flex items-center justify-center gap-2 cursor-pointer shrink-0"
+            className="px-5 py-2.5 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 inline-flex items-center justify-center gap-2 cursor-pointer"
           >
-            {isSimulating ? (
-              <>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Simulating ({simulationProgress})…</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Simulate Decision</span>
-              </>
-            )}
+            {isSimulating && <RefreshCw className="w-4 h-4 animate-spin" />}
+            {isSimulating ? "Simulating…" : "Simulate"}
           </button>
         </form>
 
-        {/* Suggested Quick Questions */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-line/60 text-xs">
-          <span className="text-[11px] font-semibold text-text-muted inline-flex items-center gap-1">
-            <Lightbulb className="w-3 h-3 text-brass" />
-            <span>Suggested:</span>
-          </span>
-          {PRESET_QUERIES.map(item => {
-            const isActive = activeQuery.toLowerCase() === item.label.toLowerCase();
-            return (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => {
-                  setQueryInput(item.label);
-                  handleSimulate(item.label);
-                }}
-                className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all cursor-pointer inline-flex items-center gap-1.5 ${
-                  isActive
-                    ? "bg-brass/15 border-brass text-text font-bold shadow-xs"
-                    : "bg-surface-2/60 border-line text-text-muted hover:text-text hover:border-line-strong"
-                }`}
-              >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span className="text-text-muted">Try:</span>
+          {PRESET_QUERIES.map(q => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => handleSimulate(q)}
+              className={`cursor-pointer hover:underline ${
+                activeQuery.toLowerCase() === q.toLowerCase() ? "text-brass font-medium" : "text-text-muted"
+              }`}
+            >
+              {q}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Scenario Builder & Compare Outcomes (3 Options) */}
       <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <h2 className="text-xs font-bold text-text uppercase tracking-wider">
-            Compare Scenario Outcomes: &ldquo;{simulationResult.title.toUpperCase()}&rdquo;
-          </h2>
-          <span className="text-xs text-text-muted font-mono">
-            1,000 Monte Carlo Iterations · {profile.companyName}
-          </span>
-        </div>
+        <h2 className="text-base font-semibold text-text">{simulationResult.title}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {simulationResult.options.map(sc => {
             const isSelected = sc.id === selectedScenarioId;
             return (
-              <div
+              <button
                 key={sc.id}
+                type="button"
                 onClick={() => setSelectedScenarioId(sc.id)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between btn-tactile ${
-                  isSelected
-                    ? "bg-surface-2 border-brass ring-1 ring-brass/40 shadow-sm"
-                    : "bg-surface border-line hover:border-line-strong"
+                className={`text-left p-4 rounded-xl border bg-surface flex flex-col gap-3 cursor-pointer transition-colors ${
+                  isSelected ? "border-brass ring-1 ring-brass/40" : "border-line hover:border-line-strong"
                 }`}
               >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    {sc.isRecommended ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-jade/10 border border-jade/30 text-jade font-bold uppercase">
-                        ★ AI Recommendation
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-text-muted uppercase font-semibold">
-                        Alternative
-                      </span>
-                    )}
-                    <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded font-bold uppercase border ${
-                        sc.riskScore === "Low"
-                          ? "text-jade border-jade/30 bg-jade/10"
-                          : sc.riskScore === "Medium"
-                          ? "text-amber-400 border-amber-400/30 bg-amber-400/10"
-                          : "text-rust border-rust/30 bg-rust/10"
-                      }`}
-                    >
-                      {sc.riskScore} Risk
-                    </span>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xs font-bold text-text">{sc.name}</h3>
-                    <p className="text-[11px] text-text-muted mt-1 leading-relaxed">
-                      {sc.subtitle}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-line text-[11px]">
-                    <div>
-                      <span className="text-text-muted block text-[10px]">Monthly Cost</span>
-                      <span className="font-bold text-text font-mono">
-                        ₹{sc.monthlyCost.toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-muted block text-[10px]">Expected Revenue</span>
-                      <span className="font-bold text-jade font-mono">
-                        +₹{sc.projectedRevenueIncrease.toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-muted block text-[10px]">Runway Shift</span>
-                      <span
-                        className={`font-bold font-mono ${
-                          sc.runwayImpactMonths >= 0 ? "text-jade" : "text-rust"
-                        }`}
-                      >
-                        {sc.runwayImpactMonths > 0 ? `+${sc.runwayImpactMonths}` : sc.runwayImpactMonths} mo
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-text-muted block text-[10px]">Expected ROI</span>
-                      <span className="font-bold text-brass font-mono">{sc.roiPercent}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-3 mt-3 border-t border-line flex items-center justify-between text-xs">
-                  <span className="text-text-muted font-medium">
-                    {isSelected ? "Active Scenario" : "Click to Select"}
-                  </span>
-                  <div
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                      isSelected ? "bg-brass border-brass text-white" : "border-line"
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-text">{cleanName(sc.name)}</h3>
+                  <span
+                    className={`w-4 h-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0 ${
+                      isSelected ? "bg-brass border-brass text-white" : "border-line-strong"
                     }`}
                   >
-                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
-                  </div>
+                    {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                  </span>
                 </div>
-              </div>
+                <p className="text-xs text-text-muted leading-relaxed">{sc.subtitle}</p>
+
+                <dl className="grid grid-cols-2 gap-3 pt-3 mt-auto border-t border-line text-sm">
+                  <div>
+                    <dt className="text-xs text-text-muted">Monthly cost</dt>
+                    <dd className="font-medium text-text">₹{sc.monthlyCost.toLocaleString("en-IN")}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-muted">Expected revenue</dt>
+                    <dd className="font-medium text-text">+₹{sc.projectedRevenueIncrease.toLocaleString("en-IN")}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-muted">Runway</dt>
+                    <dd className={`font-medium ${sc.runwayImpactMonths >= 0 ? "text-jade" : "text-rust"}`}>
+                      {sc.runwayImpactMonths > 0 ? "+" : ""}
+                      {sc.runwayImpactMonths} mo
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-muted">ROI</dt>
+                    <dd className="font-medium text-text">{sc.roiPercent}%</dd>
+                  </div>
+                </dl>
+
+                <p className="text-xs text-text-muted">
+                  {sc.riskScore} risk
+                  {sc.isRecommended && <span className="text-brass font-medium"> · Recommended</span>}
+                </p>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* AI Recommendation & Closed-Loop Execution Bar */}
-      <div className="p-6 rounded-2xl border border-brass/40 bg-surface shadow-xl space-y-4 ring-1 ring-brass/20">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-inner">
-              <Compass className="w-5 h-5" />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-text">{ceoName} & {cfoName} Consensus</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-jade/10 text-jade border border-jade/20 font-bold uppercase">
-                  {simulationResult.consensusBadge}
-                </span>
-              </div>
-              <p className="text-xs text-text-muted leading-relaxed max-w-2xl">
-                {simulationResult.consensusQuote}
-              </p>
-            </div>
-          </div>
-
-          {/* The Closed-Loop Execution Button */}
-          <div className="shrink-0 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleExecutePlan}
-              disabled={isExecuting}
-              className="px-6 py-3 rounded-xl bg-brass text-white font-bold text-xs shadow-lg hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all btn-tactile inline-flex items-center gap-2 cursor-pointer"
-            >
-              {isExecuting ? (
-                <>
-                  <RefreshCw className="w-4 h-4 text-white animate-spin" />
-                  <span>Scheduling Tasks…</span>
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4 text-white" />
-                  <span>Execute Plan ({activeScenario?.name.split(":")[0]})</span>
-                </>
-              )}
-            </button>
-          </div>
+      <div className="p-5 rounded-xl border border-line bg-surface space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold text-text">
+            {ceoName} &amp; {cfoName}&rsquo;s recommendation
+          </h2>
+          <p className="text-sm text-text-muted leading-relaxed mt-2 max-w-3xl">
+            {simulationResult.consensusQuote.replace(/^"|"$/g, "")}
+          </p>
         </div>
 
-        <div className="pt-3 border-t border-line flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-text-muted">
-          <span>Clicking &lsquo;Execute Plan&rsquo; creates scheduled operational tasks in your Gap Register and workflows.</span>
-          <div className="flex items-center gap-3">
-            <Link href="/workflows" className="text-brass hover:underline font-semibold flex items-center gap-1">
-              <GitBranch className="w-3 h-3" />
-              <span>View Visual Workflows</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-line">
+          <button
+            type="button"
+            onClick={handleExecutePlan}
+            disabled={isExecuting}
+            className="px-5 py-2.5 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 inline-flex items-center gap-2 cursor-pointer"
+          >
+            {isExecuting && <RefreshCw className="w-4 h-4 animate-spin" />}
+            {isExecuting ? "Creating tasks…" : `Create tasks for ${activeScenario?.name.split(":")[0]}`}
+          </button>
+          <div className="flex items-center gap-4 text-sm">
+            <Link href="/workflows" className="text-brass hover:underline">
+              Workflows
             </Link>
-            <Link href="/tasks" className="text-brass hover:underline font-semibold flex items-center gap-1">
-              <span>View Tasks &amp; Execution →</span>
+            <Link href="/tasks" className="text-brass hover:underline">
+              Tasks
             </Link>
           </div>
         </div>

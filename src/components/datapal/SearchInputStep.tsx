@@ -1,28 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import {
-  Search,
-  ChevronDown,
-  ChevronUp,
-  Sliders,
-  X,
-  Layers,
-  Users,
-  Briefcase,
-  Store,
-  Stethoscope,
-  Utensils,
-  Building2,
-  Laptop,
-  ShoppingBag,
-  Dumbbell,
-  GraduationCap,
-  Truck,
-  Check,
-  Sparkles,
-  ArrowRight,
-} from "lucide-react";
+import { Search, ChevronDown, ChevronUp, X, Layers, Briefcase, Store, Stethoscope, Utensils, Building2, Laptop, ShoppingBag, Dumbbell, GraduationCap, Truck, Check, ArrowRight } from "lucide-react";
 import { BUSINESS_CATEGORIES } from "@/lib/datapal/constants";
 
 export type DetectedSearchType = "Business" | "Professional" | "Audience";
@@ -510,7 +489,7 @@ export function SearchInputStep({
               setUserSelectedType(null); // allow auto-detection on text change
             }}
             placeholder={`e.g. "${ROTATING_EXAMPLES[placeholderIndex]}"`}
-            className={`w-full pl-11 pr-28 sm:pr-32 py-3.5 sm:py-4 rounded-2xl bg-surface border text-sm sm:text-base text-text placeholder:text-text-muted/60 transition-all shadow-theme focus:outline-none focus:ring-2 focus:ring-brass ${
+            className={`w-full pl-11 pr-28 sm:pr-32 py-3.5 rounded-lg bg-surface border text-base text-text placeholder:text-text-muted focus:outline-none focus:border-brass ${
               error
                 ? "border-rust ring-1 ring-rust/30"
                 : "border-line hover:border-line-strong focus:border-brass"
@@ -534,11 +513,8 @@ export function SearchInputStep({
               type="button"
               onClick={handleCycleType}
               title="Click to cycle entity type hint (Business / Professional / Audience)"
-              className="px-2.5 py-1 rounded-xl text-[11px] font-sans font-bold uppercase tracking-wider border cursor-pointer transition-all flex items-center gap-1 bg-surface-2 hover:bg-surface border-line text-text-muted hover:text-text"
+              className="px-2.5 py-1 rounded-md text-xs border border-line cursor-pointer text-text-muted hover:text-text hover:bg-surface-2"
             >
-              {detectedType === "Business" && <Store className="w-3 h-3 text-brass" />}
-              {detectedType === "Professional" && <Briefcase className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />}
-              {detectedType === "Audience" && <Users className="w-3 h-3 text-purple-600 dark:text-purple-400" />}
               <span>{detectedType}</span>
             </button>
           </div>
@@ -555,16 +531,13 @@ export function SearchInputStep({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5 items-start">
         {/* Category Combobox */}
         <div className="relative flex flex-col gap-1.5" ref={categoryContainerRef}>
-          <div className="flex items-center justify-between h-6">
-            <label className="text-xs font-semibold text-text flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-brass shrink-0" />
-              <span>Category</span>
-            </label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-text">Category</label>
             {selectedCategory && (
               <button
                 type="button"
                 onClick={() => handleSelectCategory("")}
-                className="text-[11px] text-text-muted hover:text-brass transition-colors cursor-pointer"
+                className="text-xs text-text-muted hover:text-brass cursor-pointer"
               >
                 Clear
               </button>
@@ -578,7 +551,7 @@ export function SearchInputStep({
               setIsSubcategoryOpen(false);
             }}
             aria-expanded={isCategoryOpen}
-            className={`h-11 min-h-[44px] w-full px-3 py-2 rounded-xl border flex items-center justify-between gap-2 transition-all cursor-pointer select-none bg-surface text-left ${
+            className={`h-[46px] w-full px-3 py-2 rounded-lg border flex items-center justify-between gap-2 cursor-pointer select-none bg-surface text-left ${
               isCategoryOpen
                 ? "border-brass ring-1 ring-brass"
                 : selectedCategory
@@ -590,12 +563,12 @@ export function SearchInputStep({
               {selectedCategoryData ? (
                 <>
                   <span className="shrink-0">{getCategoryIcon(selectedCategoryData.id)}</span>
-                  <span className="text-xs sm:text-sm font-semibold text-text truncate">
+                  <span className="text-sm font-semibold text-text truncate">
                     {selectedCategoryData.name}
                   </span>
                 </>
               ) : (
-                <span className="text-xs sm:text-sm text-text-muted truncate">
+                <span className="text-sm text-text-muted truncate">
                   All Categories
                 </span>
               )}
@@ -620,7 +593,7 @@ export function SearchInputStep({
 
           {/* Category Dropdown Menu */}
           {isCategoryOpen && (
-            <div className="absolute z-30 left-0 right-0 top-full mt-1.5 rounded-xl border border-line bg-surface shadow-2xl overflow-hidden animate-fade-in">
+            <div className="absolute z-30 left-0 right-0 top-full mt-1.5 rounded-xl border border-line bg-surface shadow-lg overflow-hidden">
               <div className="p-2 border-b border-line bg-surface-2/40">
                 <div className="relative flex items-center">
                   <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 pointer-events-none" />
@@ -704,25 +677,17 @@ export function SearchInputStep({
 
         {/* Sub-category Combobox (Explicitly Optional) */}
         <div className="relative flex flex-col gap-1.5" ref={subcategoryContainerRef}>
-          <div className="flex items-center justify-between h-6">
-            <label className="text-xs font-semibold text-text flex items-center gap-1.5">
-              <span>Sub-category</span>
-              <span className="text-[10px] font-sans font-medium px-1.5 py-0.5 rounded bg-surface-2 text-text-muted border border-line">
-                Optional
-              </span>
-              {selectedSubcategory && (
-                <span className="text-[10px] font-sans font-bold px-1.5 py-0.5 rounded bg-brass/15 text-brass">
-                  Filtered
-                </span>
-              )}
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-text">
+              Sub-category <span className="text-text-muted font-normal">(optional)</span>
             </label>
             {selectedSubcategory && (
               <button
                 type="button"
                 onClick={() => handleSelectSubcategory("")}
-                className="text-[11px] text-text-muted hover:text-brass transition-colors cursor-pointer"
+                className="text-xs text-text-muted hover:text-brass cursor-pointer"
               >
-                Reset to All
+                Reset
               </button>
             )}
           </div>
@@ -737,7 +702,7 @@ export function SearchInputStep({
               }
             }}
             aria-expanded={isSubcategoryOpen}
-            className={`h-11 min-h-[44px] w-full px-3 py-2 rounded-xl border flex items-center justify-between gap-2 transition-all select-none text-left ${
+            className={`h-[46px] w-full px-3 py-2 rounded-lg border flex items-center justify-between gap-2 select-none text-left ${
               !selectedCategory
                 ? "bg-surface/50 border-line/60 text-text-muted opacity-60 cursor-not-allowed"
                 : isSubcategoryOpen
@@ -749,18 +714,18 @@ export function SearchInputStep({
           >
             <div className="flex items-center gap-2 min-w-0 flex-1">
               {!selectedCategory ? (
-                <span className="text-xs sm:text-sm text-text-muted">
+                <span className="text-sm text-text-muted">
                   Select a category first
                 </span>
               ) : selectedSubcategory ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-brass shrink-0" />
-                  <span className="text-xs sm:text-sm font-semibold text-text truncate">
+                  <span className="text-sm font-semibold text-text truncate">
                     {selectedSubcategory}
                   </span>
                 </>
               ) : (
-                <span className="text-xs sm:text-sm text-text-muted truncate">
+                <span className="text-sm text-text-muted truncate">
                   All {selectedCategoryData?.name} (Broad Search)
                 </span>
               )}
@@ -785,7 +750,7 @@ export function SearchInputStep({
 
           {/* Sub-category Dropdown Menu */}
           {isSubcategoryOpen && selectedCategoryData && (
-            <div className="absolute z-30 left-0 right-0 top-full mt-1.5 rounded-xl border border-line bg-surface shadow-2xl overflow-hidden animate-fade-in">
+            <div className="absolute z-30 left-0 right-0 top-full mt-1.5 rounded-xl border border-line bg-surface shadow-lg overflow-hidden">
               <div className="p-2 border-b border-line bg-surface-2/40">
                 <div className="relative flex items-center">
                   <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 pointer-events-none" />
@@ -857,15 +822,14 @@ export function SearchInputStep({
 
       {/* Optional Collapsed "Refine" row for Audience Searches */}
       {detectedType === "Audience" && (
-        <div className="rounded-xl border border-line bg-surface-2/30 p-3 space-y-2.5 animate-fade-in">
+        <div className="rounded-lg border border-line p-3 space-y-2.5">
           <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => setShowAudienceRefine(prev => !prev)}
               className="text-xs font-semibold text-text flex items-center gap-1.5 cursor-pointer hover:text-brass transition-colors"
             >
-              <Sliders className="w-3.5 h-3.5 text-brass" />
-              <span>Refine Audience Demographics (Optional)</span>
+              <span>Refine audience (optional)</span>
               {showAudienceRefine ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
           </div>

@@ -96,7 +96,7 @@ export function AiMatcherDrawer({
         aria-hidden="true"
       />
 
-      <div className="relative w-full max-w-md h-full bg-surface border-l border-line p-5 flex flex-col shadow-2xl z-10 animate-fade-in overflow-hidden">
+      <div className="relative w-full max-w-md h-full bg-surface border-l border-line p-5 flex flex-col shadow-lg z-10 animate-fade-in overflow-hidden">
         <div className="flex items-center justify-between pb-3.5 border-b border-line shrink-0">
           <div className="flex items-center gap-2">
             <Bot className="w-5 h-5 text-brass" />

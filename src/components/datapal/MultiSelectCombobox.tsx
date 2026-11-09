@@ -160,19 +160,12 @@ export function MultiSelectCombobox({
   return (
     <div className={`relative flex flex-col gap-1.5 ${className}`} ref={containerRef}>
       <div className="flex items-center justify-between">
-        <label className="text-xs font-semibold text-text flex items-center gap-1.5">
-          <span>{label}</span>
-          {isAllSelected && (
-            <span className="text-[10px] font-sans font-bold px-1.5 py-0.2 rounded bg-brass/15 text-brass">
-              All selected
-            </span>
-          )}
-        </label>
+        <label className="text-sm font-medium text-text">{label}</label>
         {(selectedCodes.length > 0 || isAllSelected) && !disabled && (
           <button
             type="button"
             onClick={handleClearAll}
-            className="text-[11px] text-text-muted hover:text-brass transition-colors cursor-pointer"
+            className="text-xs text-text-muted hover:text-brass cursor-pointer"
           >
             Clear
           </button>
@@ -196,7 +189,7 @@ export function MultiSelectCombobox({
             setIsOpen(true);
           }
         }}
-        className={`min-h-[44px] w-full px-3 py-1.5 rounded-xl border flex items-center justify-between gap-2 transition-all cursor-pointer select-none ${
+        className={`min-h-[46px] w-full px-3 py-1.5 rounded-lg border flex items-center justify-between gap-2 cursor-pointer select-none ${
           disabled
             ? "bg-surface-2/40 border-line/60 opacity-60 cursor-not-allowed"
             : isOpen
@@ -207,11 +200,11 @@ export function MultiSelectCombobox({
         {/* Selected Chips Area */}
         <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0 pr-1">
           {disabled ? (
-            <span className="text-xs text-text-muted/70 truncate">
+            <span className="text-sm text-text-muted truncate">
               {disabledHint || placeholder}
             </span>
           ) : isAllSelected ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brass/15 text-brass border border-brass/30 text-xs font-bold shadow-2xs">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-2 text-text border border-line text-sm">
               <span>{allChipLabel}</span>
               <button
                 type="button"
@@ -227,7 +220,7 @@ export function MultiSelectCombobox({
               {selectedItems.slice(0, 3).map(item => (
                 <span
                   key={item.code}
-                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-surface-2 border border-line text-xs font-medium text-text shadow-2xs"
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface-2 border border-line text-sm text-text"
                 >
                   {isCountry && <CountryFlag countryCode={item.code} />}
                   <span className="truncate max-w-[120px]">{item.name}</span>
@@ -248,7 +241,7 @@ export function MultiSelectCombobox({
               )}
             </>
           ) : (
-            <span className="text-xs text-text-muted/60">{placeholder}</span>
+            <span className="text-sm text-text-muted">{placeholder}</span>
           )}
         </div>
 
@@ -264,7 +257,7 @@ export function MultiSelectCombobox({
         <div
           role="listbox"
           aria-multiselectable="true"
-          className="absolute left-0 right-0 top-full mt-1.5 bg-surface border border-line rounded-2xl shadow-xl z-50 flex flex-col max-h-72 overflow-hidden animate-fade-in"
+          className="absolute left-0 right-0 top-full mt-1.5 bg-surface border border-line rounded-lg shadow-lg z-50 flex flex-col max-h-72 overflow-hidden animate-fade-in"
         >
           {/* Search Header inside dropdown */}
           <div className="p-2.5 border-b border-line bg-surface-2/30 shrink-0">

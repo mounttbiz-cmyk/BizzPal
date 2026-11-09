@@ -179,7 +179,7 @@ export function CategoryPickerSheet({
       />
 
       {/* Sheet Container: Fullscreen on mobile, max-w-2xl/3xl on desktop */}
-      <div className="relative w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl h-full bg-surface border-l border-line flex flex-col shadow-2xl z-10 animate-fade-in overflow-hidden">
+      <div className="relative w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl h-full bg-surface border-l border-line flex flex-col shadow-lg z-10 animate-fade-in overflow-hidden">
         {/* 1. Header */}
         <div className="p-4 sm:px-6 border-b border-line bg-surface flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
@@ -443,7 +443,7 @@ export function CategoryPickerSheet({
           aria-modal="true"
           className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
         >
-          <div className="w-full max-w-sm rounded-2xl bg-surface border border-line p-5 space-y-4 shadow-2xl animate-fade-in">
+          <div className="w-full max-w-sm rounded-xl bg-surface border border-line p-5 space-y-4 shadow-lg animate-fade-in">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
                 <AlertCircle className="w-5 h-5" />

@@ -2,25 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { defaultGapRules } from "@/config/seeds/defaultRules";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Play,
-  MessageSquare,
-  ArrowRight,
-  ShieldAlert,
-  RefreshCw,
-  UserCheck,
-  Clock,
-  Target,
-  Check,
-  ChevronDown,
-  Filter,
-  Layers,
-  Activity,
-  RotateCcw
-} from "lucide-react";
-import { ProvenanceBadge } from "@/components/ui/Badge";
+import { Check, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 export type GapStatus = "detected" | "prioritized" | "in_progress" | "under_verification" | "resolved";
@@ -151,481 +133,270 @@ const INITIAL_EXTENDED_GAPS: ExtendedGapItem[] = [
   }
 ];
 
-const AVAILABLE_OWNERS = [
-  { name: "Finance & Runway Lead", role: "Financial Operations", avatar: "📊" },
-  { name: "Executive Strategy", role: "Founder & CEO Office", avatar: "🎯" },
-  { name: "Growth & Acquisition", role: "Revenue Operations", avatar: "🚀" },
-  { name: "Client Success", role: "Account Management", avatar: "🤝" },
-  { name: "Delivery Operations", role: "Process & Quality", avatar: "⚙️" },
+
+const STATUS_LABEL: Record<GapStatus, string> = {
+  detected: "Detected",
+  prioritized: "Prioritized",
+  in_progress: "In progress",
+  under_verification: "Verifying",
+  resolved: "Resolved",
+};
+
+const STATUS_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "active", label: "Open" },
+  { id: "in_progress", label: "In progress" },
+  { id: "resolved", label: "Resolved" },
 ];
 
-export default function GapsPage() {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("all");
-  const [gaps, setGaps] = useState<ExtendedGapItem[]>(INITIAL_EXTENDED_GAPS);
-  const [activeGapId, setActiveGapId] = useState<string>(INITIAL_EXTENDED_GAPS[0].id);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanMessage, setScanMessage] = useState<string | null>(null);
+const DEPARTMENTS = ["all", "financial", "risk", "marketing", "operations"];
 
-  // Sync with live business profile data if present
+export default function GapsPage() {
+  const [category, setCategory] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [gaps, setGaps] = useState<ExtendedGapItem[]>(INITIAL_EXTENDED_GAPS);
+  const [isScanning, setIsScanning] = useState(false);
+
+  // Sync runway gap with the saved business profile, if present
   useEffect(() => {
     try {
       const savedStr = localStorage.getItem("bizzpal_business_profile");
-      if (savedStr) {
-        const saved = JSON.parse(savedStr);
-        const cash = Number(saved.cash || saved.cashOnHand || 0);
-        const burn = Number(saved.burn || saved.monthlyBurn || 0);
-        const actualRunway = burn > 0 ? (cash / burn).toFixed(1) : cash > 0 ? "24.0+" : "0.0";
-
-        setGaps(prev =>
-          prev.map(g => {
-            if (g.key === "cash_runway") {
-              const numRunway = Number(actualRunway);
-              const dev = ((numRunway - 12) / 12) * 100;
-              return {
+      if (!savedStr) return;
+      const saved = JSON.parse(savedStr);
+      const cash = Number(saved.cash || saved.cashOnHand || 0);
+      const burn = Number(saved.burn || saved.monthlyBurn || 0);
+      const runway = burn > 0 ? cash / burn : 0;
+      const dev = ((runway - 12) / 12) * 100;
+      setGaps(prev =>
+        prev.map(g =>
+          g.key === "cash_runway"
+            ? {
                 ...g,
-                actualMetric: `${actualRunway} Months`,
-                deviation: `${dev.toFixed(1)}% Deficit`,
+                actualMetric: `${runway.toFixed(1)} Months`,
+                deviation: `${dev.toFixed(1)}% vs target`,
                 deviationPercent: dev,
-                evidenceTemplate: `Current cash reserve of ₹${cash.toLocaleString("en-IN")} against net monthly burn of ₹${burn.toLocaleString("en-IN")} gives ${actualRunway} months runway.`,
-              };
-            }
-            return g;
-          })
-        );
-      }
+                evidenceTemplate: `Cash reserve of ₹${cash.toLocaleString("en-IN")} against monthly burn of ₹${burn.toLocaleString("en-IN")} gives ${runway.toFixed(1)} months of runway.`,
+              }
+            : g
+        )
+      );
     } catch {
-      // ignore
+      // ignore bad saved data
     }
   }, []);
 
-  const activeGap = gaps.find(g => g.id === activeGapId) || gaps[0];
+  const updateGap = (id: string, fn: (g: ExtendedGapItem) => ExtendedGapItem) =>
+    setGaps(prev => prev.map(g => (g.id === id ? fn(g) : g)));
 
-  const handleStatusChange = (gapId: string, newStatus: GapStatus) => {
-    setGaps(prev =>
-      prev.map(g => {
-        if (g.id === gapId) {
-          return {
-            ...g,
-            status: newStatus,
-            resolvedAt: newStatus === "resolved" ? new Date().toISOString() : undefined,
-          };
-        }
-        return g;
-      })
-    );
-  };
+  const setStatus = (id: string, status: GapStatus) =>
+    updateGap(id, g => ({
+      ...g,
+      status,
+      resolvedAt: status === "resolved" ? new Date().toISOString() : undefined,
+    }));
 
-  const handleOwnerChange = (gapId: string, ownerName: string, ownerRole: string) => {
-    setGaps(prev =>
-      prev.map(g => {
-        if (g.id === gapId) {
-          return { ...g, assignedOwner: ownerName, assignedRole: ownerRole };
-        }
-        return g;
-      })
-    );
-  };
+  const toggleStep = (id: string, idx: number) =>
+    updateGap(id, g => {
+      const done = g.completedSteps.includes(idx)
+        ? g.completedSteps.filter(s => s !== idx)
+        : [...g.completedSteps, idx];
+      const allDone = done.length === g.solutionPlaybook.steps.length && g.status === "in_progress";
+      return { ...g, completedSteps: done, status: allDone ? "under_verification" : g.status };
+    });
 
-  const handleToggleStep = (gapId: string, stepIndex: number) => {
-    setGaps(prev =>
-      prev.map(g => {
-        if (g.id === gapId) {
-          const exists = g.completedSteps.includes(stepIndex);
-          const nextSteps = exists
-            ? g.completedSteps.filter(s => s !== stepIndex)
-            : [...g.completedSteps, stepIndex];
-
-          // If all steps completed, automatically transition to under_verification
-          let nextStatus = g.status;
-          if (nextSteps.length === g.solutionPlaybook.steps.length && g.status === "in_progress") {
-            nextStatus = "under_verification";
-          }
-
-          return { ...g, completedSteps: nextSteps, status: nextStatus };
-        }
-        return g;
-      })
-    );
-  };
-
-  const handleTriggerScan = () => {
+  const runScan = () => {
     setIsScanning(true);
-    setScanMessage("Scanning live business ledger & benchmark telemetry…");
-
-    setTimeout(() => {
-      setIsScanning(false);
-      setScanMessage("Target Gap Scan complete: 5 operational deviations verified and prioritized.");
-      setTimeout(() => setScanMessage(null), 3500);
-    }, 1400);
+    setTimeout(() => setIsScanning(false), 1200);
   };
 
-  const handleVerifyResolution = (gapId: string) => {
-    handleStatusChange(gapId, "resolved");
-    setScanMessage(`Resolution Verified: "${activeGap.title}" target satisfied! Gap closed.`);
-    setTimeout(() => setScanMessage(null), 4000);
-  };
-
-  // Filter logic
-  const filteredGaps = gaps.filter(g => {
-    const matchesCategory = selectedCategory === "all" || g.category.toLowerCase() === selectedCategory.toLowerCase();
-    const matchesStatus =
-      selectedStatusFilter === "all"
-        ? true
-        : selectedStatusFilter === "active"
-        ? g.status !== "resolved"
-        : g.status === selectedStatusFilter;
-    return matchesCategory && matchesStatus;
+  const filtered = gaps.filter(g => {
+    const okCategory = category === "all" || g.category.toLowerCase() === category;
+    const okStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" ? g.status !== "resolved" : g.status === statusFilter);
+    return okCategory && okStatus;
   });
 
-  const getStatusBadge = (status: GapStatus) => {
-    switch (status) {
-      case "detected":
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase bg-amber/15 text-amber border border-amber/30">
-            Detected
-          </span>
-        );
-      case "prioritized":
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase bg-blue-500/15 text-blue-400 border border-blue-500/30">
-            Prioritized
-          </span>
-        );
-      case "in_progress":
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            In Progress
-          </span>
-        );
-      case "under_verification":
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase bg-purple-500/15 text-purple-400 border border-purple-500/30">
-            Verification
-          </span>
-        );
-      case "resolved":
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase bg-jade/15 text-jade border border-jade/30 flex items-center gap-1">
-            <CheckCircle2 className="w-2.5 h-2.5" />
-            Resolved
-          </span>
-        );
-    }
-  };
-
-  // Top level stats
-  const totalGaps = gaps.length;
-  const criticalCount = gaps.filter(g => g.severity === "critical" && g.status !== "resolved").length;
-  const inProgressCount = gaps.filter(g => g.status === "in_progress").length;
-  const resolvedCount = gaps.filter(g => g.status === "resolved").length;
+  const open = gaps.filter(g => g.status !== "resolved").length;
+  const critical = gaps.filter(g => g.severity === "critical" && g.status !== "resolved").length;
+  const inProgress = gaps.filter(g => g.status === "in_progress").length;
+  const resolved = gaps.filter(g => g.status === "resolved").length;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-4 border-b border-line">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-rust/10 border border-rust/30 flex items-center justify-center text-rust">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-text">Gap Register & Closed-Loop Resolution</h1>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase font-mono">
-                  Autonomous Watch
-                </span>
-              </div>
-              <p className="text-xs text-text-muted mt-1 font-medium">
-                Detect financial, sales, and operational bottlenecks early, assign dedicated AI executive owners, and resolve them step-by-step.
-              </p>
-            </div>
-          </div>
+          <h1 className="text-xl font-bold text-text">Gap Register</h1>
+          <p className="text-sm text-text-muted mt-1">
+            Where your business is off target, and the steps to fix it.
+          </p>
         </div>
-
-        {/* Header Right Actions */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             disabled={isScanning}
-            onClick={handleTriggerScan}
-            className="px-3.5 py-1.5 rounded-xl bg-surface-2 border border-line text-xs font-bold text-text hover:border-brass/40 flex items-center gap-1.5 btn-tactile cursor-pointer shadow-xs"
+            onClick={runScan}
+            className="px-3.5 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-text hover:bg-surface-2 inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-brass ${isScanning ? "animate-spin" : ""}`} />
-            <span>{isScanning ? "Scanning Gaps…" : "Run AI Gap Scan"}</span>
+            <RefreshCw className={`w-4 h-4 ${isScanning ? "animate-spin" : ""}`} />
+            {isScanning ? "Scanning…" : "Rescan"}
           </button>
-
           <Link
             href="/simulator"
-            className="px-3.5 py-1.5 rounded-xl bg-brass text-white text-xs font-bold shadow-md hover:brightness-110 btn-tactile inline-flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110"
           >
-            <Play className="w-3.5 h-3.5" />
-            <span>Simulate Fixes</span>
+            Open simulator
           </Link>
         </div>
       </div>
 
-      {/* Alert Banner if present */}
-      {scanMessage && (
-        <div className="p-3.5 rounded-xl bg-brass-soft/40 border border-brass/40 flex items-center gap-2 text-xs font-semibold text-text animate-fade-in">
-          <Activity className="w-4 h-4 text-brass shrink-0" />
-          <span>{scanMessage}</span>
-        </div>
-      )}
+      <p className="text-sm text-text-muted">
+        <span className="font-semibold text-text">{open}</span> open ·{" "}
+        <span className="font-semibold text-rust">{critical}</span> critical ·{" "}
+        <span className="font-semibold text-text">{inProgress}</span> in progress ·{" "}
+        <span className="font-semibold text-text">{resolved}</span> resolved
+      </p>
 
-      {/* Simplified Top KPI Overview Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-xl bg-surface border border-line">
-          <span className="text-[11px] font-semibold text-text-muted uppercase block">Total Bottlenecks</span>
-          <span className="text-xl font-bold text-text mt-0.5 block">{totalGaps}</span>
-          <span className="text-[10px] text-text-muted">Detected in telemetry</span>
-        </div>
-        <div className="p-3.5 rounded-xl bg-rust/5 border border-rust/30">
-          <span className="text-[11px] font-semibold text-rust uppercase block">Critical Priority</span>
-          <span className="text-xl font-bold text-rust mt-0.5 block">{criticalCount}</span>
-          <span className="text-[10px] text-rust/80">Requires immediate attention</span>
-        </div>
-        <div className="p-3.5 rounded-xl bg-cyan-500/5 border border-cyan-500/30">
-          <span className="text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 uppercase block">Under Resolution</span>
-          <span className="text-xl font-bold text-cyan-600 dark:text-cyan-400 mt-0.5 block">{inProgressCount}</span>
-          <span className="text-[10px] text-text-muted">Steps in execution</span>
-        </div>
-        <div className="p-3.5 rounded-xl bg-jade/5 border border-jade/30">
-          <span className="text-[11px] font-semibold text-jade uppercase block">Resolved & Closed</span>
-          <span className="text-xl font-bold text-jade mt-0.5 block">{resolvedCount}</span>
-          <span className="text-[10px] text-jade/80">Safeguards established</span>
-        </div>
-      </div>
-
-      {/* Multi-Filter Bar: Status + Category */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-surface-2/40 border border-line">
-        {/* Status Lifecycle Filters */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider mr-1 flex items-center gap-1">
-            <Filter className="w-3 h-3" />
-            View:
-          </span>
-          {[
-            { id: "all", label: "All Items" },
-            { id: "active", label: "Unresolved Gaps" },
-            { id: "in_progress", label: "In Progress" },
-            { id: "resolved", label: "Resolved" },
-          ].map(f => (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-1">
+          {STATUS_FILTERS.map(f => (
             <button
               key={f.id}
               type="button"
-              onClick={() => setSelectedStatusFilter(f.id)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all btn-tactile cursor-pointer ${
-                selectedStatusFilter === f.id
-                  ? "bg-brass text-white shadow-xs"
-                  : "bg-surface border border-line text-text-muted hover:text-text"
+              onClick={() => setStatusFilter(f.id)}
+              className={`px-3 py-1.5 rounded-lg text-sm cursor-pointer ${
+                statusFilter === f.id
+                  ? "bg-surface-2 text-text font-semibold"
+                  : "text-text-muted hover:text-text"
               }`}
             >
               {f.label}
             </button>
           ))}
         </div>
-
-        {/* Category Pills */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider mr-1">
-            Department:
-          </span>
-          {["all", "financial", "risk", "marketing", "operations"].map(cat => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize border transition-all btn-tactile cursor-pointer ${
-                selectedCategory === cat
-                  ? "bg-surface-2 border-brass text-brass font-bold"
-                  : "bg-surface border-line text-text-muted hover:text-text"
-              }`}
-            >
-              {cat}
-            </button>
+        <select
+          value={category}
+          onChange={e => setCategory(e.target.value)}
+          className="text-sm px-3 py-1.5 rounded-lg border border-line bg-surface text-text capitalize cursor-pointer"
+          aria-label="Department"
+        >
+          {DEPARTMENTS.map(d => (
+            <option key={d} value={d}>
+              {d === "all" ? "All departments" : d}
+            </option>
           ))}
-        </div>
+        </select>
       </div>
 
-      {/* Simple, Readable Bottleneck Cards List */}
       <div className="space-y-4">
-        {filteredGaps.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-surface border border-line text-center text-xs text-text-muted">
-            No bottlenecks match the selected filters.
+        {filtered.length === 0 ? (
+          <div className="p-8 rounded-xl border border-line text-center text-sm text-text-muted">
+            No gaps match these filters.
           </div>
         ) : (
-          filteredGaps.map(gap => {
+          filtered.map(gap => {
             const isResolved = gap.status === "resolved";
-            const completedCount = gap.completedSteps.length;
-            const totalSteps = gap.solutionPlaybook.steps.length;
-
+            const steps = gap.solutionPlaybook.steps;
             return (
-              <div
+              <section
                 key={gap.id}
-                className={`p-5 rounded-2xl border bg-surface transition-all shadow-theme space-y-4 ${
-                  gap.severity === "critical" && !isResolved
-                    ? "border-rust/40 bg-gradient-to-r from-rust/[0.03] to-surface"
-                    : "border-line"
-                } ${isResolved ? "opacity-75 bg-surface/80" : ""}`}
+                className={`p-5 rounded-xl border border-line bg-surface space-y-4 ${isResolved ? "opacity-70" : ""}`}
               >
-                {/* Header: Title, Category, Severity & Status */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-line/70">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-brass-soft text-brass">
-                        {gap.category}
-                      </span>
-                      <span
-                        className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
-                          gap.severity === "critical"
-                            ? "bg-rust/15 text-rust border border-rust/30"
-                            : "bg-amber/15 text-amber border border-amber/30"
-                        }`}
-                      >
-                        {gap.severity} Priority
-                      </span>
-                      {getStatusBadge(gap.status)}
-                    </div>
-                    <h3 className="text-base font-bold text-text">{gap.title}</h3>
-                  </div>
-
-                  {/* Owner & Reassign Control */}
-                  <div className="flex items-center gap-2 self-start sm:self-auto bg-surface-2/80 px-3 py-1.5 rounded-xl border border-line">
-                    <div className="w-6 h-6 rounded-full bg-brass/20 text-brass text-xs flex items-center justify-center font-bold">
-                      👤
-                    </div>
-                    <div>
-                      <span className="text-[11px] font-bold text-text block">
-                        {gap.assignedOwner} ({gap.assignedRole})
-                      </span>
-                      <span className="text-[9px] text-text-muted">Lead AI Owner</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Plain-English Problem, Metrics & Why It Matters */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                  {/* Problem & Impact */}
-                  <div className="md:col-span-2 p-3.5 rounded-xl bg-surface-2/50 border border-line space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-rust font-bold text-xs">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      <span>Why This Matters to Your Business</span>
-                    </div>
-                    <p className="text-text leading-relaxed text-xs sm:text-[13px]">
-                      {gap.whyItMatters}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                  <div>
+                    <h2 className="text-base font-semibold text-text">{gap.title}</h2>
+                    <p className="text-xs text-text-muted mt-1">
+                      {gap.category} ·{" "}
+                      <span className={gap.severity === "critical" ? "text-rust font-medium" : ""}>
+                        {gap.severity}
+                      </span>{" "}
+                      · {STATUS_LABEL[gap.status]}
                     </p>
-                    <div className="text-[11px] text-text-muted font-mono pt-1">
-                      <strong>Telemetry Finding:</strong> {gap.evidenceTemplate}
-                    </div>
                   </div>
-
-                  {/* Benchmark vs Actual Target */}
-                  <div className="p-3.5 rounded-xl bg-surface-2/70 border border-line flex flex-col justify-between space-y-2">
-                    <div>
-                      <span className="text-[10px] font-semibold text-text-muted uppercase block">Benchmark Rule</span>
-                      <span className="text-xs font-bold text-text font-mono">{gap.targetMetric}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-semibold text-text-muted uppercase block">Your Current Status</span>
-                      <span className="text-sm font-extrabold text-rust font-mono">{gap.actualMetric}</span>
-                      <span className="text-[10px] text-rust font-semibold block">({gap.deviation})</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-semibold text-jade uppercase block">Resolution Goal</span>
-                      <span className="text-[11px] font-semibold text-jade">{gap.solutionPlaybook.successMetric}</span>
-                    </div>
-                  </div>
+                  <p className="text-xs text-text-muted">Owner: {gap.assignedOwner}</p>
                 </div>
 
-                {/* Actionable 3-Step Solution Checklist */}
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-brass" />
-                      Corrective Action Steps ({completedCount}/{totalSteps} Completed)
-                    </span>
-                    <span className="text-[11px] text-text-muted">
-                      Click any checkbox once implemented
-                    </span>
-                  </div>
+                <p className="text-sm text-text-muted leading-relaxed">
+                  {gap.whyItMatters} {gap.evidenceTemplate}
+                </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {gap.solutionPlaybook.steps.map((step, idx) => {
-                      const isDone = gap.completedSteps.includes(idx);
+                <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-3 border-y border-line text-sm">
+                  <div>
+                    <dt className="text-xs text-text-muted">Target</dt>
+                    <dd className="font-medium text-text">{gap.targetMetric}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-muted">Current</dt>
+                    <dd className="font-medium text-rust">
+                      {gap.actualMetric} <span className="text-xs font-normal">({gap.deviation})</span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-muted">Goal</dt>
+                    <dd className="font-medium text-text">{gap.solutionPlaybook.successMetric}</dd>
+                  </div>
+                </dl>
+
+                <div>
+                  <p className="text-xs font-semibold text-text-muted mb-2">
+                    Steps ({gap.completedSteps.length}/{steps.length} done)
+                  </p>
+                  <ul className="space-y-2">
+                    {steps.map((step, idx) => {
+                      const done = gap.completedSteps.includes(idx);
                       return (
-                        <div
-                          key={idx}
-                          onClick={() => handleToggleStep(gap.id, idx)}
-                          className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-2.5 text-xs ${
-                            isDone
-                              ? "bg-jade/10 border-jade/40 text-text"
-                              : "bg-surface-2/60 border-line hover:border-line-strong hover:bg-surface-2"
-                          }`}
-                        >
-                          <div
-                            className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                              isDone ? "bg-jade border-jade text-white" : "border-line bg-surface text-transparent"
-                            }`}
+                        <li key={idx}>
+                          <button
+                            type="button"
+                            onClick={() => toggleStep(gap.id, idx)}
+                            className="w-full flex items-start gap-3 text-left cursor-pointer"
                           >
-                            <Check className="w-3 h-3 stroke-[3]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className={`font-semibold block text-[11px] leading-tight ${isDone ? "line-through text-text-muted" : "text-text"}`}>
-                              Step {idx + 1}: {step.title}
+                            <span
+                              className={`w-4 h-4 mt-0.5 rounded border flex items-center justify-center shrink-0 ${
+                                done ? "bg-jade border-jade text-white" : "border-line-strong bg-surface"
+                              }`}
+                            >
+                              {done && <Check className="w-3 h-3 stroke-[3]" />}
                             </span>
-                            <p className="text-[10px] text-text-muted mt-1 leading-snug line-clamp-2">
-                              {step.detail}
-                            </p>
-                          </div>
-                        </div>
+                            <span>
+                              <span className={`text-sm block ${done ? "line-through text-text-muted" : "text-text"}`}>
+                                {step.title}
+                              </span>
+                              <span className="text-xs text-text-muted">{step.detail}</span>
+                            </span>
+                          </button>
+                        </li>
                       );
                     })}
-                  </div>
+                  </ul>
                 </div>
 
-                {/* Action Footer: 1-Click Resolve & Simulator */}
-                <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-line/60">
-                  <div className="flex items-center gap-2">
-                    {gap.status !== "resolved" ? (
-                      <button
-                        type="button"
-                        onClick={() => handleVerifyResolution(gap.id)}
-                        className="px-3.5 py-1.5 rounded-xl bg-jade hover:bg-jade/90 text-white text-xs font-bold shadow-xs btn-tactile inline-flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>1-Click Mark as Resolved</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange(gap.id, "in_progress")}
-                        className="px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs font-semibold text-text btn-tactile inline-flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5 text-text-muted" />
-                        <span>Reopen Bottleneck</span>
-                      </button>
-                    )}
-
-                    <Link
-                      href="/simulator"
-                      className="px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs font-semibold text-text btn-tactile inline-flex items-center gap-1.5"
+                <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                  {isResolved ? (
+                    <button
+                      type="button"
+                      onClick={() => setStatus(gap.id, "in_progress")}
+                      className="px-3.5 py-2 rounded-lg border border-line text-sm font-medium text-text hover:bg-surface-2 cursor-pointer"
                     >
-                      <Play className="w-3.5 h-3.5 text-brass" />
-                      <span>Simulate Fix in Financial Model</span>
-                    </Link>
-                  </div>
-
+                      Reopen
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setStatus(gap.id, "resolved")}
+                      className="px-3.5 py-2 rounded-lg bg-jade text-white text-sm font-medium hover:brightness-110 cursor-pointer"
+                    >
+                      Mark resolved
+                    </button>
+                  )}
                   <Link
                     href={`/chat?query=${encodeURIComponent(`How should we resolve this business gap: "${gap.title}"?`)}`}
-                    className="text-xs text-brass hover:underline inline-flex items-center gap-1 font-semibold"
+                    className="text-sm text-brass hover:underline"
                   >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Ask {gap.assignedOwner} AI for Advice →</span>
+                    Ask AI for advice →
                   </Link>
                 </div>
-              </div>
+              </section>
             );
           })
         )}

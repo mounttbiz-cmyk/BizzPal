@@ -455,45 +455,33 @@ export function RealToolAuthModal({
 
   return (
     <PortalModal isOpen={isOpen} onClose={onClose}>
-      <div className="w-full max-w-lg bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden animate-scale-in">
-        {/* Header */}
-        <div className="p-5 border-b border-line flex items-center justify-between bg-surface-2/40">
+      <div className="w-[34rem] max-w-[calc(100vw-2rem)] max-h-[92vh] overflow-y-auto bg-surface border border-line rounded-lg shadow-lg">
+        <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <ToolLogo toolId={toolId} size={36} className="shrink-0" />
+            <ToolLogo toolId={toolId} size={40} className="shrink-0" />
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold text-text">Connect Real {toolName}</h2>
-                <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[9px] font-bold uppercase tracking-wider font-mono">
-                  {isGoogleTool ? "Live OAuth" : "Live Sync"}
-                </span>
-              </div>
-              <p className="text-[11px] text-text-muted mt-0.5">
-                Link your production credentials for live telemetry and executive data ingestion.
+              <h2 className="text-lg font-semibold text-text">
+                {isConnected ? `Manage ${toolName}` : `Connect ${toolName}`}
+              </h2>
+              <p className="text-sm text-text-muted mt-0.5">
+                Let your advisors work from your real {toolName} data.
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
+            aria-label="Close"
+            className="p-1 rounded-lg text-text-muted hover:text-text cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Security Trust Banner */}
-        <div className="px-5 py-2.5 bg-cyan-500/5 border-b border-cyan-500/15 flex items-center gap-2 text-[11px] text-cyan-300">
-          <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
-          <span>Encrypted with TLS 1.3. Credentials are saved directly to your local database instance.</span>
-        </div>
-
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-5">
           {error && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
-            </div>
+            <p className="p-3 rounded-lg border border-rust/30 bg-rust/5 text-sm text-rust">{error}</p>
           )}
 
           {/* 1. Google (Live OAuth Button & Form) */}
@@ -501,12 +489,12 @@ export function RealToolAuthModal({
             <div className="space-y-4">
               {/* Connected Google Banner if authenticated */}
               {isConnected && googleProfile ? (
-                <div className="p-4 rounded-xl bg-jade/10 border border-jade/30 flex items-center gap-3.5">
+                <div className="p-4 rounded-lg border border-line bg-surface-2/50 flex items-center gap-3.5">
                   {googleProfile.picture ? (
                     <img
                       src={googleProfile.picture}
                       alt={googleProfile.name || "Google User"}
-                      className="w-11 h-11 rounded-full border-2 border-jade shrink-0 object-cover"
+                      className="w-11 h-11 rounded-full border border-line shrink-0 object-cover"
                     />
                   ) : (
                     <div className="w-11 h-11 rounded-full bg-jade/20 border border-jade/40 flex items-center justify-center text-jade font-bold text-sm shrink-0">
@@ -515,23 +503,21 @@ export function RealToolAuthModal({
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-text truncate">{googleProfile.name || "Google User"}</span>
-                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-jade/20 text-jade border border-jade/30 font-bold uppercase font-mono">
-                        Live OAuth
-                      </span>
+                      <span className="text-sm font-medium text-text truncate">{googleProfile.name || "Google User"}</span>
+                      <span className="text-xs text-jade">Connected</span>
                     </div>
-                    <span className="text-[11px] text-text-muted font-mono block truncate">{googleProfile.email || googleEmail}</span>
+                    <span className="text-xs text-text-muted block truncate">{googleProfile.email || googleEmail}</span>
                   </div>
                 </div>
               ) : null}
 
               {/* 1-Click Live OAuth Button */}
-              <div className="p-4 rounded-xl bg-surface-2 border border-line space-y-3">
+              <div className="p-4 rounded-lg border border-line bg-surface-2/50 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-xs font-bold text-text">Direct Google Account Sign-In</h3>
-                    <p className="text-[11px] text-text-muted mt-0.5">
-                      Authorize with Google OAuth 2.0 to sync meetings, executive schedule, and Docs.
+                    <h3 className="text-sm font-medium text-text">Sign in with Google</h3>
+                    <p className="text-sm text-text-muted mt-0.5">
+                      Allow access to sync your meetings, schedule and documents.
                     </p>
                   </div>
                 </div>
@@ -540,12 +526,12 @@ export function RealToolAuthModal({
                   type="button"
                   onClick={handleGoogleLiveOAuth}
                   disabled={isGoogleOAuthLoading}
-                  className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 font-bold text-xs shadow-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer disabled:opacity-50"
+                  className="w-full py-2.5 px-4 rounded-lg bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 text-sm font-medium flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
                 >
                   {isGoogleOAuthLoading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
-                      <span>Opening Google OAuth Consent Screen…</span>
+                      <span>Opening Google…</span>
                     </>
                   ) : (
                     <>
@@ -567,7 +553,7 @@ export function RealToolAuthModal({
                           fill="#EA4335"
                         />
                       </svg>
-                      <span>{isConnected ? "Re-authenticate with Google" : "Sign in with Google (Live OAuth)"}</span>
+                      <span>{isConnected ? "Sign in again with Google" : "Continue with Google"}</span>
                     </>
                   )}
                 </button>
@@ -575,20 +561,20 @@ export function RealToolAuthModal({
 
               {/* Scope Selection */}
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
-                  Calendar & Workload Telemetry Scope
+                <label className="text-sm font-medium text-text block mb-1.5">
+                  Calendar to use
                 </label>
                 <select
                   value={calendarScope}
                   onChange={e => setCalendarScope(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass cursor-pointer"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text focus:outline-none focus:border-brass cursor-pointer"
                 >
-                  <option value="primary">Primary Executive Calendar (Executive Meetings & Focus Time)</option>
-                  <option value="team">Team Shared Calendar (Company All-Hands & Client Demos)</option>
-                  <option value="discovery">Sales & Client Discovery Bookings</option>
+                  <option value="primary">Primary calendar</option>
+                  <option value="team">Team shared calendar</option>
+                  <option value="discovery">Sales and client bookings</option>
                 </select>
-                <p className="text-[10px] text-text-muted mt-1">
-                  BizzPal ingests executive meeting loads, average focus hours, and sales call velocity.
+                <p className="text-xs text-text-muted mt-1">
+                  Used to understand your meeting load and how much focus time you have.
                 </p>
               </div>
 
@@ -597,15 +583,15 @@ export function RealToolAuthModal({
                 <button
                   type="button"
                   onClick={() => setShowManualGoogleLink(!showManualGoogleLink)}
-                  className="text-[11px] text-cyan-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-brass hover:underline inline-flex items-center gap-1 cursor-pointer"
                 >
-                  <span>{showManualGoogleLink ? "Hide manual email configuration" : "Or link Google account email manually"}</span>
+                  <span>{showManualGoogleLink ? "Hide manual entry" : "Or enter your Google email instead"}</span>
                 </button>
 
                 {showManualGoogleLink && (
-                  <div className="mt-2 space-y-2 p-3 rounded-xl bg-surface-2/60 border border-line">
+                  <div className="mt-2 space-y-2 p-3 rounded-lg border border-line bg-surface-2/50">
                     <label className="text-xs font-semibold text-text block">
-                      Google Workspace / Gmail Address <span className="text-rose-400">*</span>
+                      Google Workspace / Gmail Address <span className="text-rust">*</span>
                     </label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -614,7 +600,7 @@ export function RealToolAuthModal({
                         value={googleEmail}
                         onChange={e => setGoogleEmail(e.target.value)}
                         placeholder="you@company.com or your.name@gmail.com"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                        className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                       />
                     </div>
                   </div>
@@ -627,8 +613,8 @@ export function RealToolAuthModal({
           {(toolId === "microsoft" || toolId === "microsoft_365") && (
             <div className="space-y-3.5">
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
-                  Microsoft 365 Work Email <span className="text-rose-400">*</span>
+                <label className="text-sm font-medium text-text block mb-1.5">
+                  Microsoft 365 Work Email <span className="text-rust">*</span>
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -638,13 +624,13 @@ export function RealToolAuthModal({
                     value={msEmail}
                     onChange={e => setMsEmail(e.target.value)}
                     placeholder="executive@company.com or admin@org.onmicrosoft.com"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
+                <label className="text-sm font-medium text-text block mb-1.5">
                   Azure Active Directory / Entra Tenant ID <span className="text-text-muted font-normal">(Optional)</span>
                 </label>
                 <div className="relative">
@@ -654,19 +640,19 @@ export function RealToolAuthModal({
                     value={msTenantId}
                     onChange={e => setMsTenantId(e.target.value)}
                     placeholder="e.g. 8f4b2190-3a1b-4cf7-... or tenant.onmicrosoft.com"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
+                <label className="text-sm font-medium text-text block mb-1.5">
                   Synchronization Scope
                 </label>
                 <select
                   value={msSyncScope}
                   onChange={e => setMsSyncScope(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass cursor-pointer"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text focus:outline-none focus:border-brass cursor-pointer"
                 >
                   <option value="full">Full Enterprise Suite (Outlook Meetings, Teams Bot, Single Sign-On)</option>
                   <option value="teams_only">Microsoft Teams Notifications Only (#executive-briefings)</option>
@@ -675,7 +661,7 @@ export function RealToolAuthModal({
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
+                <label className="text-sm font-medium text-text block mb-1.5">
                   Teams Incoming Webhook URL <span className="text-text-muted font-normal">(Optional for direct alert delivery)</span>
                 </label>
                 <input
@@ -683,7 +669,7 @@ export function RealToolAuthModal({
                   value={msTeamsWebhook}
                   onChange={e => setMsTeamsWebhook(e.target.value)}
                   placeholder="https://company.webhook.office.com/webhookb2/..."
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                 />
               </div>
             </div>
@@ -693,8 +679,8 @@ export function RealToolAuthModal({
           {(toolId === "linkedin" || toolId === "linkedin_company") && (
             <div className="space-y-3.5">
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
-                  LinkedIn Company Page URL or Slug <span className="text-rose-400">*</span>
+                <label className="text-sm font-medium text-text block mb-1.5">
+                  LinkedIn Company Page URL or Slug <span className="text-rust">*</span>
                 </label>
                 <div className="relative">
                   <Globe className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -704,14 +690,14 @@ export function RealToolAuthModal({
                     value={linkedinPageUrl}
                     onChange={e => setLinkedinPageUrl(e.target.value)}
                     placeholder="https://linkedin.com/company/your-brand or brand-slug"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">
+                  <label className="text-sm font-medium text-text block mb-1.5">
                     Organization URN / ID <span className="text-text-muted font-normal">(Optional)</span>
                   </label>
                   <input
@@ -719,11 +705,11 @@ export function RealToolAuthModal({
                     value={linkedinOrgUrn}
                     onChange={e => setLinkedinOrgUrn(e.target.value)}
                     placeholder="urn:li:organization:1234567"
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                    className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">
+                  <label className="text-sm font-medium text-text block mb-1.5">
                     Campaign Manager Ad Account ID <span className="text-text-muted font-normal">(Optional)</span>
                   </label>
                   <input
@@ -731,13 +717,13 @@ export function RealToolAuthModal({
                     value={linkedinAdAccountId}
                     onChange={e => setLinkedinAdAccountId(e.target.value)}
                     placeholder="508492019"
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                    className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
+                <label className="text-sm font-medium text-text block mb-1.5">
                   Administrator / Community Manager Email
                 </label>
                 <input
@@ -745,9 +731,9 @@ export function RealToolAuthModal({
                   value={linkedinAdminEmail}
                   onChange={e => setLinkedinAdminEmail(e.target.value)}
                   placeholder="marketing@company.com"
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                 />
-                <p className="text-[10px] text-text-muted mt-1">
+                <p className="text-xs text-text-muted mt-1">
                   BizzPal syncs follower count trajectory, organic post engagement velocity, and sponsored campaign ROAS.
                 </p>
               </div>
@@ -759,8 +745,8 @@ export function RealToolAuthModal({
             <div className="space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">
-                    Meta Business Portfolio ID <span className="text-rose-400">*</span>
+                  <label className="text-sm font-medium text-text block mb-1.5">
+                    Meta Business Portfolio ID <span className="text-rust">*</span>
                   </label>
                   <div className="relative">
                     <Hash className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -770,13 +756,13 @@ export function RealToolAuthModal({
                       value={metaBusinessId}
                       onChange={e => setMetaBusinessId(e.target.value)}
                       placeholder="e.g. 104829104857219"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                      className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">
+                  <label className="text-sm font-medium text-text block mb-1.5">
                     Meta Ad Account ID <span className="text-text-muted font-normal">(Optional)</span>
                   </label>
                   <div className="relative">
@@ -786,7 +772,7 @@ export function RealToolAuthModal({
                       value={metaAdAccountId}
                       onChange={e => setMetaAdAccountId(e.target.value)}
                       placeholder="act_982340192834"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                      className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                     />
                   </div>
                 </div>
@@ -794,7 +780,7 @@ export function RealToolAuthModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">
+                  <label className="text-sm font-medium text-text block mb-1.5">
                     Instagram Business Handle
                   </label>
                   <input
@@ -802,11 +788,11 @@ export function RealToolAuthModal({
                     value={metaIgHandle}
                     onChange={e => setMetaIgHandle(e.target.value)}
                     placeholder="@company.official"
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                    className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">
+                  <label className="text-sm font-medium text-text block mb-1.5">
                     Meta Conversion Pixel ID <span className="text-text-muted font-normal">(Optional)</span>
                   </label>
                   <input
@@ -814,11 +800,11 @@ export function RealToolAuthModal({
                     value={metaPixelId}
                     onChange={e => setMetaPixelId(e.target.value)}
                     placeholder="849204910294"
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                    className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
               </div>
-              <p className="text-[10px] text-text-muted">
+              <p className="text-xs text-text-muted">
                 BizzPal ingests Facebook/Instagram ad spend burn rates, customer acquisition cost (CAC), blended ROAS, and WhatsApp Business API threads.
               </p>
             </div>
@@ -827,13 +813,13 @@ export function RealToolAuthModal({
           {/* 5. Stripe */}
           {toolId === "stripe" && (
             <div className="space-y-3.5">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-2/60 border border-line">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-2/60 border border-line">
                 <span className="text-xs font-semibold text-text">Environment Mode</span>
                 <div className="flex items-center gap-1 p-0.5 rounded-lg bg-surface border border-line">
                   <button
                     type="button"
                     onClick={() => setStripeMode("live")}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
                       stripeMode === "live"
                         ? "bg-jade text-white shadow-xs"
                         : "text-text-muted hover:text-text"
@@ -844,9 +830,9 @@ export function RealToolAuthModal({
                   <button
                     type="button"
                     onClick={() => setStripeMode("test")}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
                       stripeMode === "test"
-                        ? "bg-amber-500 text-white shadow-xs"
+                        ? "bg-brass text-white"
                         : "text-text-muted hover:text-text"
                     }`}
                   >
@@ -856,7 +842,7 @@ export function RealToolAuthModal({
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
+                <label className="text-sm font-medium text-text block mb-1.5">
                   Real Stripe Account ID <span className="text-text-muted font-normal">(Found in top-left of Stripe Dashboard)</span>
                 </label>
                 <div className="relative">
@@ -866,13 +852,13 @@ export function RealToolAuthModal({
                     value={stripeAccountId}
                     onChange={e => setStripeAccountId(e.target.value)}
                     placeholder="acct_1Nx7414..."
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
+                <label className="text-sm font-medium text-text block mb-1.5">
                   Stripe Live or Restricted API Key <span className="text-text-muted font-normal">(Optional for deeper MRR reconciliation)</span>
                 </label>
                 <div className="relative">
@@ -882,10 +868,10 @@ export function RealToolAuthModal({
                     value={stripeApiKey}
                     onChange={e => setStripeApiKey(e.target.value)}
                     placeholder={stripeMode === "live" ? "rk_live_... or sk_live_..." : "rk_test_... or sk_test_..."}
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
-                <p className="text-[10px] text-text-muted mt-1">
+                <p className="text-xs text-text-muted mt-1">
                   Live Webhook Endpoint is ready at <code>/api/webhooks/stripe</code> for instant subscription updates.
                 </p>
               </div>
@@ -896,8 +882,8 @@ export function RealToolAuthModal({
           {toolId === "slack" && (
             <div className="space-y-3.5">
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
-                  Real Slack Workspace Domain <span className="text-rose-400">*</span>
+                <label className="text-sm font-medium text-text block mb-1.5">
+                  Real Slack Workspace Domain <span className="text-rust">*</span>
                 </label>
                 <div className="relative">
                   <Globe className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -907,13 +893,13 @@ export function RealToolAuthModal({
                     value={slackWorkspace}
                     onChange={e => setSlackWorkspace(e.target.value)}
                     placeholder="yourcompany.slack.com or workspace-name"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
+                <label className="text-sm font-medium text-text block mb-1.5">
                   Executive Notification Channel
                 </label>
                 <div className="relative">
@@ -923,13 +909,13 @@ export function RealToolAuthModal({
                     value={slackChannel}
                     onChange={e => setSlackChannel(e.target.value)}
                     placeholder="#executive-briefings or #general"
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
+                <label className="text-sm font-medium text-text block mb-1.5">
                   Incoming Webhook URL <span className="text-text-muted font-normal">(Optional for instant pings)</span>
                 </label>
                 <input
@@ -937,7 +923,7 @@ export function RealToolAuthModal({
                   value={slackWebhookUrl}
                   onChange={e => setSlackWebhookUrl(e.target.value)}
                   placeholder="https://hooks.slack.com/services/T.../B.../..."
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                 />
               </div>
             </div>
@@ -950,7 +936,7 @@ export function RealToolAuthModal({
                 <button
                   type="button"
                   onClick={() => setAccountingPlatform("zoho")}
-                  className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`p-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     accountingPlatform === "zoho"
                       ? "bg-brass/10 border-brass text-brass"
                       : "bg-surface-2 border-line text-text-muted hover:text-text"
@@ -961,7 +947,7 @@ export function RealToolAuthModal({
                 <button
                   type="button"
                   onClick={() => setAccountingPlatform("quickbooks")}
-                  className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`p-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     accountingPlatform === "quickbooks"
                       ? "bg-brass/10 border-brass text-brass"
                       : "bg-surface-2 border-line text-text-muted hover:text-text"
@@ -974,8 +960,8 @@ export function RealToolAuthModal({
               {accountingPlatform === "zoho" ? (
                 <>
                   <div>
-                    <label className="text-xs font-semibold text-text block mb-1">
-                      Real Zoho Books Organization ID <span className="text-rose-400">*</span>
+                    <label className="text-sm font-medium text-text block mb-1.5">
+                      Real Zoho Books Organization ID <span className="text-rust">*</span>
                     </label>
                     <input
                       type="text"
@@ -983,16 +969,16 @@ export function RealToolAuthModal({
                       value={zohoOrgId}
                       onChange={e => setZohoOrgId(e.target.value)}
                       placeholder="e.g. 802931481 (Found in Settings → Organization Profile)"
-                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                      className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                     />
-                    <p className="text-[10px] text-text-muted mt-1">
+                    <p className="text-xs text-text-muted mt-1">
                       Located in Zoho Books under <em>Settings → Organization Profile → Organization ID</em>.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold text-text block mb-1">
+                      <label className="text-sm font-medium text-text block mb-1.5">
                         Zoho Admin Email
                       </label>
                       <input
@@ -1000,17 +986,17 @@ export function RealToolAuthModal({
                         value={zohoEmail}
                         onChange={e => setZohoEmail(e.target.value)}
                         placeholder="billing@company.com"
-                        className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                        className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-text block mb-1">
+                      <label className="text-sm font-medium text-text block mb-1.5">
                         Data Center Region
                       </label>
                       <select
                         value={zohoRegion}
                         onChange={e => setZohoRegion(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass cursor-pointer"
+                        className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text focus:outline-none focus:border-brass cursor-pointer"
                       >
                         <option value="zoho.in">zoho.in (India GST compliant)</option>
                         <option value="zoho.com">zoho.com (US / Global)</option>
@@ -1022,8 +1008,8 @@ export function RealToolAuthModal({
               ) : (
                 <>
                   <div>
-                    <label className="text-xs font-semibold text-text block mb-1">
-                      QuickBooks Company / Realm ID <span className="text-rose-400">*</span>
+                    <label className="text-sm font-medium text-text block mb-1.5">
+                      QuickBooks Company / Realm ID <span className="text-rust">*</span>
                     </label>
                     <input
                       type="text"
@@ -1031,11 +1017,11 @@ export function RealToolAuthModal({
                       value={qbRealmId}
                       onChange={e => setQbRealmId(e.target.value)}
                       placeholder="e.g. 913035... (Found in Account & Settings)"
-                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                      className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-text block mb-1">
+                    <label className="text-sm font-medium text-text block mb-1.5">
                       Intuit Administrator Email
                     </label>
                     <input
@@ -1043,7 +1029,7 @@ export function RealToolAuthModal({
                       value={qbEmail}
                       onChange={e => setQbEmail(e.target.value)}
                       placeholder="accountant@company.com"
-                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                      className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                     />
                   </div>
                 </>
@@ -1058,7 +1044,7 @@ export function RealToolAuthModal({
                 <button
                   type="button"
                   onClick={() => setHelpdeskPlatform("zendesk")}
-                  className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`p-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     helpdeskPlatform === "zendesk"
                       ? "bg-brass/10 border-brass text-brass"
                       : "bg-surface-2 border-line text-text-muted hover:text-text"
@@ -1069,7 +1055,7 @@ export function RealToolAuthModal({
                 <button
                   type="button"
                   onClick={() => setHelpdeskPlatform("freshdesk")}
-                  className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={`p-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     helpdeskPlatform === "freshdesk"
                       ? "bg-brass/10 border-brass text-brass"
                       : "bg-surface-2 border-line text-text-muted hover:text-text"
@@ -1080,8 +1066,8 @@ export function RealToolAuthModal({
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
-                  Real Help Desk Subdomain or URL <span className="text-rose-400">*</span>
+                <label className="text-sm font-medium text-text block mb-1.5">
+                  Real Help Desk Subdomain or URL <span className="text-rust">*</span>
                 </label>
                 <div className="relative">
                   <Globe className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1091,14 +1077,14 @@ export function RealToolAuthModal({
                     value={helpdeskDomain}
                     onChange={e => setHelpdeskDomain(e.target.value)}
                     placeholder={helpdeskPlatform === "zendesk" ? "yourcompany.zendesk.com" : "help.freshdesk.com"}
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">
+                  <label className="text-sm font-medium text-text block mb-1.5">
                     Support Admin Email
                   </label>
                   <input
@@ -1106,11 +1092,11 @@ export function RealToolAuthModal({
                     value={helpdeskEmail}
                     onChange={e => setHelpdeskEmail(e.target.value)}
                     placeholder="support@company.com"
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                    className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">
+                  <label className="text-sm font-medium text-text block mb-1.5">
                     API Access Token <span className="text-text-muted font-normal">(Optional)</span>
                   </label>
                   <input
@@ -1118,7 +1104,7 @@ export function RealToolAuthModal({
                     value={helpdeskToken}
                     onChange={e => setHelpdeskToken(e.target.value)}
                     placeholder="Token or API key"
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 font-mono focus:outline-none focus:border-brass"
+                    className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                 </div>
               </div>
@@ -1143,41 +1129,43 @@ export function RealToolAuthModal({
           ].includes(toolId) && (
             <div className="space-y-3.5">
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
-                  Real {toolName} Account ID or Workspace Name <span className="text-rose-400">*</span>
+                <label className="text-sm font-medium text-text block mb-1.5">
+                  {toolName} account ID or workspace name <span className="text-rust">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={genericId}
                   onChange={e => setGenericId(e.target.value)}
-                  placeholder={`Your real ${toolName} ID, URL, or identifier`}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                  placeholder={`Your ${toolName} ID or URL`}
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-text block mb-1">
-                  Authorized Account Email
+                <label className="text-sm font-medium text-text block mb-1.5">
+                  Account email
                 </label>
                 <input
                   type="email"
                   value={genericEmail}
                   onChange={e => setGenericEmail(e.target.value)}
                   placeholder="admin@company.com"
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/50 focus:outline-none focus:border-brass"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                 />
               </div>
             </div>
           )}
 
+          <p className="text-xs text-text-muted">Your details are stored in your workspace database.</p>
+
           {/* Footer Actions */}
-          <div className="pt-3 border-t border-line flex items-center justify-between gap-3">
+          <div className="pt-5 border-t border-line flex items-center justify-between gap-3">
             {isConnected ? (
               <button
                 type="button"
                 disabled={submitting}
                 onClick={handleDisconnect}
-                className="px-3 py-2 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-3.5 py-2 rounded-lg border border-rust/30 text-rust hover:bg-rust/5 text-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Disconnect</span>
@@ -1186,7 +1174,7 @@ export function RealToolAuthModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-text-muted hover:text-text cursor-pointer"
+                className="px-3.5 py-2 text-sm text-text-muted hover:text-text cursor-pointer"
               >
                 Cancel
               </button>
@@ -1195,17 +1183,16 @@ export function RealToolAuthModal({
             <button
               type="submit"
               disabled={submitting || isGoogleOAuthLoading}
-              className="px-5 py-2 rounded-xl bg-brass text-white font-bold text-xs shadow-sm hover:brightness-110 btn-tactile cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              className="px-5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
             >
               {submitting ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Authorizing Real Account…</span>
+                  <span>Connecting…</span>
                 </>
               ) : (
                 <>
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>{isConnected ? "Update Real Account" : "Authorize & Connect Live"}</span>
+                  <span>{isConnected ? "Save changes" : "Connect"}</span>
                 </>
               )}
             </button>

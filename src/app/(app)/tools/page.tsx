@@ -3,29 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import {
-  Wrench,
-  DollarSign,
-  TrendingUp,
-  Target,
-  Users,
-  Compass,
-  Calculator,
-  Sliders,
-  Database,
-  Bot,
-  MessageSquare,
-  ArrowRight,
-  CheckCircle2,
-  Lock,
-  Layers,
-  Search,
-  ExternalLink,
-  ChevronRight,
-  ShieldCheck,
-  Activity,
-  X
-} from "lucide-react";
+import { Target, Calculator, Bot, ArrowRight, Lock, Search, Activity, X } from "lucide-react";
 import { Suspense } from "react";
 import { createPortal } from "react-dom";
 import { useCustomAdvisors } from "@/lib/advisors";
@@ -624,86 +602,57 @@ function ToolsContent() {
   const empBillingRate = Math.round(empHourlyCost / 0.60);
 
   const categories = [
-    { id: "all", label: `All Tools (${enabledTools.length})` },
-    { id: "finance", label: `Finance (${enabledTools.filter(t => t.category === "finance").length})` },
-    { id: "sales", label: `Sales (${enabledTools.filter(t => t.category === "sales").length})` },
-    { id: "marketing", label: `Marketing (${enabledTools.filter(t => t.category === "marketing").length})` },
-    { id: "operations", label: `Operations (${enabledTools.filter(t => t.category === "operations").length})` },
-    { id: "strategy", label: `Strategy (${enabledTools.filter(t => t.category === "strategy").length})` },
+    { id: "all", label: "All" },
+    { id: "finance", label: "Finance" },
+    { id: "sales", label: "Sales" },
+    { id: "marketing", label: "Marketing" },
+    { id: "operations", label: "Operations" },
+    { id: "strategy", label: "Strategy" },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-line">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-4 border-b border-line">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-brass/10 border border-brass/30 flex items-center justify-center text-brass">
-              <Wrench className="w-4 h-4" />
-            </div>
-            <h1 className="text-lg font-bold text-text">Executive Intelligence Tools</h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider">
-              {enabledTools.length} Specialist Tools Active
-            </span>
-          </div>
-          <p className="text-xs text-text-muted mt-1 font-medium">
-            Access modular calculators and analytical utilities to evaluate customer acquisition cost, runway extensions, pricing matrices, and sales capacity.
+          <h1 className="text-xl font-bold text-text">Tools</h1>
+          <p className="text-sm text-text-muted mt-1">
+            Calculators for costs, runway, pricing and sales planning.
           </p>
         </div>
-
-        {/* Search Bar */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search tools or calculators…"
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brass"
-          />
-        </div>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search tools…"
+          className="w-full sm:w-64 px-3.5 py-2 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
+        />
       </div>
 
-      {/* DataPal Featured Spotlight Banner */}
-      <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-brass/[0.08] via-surface to-brass/[0.03] dark:from-brass/[0.08] dark:via-surface dark:to-surface border border-brass/30 dark:border-brass/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm hover:border-brass/50 transition-all group">
-        <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-brass/[0.05] rounded-full blur-2xl pointer-events-none" />
-        <div className="flex items-center gap-3.5 relative z-10">
-          <div className="w-10 h-10 rounded-xl bg-brass/10 dark:bg-brass/15 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-            <Database className="w-5 h-5 text-brass" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-extrabold text-text">DataPal™ Business Data Extraction</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brass/15 text-brass border border-brass/30">
-                New Integration
-              </span>
-            </div>
-            <p className="text-xs text-text-muted mt-0.5">
-              Extract, verify, and filter business contacts across India with AI pitch analysis & direct Excel export.
-            </p>
-          </div>
+      <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-line bg-surface">
+        <div>
+          <h2 className="text-sm font-semibold text-text">DataPal</h2>
+          <p className="text-sm text-text-muted mt-0.5">
+            Find and verify business contacts across India, then export to Excel.
+          </p>
         </div>
-
         <Link
           href="/datapal"
-          className="relative z-10 flex items-center gap-2 px-4 py-2 rounded-xl btn-gold-gradient font-bold text-xs shadow-md transition-all hover:brightness-105 active:scale-[0.98] shrink-0 cursor-pointer"
+          className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 shrink-0"
         >
-          <span>Launch DataPal Studio</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          Open DataPal
         </Link>
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+      <div className="flex items-center gap-1 overflow-x-auto overflow-y-hidden border-b border-line">
         {categories.map(cat => (
           <button
             key={cat.id}
             type="button"
             onClick={() => setSelectedCategory(cat.id)}
-            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition-all btn-tactile cursor-pointer ${
+            className={`px-3.5 pb-2.5 -mb-px text-sm whitespace-nowrap border-b-2 cursor-pointer ${
               selectedCategory === cat.id
-                ? "bg-brass text-white shadow-xs"
-                : "bg-surface border border-line text-text-muted hover:text-text"
+                ? "border-brass text-text font-semibold"
+                : "border-transparent text-text-muted hover:text-text"
             }`}
           >
             {cat.label}
@@ -725,23 +674,11 @@ function ToolsContent() {
             {/* Pop-Up Header */}
             <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50/80 dark:bg-white/[0.02] shrink-0">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
-                  {activeTool.hasInteractiveCalculator ? (
-                    <Calculator className="w-5 h-5" />
-                  ) : (
-                    <Wrench className="w-5 h-5 text-amber-500" />
-                  )}
-                </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
                       {activeTool.name}
                     </h2>
-                    {activeTool.badge && (
-                      <span className="text-[9px] px-2 py-0.5 rounded-md font-mono font-semibold uppercase bg-slate-100 dark:bg-white/[0.08] border border-slate-200 dark:border-white/10 text-cyan-700 dark:text-cyan-400 shrink-0">
-                        {activeTool.badge}
-                      </span>
-                    )}
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
                     {activeTool.description}
@@ -1822,7 +1759,7 @@ function ToolsContent() {
                           className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs btn-tactile inline-flex items-center gap-2 shadow-xs transition-colors"
                         >
                           <Bot className="w-4 h-4" />
-                          <span>Launch in AI Workspace</span>
+                          <span>Open in AI Workspace</span>
                         </Link>
                         <Link
                           href="/simulator"
@@ -1842,77 +1779,41 @@ function ToolsContent() {
         document.body
       )}
 
-      {/* Tools Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredTools.map(tool => {
           const locked = !hasPlanLevel(tool.requiredPlan);
           return (
-          <div
-            key={tool.id}
-            className={`p-4 rounded-xl border border-line bg-surface hover:border-line-strong transition-all flex flex-col justify-between shadow-xs group ${
-              locked ? "opacity-60" : ""
-            }`}
-          >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-brass bg-brass-soft px-2 py-0.5 rounded-full">
-                  {tool.badge}
-                </span>
-                <span
-                  className={`text-[9px] px-1.5 py-0.2 rounded font-semibold border inline-flex items-center gap-1 ${
-                    tool.requiredPlan === "starter"
-                      ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
-                      : tool.requiredPlan === "growth"
-                      ? "text-purple-400 bg-purple-400/10 border-purple-400/20"
-                      : tool.requiredPlan === "enterprise"
-                      ? "text-amber-400 bg-amber-400/10 border-amber-400/20"
-                      : "text-emerald-400 bg-emerald-400/10 border-emerald-400/20"
-                  }`}
-                >
-                  {locked && <Lock className="w-2.5 h-2.5" />}
-                  {tool.requiredPlan.charAt(0).toUpperCase() + tool.requiredPlan.slice(1)}+
-                </span>
-              </div>
-
-              <div>
-                <h3 className="text-xs font-bold text-text group-hover:text-brass transition-colors">
-                  {tool.name}
-                </h3>
-                <p className="text-[11px] text-text-muted mt-1 leading-relaxed line-clamp-2">
-                  {tool.description}
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-4 mt-3 border-t border-line flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => (locked ? setLockedTool(tool) : setActiveToolId(tool.id))}
-                className={`text-xs font-semibold inline-flex items-center gap-1 cursor-pointer ${
-                  locked ? "text-text-muted hover:text-text" : "text-brass hover:underline"
+            <button
+              key={tool.id}
+              type="button"
+              onClick={() => (locked ? setLockedTool(tool) : setActiveToolId(tool.id))}
+              className={`group text-left p-4 rounded-xl border border-line bg-surface hover:border-line-strong flex flex-col gap-2 cursor-pointer ${
+                locked ? "opacity-60" : ""
+              }`}
+            >
+              <p className="text-xs text-text-muted flex items-center justify-between">
+                <span>{tool.badge}</span>
+                {locked && (
+                  <span className="inline-flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    {tool.requiredPlan.charAt(0).toUpperCase() + tool.requiredPlan.slice(1)}
+                  </span>
+                )}
+              </p>
+              <h3 className="text-sm font-semibold text-text">{tool.name}</h3>
+              <p className="text-xs text-text-muted leading-relaxed line-clamp-2">{tool.description}</p>
+              <span
+                className={`mt-2 self-start px-3.5 py-1.5 rounded-lg border text-sm font-medium inline-flex items-center gap-1.5 ${
+                  locked
+                    ? "border-line text-text-muted"
+                    : "border-brass/50 text-brass group-hover:bg-brass group-hover:text-white"
                 }`}
               >
-                {locked ? (
-                  <>
-                    <Lock className="w-3 h-3" />
-                    <span>Unlock Tool</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{tool.hasInteractiveCalculator ? "Launch Calculator" : "Inspect Tool"}</span>
-                    <ChevronRight className="w-3 h-3" />
-                  </>
-                )}
-              </button>
-              <Link
-                href={`/chat?message=${encodeURIComponent(`Evaluate our ${tool.name} benchmarks and recommend optimizations.`)}`}
-                className="text-[10px] text-text-muted hover:text-text p-1.5 rounded hover:bg-surface-2 transition-colors"
-                title="Consult AI Agent"
-              >
-                <Bot className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
+                {locked ? <Lock className="w-3.5 h-3.5" /> : null}
+                {locked ? "Unlock" : tool.hasInteractiveCalculator ? "Open calculator" : "Open tool"}
+                {!locked && <ArrowRight className="w-3.5 h-3.5" />}
+              </span>
+            </button>
           );
         })}
       </div>

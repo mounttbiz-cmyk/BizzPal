@@ -1,51 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight,
-  Download,
-  Calendar,
-  Filter,
-  BarChart3,
-  Layers,
-  Compass,
-  ShieldCheck,
-  Building2,
-  DollarSign,
-  Users,
-  Activity,
-  CheckCircle2,
-  ChevronDown,
-  AlertTriangle,
-  Play,
-  ArrowRight,
-  Search,
-  Zap,
-  Clock,
-  X
-} from "lucide-react";
-import { ProvenanceBadge } from "@/components/ui/Badge";
-import { PortalModal } from "@/components/ui/PortalModal";
+import { Download } from "lucide-react";
 import Link from "next/link";
 import { useBusinessDataSync } from "@/lib/upload/events";
 import { RealTimeBiSection } from "@/components/bi/RealTimeBiSection";
-
-type ExecutiveRole = "ceo" | "cfo" | "cmo" | "coo";
-type StrategicGoal = "extend_runway" | "accelerate_growth" | "protect_margins" | "reduce_churn";
-
-interface DrillDownMetric {
-  title: string;
-  value: string;
-  subtitle: string;
-  trend: string;
-  isPositive: boolean;
-  benchmark: string;
-  history: { period: string; val: number }[];
-  rootCauses: string[];
-  recommendedAction: string;
-}
 
 function formatShortINR(val: number): string {
   if (val >= 10000000) return `₹${(val / 10000000).toFixed(1)}Cr`;
@@ -55,44 +14,30 @@ function formatShortINR(val: number): string {
 }
 
 export default function AnalyticsPage() {
-  const [analyticsView, setAnalyticsView] = useState<"realtime_bi" | "telemetry">("realtime_bi");
-  const [role, setRole] = useState<ExecutiveRole>("ceo");
-  const [goal, setGoal] = useState<StrategicGoal>("extend_runway");
-  const [forecastMode, setForecastMode] = useState<"baseline" | "optimized">("optimized");
-  const [timeframe, setTimeframe] = useState<"30d" | "90d" | "12m">("90d");
-  const [companyName, setCompanyName] = useState<string>("Your Enterprise");
-  const [industryName, setIndustryName] = useState<string>("B2B SaaS & Services");
-  const [annualRevenue, setAnnualRevenue] = useState<number>(0);
-  const [teamSize, setTeamSize] = useState<number>(1);
-  const [burn, setBurn] = useState<number>(0);
-  const [cash, setCash] = useState<number>(0);
-  const [grossMargin, setGrossMargin] = useState<number>(80);
+  const [view, setView] = useState<"insights" | "financials">("insights");
+  const [forecastMode, setForecastMode] = useState<"baseline" | "optimized">("baseline");
+  const [companyName, setCompanyName] = useState("Your Enterprise");
+  const [industryName, setIndustryName] = useState("B2B SaaS & Services");
+  const [annualRevenue, setAnnualRevenue] = useState(0);
+  const [teamSize, setTeamSize] = useState(1);
+  const [burn, setBurn] = useState(0);
+  const [cash, setCash] = useState(0);
+  const [grossMargin, setGrossMargin] = useState(80);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
-  const [hasRealData, setHasRealData] = useState<boolean>(false);
-
-  // Drill-down Modal State
-  const [activeDrillDown, setActiveDrillDown] = useState<DrillDownMetric | null>(null);
 
   const applyProfile = (saved: any) => {
     if (!saved) return;
     if (saved.name) setCompanyName(saved.name);
     if (saved.industryLabel) setIndustryName(saved.industryLabel);
     else if (saved.industry) setIndustryName(saved.industry);
-    
-    const annRev = Number(saved.annualRevenue || (saved.revenue ? saved.revenue * 12 : saved.monthlyRevenue ? saved.monthlyRevenue * 12 : 0));
-    const mBurn = Number(saved.burn || saved.monthlyBurn || saved.monthlyNetBurn || 0);
-    const mCash = Number(saved.cash || saved.cashOnHand || 0);
-    const mTeam = Number(saved.teamSize || 1);
-    const mMargin = Number(saved.grossMargin || 80);
 
-    if (annRev > 0 || mBurn > 0 || mCash > 0) {
-      setHasRealData(true);
-    }
-    setAnnualRevenue(annRev);
-    setBurn(mBurn);
-    setCash(mCash);
-    setTeamSize(mTeam);
-    setGrossMargin(mMargin);
+    setAnnualRevenue(
+      Number(saved.annualRevenue || (saved.revenue ? saved.revenue * 12 : saved.monthlyRevenue ? saved.monthlyRevenue * 12 : 0))
+    );
+    setBurn(Number(saved.burn || saved.monthlyBurn || saved.monthlyNetBurn || 0));
+    setCash(Number(saved.cash || saved.cashOnHand || 0));
+    setTeamSize(Number(saved.teamSize || 1));
+    setGrossMargin(Number(saved.grossMargin || 80));
   };
 
   useEffect(() => {
@@ -101,18 +46,15 @@ export default function AnalyticsPage() {
       if (savedProfileStr) {
         applyProfile(JSON.parse(savedProfileStr));
       } else {
-        // Fetch from persistent SQLite DB
         fetch("/api/business/intake")
           .then(r => r.json())
           .then(d => {
-            if (d.success && d.business) {
-              applyProfile(d.business);
-            }
+            if (d.success && d.business) applyProfile(d.business);
           })
           .catch(() => {});
       }
-    } catch (e) {
-      // ignore
+    } catch {
+      // ignore bad saved data
     }
   }, []);
 
@@ -124,819 +66,216 @@ export default function AnalyticsPage() {
   const runwayMonths = burn > 0 ? (cash / burn).toFixed(1) : cash > 0 ? "18+" : "0.0";
   const revPerHead = teamSize > 0 && annualRevenue > 0 ? Math.round(annualRevenue / teamSize) : 0;
 
-  // Trailing vs Forecast Trajectory
   const effectiveMonthlyRev = monthlyRev > 0 ? monthlyRev : 100000;
   const effectiveBurn = burn > 0 ? burn : 35000;
+  const optimized = forecastMode === "optimized";
 
-  const revenueHistory = [
-    { month: "Oct", revenue: Math.round(effectiveMonthlyRev * 0.82), burn: Math.round(effectiveBurn * 1.08) },
-    { month: "Nov", revenue: Math.round(effectiveMonthlyRev * 0.86), burn: Math.round(effectiveBurn * 1.05) },
-    { month: "Dec", revenue: Math.round(effectiveMonthlyRev * 0.90), burn: Math.round(effectiveBurn * 0.98) },
-    { month: "Jan", revenue: Math.round(effectiveMonthlyRev * 0.93), burn: Math.round(effectiveBurn * 1.02) },
-    { month: "Feb", revenue: Math.round(effectiveMonthlyRev * 0.96), burn: Math.round(effectiveBurn * 0.98) },
-    { month: "Mar", revenue: effectiveMonthlyRev, burn: effectiveBurn },
-    // Forward Projections
-    {
-      month: "Apr (F)",
-      revenue: forecastMode === "optimized" ? Math.round(effectiveMonthlyRev * 1.18) : Math.round(effectiveMonthlyRev * 1.03),
-      burn: forecastMode === "optimized" ? Math.round(effectiveBurn * 0.85) : Math.round(effectiveBurn * 1.01),
-    },
-    {
-      month: "May (F)",
-      revenue: forecastMode === "optimized" ? Math.round(effectiveMonthlyRev * 1.34) : Math.round(effectiveMonthlyRev * 1.06),
-      burn: forecastMode === "optimized" ? Math.round(effectiveBurn * 0.78) : Math.round(effectiveBurn * 1.03),
-    },
-    {
-      month: "Jun (F)",
-      revenue: forecastMode === "optimized" ? Math.round(effectiveMonthlyRev * 1.52) : Math.round(effectiveMonthlyRev * 1.09),
-      burn: forecastMode === "optimized" ? Math.round(effectiveBurn * 0.72) : Math.round(effectiveBurn * 1.05),
-    },
+  const series = [
+    { month: "Oct", revenue: Math.round(effectiveMonthlyRev * 0.82), burn: Math.round(effectiveBurn * 1.08), forecast: false },
+    { month: "Nov", revenue: Math.round(effectiveMonthlyRev * 0.86), burn: Math.round(effectiveBurn * 1.05), forecast: false },
+    { month: "Dec", revenue: Math.round(effectiveMonthlyRev * 0.9), burn: Math.round(effectiveBurn * 0.98), forecast: false },
+    { month: "Jan", revenue: Math.round(effectiveMonthlyRev * 0.93), burn: Math.round(effectiveBurn * 1.02), forecast: false },
+    { month: "Feb", revenue: Math.round(effectiveMonthlyRev * 0.96), burn: Math.round(effectiveBurn * 0.98), forecast: false },
+    { month: "Mar", revenue: effectiveMonthlyRev, burn: effectiveBurn, forecast: false },
+    { month: "Apr", revenue: Math.round(effectiveMonthlyRev * (optimized ? 1.18 : 1.03)), burn: Math.round(effectiveBurn * (optimized ? 0.85 : 1.01)), forecast: true },
+    { month: "May", revenue: Math.round(effectiveMonthlyRev * (optimized ? 1.34 : 1.06)), burn: Math.round(effectiveBurn * (optimized ? 0.78 : 1.03)), forecast: true },
+    { month: "Jun", revenue: Math.round(effectiveMonthlyRev * (optimized ? 1.52 : 1.09)), burn: Math.round(effectiveBurn * (optimized ? 0.72 : 1.05)), forecast: true },
   ];
-
-  const maxRevenueVal = Math.max(1, ...revenueHistory.map(d => d.revenue));
-  const maxBurnVal = Math.max(1, ...revenueHistory.map(d => d.burn));
+  const maxVal = Math.max(1, ...series.map(d => Math.max(d.revenue, d.burn)));
+  const trailingTotal = series.slice(0, 6).reduce((acc, c) => acc + c.revenue, 0);
+  const projectedRunRate = series[series.length - 1].revenue;
 
   const handleExport = () => {
-    setExportNotice("Compiling executive intelligence package (CSV)…");
-
     try {
-      // Build real CSV content
       const rows = [
-        ["BizzPal Enterprise Analytics Report"],
+        ["BizzPal Analytics Report"],
         ["Company", companyName],
         ["Sector", industryName],
         ["Generated", new Date().toLocaleString()],
         [],
-        ["Core Financial Telemetry"],
-        ["Annualized Run-Rate (INR)", annualRevenue],
-        ["Monthly Revenue (INR)", monthlyRev],
-        ["Monthly Net Operating Burn (INR)", burn],
-        ["Liquid Bank Reserves (INR)", cash],
-        ["Verified Runway (Months)", runwayMonths],
-        ["Gross Profit Margin (%)", "82%"],
-        ["FTE Team Headcount", teamSize],
+        ["Annual revenue (INR)", annualRevenue],
+        ["Monthly revenue (INR)", monthlyRev],
+        ["Monthly burn (INR)", burn],
+        ["Cash reserves (INR)", cash],
+        ["Runway (months)", runwayMonths],
+        ["Gross margin (%)", grossMargin],
+        ["Team size", teamSize],
         [],
-        ["6-Month Financial Velocity & Forecast"],
-        ["Month", "Projected Revenue (INR)", "Projected Net Burn (INR)", "Forecast Mode"],
-        ...revenueHistory.map(h => [h.month, h.revenue, h.burn, forecastMode]),
+        ["Month", "Revenue (INR)", "Burn (INR)", "Type"],
+        ...series.map(h => [h.month, h.revenue, h.burn, h.forecast ? `forecast (${forecastMode})` : "actual"]),
       ];
-
-      const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-      const encodedUri = encodeURI(csvContent);
+      const csv = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
       const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
+      link.setAttribute("href", encodeURI(csv));
       link.setAttribute("download", `bizzpal_${companyName.toLowerCase().replace(/\s+/g, "_")}_analytics.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
-      setExportNotice("CSV report generated and downloaded successfully!");
-    } catch (e) {
-      setExportNotice("Export failed. Please check browser permissions.");
+      setExportNotice("Report downloaded.");
+    } catch {
+      setExportNotice("Export failed. Check browser permissions.");
     }
-
-    setTimeout(() => setExportNotice(null), 3500);
+    setTimeout(() => setExportNotice(null), 3000);
   };
+
+  const kpis = [
+    { label: "Annual revenue", value: `₹${annualRevenue.toLocaleString("en-IN")}`, note: `₹${monthlyRev.toLocaleString("en-IN")} / month` },
+    { label: "Cash runway", value: `${runwayMonths} months`, note: `Burn ₹${burn.toLocaleString("en-IN")} / month` },
+    { label: "Gross margin", value: `${grossMargin}%`, note: "Industry median 76%" },
+    { label: "Revenue per head", value: `₹${revPerHead.toLocaleString("en-IN")}`, note: `${teamSize} team ${teamSize === 1 ? "member" : "members"}` },
+  ];
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Platform Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line select-none">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-2xs">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-text tracking-tight font-sans">
-              Adaptive Analytics
-            </h1>
-            <p className="text-xs text-text-muted truncate mt-0.5">
-              Performance telemetry, predictive forecasts, and proactive anomaly diagnostics powering {companyName}
-            </p>
-          </div>
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-4 border-b border-line">
+        <div>
+          <h1 className="text-xl font-bold text-text">Analytics</h1>
+          <p className="text-sm text-text-muted mt-1">Performance, forecasts and alerts for {companyName}.</p>
         </div>
-
-        {/* Controls: Export */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleExport}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brass text-white text-xs font-bold shadow-2xs hover:brightness-110 btn-tactile cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export Analytics</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleExport}
+          className="px-3.5 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-text hover:bg-surface-2 inline-flex items-center gap-2 cursor-pointer"
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </button>
       </header>
 
-      {exportNotice && (
-        <div className="p-3 rounded-xl bg-brass/10 border border-brass/30 text-xs font-semibold text-brass flex items-center gap-2 animate-fade-in shadow-2xs">
-          <CheckCircle2 className="w-4 h-4 text-brass shrink-0" />
-          <span>{exportNotice}</span>
-        </div>
-      )}
+      {exportNotice && <p className="text-sm text-text-muted">{exportNotice}</p>}
 
-      {/* View Navigation */}
-      <nav
-        aria-label="Analytics view switcher"
-        className="flex items-center gap-1 sm:gap-2 border-b border-line pb-0 select-none overflow-x-auto"
-      >
+      <nav className="flex items-center gap-1 border-b border-line" aria-label="Analytics view">
         {[
-          { id: "realtime_bi" as const, label: "Real-Time BI & Insights", icon: Activity },
-          { id: "telemetry" as const, label: "Role Telemetry & Simulation", icon: TrendingUp },
-        ].map((tab) => {
-          const isActive = analyticsView === tab.id;
-          const Icon = tab.icon;
-
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => setAnalyticsView(tab.id)}
-              className={`relative pb-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-                isActive ? "text-brass font-bold" : "text-text-muted hover:text-text"
-              }`}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span>{tab.label}</span>
-
-              {isActive && (
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-brass rounded-t-full shadow-xs"
-                />
-              )}
-            </button>
-          );
-        })}
+          { id: "insights" as const, label: "Insights" },
+          { id: "financials" as const, label: "Financials" },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={view === tab.id}
+            onClick={() => setView(tab.id)}
+            className={`px-4 pb-2.5 -mb-px text-sm border-b-2 cursor-pointer ${
+              view === tab.id
+                ? "border-brass text-text font-semibold"
+                : "border-transparent text-text-muted hover:text-text"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </nav>
 
-      {analyticsView === "realtime_bi" && (
-        <RealTimeBiSection companyName={companyName} />
-      )}
+      {view === "insights" && <RealTimeBiSection companyName={companyName} />}
 
-      {analyticsView === "telemetry" && (
-        <>
-      {/* Role & Strategic Goal Adaptation Switcher Bar */}
-      <div className="p-4 rounded-2xl bg-surface border border-line shadow-theme space-y-3">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Executive Role Switcher */}
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-              1. Adaptive Perspective (Role):
-            </span>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {[
-                { id: "ceo", label: "CEO / Founder", desc: "Runway & Health" },
-                { id: "cfo", label: "CFO AI", desc: "Cash & Unit Economics" },
-                { id: "cmo", label: "CMO AI", desc: "CAC & Demand Pipeline" },
-                { id: "coo", label: "COO AI", desc: "Margins & Headcount" },
-              ].map(r => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setRole(r.id as ExecutiveRole)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer btn-tactile ${
-                    role === r.id
-                      ? "bg-brass text-white shadow-sm"
-                      : "bg-surface-2 border border-line text-text-muted hover:text-text"
-                  }`}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
+      {view === "financials" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {kpis.map(k => (
+              <div key={k.label} className="p-4 rounded-xl border border-line bg-surface">
+                <p className="text-xs text-text-muted">{k.label}</p>
+                <p className="text-xl font-bold text-text mt-1">{k.value}</p>
+                <p className="text-xs text-text-muted mt-1">{k.note}</p>
+              </div>
+            ))}
           </div>
 
-          {/* Strategic Goal Switcher */}
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-              2. Strategic Target Focus (Goal):
-            </span>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {[
-                { id: "extend_runway", label: "Extend Runway" },
-                { id: "accelerate_growth", label: "Accelerate ARR Growth" },
-                { id: "protect_margins", label: "Protect Gross Margins" },
-                { id: "reduce_churn", label: "Reduce Churn" },
-              ].map(g => (
-                <button
-                  key={g.id}
-                  type="button"
-                  onClick={() => setGoal(g.id as StrategicGoal)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer btn-tactile ${
-                    goal === g.id
-                      ? "bg-surface-2 border-brass text-brass border ring-1 ring-brass/20"
-                      : "bg-surface border border-line text-text-muted hover:text-text"
-                  }`}
-                >
-                  {g.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Automated Anomaly Detection Banner */}
-      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-start sm:items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
-            <AlertTriangle className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-text">Operational Anomaly Detected by AI</span>
-              <span className="text-[9px] px-2 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300 font-mono font-bold uppercase">
-                Active Drift
-              </span>
-            </div>
-            <p className="text-[11px] text-text-muted mt-0.5">
-              {role === "cfo"
-                ? "Discretionary SaaS & cloud pass-throughs rose +24% over 14 days without proportional revenue lift."
-                : role === "cmo"
-                ? "Top customer acquisition channel concentration rose to 68%, increasing vulnerability to platform ad rate spikes."
-                : "Liquid runway is holding at 8.0 months, but net burn pace requires upfront invoice realization."}
-            </p>
-          </div>
-        </div>
-
-        <Link
-          href="/gaps"
-          className="px-3.5 py-1.5 rounded-xl bg-surface border border-amber-500/40 text-xs font-bold text-text hover:bg-surface-2 btn-tactile self-start sm:self-auto inline-flex items-center gap-1.5 shrink-0"
-        >
-          <span>Open Gap Resolution</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-
-      {/* Dynamic KPI Headline Cards with Interactive Drill-Down */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1 */}
-        <div
-          onClick={() =>
-            setActiveDrillDown({
-              title: "Annualized Operating Revenue",
-              value: `₹${annualRevenue.toLocaleString("en-IN")}`,
-              subtitle: `₹${monthlyRev.toLocaleString("en-IN")}/mo run-rate`,
-              trend: "+14.2% YoY",
-              isPositive: true,
-              benchmark: "Top 20th Percentile for Indian B2B SaaS",
-              history: [
-                { period: "Q1", val: 1200000 },
-                { period: "Q2", val: 1350000 },
-                { period: "Q3", val: 1550000 },
-                { period: "Q4", val: 1900000 },
-              ],
-              rootCauses: [
-                "Expansion of mid-market contracts to annual upfront retainers",
-                "Reduction in sales cycle length from 42 days to 28 days",
-              ],
-              recommendedAction: "Offer 12% upfront discount on annual renewals to pull forward cash liquidity.",
-            })
-          }
-          className="p-4 rounded-xl border border-line bg-surface shadow-theme space-y-2 cursor-pointer hover:border-brass/50 transition-all btn-tactile"
-        >
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-semibold">
-              {role === "cmo" ? "Annual Revenue (Pipeline)" : "Annualized Revenue"}
-            </span>
-            <div className="w-6 h-6 rounded-md bg-surface-2 flex items-center justify-center text-brass">
-              <DollarSign className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-xl font-bold font-mono text-text">
-              ₹{annualRevenue.toLocaleString("en-IN")}
-            </span>
-            <span className="flex items-center text-[11px] font-bold text-emerald-500 font-mono">
-              <ArrowUpRight className="w-3 h-3" />
-              +14.2%
-            </span>
-          </div>
-          <div className="text-[11px] text-text-muted flex items-center justify-between pt-1 border-t border-line/60">
-            <span>₹{monthlyRev.toLocaleString("en-IN")} / mo</span>
-            <span className="text-brass font-semibold">Click to drill down →</span>
-          </div>
-        </div>
-
-        {/* Card 2 */}
-        <div
-          onClick={() =>
-            setActiveDrillDown({
-              title: "Liquid Cash Runway",
-              value: `${runwayMonths} Months`,
-              subtitle: `₹${cash.toLocaleString("en-IN")} in bank reserves`,
-              trend: "+0.8 mo extension",
-              isPositive: true,
-              benchmark: "Target ≥ 12.0 Months",
-              history: [
-                { period: "Nov", val: 6.2 },
-                { period: "Dec", val: 6.8 },
-                { period: "Jan", val: 7.4 },
-                { period: "Feb", val: 8.0 },
-              ],
-              rootCauses: [
-                "Net monthly burn holding at ₹1,50,000 against ₹12,00,000 cash balance",
-                "Receivables collection cycle reduced by 9 days",
-              ],
-              recommendedAction: "Prune non-core software seats to extend runway beyond 10.5 months.",
-            })
-          }
-          className="p-4 rounded-xl border border-line bg-surface shadow-theme space-y-2 cursor-pointer hover:border-brass/50 transition-all btn-tactile"
-        >
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-semibold">
-              {role === "cfo" ? "Solvency Runway" : "Net Cash Runway"}
-            </span>
-            <div className="w-6 h-6 rounded-md bg-surface-2 flex items-center justify-center text-brass">
-              <Activity className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-xl font-bold font-mono text-text">
-              {runwayMonths} mos
-            </span>
-            <span className="flex items-center text-[11px] font-bold text-emerald-500 font-mono">
-              <ArrowUpRight className="w-3 h-3" />
-              Solvent
-            </span>
-          </div>
-          <div className="text-[11px] text-text-muted flex items-center justify-between pt-1 border-t border-line/60">
-            <span>Burn: ₹{burn.toLocaleString("en-IN")}/mo</span>
-            <span className="text-brass font-semibold">Click to drill down →</span>
-          </div>
-        </div>
-
-        {/* Card 3 */}
-        <div
-          onClick={() =>
-            setActiveDrillDown({
-              title: "Gross Profit Margin",
-              value: `${grossMargin}%`,
-              subtitle: "Industry median: 76.0%",
-              trend: "+2.1% efficiency",
-              isPositive: true,
-              benchmark: "Target ≥ 80.0%",
-              history: [
-                { period: "Q1", val: 78 },
-                { period: "Q2", val: 80 },
-                { period: "Q3", val: 81 },
-                { period: "Q4", val: 82 },
-              ],
-              rootCauses: [
-                "Optimized cloud server utilization",
-                "Contractor renegotiation completed in Q3",
-              ],
-              recommendedAction: "Automate Tier-1 customer support to lift gross margin to 85%.",
-            })
-          }
-          className="p-4 rounded-xl border border-line bg-surface shadow-theme space-y-2 cursor-pointer hover:border-brass/50 transition-all btn-tactile"
-        >
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-semibold">Gross Profit Margin</span>
-            <div className="w-6 h-6 rounded-md bg-surface-2 flex items-center justify-center text-brass">
-              <BarChart3 className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-xl font-bold font-mono text-text">
-              {grossMargin}%
-            </span>
-            <span className="flex items-center text-[11px] font-bold text-emerald-500 font-mono">
-              <ArrowUpRight className="w-3 h-3" />
-              +2.1%
-            </span>
-          </div>
-          <div className="text-[11px] text-text-muted flex items-center justify-between pt-1 border-t border-line/60">
-            <span>Median: 76.0%</span>
-            <span className="text-brass font-semibold">Click to drill down →</span>
-          </div>
-        </div>
-
-        {/* Card 4 */}
-        <div
-          onClick={() =>
-            setActiveDrillDown({
-              title: "Revenue Per FTE Headcount",
-              value: `₹${revPerHead.toLocaleString("en-IN")}`,
-              subtitle: `${teamSize} FTE Headcount`,
-              trend: "+8.5% efficiency",
-              isPositive: true,
-              benchmark: "Tier-1 Efficiency Benchmark",
-              history: [
-                { period: "H1", val: 380000 },
-                { period: "H2", val: 428000 },
-              ],
-              rootCauses: [
-                "Maintained headcount steady at 14 while revenue expanded",
-                "Workflow automation eliminated 18 hours/week manual admin work",
-              ],
-              recommendedAction: "Delay non-critical hires until annualized revenue crosses ₹75L.",
-            })
-          }
-          className="p-4 rounded-xl border border-line bg-surface shadow-theme space-y-2 cursor-pointer hover:border-brass/50 transition-all btn-tactile"
-        >
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-semibold">Revenue Per Head</span>
-            <div className="w-6 h-6 rounded-md bg-surface-2 flex items-center justify-center text-brass">
-              <Users className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-xl font-bold font-mono text-text">
-              ₹{revPerHead.toLocaleString("en-IN")}
-            </span>
-            <span className="flex items-center text-[11px] font-bold text-emerald-500 font-mono">
-              <ArrowUpRight className="w-3 h-3" />
-              Efficient
-            </span>
-          </div>
-          <div className="text-[11px] text-text-muted flex items-center justify-between pt-1 border-t border-line/60">
-            <span>{teamSize} FTE Team</span>
-            <span className="text-brass font-semibold">Click to drill down →</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Analysis & Forward Projection Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Trend & Predictive Forecast Chart (8 cols) */}
-        <div className="lg:col-span-8 p-5 rounded-2xl border border-line bg-surface shadow-theme space-y-4">
-          {/* Header row: Title + Legend + Forecast Switcher */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
-            <div>
-              <h2 className="text-sm font-bold text-text">Revenue Velocity & 6-Month Forward Forecast</h2>
-              <p className="text-[11px] text-text-muted mt-0.5">
-                Compares historical trajectory against projected runway burn trajectory.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-              {/* Legend */}
-              <div className="hidden sm:flex items-center gap-3 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-gradient-to-t from-amber-600 to-amber-400" />
-                  <span className="text-[11px] font-medium text-text-muted">Revenue</span>
+          <section className="p-5 rounded-xl border border-line bg-surface space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-text">Revenue and burn</h2>
+                <p className="text-xs text-text-muted mt-0.5">Last 6 months and a 3-month projection.</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 text-xs text-text-muted">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-brass" /> Revenue
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-text-muted/50" /> Burn
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-gradient-to-t from-rose-600 to-rose-400" />
-                  <span className="text-[11px] font-medium text-text-muted">Net Burn</span>
+                <div className="flex items-center rounded-lg border border-line p-0.5 text-sm">
+                  {(["baseline", "optimized"] as const).map(mode => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setForecastMode(mode)}
+                      className={`px-3 py-1 rounded-md capitalize cursor-pointer ${
+                        forecastMode === mode ? "bg-surface-2 text-text font-medium" : "text-text-muted hover:text-text"
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
                 </div>
               </div>
-
-              {/* Forecast Model Switcher */}
-              <div className="flex items-center gap-1.5 text-xs">
-                <span className="text-[11px] font-semibold text-text-muted">Forecast:</span>
-                <div className="p-0.5 rounded-xl bg-surface-2 border border-line flex items-center gap-1 shadow-xs">
-                  <button
-                    type="button"
-                    onClick={() => setForecastMode("baseline")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer btn-tactile ${
-                      forecastMode === "baseline"
-                        ? "bg-surface text-text font-bold shadow-xs border border-line"
-                        : "text-text-muted hover:text-text hover:bg-surface/50"
-                    }`}
-                  >
-                    Baseline
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForecastMode("optimized")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer btn-tactile ${
-                      forecastMode === "optimized"
-                        ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold shadow-xs border border-amber-500/30"
-                        : "text-text-muted hover:text-text hover:bg-surface/50"
-                    }`}
-                  >
-                    AI Optimized
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Visual Chart Container with Y-Axis, Horizontal Gridlines, and Grouped Bars */}
-          <div className="pt-2 pb-1">
-            {/* Stage headers: Historical Actuals vs Forward Projection */}
-            <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-text-muted mb-2 px-1 pl-12">
-              <span className="flex items-center gap-1">
-                <span>Historical Telemetry</span>
-                <span className="text-[9px] font-normal normal-case text-text-muted/70">(Trailing 6M)</span>
-              </span>
-              <span className={`flex items-center gap-1.5 transition-colors ${forecastMode === "optimized" ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-amber-600 dark:text-amber-400"}`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-                <span>Forward Forecast</span>
-                <span className="text-[9px] font-normal normal-case">
-                  ({forecastMode === "optimized" ? "AI Accelerated" : "Baseline"})
-                </span>
-              </span>
             </div>
 
             <div className="flex gap-2">
-              {/* Y-Axis scale labels */}
-              <div className="flex flex-col justify-between text-[10px] font-mono text-text-muted/70 h-44 select-none shrink-0 text-right w-11 pb-2">
-                <span>{formatShortINR(maxRevenueVal)}</span>
-                <span>{formatShortINR(Math.round(maxRevenueVal * 0.75))}</span>
-                <span>{formatShortINR(Math.round(maxRevenueVal * 0.50))}</span>
-                <span>{formatShortINR(Math.round(maxRevenueVal * 0.25))}</span>
+              <div className="flex flex-col justify-between text-[10px] text-text-muted h-44 text-right w-11 pb-2 shrink-0">
+                <span>{formatShortINR(maxVal)}</span>
+                <span>{formatShortINR(Math.round(maxVal * 0.5))}</span>
                 <span>₹0</span>
               </div>
-
-              {/* Chart Plot Area with Grid and Bars */}
-              <div className="flex-1 relative min-w-[420px] sm:min-w-0">
-                {/* Horizontal Background Grid Lines */}
-                <div className="absolute inset-x-0 top-0 h-44 flex flex-col justify-between pointer-events-none z-0">
-                  <div className="border-b border-line/50 w-full" />
-                  <div className="border-b border-line/40 w-full" />
-                  <div className="border-b border-line/40 w-full" />
-                  <div className="border-b border-line/40 w-full" />
-                  <div className="border-b border-line w-full" />
-                </div>
-
-                {/* Vertical Divider separating Historical and Forecast */}
-                <div className="absolute top-0 bottom-0 left-[66.66%] border-l border-dashed border-line-strong z-0 pointer-events-none" />
-
-                {/* Bars Container */}
-                <div className="h-44 flex items-end justify-between gap-1.5 sm:gap-2 px-1 relative z-10">
-                  {revenueHistory.map((d, i) => {
-                    const revHeightPct = Math.min(100, Math.max(16, Math.round((d.revenue / maxRevenueVal) * 88)));
-                    const burnHeightPct = Math.min(100, Math.max(14, Math.round((d.burn / maxBurnVal) * 78)));
-                    const isForecast = d.month.includes("(F)");
-                    const isLastItem = i >= revenueHistory.length - 2;
-                    const isFirstItem = i <= 1;
-
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative cursor-pointer">
-                        {/* Hover Tooltip */}
+              <div className="flex-1 min-w-0 overflow-x-auto">
+                <div className="min-w-[420px]">
+                  <div className="h-44 flex items-end gap-2 border-b border-line">
+                    {series.map(d => (
+                      <div key={d.month} className="flex-1 h-full flex items-end justify-center gap-1">
                         <div
-                          className={`pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 text-[10px] font-sans bg-surface/95 backdrop-blur-md p-2 rounded-xl border border-line-strong text-text shadow-xl absolute -top-16 z-30 min-w-[130px] ${
-                            isLastItem ? "right-0" : isFirstItem ? "left-0" : "left-1/2 -translate-x-1/2"
-                          }`}
-                        >
-                          <div className="font-bold text-[11px] pb-1 border-b border-line/60 flex items-center justify-between">
-                            <span>{d.month}</span>
-                            <span className={isForecast ? (forecastMode === "optimized" ? "text-emerald-500 font-bold" : "text-amber-500 font-bold") : "text-text-muted"}>
-                              {isForecast ? (forecastMode === "optimized" ? "AI Projected" : "Baseline") : "Actual"}
-                            </span>
-                          </div>
-                          <div className="pt-1 space-y-0.5 font-mono text-[10px]">
-                            <div className="flex justify-between items-center text-amber-600 dark:text-amber-400">
-                              <span>Rev:</span>
-                              <span className="font-bold">₹{d.revenue.toLocaleString("en-IN")}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-rose-600 dark:text-rose-400">
-                              <span>Burn:</span>
-                              <span>₹{d.burn.toLocaleString("en-IN")}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-text-muted pt-0.5 border-t border-line/40">
-                              <span>Net:</span>
-                              <span className={d.revenue >= d.burn ? "text-emerald-500 font-bold" : "text-rose-500"}>
-                                {d.revenue >= d.burn ? "+" : ""}₹{(d.revenue - d.burn).toLocaleString("en-IN")}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Dual Bars for Month */}
-                        <div className="w-full flex items-end justify-center gap-1 sm:gap-1.5 h-full">
-                          {/* Revenue Bar */}
-                          <div
-                            className={`w-full max-w-[20px] rounded-t-md transition-all duration-300 ${
-                              isForecast
-                                ? forecastMode === "optimized"
-                                  ? "bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-400 border-t-2 border-emerald-300 shadow-sm shadow-emerald-500/20"
-                                  : "bg-gradient-to-t from-amber-500/80 to-amber-400/90 border-t-2 border-amber-300"
-                                : "bg-gradient-to-t from-amber-600 via-amber-500 to-amber-400 dark:from-amber-700 dark:to-yellow-400 hover:brightness-110 shadow-xs"
-                            }`}
-                            style={{ height: `${revHeightPct}%` }}
-                            title={`Revenue: ₹${d.revenue.toLocaleString("en-IN")}`}
-                          />
-                          {/* Burn Bar */}
-                          <div
-                            className={`w-full max-w-[12px] rounded-t-sm transition-all duration-300 ${
-                              isForecast
-                                ? forecastMode === "optimized"
-                                  ? "bg-gradient-to-t from-rose-500/40 to-rose-400/30 border border-rose-400/20"
-                                  : "bg-gradient-to-t from-rose-600/70 to-rose-500/70"
-                                : "bg-gradient-to-t from-rose-600 to-rose-400 dark:from-rose-700 dark:to-rose-500 hover:brightness-110 shadow-xs"
-                            }`}
-                            style={{ height: `${burnHeightPct}%` }}
-                            title={`Burn: ₹${d.burn.toLocaleString("en-IN")}`}
-                          />
-                        </div>
+                          className={`w-full max-w-[18px] rounded-t bg-brass ${d.forecast ? "opacity-50" : ""}`}
+                          style={{ height: `${Math.max(4, (d.revenue / maxVal) * 100)}%` }}
+                          title={`${d.month} revenue: ₹${d.revenue.toLocaleString("en-IN")}`}
+                        />
+                        <div
+                          className={`w-full max-w-[12px] rounded-t bg-text-muted/50 ${d.forecast ? "opacity-50" : ""}`}
+                          style={{ height: `${Math.max(4, (d.burn / maxVal) * 100)}%` }}
+                          title={`${d.month} burn: ₹${d.burn.toLocaleString("en-IN")}`}
+                        />
                       </div>
-                    );
-                  })}
-                </div>
-
-                {/* X-Axis Month Labels */}
-                <div className="flex justify-between gap-1 sm:gap-2 px-1 pt-2">
-                  {revenueHistory.map((d, i) => {
-                    const isForecast = d.month.includes("(F)");
-                    return (
-                      <div key={i} className="flex-1 text-center">
-                        <span className={`text-[10px] font-medium block truncate ${
-                          isForecast
-                            ? forecastMode === "optimized"
-                              ? "text-emerald-600 dark:text-emerald-400 font-bold"
-                              : "text-amber-600 dark:text-amber-400 font-bold"
-                            : "text-text-muted"
-                        }`}>
-                          {d.month}
-                        </span>
-                      </div>
-                    );
-                  })}
+                    ))}
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    {series.map(d => (
+                      <span
+                        key={d.month}
+                        className={`flex-1 text-center text-[11px] ${d.forecast ? "text-brass font-medium" : "text-text-muted"}`}
+                      >
+                        {d.month}
+                        {d.forecast ? "*" : ""}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+            <p className="text-xs text-text-muted">* Projected</p>
 
-          {/* Bottom KPI summary cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-1 text-center text-xs">
-            <div className="p-3 rounded-xl bg-surface-2 border border-line">
-              <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider block">Trailing 6M Vol</span>
-              <span className="text-sm font-bold font-mono text-text mt-0.5 block">
-                ₹{revenueHistory.slice(0, 6).reduce((acc, c) => acc + c.revenue, 0).toLocaleString("en-IN")}
-              </span>
-            </div>
-            <div className="p-3 rounded-xl bg-surface-2 border border-line transition-all">
-              <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider block">Projected Q2 Run-Rate</span>
-              <span className={`text-sm font-bold font-mono mt-0.5 block ${forecastMode === "optimized" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
-                ₹{forecastMode === "optimized"
-                  ? Math.round(effectiveMonthlyRev * 1.52).toLocaleString("en-IN")
-                  : Math.round(effectiveMonthlyRev * 1.09).toLocaleString("en-IN")
-                }/mo
-                <span className="text-[10px] font-normal ml-1">
-                  ({forecastMode === "optimized" ? "+52% AI" : "+9% Base"})
-                </span>
-              </span>
-            </div>
-            <div className="p-3 rounded-xl bg-surface-2 border border-line transition-all">
-              <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider block">Solvency Impact</span>
-              <span className={`text-sm font-bold font-mono mt-0.5 block ${forecastMode === "optimized" ? "text-emerald-600 dark:text-emerald-400" : "text-text-muted"}`}>
-                {forecastMode === "optimized" ? "+3.4 Months Runway" : "+0.3 Months Runway"}
-                <span className="text-[10px] font-normal ml-1">
-                  ({forecastMode === "optimized" ? "Burn Saved" : "Baseline"})
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Prescriptive Action Engine: "What Should We Do?" (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="p-5 rounded-2xl border border-line bg-surface shadow-theme space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-line">
-              <div className="flex items-center gap-2">
-                <Compass className="w-4 h-4 text-brass" />
-                <h3 className="text-xs font-bold text-text uppercase tracking-wider">
-                  What Should We Do? (Prescriptions)
-                </h3>
-              </div>
-              <span className="text-[9px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase">
-                Actionable
-              </span>
-            </div>
-
-            <p className="text-xs text-text-muted leading-relaxed">
-              Deterministic actions to reach your active target (<strong className="text-text">{goal.replace("_", " ")}</strong>):
-            </p>
-
-            <div className="space-y-3 text-xs">
-              {/* Prescription 1 */}
-              <div className="p-3.5 rounded-xl bg-surface-2/70 border border-line space-y-2 hover:border-brass/40 transition-colors">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-bold text-text">1. Enforce Upfront Annual Invoicing</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-jade/15 text-jade font-bold uppercase">
-                    +₹4,50,000 Cash
-                  </span>
-                </div>
-                <p className="text-[11px] text-text-muted leading-snug">
-                  Offer 12% discount to top 5 retainer accounts for 12-month advance payment.
-                </p>
-                <Link
-                  href="/simulator"
-                  className="w-full py-1.5 rounded-lg bg-surface border border-line text-[11px] font-bold text-brass flex items-center justify-center gap-1.5 hover:bg-surface-2 btn-tactile"
-                >
-                  <Play className="w-3 h-3" />
-                  <span>Simulate in Decision Simulator</span>
-                </Link>
-              </div>
-
-              {/* Prescription 2 */}
-              <div className="p-3.5 rounded-xl bg-surface-2/70 border border-line space-y-2 hover:border-brass/40 transition-colors">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-bold text-text">2. Prune Idle Cloud Infrastructure</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber/15 text-amber font-bold uppercase">
-                    Save ₹35,000/mo
-                  </span>
-                </div>
-                <p className="text-[11px] text-text-muted leading-snug">
-                  Downsize unallocated compute instances identified by Operations AI in AWS/Azure.
-                </p>
-                <Link
-                  href="/workflows"
-                  className="w-full py-1.5 rounded-lg bg-surface border border-line text-[11px] font-bold text-brass flex items-center justify-center gap-1.5 hover:bg-surface-2 btn-tactile"
-                >
-                  <Zap className="w-3 h-3" />
-                  <span>Execute Workflow Automation</span>
-                </Link>
-              </div>
-
-              {/* Prescription 3 */}
-              <div className="p-3.5 rounded-xl bg-surface-2/70 border border-line space-y-2 hover:border-brass/40 transition-colors">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-bold text-text">3. Resolve Account Concentration Gap</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-400 font-bold uppercase">
-                    De-risk
-                  </span>
-                </div>
-                <p className="text-[11px] text-text-muted leading-snug">
-                  Active gap: Top customer represents 36.5% of income. Dilute with secondary deals.
-                </p>
-                <Link
-                  href="/gaps"
-                  className="w-full py-1.5 rounded-lg bg-surface border border-line text-[11px] font-bold text-brass flex items-center justify-center gap-1.5 hover:bg-surface-2 btn-tactile"
-                >
-                  <ArrowRight className="w-3 h-3" />
-                  <span>View Gap Resolution Playbook</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      </>
-      )}
-
-      {/* Metric Drill-Down Modal */}
-      {activeDrillDown && (
-        <PortalModal isOpen={Boolean(activeDrillDown)} onClose={() => setActiveDrillDown(null)}>
-          <div className="w-full max-w-lg bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden animate-scale-up p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-line">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-brass" />
-                <h3 className="text-sm font-bold text-text">Metric Drill-Down & Telemetry</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveDrillDown(null)}
-                className="p-1 rounded-lg text-text-muted hover:text-text cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-line text-sm">
               <div>
-                <span className="text-xs font-semibold text-text-muted block">{activeDrillDown.title}</span>
-                <div className="flex items-baseline gap-2 mt-0.5">
-                  <span className="text-2xl font-bold font-mono text-text">{activeDrillDown.value}</span>
-                  <span className="text-xs font-bold text-emerald-500">{activeDrillDown.trend}</span>
-                </div>
-                <p className="text-xs text-text-muted mt-1">{activeDrillDown.subtitle}</p>
+                <dt className="text-xs text-text-muted">Revenue, last 6 months</dt>
+                <dd className="font-medium text-text">₹{trailingTotal.toLocaleString("en-IN")}</dd>
               </div>
-
-              <div className="p-3 rounded-xl bg-surface-2/60 border border-line space-y-1.5 text-xs">
-                <span className="font-bold text-text block">Peer Quartile Benchmark:</span>
-                <p className="text-text-muted">{activeDrillDown.benchmark}</p>
+              <div>
+                <dt className="text-xs text-text-muted">Projected monthly revenue by June</dt>
+                <dd className="font-medium text-text">₹{projectedRunRate.toLocaleString("en-IN")}</dd>
               </div>
+            </dl>
+          </section>
 
-              <div className="space-y-1.5 text-xs">
-                <span className="font-bold text-text block">Root-Cause Attribution:</span>
-                <ul className="space-y-1 text-text-muted">
-                  {activeDrillDown.rootCauses.map((rc, idx) => (
-                    <li key={idx} className="flex items-start gap-1.5">
-                      <span className="text-brass">↳</span>
-                      <span>{rc}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="p-3 rounded-xl bg-brass-soft/40 border border-brass/40 text-xs space-y-1">
-                <span className="font-bold text-brass uppercase text-[10px] tracking-wider block">
-                  AI Prescribed Action:
-                </span>
-                <p className="text-text leading-snug">{activeDrillDown.recommendedAction}</p>
-              </div>
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setActiveDrillDown(null)}
-                className="px-4 py-2 rounded-xl bg-brass text-white font-bold text-xs hover:brightness-110 btn-tactile cursor-pointer"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </PortalModal>
+          <p className="text-sm text-text-muted">
+            See what to fix first in the{" "}
+            <Link href="/gaps" className="text-brass hover:underline">
+              Gap Register
+            </Link>{" "}
+            or test a change in the{" "}
+            <Link href="/simulator" className="text-brass hover:underline">
+              Decision Simulator
+            </Link>
+            .
+          </p>
+        </div>
       )}
     </div>
   );

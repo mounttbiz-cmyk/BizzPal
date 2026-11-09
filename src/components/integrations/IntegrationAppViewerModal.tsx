@@ -431,7 +431,7 @@ export function IntegrationAppViewerModal({
 
   return (
     <PortalModal isOpen={isOpen} onClose={onClose}>
-      <div className="max-w-3xl w-full p-6 rounded-2xl bg-surface border border-line shadow-2xl space-y-5 animate-scale-in max-h-[90vh] flex flex-col">
+      <div className="max-w-3xl w-full p-6 rounded-xl bg-surface border border-line shadow-lg space-y-5  max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-line shrink-0">
           <div className="flex items-center gap-3.5">
@@ -601,7 +601,7 @@ export function IntegrationAppViewerModal({
                   {isAddMeetingOpen && (
                     <form
                       onSubmit={handleAddMeeting}
-                      className="p-4 rounded-xl bg-surface-2 border border-line space-y-3 animate-scale-in"
+                      className="p-4 rounded-xl bg-surface-2 border border-line space-y-3 "
                     >
                       <h4 className="text-xs font-bold text-text">Schedule Meeting into Google Calendar</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -693,7 +693,7 @@ export function IntegrationAppViewerModal({
                             <span
                               className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
                                 item.category === "discovery"
-                                  ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                                  ? "bg-brass/10 text-brass border border-brass/20"
                                   : item.category === "executive"
                                   ? "bg-brass/10 text-brass border border-brass/20"
                                   : item.category === "focus"
@@ -743,7 +743,7 @@ export function IntegrationAppViewerModal({
                                 href={`https://${item.meetLink}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="px-2.5 py-1 rounded-md bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/30 text-[10px] font-bold inline-flex items-center gap-1 transition-colors"
+                                className="px-2.5 py-1 rounded-md bg-brass/10 text-brass hover:bg-brass/20 border border-brass/30 text-[10px] font-bold inline-flex items-center gap-1 transition-colors"
                               >
                                 <Video className="w-3 h-3" />
                                 <span>Join Google Meet</span>
@@ -804,7 +804,7 @@ export function IntegrationAppViewerModal({
                       disabled={sendingWebhook}
                       className="px-3 py-1.5 rounded-lg bg-surface-2 border border-line text-text hover:border-line-strong text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
-                      <Send className="w-3.5 h-3.5 text-cyan-400" />
+                      <Send className="w-3.5 h-3.5 text-brass" />
                       <span>{sendingWebhook ? "Triggering…" : "Send Test Webhook (+₹25,000)"}</span>
                     </button>
                   </div>

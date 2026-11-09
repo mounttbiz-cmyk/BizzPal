@@ -1,26 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  TrendingUp,
-  Activity,
-  AlertTriangle,
-  ShieldCheck,
-  CheckCircle2,
-  RefreshCw,
-  Clock,
-  Layers,
-  FileText,
-  BarChart3,
-  Calendar,
-  AlertCircle,
-  Play,
-  Check,
-  Target,
-  FileSpreadsheet,
-  Zap,
-  Info,
-} from "lucide-react";
+import { RefreshCw, Check } from "lucide-react";
 
 interface KpiItem {
   id: string;
@@ -234,161 +215,87 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
 
   return (
     <div className="space-y-5">
-      {/* Overview Stat Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-4 rounded-xl bg-surface border border-line space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Active Incidents</span>
-            <AlertTriangle className={`w-3.5 h-3.5 ${criticalCount > 0 ? "text-rose-500" : "text-emerald-500"}`} />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-text">{insights.length}</span>
-            <span className="text-[11px] text-text-muted">
-              {criticalCount > 0 ? `${criticalCount} critical` : "all within target"}
-            </span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-surface border border-line space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Monitored KPIs</span>
-            <Target className="w-3.5 h-3.5 text-brass" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-text">{kpis.length}</span>
-            <span className="text-[11px] text-emerald-600 dark:text-emerald-400">rules active</span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-surface border border-line space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Monthly Revenue Drift</span>
-            <TrendingUp className="w-3.5 h-3.5 text-brass" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-text">
-              {forecast ? `${forecast.growthRatePct > 0 ? "+" : ""}${forecast.growthRatePct}%` : "--"}
-            </span>
-            <span className="text-[11px] text-text-muted">projected</span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-surface border border-line space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Diagnostic Status</span>
-            <Activity className="w-3.5 h-3.5 text-emerald-500" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-text">Active</span>
-            <span className="text-[11px] text-emerald-600 dark:text-emerald-400">continuous</span>
-          </div>
-        </div>
-      </div>
+      <p className="text-sm text-text-muted">
+        <span className="font-semibold text-text">{insights.length}</span> active{" "}
+        {insights.length === 1 ? "incident" : "incidents"}
+        {criticalCount > 0 && (
+          <>
+            {" "}(<span className="text-rust font-semibold">{criticalCount} critical</span>)
+          </>
+        )}{" "}
+        · <span className="font-semibold text-text">{kpis.length}</span> KPIs monitored
+        {forecast && (
+          <>
+            {" "}· revenue trend{" "}
+            <span className="font-semibold text-text">
+              {forecast.growthRatePct > 0 ? "+" : ""}
+              {forecast.growthRatePct}%
+            </span>{" "}
+            / month
+          </>
+        )}
+      </p>
 
       {evalResultBanner && (
-        <div className="p-3 rounded-xl bg-brass/10 border border-brass/30 text-xs font-medium text-brass flex items-center justify-between gap-2 animate-fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-brass shrink-0" />
-            <span>{evalResultBanner}</span>
-          </div>
+        <div className="p-3 rounded-lg border border-line bg-surface-2 text-sm text-text flex items-center justify-between gap-2">
+          <span>{evalResultBanner}</span>
           <button
             type="button"
             onClick={() => setEvalResultBanner(null)}
-            className="text-[11px] font-bold text-brass hover:underline cursor-pointer"
+            className="text-xs text-brass hover:underline cursor-pointer"
           >
             Dismiss
           </button>
         </div>
       )}
 
-      {/* Sub-Nav Bar with Diagnostic Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-0">
-        <nav aria-label="BI Section Navigation" className="flex items-center gap-1 sm:gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line">
+        <nav aria-label="Insights sections" className="flex items-center gap-1">
           {[
-            { id: "insights" as const, label: "Active Incidents", icon: AlertTriangle, count: insights.length },
-            { id: "kpis" as const, label: "Monitored Guardrails", icon: Target, count: kpis.length },
-            { id: "forecast" as const, label: "Statistical Forecast", icon: BarChart3 },
-          ].map((tab) => {
-            const isActive = activeTab === tab.id;
-            const Icon = tab.icon;
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  if (tab.id === "forecast") fetchForecast(forecastMetric);
-                }}
-                className={`relative pb-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-                  isActive ? "text-brass font-bold" : "text-text-muted hover:text-text"
-                }`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span>{tab.label}</span>
-
-                {tab.count !== undefined && (
-                  <span
-                    className={`text-[10px] font-sans font-bold px-1.5 py-0.2 rounded-full border ${
-                      isActive
-                        ? "bg-brass/15 border-brass/40 text-brass"
-                        : "bg-surface-2 border-line text-text-muted"
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-
-                {isActive && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-brass rounded-t-full shadow-xs"
-                  />
-                )}
-              </button>
-            );
-          })}
+            { id: "insights" as const, label: "Incidents" },
+            { id: "kpis" as const, label: "Guardrails" },
+            { id: "forecast" as const, label: "Forecast" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                if (tab.id === "forecast") fetchForecast(forecastMetric);
+              }}
+              className={`px-3 pb-2.5 -mb-px text-sm border-b-2 cursor-pointer ${
+                activeTab === tab.id
+                  ? "border-brass text-text font-semibold"
+                  : "border-transparent text-text-muted hover:text-text"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </nav>
 
-        {/* Run Diagnostic Button */}
-        <div className="pb-2.5 sm:pb-2">
-          <button
-            type="button"
-            onClick={handleRunEvaluation}
-            disabled={isEvaluating}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-line text-xs font-semibold text-text hover:border-brass/40 transition-all cursor-pointer disabled:opacity-50"
-          >
-            <Play className={`w-3.5 h-3.5 text-brass ${isEvaluating ? "animate-spin" : ""}`} />
-            <span>{isEvaluating ? "Evaluating…" : "Run KPI Diagnostics"}</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleRunEvaluation}
+          disabled={isEvaluating}
+          className="mb-2 px-3.5 py-1.5 rounded-lg border border-line bg-surface text-sm font-medium text-text hover:bg-surface-2 inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${isEvaluating ? "animate-spin" : ""}`} />
+          {isEvaluating ? "Checking…" : "Run check"}
+        </button>
       </div>
 
       {/* TAB 1: ACTIVE INCIDENTS */}
       {activeTab === "insights" && (
         <div className="space-y-4">
           {insights.length === 0 ? (
-            <div className="rounded-xl border border-line bg-surface p-10 text-center space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 mx-auto flex items-center justify-center text-emerald-500">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-sm font-bold text-text">All Metrics Healthy</h3>
-                <p className="text-xs text-text-muted max-w-md mx-auto">
-                  Monitored revenue velocity, burn, cash runway, and gross margins are operating within expected tolerance limits.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleRunEvaluation}
-                disabled={isEvaluating}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer"
-              >
-                <Play className="w-3.5 h-3.5" />
-                <span>Run Diagnostics</span>
-              </button>
+            <div className="rounded-xl border border-line bg-surface p-10 text-center space-y-2">
+              <h3 className="text-sm font-semibold text-text">No incidents</h3>
+              <p className="text-sm text-text-muted max-w-md mx-auto">
+                Revenue, burn, runway and margins are all within their limits.
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -400,15 +307,7 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
                   {/* Top Bar */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                          ins.severity === "critical"
-                            ? "bg-rose-500/10 text-rose-500 border-rose-500/25"
-                            : "bg-amber-500/10 text-amber-500 border-amber-500/25"
-                        }`}
-                      >
-                        {ins.severity}
-                      </span>
+                      <span className={`text-xs font-medium capitalize ${ins.severity === "critical" ? "text-rust" : "text-amber-500"}`}>{ins.severity}</span>
                       <h3 className="text-sm font-bold text-text">{ins.title}</h3>
                     </div>
 
@@ -430,9 +329,8 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
 
                   {/* AI Root Cause Synthesis */}
                   <div className="p-3.5 rounded-lg bg-surface-2/60 border border-line space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-text">
-                      <Info className="w-3.5 h-3.5 text-brass" />
-                      <span>Root Cause Summary</span>
+                    <div className="text-xs font-semibold text-text">
+                      <span>Root cause</span>
                     </div>
                     <p className="text-xs text-text-muted leading-relaxed font-sans">
                       {ins.rootCauseAnalysis.summary}
@@ -443,8 +341,7 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="p-3 rounded-lg bg-surface-2/40 border border-line space-y-2">
                       <span className="text-xs font-bold text-text flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Observed Telemetry</span>
+                        <span>What we saw</span>
                       </span>
                       <ul className="space-y-1 text-xs text-text-muted">
                         {ins.rootCauseAnalysis.verifiedFacts.map((fact, idx) => (
@@ -458,8 +355,7 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
 
                     <div className="p-3 rounded-lg bg-surface-2/40 border border-line space-y-2">
                       <span className="text-xs font-bold text-text flex items-center gap-1.5">
-                        <Info className="w-3.5 h-3.5 text-brass" />
-                        <span>Contributing Factors</span>
+                        <span>Likely causes</span>
                       </span>
                       <ul className="space-y-1 text-xs text-text-muted">
                         {ins.rootCauseAnalysis.hypotheses.map((hyp, idx) => (
@@ -476,8 +372,7 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
                   {ins.recommendedActions.length > 0 && (
                     <div className="space-y-2.5 pt-1">
                       <h4 className="text-xs font-bold text-text flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-brass" />
-                        <span>Recommended Corrective Actions</span>
+                        <span>Recommended actions</span>
                       </h4>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -519,8 +414,7 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
                                   disabled={approvingActionKey === action.key}
                                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer disabled:opacity-50"
                                 >
-                                  <Play className="w-3 h-3" />
-                                  <span>{approvingActionKey === action.key ? "Creating…" : "Approve & Create Task"}</span>
+                                  <span>{approvingActionKey === action.key ? "Creating…" : "Approve and create task"}</span>
                                 </button>
                               )}
                             </div>
@@ -547,7 +441,7 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-[10px] text-text-muted">
                   <span className="font-semibold uppercase">{kpi.frequency}</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Active</span>
+                  
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-text">{kpi.name}</h4>

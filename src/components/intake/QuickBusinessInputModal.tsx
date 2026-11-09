@@ -321,7 +321,7 @@ export function QuickBusinessInputModal({ isOpen, onClose, onSuccess }: QuickBus
   return (
     <PortalModal isOpen={isOpen} onClose={onClose}>
       <div
-        className="w-full max-w-2xl bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden animate-scale-up text-text"
+        className="w-full max-w-2xl bg-surface border border-line rounded-xl shadow-lg overflow-hidden  text-text"
         style={{
           backgroundColor: "var(--surface)",
           borderColor: "var(--line)",

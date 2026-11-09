@@ -53,9 +53,9 @@ export function PostalCodeField({
     <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 ${className}`}>
       {/* Area / Locality Input (~2/3 width) */}
       <div className="sm:col-span-2 flex flex-col gap-1.5">
-        <label htmlFor="area-locality-input" className="text-xs font-semibold text-text flex items-center justify-between">
+        <label htmlFor="area-locality-input" className="text-sm font-medium text-text flex items-center justify-between">
           <span>Area or Locality</span>
-          <span className="text-[10px] text-text-muted font-normal">Optional</span>
+          <span className="text-xs text-text-muted font-normal">Optional</span>
         </label>
         <input
           id="area-locality-input"
@@ -64,7 +64,7 @@ export function PostalCodeField({
           onChange={e => onAreaChange(e.target.value)}
           placeholder={areaPlaceholder}
           disabled={isAreaDisabled}
-          className={`h-11 px-3.5 rounded-xl border text-xs text-text placeholder:text-text-muted/60 transition-all focus:outline-none focus:ring-1 focus:ring-brass ${
+          className={`h-[46px] px-3 rounded-lg border text-sm text-text placeholder:text-text-muted focus:outline-none ${
             isAreaDisabled
               ? "bg-surface-2/40 border-line/60 opacity-60 cursor-not-allowed"
               : "bg-surface border-line hover:border-line-strong focus:border-brass"
@@ -75,9 +75,9 @@ export function PostalCodeField({
       {/* Postal Code Input (~1/3 width, monospace digits) */}
       {config.hasPostalCode && (
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="postal-code-input" className="text-xs font-semibold text-text flex items-center justify-between">
+          <label htmlFor="postal-code-input" className="text-sm font-medium text-text flex items-center justify-between">
             <span>{config.label}</span>
-            <span className="text-[10px] text-text-muted font-normal">Optional</span>
+            <span className="text-xs text-text-muted font-normal">Optional</span>
           </label>
           <div className="relative">
             <input
@@ -88,20 +88,20 @@ export function PostalCodeField({
               onChange={e => onPostalCodeChange(e.target.value)}
               placeholder={config.placeholder}
               disabled={isPostalDisabled}
-              className={`h-11 w-full pl-3.5 pr-8 rounded-xl border text-xs font-mono text-text placeholder:text-text-muted/60 transition-all focus:outline-none focus:ring-1 focus:ring-brass ${
+              className={`h-[46px] w-full pl-3 pr-8 rounded-lg border text-sm text-text placeholder:text-text-muted focus:outline-none ${
                 isPostalDisabled
                   ? "bg-surface-2/40 border-line/60 opacity-60 cursor-not-allowed"
                   : postalCodeValue && !validation.isValid
-                  ? "bg-surface border-rust/60 text-rust focus:border-rust focus:ring-rust/30"
+                  ? "bg-surface border-rust/60 text-rust focus:border-rust"
                   : postalCodeValue && validation.isValid
-                  ? "bg-surface border-emerald-500/60 focus:border-emerald-500 focus:ring-emerald-500/30"
+                  ? "bg-surface border-line focus:border-brass"
                   : "bg-surface border-line hover:border-line-strong focus:border-brass"
               }`}
             />
             {postalCodeValue.trim() && (
               <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
                 {validation.isValid ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <CheckCircle2 className="w-4 h-4 text-jade" />
                 ) : (
                   <AlertCircle className="w-4 h-4 text-rust" />
                 )}
@@ -109,7 +109,7 @@ export function PostalCodeField({
             )}
           </div>
           {postalCodeValue.trim() && !validation.isValid && validation.message && (
-            <span className="text-[10px] text-rust font-medium">
+            <span className="text-xs text-rust">
               {validation.message}
             </span>
           )}

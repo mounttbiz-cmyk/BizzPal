@@ -3,6 +3,7 @@ import "./globals.css";
 import { themeInitScript } from "@/lib/theme/themeScript";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { AuthProvider } from "@/lib/firebase/authContext";
+import { ScrollLockObserver } from "@/components/ui/ScrollLockObserver";
 
 export const metadata: Metadata = {
   title: "BizzPal — AI Business Operating System",
@@ -42,6 +43,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="bg-bg text-text antialiased selection:bg-brass selection:text-white min-h-screen font-sans">
+        <ScrollLockObserver />
         <ThemeProvider>
           <AuthProvider>
             {children}

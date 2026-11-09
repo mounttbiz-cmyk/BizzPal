@@ -1,26 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  ShieldCheck,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  Layers,
-  Filter,
-  RefreshCw,
-  AlertCircle,
-  Tag,
-  Scale,
-  Landmark,
-  Building2,
-  Zap,
-  Target,
-  FileCheck,
-  Bookmark,
-  X,
-  Search,
-} from "lucide-react";
+import { ShieldCheck, Trash2, CheckCircle2, Filter, RefreshCw, Tag, Scale, Landmark, Building2, Zap, Target, Bookmark, X, Search } from "lucide-react";
 
 interface BusinessFact {
   id: string;
@@ -173,68 +154,13 @@ export function FactsManager() {
 
   return (
     <div className="space-y-6">
-      {/* Stat Tiles */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Active Ground Truths</span>
-            <div className="w-6 h-6 rounded-lg bg-brass/10 flex items-center justify-center text-brass">
-              <ShieldCheck className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-text">{totalFacts}</span>
-            <span className="text-[10px] text-text-muted font-mono">rules</span>
-          </div>
-          <p className="text-[10px] text-text-muted/80">Deterministic knowledge store</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Grounding Priority</span>
-            <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-              <FileCheck className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">P0 Level</span>
-          </div>
-          <p className="text-[10px] text-text-muted/80">Overrides generic AI inferences</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Citation SLA</span>
-            <div className="w-6 h-6 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-500">
-              <Bookmark className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-text">100%</span>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">Verified</span>
-          </div>
-          <p className="text-[10px] text-text-muted/80">Every truth tied to source doc</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Verification Status</span>
-            <div className="w-6 h-6 rounded-lg bg-brass/10 flex items-center justify-center text-brass">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Board Approved
-            </span>
-          </div>
-          <p className="text-[10px] text-text-muted/80">Executive audit trail active</p>
-        </div>
-      </div>
+      <p className="text-sm text-text-muted">
+        <span className="font-semibold text-text">{totalFacts}</span> approved {totalFacts === 1 ? "fact" : "facts"}.
+        Advisors treat these as fixed rules and cite them in answers.
+      </p>
 
       {/* Action Header & Category Filter Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-surface border border-line shadow-2xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap flex-1">
           {/* Category Tabs */}
           <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-line flex-wrap">
@@ -264,7 +190,7 @@ export function FactsManager() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search facts by key or policy…"
+              placeholder="Search facts…"
               className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:border-brass/70"
             />
           </div>
@@ -283,39 +209,31 @@ export function FactsManager() {
         <button
           type="button"
           onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 btn-tactile cursor-pointer shadow-2xs shrink-0"
+          className="px-3.5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer shrink-0"
         >
-          <Plus className="w-4 h-4" />
-          <span>Record Approved Fact</span>
+          Add fact
         </button>
       </div>
 
       {toastMessage && (
-        <div className="p-3 rounded-xl bg-brass/10 border border-brass/30 text-xs font-medium text-brass flex items-center gap-2 animate-fade-in shadow-2xs">
-          <CheckCircle2 className="w-4 h-4 text-brass shrink-0" />
+        <div className="p-3 rounded-lg border border-line bg-surface-2 text-sm text-text">
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Facts Grid */}
       {filteredFacts.length === 0 ? (
-        <div className="rounded-2xl border border-line bg-surface p-12 text-center space-y-4 shadow-2xs">
-          <div className="w-14 h-14 rounded-2xl bg-brass/10 border border-brass/25 mx-auto flex items-center justify-center text-brass shadow-2xs">
-            <ShieldCheck className="w-7 h-7" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-text">No verified corporate facts recorded</h3>
-            <p className="text-xs text-text-muted max-w-md mx-auto leading-relaxed">
-              Record codified company ground truths (minimum margin targets, cash runway thresholds, contract signing limits) that BizzPal uses as immutable baseline rules.
-            </p>
-          </div>
+        <div className="rounded-xl border border-line bg-surface p-12 text-center space-y-3">
+          <h3 className="text-sm font-semibold text-text">No facts yet</h3>
+          <p className="text-sm text-text-muted max-w-md mx-auto">
+            Add rules your advisors should always follow, such as minimum margin, runway limits or contract signing limits.
+          </p>
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer shadow-2xs btn-tactile"
+            className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span>Add First Approved Fact</span>
+            Add fact
           </button>
         </div>
       ) : (

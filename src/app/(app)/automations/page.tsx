@@ -1,21 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Zap,
-  Play,
-  Pause,
-  Plus,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  Settings2,
-  ShieldAlert,
-  Bell,
-  Sliders,
-  ArrowRight,
-  X
-} from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
 
@@ -325,280 +311,238 @@ export default function AutomationsPage() {
     ? automations
     : automations.filter(a => a.category === selectedCategory);
 
+  const inputClass =
+    "w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
+
+  const categoryLabel: Record<AutomationItem["category"], string> = {
+    finance: "Finance",
+    risk: "Risk",
+    operations: "Operations",
+    communications: "Reporting",
+  };
+
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-line">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-brass-soft flex items-center justify-center text-brass">
-              <Zap className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-text">Automations & Workflows</h1>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider">
-                  Autonomous Engine
-                </span>
-              </div>
-              <p className="text-xs text-text-muted mt-1 font-medium">
-                Continuous autonomous rules and event monitors that execute real-time interventions, emails, and financial guardrails for {companyName}.
-              </p>
-            </div>
-          </div>
+          <h1 className="text-xl font-bold text-text">Automations</h1>
+          <p className="text-sm text-text-muted mt-1">
+            Rules that watch {companyName}&apos;s numbers and act when something changes.
+          </p>
         </div>
-
-        {/* Create Workflow Button */}
         <button
           type="button"
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brass text-white text-xs font-semibold shadow-sm hover:brightness-110 btn-tactile cursor-pointer self-start sm:self-auto"
+          className="px-3.5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 inline-flex items-center gap-2 cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>New Automation Protocol</span>
+          New automation
         </button>
       </div>
 
       {toastMessage && (
-        <div className="p-3 rounded-xl bg-brass-soft border border-brass/30 text-xs font-medium text-brass flex items-center gap-2 animate-fade-in">
-          <CheckCircle2 className="w-4 h-4 text-brass" />
-          <span>{toastMessage}</span>
-        </div>
+        <p className="p-3 rounded-lg border border-line bg-surface-2 text-sm text-text">{toastMessage}</p>
       )}
 
-      {/* Category Pills */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <nav
+        className="inline-flex max-w-full items-center gap-1 p-1 rounded-lg bg-surface-2 border border-line overflow-x-auto"
+        aria-label="Automation categories"
+      >
         {[
-          { id: "all", label: "All Protocols" },
-          { id: "finance", label: "Financial Solvency" },
-          { id: "risk", label: "Risk & Governance" },
-          { id: "operations", label: "Team Operations" },
-          { id: "communications", label: "Executive Reporting" },
-        ].map(cat => (
-          <button
-            key={cat.id}
-            type="button"
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize border transition-all btn-tactile ${
-              selectedCategory === cat.id
-                ? "bg-brass text-white border-brass font-semibold"
-                : "bg-surface-2 border-line text-text-muted hover:text-text"
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
+          { id: "all", label: "All" },
+          { id: "finance", label: "Finance" },
+          { id: "risk", label: "Risk" },
+          { id: "operations", label: "Operations" },
+          { id: "communications", label: "Reporting" },
+        ].map(cat => {
+          const count = cat.id === "all" ? automations.length : automations.filter(a => a.category === cat.id).length;
+          const active = selectedCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-4 py-1.5 rounded-md text-sm whitespace-nowrap cursor-pointer transition-colors ${
+                active ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
+              }`}
+            >
+              {cat.label}
+              <span className={`ml-1.5 text-xs ${active ? "text-text-muted" : "text-text-muted/70"}`}>{count}</span>
+            </button>
+          );
+        })}
+      </nav>
 
-      {/* Main Two-Pane Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Active Automation Cards (8 cols) */}
+        {/* Rules */}
         <div className="lg:col-span-8 space-y-3">
-          <div className="text-xs font-semibold text-text-muted uppercase tracking-wider px-1">
-            Active Automation Rules ({filteredAutomations.length})
-          </div>
-
-          <div className="space-y-3">
-            {filteredAutomations.map(auto => (
+          {filteredAutomations.length === 0 ? (
+            <p className="p-10 text-center rounded-xl border border-line text-sm text-text-muted">
+              No automations in this category.
+            </p>
+          ) : (
+            filteredAutomations.map(auto => (
               <div
                 key={auto.id}
-                className={`p-4 rounded-xl border transition-all bg-surface shadow-theme space-y-3 ${
-                  auto.enabled ? "border-line hover:border-line-strong" : "border-line/50 opacity-70"
-                }`}
+                className={`p-5 rounded-xl border border-line bg-surface space-y-4 ${auto.enabled ? "" : "opacity-60"}`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold text-text">{auto.name}</span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-surface-2 border border-line text-brass font-bold uppercase">
-                        {auto.category}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-text-muted flex items-center gap-2 font-mono">
-                      <span>Cadence: {auto.frequency}</span>
-                      <span>·</span>
-                      <span>Executed {auto.runsCount} times</span>
-                    </div>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-medium text-text leading-snug">{auto.name}</h3>
+                    <p className="text-xs text-text-muted mt-1">
+                      {categoryLabel[auto.category]} · {auto.frequency} · run {auto.runsCount} times
+                    </p>
                   </div>
 
-                  {/* Toggle Switch */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => toggleAutomation(auto.id)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        auto.enabled ? "bg-brass" : "bg-surface-2 border-line"
+                  <button
+                    type="button"
+                    onClick={() => toggleAutomation(auto.id)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+                      auto.enabled ? "bg-brass" : "bg-line-strong"
+                    }`}
+                    role="switch"
+                    aria-checked={auto.enabled}
+                    aria-label={`${auto.enabled ? "Pause" : "Enable"} ${auto.name}`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition ${
+                        auto.enabled ? "translate-x-4" : "translate-x-0"
                       }`}
-                      role="switch"
-                      aria-checked={auto.enabled}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                          auto.enabled ? "translate-x-4" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
+                    />
+                  </button>
                 </div>
 
-                {/* Trigger & Action Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-2 border-t border-line/60">
-                  <div className="p-2.5 rounded-lg bg-surface-2 border border-line">
-                    <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider block mb-1">
-                      Trigger Condition
-                    </span>
-                    <p className="text-text text-[11px] leading-relaxed">{auto.trigger}</p>
-                  </div>
+                <dl className="grid grid-cols-1 sm:grid-cols-[4.5rem_1fr] gap-x-4 gap-y-2 text-sm">
+                  <dt className="text-text-muted">When</dt>
+                  <dd className="text-text">{auto.trigger}</dd>
+                  <dt className="text-text-muted">Then</dt>
+                  <dd className="text-text">{auto.action}</dd>
+                </dl>
 
-                  <div className="p-2.5 rounded-lg bg-surface-2 border border-line">
-                    <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider block mb-1">
-                      Autonomous Action
-                    </span>
-                    <p className="text-text text-[11px] leading-relaxed">{auto.action}</p>
-                  </div>
-                </div>
-
-                {/* Footer Controls */}
-                <div className="flex items-center justify-between pt-1 text-[11px] text-text-muted">
+                <div className="flex items-center justify-between pt-3 border-t border-line text-xs text-text-muted">
                   <span>Last run: {auto.lastRun}</span>
                   <button
                     type="button"
                     onClick={() => handleTestTrigger(auto)}
-                    className="flex items-center gap-1 text-brass hover:underline font-semibold cursor-pointer"
+                    className="text-sm text-brass hover:underline cursor-pointer"
                   >
-                    <Play className="w-3 h-3" />
-                    <span>Test Run Simulation</span>
+                    Run test
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
 
-        {/* Right: Real-time Execution Audit Log (4 cols) */}
-        <div className="lg:col-span-4 space-y-3">
-          <div className="text-xs font-semibold text-text-muted uppercase tracking-wider px-1">
-            Execution Log & Audit Trail
-          </div>
-
-          <div className="p-4 rounded-xl border border-line bg-surface shadow-theme space-y-3">
-            <div className="flex items-center justify-between text-xs pb-2 border-b border-line">
-              <span className="font-bold text-text">Autonomous Trigger Log</span>
-              <span className="text-[10px] text-emerald-500 font-bold uppercase flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Live Monitoring
-              </span>
-            </div>
-
-            <div className="space-y-3">
+        {/* Activity */}
+        <aside className="lg:col-span-4">
+          <div className="rounded-xl border border-line bg-surface lg:sticky lg:top-6">
+            <h2 className="px-5 py-4 text-sm font-medium text-text border-b border-line">Recent activity</h2>
+            <ul className="divide-y divide-line">
               {logs.map(log => (
-                <div key={log.id} className="p-2.5 rounded-lg bg-surface-2 border border-line space-y-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-bold text-text line-clamp-1">{log.automationName}</span>
-                    <span
-                      className={`text-[9px] px-1 py-0.2 rounded font-bold uppercase shrink-0 ${
-                        log.status === "triggered"
-                          ? "bg-amber/15 text-amber"
-                          : "bg-emerald-500/15 text-emerald-500"
-                      }`}
-                    >
-                      {log.status}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-text-muted leading-relaxed">{log.detail}</p>
-                  <span className="text-[10px] text-text-muted/80 font-mono block pt-0.5">
+                <li key={log.id} className="px-5 py-4">
+                  <p className="text-sm text-text leading-snug">{log.automationName}</p>
+                  <p className="text-sm text-text-muted leading-relaxed mt-1">{log.detail}</p>
+                  <p className="text-xs text-text-muted mt-2">
                     {log.timestamp}
-                  </span>
-                </div>
+                    {log.status === "triggered" && <span className="text-rust"> · triggered</span>}
+                  </p>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
-        </div>
+        </aside>
       </div>
 
-      {/* New Automation Modal */}
       <PortalModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)}>
         <form
           onSubmit={handleCreateAutomation}
-          className="max-w-lg w-full bg-surface border border-line rounded-2xl shadow-2xl p-6 space-y-4 animate-scale-in"
+          className="w-[34rem] max-w-[calc(100vw-2rem)] bg-surface border border-line rounded-xl shadow-lg overflow-hidden"
         >
-          <div className="flex items-center justify-between pb-3 border-b border-line">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-brass" />
-              <h2 className="text-sm font-bold text-text">Create Automation Protocol</h2>
+          <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-text">New automation</h2>
+              <p className="text-sm text-text-muted mt-1">Choose what to watch and what should happen.</p>
             </div>
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(false)}
-              className="p-1 rounded-lg border border-line bg-surface-2 text-text-muted hover:text-text"
+              aria-label="Close"
+              className="p-1 rounded-lg text-text-muted hover:text-text cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="space-y-3 text-xs">
-            <div>
-              <label className="font-semibold text-text block mb-1">Protocol Name *</label>
-              <input
-                type="text"
-                required
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                placeholder="e.g. Stripe Webhook Reconciliation"
-                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-line text-text focus:ring-1 focus:ring-brass"
-              />
+          <div className="px-6 pb-6 space-y-5 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+              <div className="sm:col-span-3">
+                <label className="font-medium text-text block mb-1.5">Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  placeholder="e.g. Payment reconciliation"
+                  className={inputClass}
+                  autoFocus
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="font-medium text-text block mb-1.5">Category</label>
+                <select
+                  value={newCategory}
+                  onChange={e => setNewCategory(e.target.value as AutomationItem["category"])}
+                  className={inputClass}
+                >
+                  <option value="finance">Finance</option>
+                  <option value="risk">Risk</option>
+                  <option value="operations">Operations</option>
+                  <option value="communications">Reporting</option>
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label className="font-semibold text-text block mb-1">Operational Category</label>
-              <select
-                value={newCategory}
-                onChange={e => setNewCategory(e.target.value as any)}
-                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-line text-text focus:ring-1 focus:ring-brass"
-              >
-                <option value="finance">Finance & Treasury</option>
-                <option value="risk">Risk & Defensibility</option>
-                <option value="operations">Operations & Talent</option>
-                <option value="communications">Communications & Stakeholders</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="font-semibold text-text block mb-1">Trigger Event</label>
-              <input
-                type="text"
-                value={newTrigger}
-                onChange={e => setNewTrigger(e.target.value)}
-                placeholder="e.g. Daily at 08:00 AM IST or When runway drops below 6 months"
-                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-line text-text focus:ring-1 focus:ring-brass"
-              />
-            </div>
-
-            <div>
-              <label className="font-semibold text-text block mb-1">Automated Action Execution</label>
-              <input
-                type="text"
-                value={newAction}
-                onChange={e => setNewAction(e.target.value)}
-                placeholder="e.g. Notify CFO AI & alert founder on high-priority gap"
-                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-line text-text focus:ring-1 focus:ring-brass"
-              />
+            <div className="rounded-lg border border-line divide-y divide-line">
+              <div className="p-4">
+                <label className="font-medium text-text block mb-1.5">When this happens</label>
+                <textarea
+                  rows={2}
+                  required
+                  value={newTrigger}
+                  onChange={e => setNewTrigger(e.target.value)}
+                  placeholder="e.g. Cash runway drops below 6 months"
+                  className={`${inputClass} resize-none`}
+                />
+                <p className="text-xs text-text-muted mt-1.5">A condition or a schedule, such as &ldquo;Every Friday at 9 AM&rdquo;.</p>
+              </div>
+              <div className="p-4 bg-surface-2/40">
+                <label className="font-medium text-text block mb-1.5">Do this</label>
+                <textarea
+                  rows={2}
+                  required
+                  value={newAction}
+                  onChange={e => setNewAction(e.target.value)}
+                  placeholder="e.g. Notify the CFO and flag it in the Gap Register"
+                  className={`${inputClass} resize-none`}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-line flex items-center justify-end gap-2">
+          <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(false)}
-              className="px-4 py-2 rounded-lg border border-line text-xs font-semibold text-text-muted hover:text-text"
+              className="px-3.5 py-2 rounded-lg text-text-muted hover:text-text text-sm cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-lg bg-brass text-white text-xs font-bold shadow-md hover:brightness-110 btn-tactile cursor-pointer"
+              className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
             >
-              Deploy Protocol
+              Create automation
             </button>
           </div>
         </form>

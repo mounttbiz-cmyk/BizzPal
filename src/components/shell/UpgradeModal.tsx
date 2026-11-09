@@ -48,7 +48,7 @@ export function UpgradeModal({ featureLabel, requiredPlan, onClose }: UpgradeMod
   return (
     <PortalModal isOpen={true} onClose={onClose}>
       <div
-        className="w-full max-w-sm p-6 rounded-2xl border border-line bg-surface shadow-2xl space-y-4 animate-scale-up"
+        className="w-full max-w-sm p-6 rounded-xl border border-line bg-surface shadow-lg space-y-4 "
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">

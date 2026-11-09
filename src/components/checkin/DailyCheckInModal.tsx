@@ -148,7 +148,7 @@ export function DailyCheckInModal({
       case "dollar":
         return <DollarSign className="w-3.5 h-3.5 text-jade shrink-0" />;
       case "users":
-        return <Users className="w-3.5 h-3.5 text-cyan-400 shrink-0" />;
+        return <Users className="w-3.5 h-3.5 text-brass shrink-0" />;
       case "shield":
         return <ShieldAlert className="w-3.5 h-3.5 text-rust shrink-0" />;
       default:
@@ -166,7 +166,7 @@ export function DailyCheckInModal({
       case "purple":
         return "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30";
       case "cyan":
-        return "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30";
+        return "bg-brass/15 text-brass dark:text-brass border-brass/30";
       case "jade":
         return "bg-jade/15 text-jade border-jade/30";
       default:
@@ -183,7 +183,7 @@ export function DailyCheckInModal({
       onClick={onClose}
     >
       <div
-        className="max-w-xl w-full p-6 rounded-2xl bg-surface border border-line shadow-2xl space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto"
+        className="max-w-xl w-full p-6 rounded-xl bg-surface border border-line shadow-lg space-y-5  max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -195,7 +195,7 @@ export function DailyCheckInModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-text">Daily Executive Check-In</h2>
-                <span className="text-[10px] px-2 py-0.2 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono font-semibold">
+                <span className="text-[10px] px-2 py-0.2 rounded-full bg-brass/10 text-brass border border-brass/20 font-mono font-semibold">
                   &lt; 60 seconds
                 </span>
               </div>

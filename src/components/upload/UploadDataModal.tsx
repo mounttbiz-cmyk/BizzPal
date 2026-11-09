@@ -243,11 +243,11 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
 
   return (
     <PortalModal isOpen={isOpen} onClose={onClose}>
-      <div className="w-full max-w-3xl max-h-[90vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden backdrop-blur-2xl">
+      <div className="w-full max-w-3xl max-h-[90vh] flex flex-col bg-surface border border-line rounded-xl shadow-lg overflow-hidden backdrop-blur-2xl">
         {/* Modal Header */}
         <div className="p-5 sm:p-6 border-b border-line flex items-center justify-between bg-surface-2/40">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-brass/15 border border-brass/30 flex items-center justify-center text-brass shrink-0">
               <UploadCloud className="w-5 h-5" />
             </div>
             <div>
@@ -255,7 +255,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                   Upload Business Data
                 </h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 font-mono font-bold border border-cyan-500/30">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass/15 text-brass dark:text-brass font-mono font-bold border border-brass/30">
                   Telemetry Sync
                 </span>
               </div>
@@ -290,7 +290,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`py-3 px-4 flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
                   isActive
-                    ? "border-cyan-500 text-cyan-600 dark:text-cyan-400 font-bold"
+                    ? "border-brass text-brass dark:text-brass font-bold"
                     : "border-transparent text-text-muted hover:text-text hover:border-line"
                 }`}
               >
@@ -313,10 +313,10 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
                   dragActive
-                    ? "border-cyan-400 bg-cyan-500/10 shadow-lg shadow-cyan-500/10"
-                    : "border-line hover:border-cyan-500/50 bg-surface-2/30 hover:bg-surface-2/50"
+                    ? "border-brass bg-brass/10 shadow-lg shadow-brass/10"
+                    : "border-line hover:border-brass/50 bg-surface-2/30 hover:bg-surface-2/50"
                 }`}
               >
                 <input
@@ -326,7 +326,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                   className="hidden"
                   onChange={handleFileChange}
                 />
-                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-3">
+                <div className="w-12 h-12 rounded-xl bg-brass/10 border border-brass/20 flex items-center justify-center text-brass mb-3">
                   <UploadCloud className="w-6 h-6" />
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -347,7 +347,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
               {/* Sample Templates Download Helpers */}
               <div className="p-4 rounded-xl bg-surface-2/40 border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <Download className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <Download className="w-4 h-4 text-brass shrink-0" />
                   <div>
                     <span className="text-xs font-bold text-slate-900 dark:text-white block">
                       Download Ready-to-Use CSV Templates
@@ -364,9 +364,9 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     onClick={() =>
                       downloadFile(generateSampleBusinessCsv(), "bizzpal_business_data_template.csv")
                     }
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-line hover:border-cyan-500 text-text transition-all flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-line hover:border-brass text-text transition-all flex items-center gap-1 cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5 text-cyan-400" />
+                    <Download className="w-3.5 h-3.5 text-brass" />
                     <span>Standard Metrics</span>
                   </button>
 
@@ -378,9 +378,9 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                         "bizzpal_monthly_financials_template.csv"
                       )
                     }
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-line hover:border-cyan-500 text-text transition-all flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-line hover:border-brass text-text transition-all flex items-center gap-1 cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5 text-cyan-400" />
+                    <Download className="w-3.5 h-3.5 text-brass" />
                     <span>Monthly Financials</span>
                   </button>
                 </div>
@@ -401,7 +401,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-sans">
                       Detected Business Telemetry ({parsedPreview.rowCount} {parsedPreview.rowCount === 1 ? "row" : "rows"})
                     </span>
-                    <span className="text-[11px] font-mono text-cyan-500">
+                    <span className="text-[11px] font-mono text-brass">
                       {parsedPreview.detectedColumns.length} columns recognized
                     </span>
                   </div>
@@ -416,7 +416,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
 
                     <div className="p-3 rounded-xl bg-surface-2/60 border border-line">
                       <span className="text-[10px] text-text-muted uppercase font-semibold block">Monthly Revenue</span>
-                      <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400 font-mono block mt-0.5">
+                      <span className="text-sm font-bold text-brass dark:text-brass font-mono block mt-0.5">
                         ₹{(parsedPreview.monthlyRevenue || 0).toLocaleString("en-IN")}
                       </span>
                     </div>
@@ -474,7 +474,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     type="button"
                     onClick={handleCommitUpload}
                     disabled={isSubmitting}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs shadow-lg shadow-cyan-500/25 hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 btn-tactile cursor-pointer"
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-brass to-indigo-600 text-white font-bold text-xs shadow-lg shadow-brass/25 hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 btn-tactile cursor-pointer"
                   >
                     <Sliders className="w-4 h-4" />
                     <span>{isSubmitting ? "Synchronizing Dashboard..." : "Confirm & Apply to Dashboard →"}</span>
@@ -495,7 +495,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     required
                     value={manualForm.name}
                     onChange={e => setManualForm({ ...manualForm, name: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-cyan-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-brass"
                   />
                 </div>
 
@@ -505,7 +505,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     type="text"
                     value={manualForm.founderName}
                     onChange={e => setManualForm({ ...manualForm, founderName: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-cyan-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-brass"
                   />
                 </div>
 
@@ -514,7 +514,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                   <select
                     value={manualForm.industry}
                     onChange={e => setManualForm({ ...manualForm, industry: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-cyan-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-brass"
                   >
                     <option value="saas">B2B SaaS & Cloud Platforms</option>
                     <option value="d2c">D2C & Direct Commerce</option>
@@ -532,7 +532,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     min="1"
                     value={manualForm.teamSize}
                     onChange={e => setManualForm({ ...manualForm, teamSize: Number(e.target.value) })}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-cyan-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-brass"
                   />
                 </div>
 
@@ -551,7 +551,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                         annualRevenue: Number(e.target.value) * 12,
                       })
                     }
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-cyan-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-brass"
                   />
                 </div>
 
@@ -564,7 +564,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     required
                     value={manualForm.monthlyBurn}
                     onChange={e => setManualForm({ ...manualForm, monthlyBurn: Number(e.target.value) })}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-cyan-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-brass"
                   />
                 </div>
 
@@ -577,7 +577,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     required
                     value={manualForm.cashOnHand}
                     onChange={e => setManualForm({ ...manualForm, cashOnHand: Number(e.target.value) })}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-cyan-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-brass"
                   />
                 </div>
 
@@ -589,7 +589,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     max="100"
                     value={manualForm.grossMargin}
                     onChange={e => setManualForm({ ...manualForm, grossMargin: Number(e.target.value) })}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-cyan-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text focus:outline-hidden focus:border-brass"
                   />
                 </div>
               </div>
@@ -598,7 +598,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs shadow-lg shadow-cyan-500/25 hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 btn-tactile cursor-pointer"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-brass to-indigo-600 text-white font-bold text-xs shadow-lg shadow-brass/25 hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 btn-tactile cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   <span>{isSubmitting ? "Applying..." : "Save & Synchronize Dashboard"}</span>
@@ -649,7 +649,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     {historyList.map(item => (
                       <div key={item.id} className="p-3 flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-cyan-400" />
+                          <FileText className="w-4 h-4 text-brass" />
                           <span className="font-semibold text-text">{item.fileName}</span>
                           <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-surface-2 border border-line font-mono text-text-muted uppercase">
                             {item.fileType}

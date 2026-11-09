@@ -2,30 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import {
-  Search,
-  Users,
-  History,
-  Building2,
-  MapPin,
-  FileSpreadsheet,
-  Download,
-  CheckCircle2,
-  AlertTriangle,
-  Globe,
-  Star,
-  Copy,
-  Check,
-  Send,
-  Trash2,
-  Target,
-  ChevronDown,
-  ChevronUp,
-  Layers,
-  ArrowRight,
-  ShieldCheck,
-  Plus,
-} from "lucide-react";
+import { Search, Copy, Check, Send, Trash2, Target, ChevronDown, ChevronUp } from "lucide-react";
 import {
   DataPalBusinessLead,
   DataPalSearchCampaign,
@@ -134,6 +111,7 @@ export default function DataPalPage() {
   const [resultsSearchQuery, setResultsSearchQuery] = useState("");
   const [opportunityFilter, setOpportunityFilter] = useState<string>("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [leadsPage, setLeadsPage] = useState(1);
   const [pushTaskStatus, setPushTaskStatus] = useState<string | null>(null);
 
   // Extraction Quantity & Credit Quota state (Requirements 3, 4 & 5)
@@ -496,6 +474,16 @@ export default function DataPalPage() {
     return list;
   }, [activeCampaign, resultsSearchQuery, opportunityFilter]);
 
+  // Pagination for the results table
+  const LEADS_PAGE_SIZE = 25;
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / LEADS_PAGE_SIZE));
+  const safePage = Math.min(leadsPage, totalPages);
+  const pagedLeads = filteredLeads.slice((safePage - 1) * LEADS_PAGE_SIZE, safePage * LEADS_PAGE_SIZE);
+
+  useEffect(() => {
+    setLeadsPage(1);
+  }, [activeCampaign?.id, resultsSearchQuery, opportunityFilter]);
+
   // Lead selection checkboxes
   const toggleSelectLead = (id: string) => {
     setSelectedLeadIds(prev => {
@@ -532,10 +520,10 @@ export default function DataPalPage() {
     setPushTaskStatus("Pushing to Tasks...");
     const result = await pushLeadsToBizzPalTasks(leadsToPush);
     if (result.success) {
-      setPushTaskStatus(`✅ Created ${result.count} outreach tasks in BizzPal!`);
+      setPushTaskStatus(`Created ${result.count} outreach tasks in BizzPal!`);
       setTimeout(() => setPushTaskStatus(null), 3500);
     } else {
-      setPushTaskStatus("⚠️ Saved locally (Check Tasks tab)");
+      setPushTaskStatus("Saved locally (Check Tasks tab)");
       setTimeout(() => setPushTaskStatus(null), 3000);
     }
   };
@@ -588,7 +576,7 @@ export default function DataPalPage() {
     : `${countryCodes[0] || "India"}`;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-20 animate-fade-in px-2 sm:px-4">
+    <div className="space-y-6 pb-20 animate-fade-in">
       {/* Header: One compact row */}
       <DataPalHeader />
 
@@ -600,18 +588,10 @@ export default function DataPalPage() {
         historyCount={campaigns.length}
       />
 
-      {/* Success Notification Toast */}
       {successToast && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center justify-between shadow-xs animate-fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>{successToast}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSuccessToast(null)}
-            className="text-text-muted hover:text-text text-xs p-1"
-          >
+        <div className="p-3 rounded-lg border border-line bg-surface-2 text-sm text-text flex items-center justify-between">
+          <span>{successToast}</span>
+          <button type="button" onClick={() => setSuccessToast(null)} className="text-text-muted hover:text-text px-1 cursor-pointer">
             ✕
           </button>
         </div>
@@ -624,25 +604,22 @@ export default function DataPalPage() {
         <div className="space-y-6">
           {/* AI Smart Matcher Slim Banner (Visible only when feature flag is ON) */}
           {aiMatcherEnabled && (
-            <div className="p-3 sm:p-4 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Target className="w-4 h-4 text-brass shrink-0" />
-                <span className="text-text font-semibold truncate">
-                  AI Smart Matcher: Automatically configure target categories from your service pitch or brochure.
-                </span>
-              </div>
+            <div className="p-3 rounded-lg border border-line flex items-center justify-between gap-3 text-sm">
+              <span className="text-text-muted truncate">
+                Describe your service and let AI pick the right categories.
+              </span>
               <button
                 type="button"
                 onClick={() => setIsAiDrawerOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-brass text-white text-xs font-bold shrink-0 hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-2xs"
+                className="px-3.5 py-1.5 rounded-lg border border-line text-sm font-medium text-text hover:bg-surface-2 shrink-0 cursor-pointer"
               >
-                Open AI Matcher
+                Open
               </button>
             </div>
           )}
 
           {/* Single Unified Card Container with Soft Dividers */}
-          <div className="bg-surface border border-line rounded-2xl shadow-theme overflow-hidden divide-y divide-line">
+          <div className="bg-surface border border-line rounded-xl overflow-hidden divide-y divide-line">
             {/* -------------------------------------------------------- */}
             {/* STEP 1: What data do you need?                           */}
             {/* -------------------------------------------------------- */}
@@ -653,14 +630,11 @@ export default function DataPalPage() {
                 className="flex items-center justify-between cursor-pointer md:cursor-default"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-brass/15 text-brass border border-brass/30 flex items-center justify-center text-xs font-bold shrink-0">
-                    1
-                  </div>
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-text tracking-tight">
+                    <h2 className="text-lg font-semibold text-text">
                       What data do you need?
                     </h2>
-                    <p className="text-xs text-text-muted">
+                    <p className="text-sm text-text-muted mt-0.5">
                       Search any business, professional or audience.
                     </p>
                   </div>
@@ -712,14 +686,11 @@ export default function DataPalPage() {
                 className="flex items-center justify-between cursor-pointer md:cursor-default"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-brass/15 text-brass border border-brass/30 flex items-center justify-center text-xs font-bold shrink-0">
-                    2
-                  </div>
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-text tracking-tight">
+                    <h2 className="text-lg font-semibold text-text">
                       Where?
                     </h2>
-                    <p className="text-xs text-text-muted">
+                    <p className="text-sm text-text-muted">
                       Select target countries, states, cities, or enter a locality.
                     </p>
                   </div>
@@ -774,16 +745,13 @@ export default function DataPalPage() {
             {/* OPTIONAL STEP: Pitch Angle (when feature flag is ON)     */}
             {/* -------------------------------------------------------- */}
             {pitchAngleEnabled && (
-              <div className="p-5 sm:p-7 space-y-4 bg-surface-2/20">
+              <div className="p-5 sm:p-7 space-y-4 ">
                 <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-surface-2 text-text-muted border border-line flex items-center justify-center text-xs font-bold shrink-0">
-                    ★
-                  </div>
                   <div>
-                    <h3 className="text-base font-bold text-text tracking-tight">
-                      Pitch Angle / Digital Gap (Optional)
+                    <h3 className="text-base font-semibold text-text">
+                      Pitch angle (optional)
                     </h3>
-                    <p className="text-xs text-text-muted">
+                    <p className="text-sm text-text-muted">
                       Target businesses missing critical digital infrastructure.
                     </p>
                   </div>
@@ -800,7 +768,7 @@ export default function DataPalPage() {
             {/* OPTIONAL: Advanced Verification Rules (Flag ON)          */}
             {/* -------------------------------------------------------- */}
             {advancedRulesEnabled && (
-              <div className="p-5 sm:p-7 space-y-4 bg-surface-2/20">
+              <div className="p-5 sm:p-7 space-y-4 ">
                 <AdvancedOptions
                   mustHavePhone={mustHavePhone}
                   onMustHavePhoneChange={setMustHavePhone}
@@ -817,16 +785,13 @@ export default function DataPalPage() {
             {/* -------------------------------------------------------- */}
             {/* STEP 3: Review and generate                              */}
             {/* -------------------------------------------------------- */}
-            <div className="p-5 sm:p-7 space-y-4 bg-surface-2/30">
+            <div className="p-5 sm:p-7 space-y-4 ">
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-brass/15 text-brass border border-brass/30 flex items-center justify-center text-xs font-bold shrink-0">
-                  3
-                </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-text tracking-tight">
+                  <h2 className="text-lg font-semibold text-text">
                     Review and generate
                   </h2>
-                  <p className="text-xs text-text-muted">
+                  <p className="text-sm text-text-muted">
                     Confirm your criteria and extract verified contact records.
                   </p>
                 </div>
@@ -865,364 +830,237 @@ export default function DataPalPage() {
       {activeTab === "leads" && (
         <div className="space-y-5">
           {!activeCampaign ? (
-            <div className="text-center py-16 bg-surface border border-line rounded-2xl p-8 space-y-4 shadow-theme">
-              <div className="w-12 h-12 rounded-2xl bg-surface-2 border border-line flex items-center justify-center mx-auto text-text-muted">
-                <Search className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-text">No extraction results available</h3>
-              <p className="text-xs text-text-muted max-w-md mx-auto">
-                Start a search in the Search tab to generate verified contact records and leads.
+            <div className="text-center py-16 bg-surface border border-line rounded-xl p-8 space-y-3">
+              <h3 className="text-base font-semibold text-text">No results yet</h3>
+              <p className="text-sm text-text-muted max-w-md mx-auto">
+                Run a search to get verified contact records.
               </p>
               <button
                 type="button"
                 onClick={() => setActiveTab("search")}
-                className="px-5 py-2.5 rounded-xl bg-brass text-white font-bold text-xs shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
               >
                 Go to Search
               </button>
             </div>
           ) : (
             <>
-              {/* Campaign Header & Controls */}
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface border border-line rounded-2xl p-4 sm:p-5 shadow-theme">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0">
-                    <Building2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base sm:text-lg font-bold text-text tracking-tight">
-                      {activeCampaign.title}
-                    </h2>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted mt-0.5">
-                      <span className="flex items-center gap-1 font-medium">
-                        <MapPin className="w-3.5 h-3.5 text-brass" />
-                        {activeCampaign.location}
-                      </span>
-                      <span>•</span>
-                      <span>{activeCampaign.results.length} records extracted</span>
-                      <span>•</span>
-                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        Zero Duplicates (Filtered against past searches)
-                      </span>
-                    </div>
-                  </div>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-base font-semibold text-text">{activeCampaign.title}</h2>
+                  <p className="text-sm text-text-muted mt-0.5">
+                    {activeCampaign.location} · {activeCampaign.results.length} records · duplicates from past searches removed
+                  </p>
                 </div>
 
-                {/* Actions */}
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setIsCreditsModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brass/10 border border-brass/30 text-xs font-bold text-brass hover:bg-brass hover:text-white transition-all cursor-pointer"
+                    className="px-3.5 py-2 rounded-lg border border-line text-sm font-medium text-text hover:bg-surface-2 cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Buy more credit ({creditStatus.remainingQuota} left)</span>
+                    Buy credits ({creditStatus.remainingQuota} left)
                   </button>
-
                   <button
                     type="button"
                     onClick={handleExportExcel}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs font-bold text-text hover:text-brass transition-all cursor-pointer"
+                    className="px-3.5 py-2 rounded-lg border border-line text-sm font-medium text-text hover:bg-surface-2 cursor-pointer"
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-brass" />
-                    <span>Export Excel</span>
+                    Export Excel
                   </button>
-
                   <button
                     type="button"
                     onClick={handleExportCSV}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs font-bold text-text hover:text-brass transition-all cursor-pointer"
+                    className="px-3.5 py-2 rounded-lg border border-line text-sm font-medium text-text hover:bg-surface-2 cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5 text-brass" />
-                    <span>Export CSV</span>
+                    Export CSV
                   </button>
-
                   <button
                     type="button"
                     onClick={handlePushToTasks}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brass text-white text-xs font-bold transition-all shadow-theme hover:brightness-110 active:scale-95 cursor-pointer"
+                    className="px-3.5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Push to Tasks</span>
+                    Push to tasks
                   </button>
                 </div>
               </div>
 
               {pushTaskStatus && (
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-emerald-700 dark:text-emerald-400 text-xs font-semibold flex items-center justify-between">
+                <div className="p-3 rounded-lg border border-line bg-surface-2 text-sm text-text flex items-center justify-between">
                   <span>{pushTaskStatus}</span>
-                  <Link href="/tasks" className="underline hover:brightness-110 font-bold ml-2">
-                    View in Tasks & Execution →
+                  <Link href="/tasks" className="text-brass hover:underline ml-2">
+                    View tasks
                   </Link>
                 </div>
               )}
 
-              {/* Metrics Summary Row */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-4 rounded-xl bg-surface border border-line shadow-theme">
-                  <p className="text-xl font-bold text-text tracking-tight">
-                    {activeCampaign.results.length}
-                  </p>
-                  <p className="text-xs text-text-muted font-medium mt-0.5">Total Extracted</p>
-                </div>
+              <p className="text-sm text-text-muted">
+                <span className="font-semibold text-text">{activeCampaign.results.length}</span> extracted ·{" "}
+                <span className="font-semibold text-text">{activeCampaign.phoneCount}</span> with phone (
+                {Math.round((activeCampaign.phoneCount / (activeCampaign.results.length || 1)) * 100)}%) ·{" "}
+                <span className="font-semibold text-text">{activeCampaign.emailCount}</span> with email (
+                {Math.round((activeCampaign.emailCount / (activeCampaign.results.length || 1)) * 100)}%) ·{" "}
+                <span className="font-semibold text-text">{activeCampaign.opportunityCount}</span> high potential
+              </p>
 
-                <div className="p-4 rounded-xl bg-surface border border-line shadow-theme">
-                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">
-                    {activeCampaign.phoneCount}
-                    <span className="text-xs font-semibold text-text-muted ml-1 font-normal">
-                      ({Math.round((activeCampaign.phoneCount / (activeCampaign.results.length || 1)) * 100)}%)
-                    </span>
-                  </p>
-                  <p className="text-xs text-text-muted font-medium mt-0.5">Verified Phone Numbers</p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-surface border border-line shadow-theme">
-                  <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400 tracking-tight">
-                    {activeCampaign.emailCount}
-                    <span className="text-xs font-semibold text-text-muted ml-1 font-normal">
-                      ({Math.round((activeCampaign.emailCount / (activeCampaign.results.length || 1)) * 100)}%)
-                    </span>
-                  </p>
-                  <p className="text-xs text-text-muted font-medium mt-0.5">Verified Emails</p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-surface border border-line shadow-theme">
-                  <p className="text-xl font-bold text-brass tracking-tight">
-                    {activeCampaign.opportunityCount}
-                  </p>
-                  <p className="text-xs text-text-muted font-medium mt-0.5">High Potential Targets</p>
-                </div>
-              </div>
-
-              {/* Filter & Search Bar */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface border border-line rounded-xl p-2.5 shadow-theme">
-                <div className="flex-1 relative">
-                  <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={resultsSearchQuery}
-                    onChange={e => setResultsSearchQuery(e.target.value)}
-                    placeholder="Search by name, phone, email, locality..."
-                    className="w-full pl-10 pr-3 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
-                  />
-                </div>
-
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                  {[
-                    { id: "all", label: "All Records" },
-                    { id: "critical", label: "Missing Website" },
-                    { id: "whatsapp", label: "Has Phone" },
-                    { id: "email", label: "Has Email" },
-                    { id: "high_rating", label: "Top Rated (4.7+)" },
-                  ].map(f => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => setOpportunityFilter(f.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                        opportunityFilter === f.id
-                          ? "bg-brass/20 text-brass border border-brass/40 shadow-xs font-bold"
-                          : "bg-surface-2 text-text-muted hover:text-text"
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={resultsSearchQuery}
+                  onChange={e => setResultsSearchQuery(e.target.value)}
+                  placeholder="Search name, phone, email, area…"
+                  className="flex-1 sm:max-w-sm px-3.5 py-2 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
+                />
+                <select
+                  value={opportunityFilter}
+                  onChange={e => setOpportunityFilter(e.target.value)}
+                  className="px-3 py-2 rounded-lg border border-line bg-surface text-sm text-text cursor-pointer"
+                  aria-label="Filter records"
+                >
+                  <option value="all">All records</option>
+                  <option value="critical">No website</option>
+                  <option value="whatsapp">Has phone</option>
+                  <option value="email">Has email</option>
+                  <option value="high_rating">Rated 4.7+</option>
+                </select>
               </div>
 
               {/* Leads Table */}
-              <div className="bg-surface border border-line rounded-2xl overflow-hidden shadow-theme">
+              <div className="bg-surface border border-line rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-line bg-surface-2/60 text-[10px] uppercase font-bold text-text-muted tracking-wider">
-                        <th className="py-3 px-3 w-8 text-center">
+                      <tr className="border-b border-line text-xs font-medium text-text-muted">
+                        <th className="py-3 pl-5 pr-2 w-10">
                           <input
                             type="checkbox"
-                            checked={
-                              filteredLeads.length > 0 &&
-                              selectedLeadIds.size === filteredLeads.length
-                            }
+                            checked={filteredLeads.length > 0 && selectedLeadIds.size === filteredLeads.length}
                             onChange={selectAllFilteredLeads}
-                            className="rounded border-line text-brass w-3.5 h-3.5 accent-[#DFBA73]"
+                            className="w-4 h-4 cursor-pointer accent-[#8a6414]"
+                            aria-label="Select all records"
                           />
                         </th>
-                        <th className="py-3 px-3 w-10 text-center">#</th>
-                        <th className="py-3 px-3 min-w-[200px]">Entity / Business</th>
-                        <th className="py-3 px-3 min-w-[130px]">Category</th>
-                        <th className="py-3 px-3 min-w-[180px]">Address & Locality</th>
-                        <th className="py-3 px-3 min-w-[140px]">Phone Number</th>
-                        <th className="py-3 px-3 min-w-[140px]">Email Address</th>
-                        <th className="py-3 px-3 min-w-[90px]">Rating</th>
-                        <th className="py-3 px-3 min-w-[120px]">Presence</th>
-                        <th className="py-3 px-3 min-w-[240px]">Opportunity Notes</th>
-                        <th className="py-3 px-3 w-16 text-center">WhatsApp</th>
+                        <th className="py-3 px-4 min-w-[260px]">Business</th>
+                        <th className="py-3 px-4 min-w-[220px]">Contact</th>
+                        <th className="py-3 px-4 min-w-[240px]">Location</th>
+                        <th className="py-3 px-4 w-28">Rating</th>
+                        <th className="py-3 pl-4 pr-5 w-16"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-line/60 text-xs">
-                      {filteredLeads.length === 0 ? (
+                    <tbody className="divide-y divide-line">
+                      {pagedLeads.length === 0 ? (
                         <tr>
-                          <td colSpan={11} className="py-12 text-center text-text-muted">
-                            No records match your filter criteria.
+                          <td colSpan={6} className="py-16 text-center text-sm text-text-muted">
+                            No records match your filters.
                           </td>
                         </tr>
                       ) : (
-                        filteredLeads.map((lead, idx) => {
+                        pagedLeads.map(lead => {
                           const isSelected = selectedLeadIds.has(lead.id);
                           return (
-                            <tr
-                              key={lead.id}
-                              className={`hover:bg-surface-2/60 transition-colors ${
-                                isSelected ? "bg-brass/5" : ""
-                              }`}
-                            >
-                              <td className="py-2.5 px-3 text-center">
+                            <tr key={lead.id} className={`align-top hover:bg-surface-2/50 ${isSelected ? "bg-brass/[0.04]" : ""}`}>
+                              <td className="py-4 pl-5 pr-2">
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
                                   onChange={() => toggleSelectLead(lead.id)}
-                                  className="rounded border-line text-brass w-3.5 h-3.5 cursor-pointer accent-[#DFBA73]"
+                                  className="w-4 h-4 mt-0.5 cursor-pointer accent-[#8a6414]"
+                                  aria-label={`Select ${lead.name}`}
                                 />
                               </td>
 
-                              <td className="py-2.5 px-3 text-center font-mono text-text-muted text-[11px]">
-                                {idx + 1}
-                              </td>
-
-                              <td className="py-2.5 px-3">
-                                <div className="font-bold text-text truncate max-w-[200px]">
-                                  {lead.name}
-                                </div>
-                                <div className="flex items-center gap-1.5 mt-0.5">
+                              <td className="py-4 px-4">
+                                <p className="text-sm font-medium text-text leading-snug">{lead.name}</p>
+                                <p className="text-xs text-text-muted mt-1">{lead.category}</p>
+                                <p className="text-xs mt-1">
                                   {lead.website ? (
                                     <a
                                       href={lead.website}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="text-[11px] text-brass hover:underline flex items-center gap-1 truncate max-w-[160px]"
+                                      className="text-brass hover:underline"
                                     >
-                                      <Globe className="w-3 h-3 shrink-0" />
-                                      <span>Website</span>
+                                      Website
                                     </a>
                                   ) : (
-                                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
-                                      No Website
-                                    </span>
+                                    <span className="text-text-muted">No website</span>
                                   )}
-                                  <span className="text-[10px] text-text-muted/60">•</span>
-                                  <span className="text-[10px] text-text-muted truncate">
-                                    {lead.source?.split(" ")[0] || "Directory"}
-                                  </span>
-                                </div>
+                                </p>
                               </td>
 
-                              <td className="py-2.5 px-3">
-                                <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-surface-2 border border-line text-text truncate block max-w-[130px]">
-                                  {lead.category}
-                                </span>
-                              </td>
-
-                              <td className="py-2.5 px-3">
-                                <div className="text-text-muted text-[11px] truncate max-w-[180px]" title={lead.address}>
-                                  {lead.address}
-                                </div>
-                                <div className="text-[10px] text-text-muted/70 font-mono">
-                                  {lead.city}, {lead.postalCode}
-                                </div>
-                              </td>
-
-                              <td className="py-2.5 px-3 font-mono">
+                              <td className="py-4 px-4 text-sm space-y-1.5">
                                 {lead.phone ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <a
-                                      href={`tel:${lead.phone}`}
-                                      className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold text-[11px]"
-                                    >
+                                  <div className="flex items-center gap-2">
+                                    <a href={`tel:${lead.phone}`} className="text-text hover:underline whitespace-nowrap">
                                       {lead.phone}
                                     </a>
                                     <button
                                       type="button"
                                       onClick={() => copyText(lead.phone!, `phone_${lead.id}`)}
-                                      className="p-1 hover:bg-surface-2 rounded text-text-muted hover:text-text text-[10px]"
+                                      className="p-1 rounded text-text-muted hover:text-text cursor-pointer"
                                       title="Copy phone"
                                     >
                                       {copiedId === `phone_${lead.id}` ? (
-                                        <Check className="w-3 h-3 text-emerald-500" />
+                                        <Check className="w-3.5 h-3.5 text-jade" />
                                       ) : (
-                                        <Copy className="w-3 h-3" />
+                                        <Copy className="w-3.5 h-3.5" />
                                       )}
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-text-muted/40">—</span>
+                                  <p className="text-text-muted">No phone</p>
                                 )}
-                              </td>
-
-                              <td className="py-2.5 px-3 font-mono">
                                 {lead.email ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-cyan-600 dark:text-cyan-400 text-[11px] truncate max-w-[120px]" title={lead.email}>
-                                      {lead.email}
-                                    </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-text-muted break-all">{lead.email}</span>
                                     <button
                                       type="button"
                                       onClick={() => copyText(lead.email!, `email_${lead.id}`)}
-                                      className="p-1 hover:bg-surface-2 rounded text-text-muted hover:text-text text-[10px]"
+                                      className="p-1 rounded text-text-muted hover:text-text cursor-pointer shrink-0"
                                       title="Copy email"
                                     >
                                       {copiedId === `email_${lead.id}` ? (
-                                        <Check className="w-3 h-3 text-cyan-500" />
+                                        <Check className="w-3.5 h-3.5 text-jade" />
                                       ) : (
-                                        <Copy className="w-3 h-3" />
+                                        <Copy className="w-3.5 h-3.5" />
                                       )}
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-text-muted/40">—</span>
+                                  <p className="text-text-muted">No email</p>
                                 )}
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-4 px-4 text-sm">
+                                <p className="text-text leading-snug">{lead.address}</p>
+                                <p className="text-xs text-text-muted mt-1">
+                                  {lead.city}
+                                  {lead.postalCode ? `, ${lead.postalCode}` : ""}
+                                </p>
+                              </td>
+
+                              <td className="py-4 px-4 text-sm">
                                 {lead.rating ? (
-                                  <div className="flex items-center gap-1 font-semibold text-amber-500 text-[11px]">
-                                    <Star className="w-3 h-3 fill-amber-500" />
-                                    <span>{lead.rating}</span>
-                                    <span className="text-[10px] text-text-muted font-normal">
-                                      ({lead.reviewsCount})
-                                    </span>
-                                  </div>
+                                  <span className="text-text whitespace-nowrap">
+                                    {lead.rating}
+                                    <span className="text-xs text-text-muted"> ({lead.reviewsCount})</span>
+                                  </span>
                                 ) : (
-                                  <span className="text-text-muted/40">—</span>
+                                  <span className="text-text-muted">—</span>
                                 )}
                               </td>
 
-                              <td className="py-2.5 px-3">
-                                <span className="text-[10px] text-text-muted truncate max-w-[120px] block">
-                                  {lead.existingPresence || "None"}
-                                </span>
-                              </td>
-
-                              <td className="py-2.5 px-3">
-                                <div className="p-2 rounded-lg bg-surface-2 border border-line text-[11px] text-text leading-tight">
-                                  {lead.notes}
-                                </div>
-                              </td>
-
-                              <td className="py-2.5 px-3 text-center">
-                                {lead.phone ? (
+                              <td className="py-4 pl-4 pr-5 text-right">
+                                {lead.phone && (
                                   <a
                                     href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, "")}?text=Hi%20${encodeURIComponent(lead.name)},%20I%20noticed%20your%20profile%20in%20${encodeURIComponent(lead.city)}...`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center justify-center p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 transition-colors"
-                                    title="Open WhatsApp Chat"
+                                    className="inline-flex p-2 rounded-lg border border-line text-text-muted hover:text-brass hover:bg-surface-2"
+                                    title="Message on WhatsApp"
                                   >
-                                    <Send className="w-3.5 h-3.5" />
+                                    <Send className="w-4 h-4" />
                                   </a>
-                                ) : (
-                                  <span className="text-text-muted/30 text-xs">—</span>
                                 )}
                               </td>
                             </tr>
@@ -1233,22 +1071,46 @@ export default function DataPalPage() {
                   </table>
                 </div>
 
-                <div className="p-3 border-t border-line bg-surface-2/40 flex items-center justify-between text-xs text-text-muted">
-                  <span>
-                    Showing {filteredLeads.length} of {activeCampaign.results.length} records
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <span>{selectedLeadIds.size} selected</span>
+                <div className="px-5 py-3 border-t border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-text-muted">
+                  <div className="flex items-center gap-4">
+                    <span>
+                      {filteredLeads.length === 0
+                        ? "0 records"
+                        : `${(safePage - 1) * LEADS_PAGE_SIZE + 1}–${Math.min(safePage * LEADS_PAGE_SIZE, filteredLeads.length)} of ${filteredLeads.length}`}
+                    </span>
                     {selectedLeadIds.size > 0 && (
-                      <button
-                        type="button"
-                        onClick={handlePushToTasks}
-                        className="font-bold text-brass hover:underline cursor-pointer"
-                      >
-                        Push Selected to Tasks
-                      </button>
+                      <span className="flex items-center gap-3">
+                        <span>{selectedLeadIds.size} selected</span>
+                        <button type="button" onClick={handlePushToTasks} className="text-brass hover:underline cursor-pointer">
+                          Push selected to tasks
+                        </button>
+                      </span>
                     )}
                   </div>
+
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={safePage <= 1}
+                        onClick={() => setLeadsPage(safePage - 1)}
+                        className="px-3 py-1.5 rounded-lg border border-line text-text hover:bg-surface-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        Previous
+                      </button>
+                      <span>
+                        Page {safePage} of {totalPages}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={safePage >= totalPages}
+                        onClick={() => setLeadsPage(safePage + 1)}
+                        className="px-3 py-1.5 rounded-lg border border-line text-text hover:bg-surface-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
@@ -1261,35 +1123,29 @@ export default function DataPalPage() {
       {/* ============================================================== */}
       {activeTab === "history" && (
         <div className="space-y-5">
-          <div className="flex items-center justify-between pb-2 border-b border-line">
-            <div>
-              <h2 className="text-base font-bold text-text tracking-tight">Search History</h2>
-              <p className="text-xs text-text-muted">Revisit and export previously generated campaigns.</p>
-            </div>
+          <div className="flex items-center justify-between gap-3"><h2 className="text-base font-semibold text-text">Search history</h2>
 
             {campaigns.length > 0 && (
               <button
                 type="button"
                 onClick={() => exportAllCampaignsToExcel(campaigns)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs font-bold text-text hover:text-brass transition-all cursor-pointer"
+                className="px-3.5 py-2 rounded-lg border border-line text-sm font-medium text-text hover:bg-surface-2 cursor-pointer"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-brass" />
-                <span>Export All to Excel</span>
+                Export all to Excel
               </button>
             )}
           </div>
 
           {campaigns.length === 0 ? (
-            <div className="text-center py-16 bg-surface border border-line rounded-2xl p-8 space-y-4 shadow-theme">
-              <Search className="w-10 h-10 text-text-muted mx-auto" />
-              <h3 className="text-base font-bold text-text">No saved history yet</h3>
-              <p className="text-xs text-text-muted">Start an extraction in the Search tab to build your campaign history.</p>
+            <div className="text-center py-16 bg-surface border border-line rounded-xl p-8 space-y-3">
+              <h3 className="text-base font-semibold text-text">No history yet</h3>
+              <p className="text-sm text-text-muted">Your past searches will show up here.</p>
               <button
                 type="button"
                 onClick={() => setActiveTab("search")}
-                className="px-5 py-2.5 rounded-xl bg-brass text-white text-xs font-bold shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
               >
-                Start a Search
+                Start a search
               </button>
             </div>
           ) : (
@@ -1301,66 +1157,41 @@ export default function DataPalPage() {
                     setActiveCampaign(camp);
                     setActiveTab("leads");
                   }}
-                  className="p-5 rounded-2xl bg-surface border border-line hover:border-brass/50 shadow-theme hover:shadow-md transition-all cursor-pointer flex flex-col justify-between space-y-3 group"
+                  className="p-4 rounded-xl bg-surface border border-line hover:border-line-strong cursor-pointer flex flex-col gap-3"
                 >
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-brass/15 text-brass border border-brass/30 truncate max-w-[200px]">
-                        {camp.requirement}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={e => handleDeleteCampaign(e, camp.id)}
-                        className="p-1 rounded text-text-muted/60 hover:text-rose-500 transition-colors text-xs cursor-pointer"
-                        title="Delete campaign"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-text">{camp.title}</h3>
+                      <p className="text-xs text-text-muted mt-1 truncate">
+                        {camp.location} · {camp.businessTypes.slice(0, 2).join(", ")}
+                        {camp.businessTypes.length > 2 ? ` +${camp.businessTypes.length - 2}` : ""}
+                      </p>
                     </div>
-
-                    <h3 className="text-sm font-bold text-text group-hover:text-brass transition-colors mt-2">
-                      {camp.title}
-                    </h3>
-
-                    <p className="text-xs text-text-muted mt-1 flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-brass shrink-0" />
-                      <span className="truncate">{camp.location}</span>
-                    </p>
-
-                    <div className="flex flex-wrap gap-1 mt-2.5">
-                      {camp.businessTypes.slice(0, 3).map(bt => (
-                        <span
-                          key={bt}
-                          className="text-[9px] px-2 py-0.5 rounded bg-surface-2 border border-line text-text-muted font-medium"
-                        >
-                          {bt}
-                        </span>
-                      ))}
-                      {camp.businessTypes.length > 3 && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface-2 text-text-muted">
-                          +{camp.businessTypes.length - 3}
-                        </span>
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={e => handleDeleteCampaign(e, camp.id)}
+                      className="p-1 rounded text-text-muted hover:text-rust cursor-pointer"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
 
-                  <div className="pt-3 border-t border-line/60 flex items-center justify-between">
-                    <div className="text-[11px] text-text-muted">
-                      <span className="font-bold text-text">{camp.results.length}</span> records •{" "}
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{camp.phoneCount}</span> phones
-                    </div>
-
-                    <div className="flex items-center gap-1">
+                  <div className="pt-3 border-t border-line flex items-center justify-between text-xs text-text-muted">
+                    <span>
+                      <span className="font-semibold text-text">{camp.results.length}</span> records ·{" "}
+                      <span className="font-semibold text-text">{camp.phoneCount}</span> phones
+                    </span>
+                    <span className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={e => {
                           e.stopPropagation();
                           exportLeadsToExcel(camp.results, `DataPal_${camp.title.replace(/\s+/g, "_")}.xls`, camp.title);
                         }}
-                        className="p-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-line text-text-muted hover:text-brass transition-colors cursor-pointer"
-                        title="Download Excel"
+                        className="px-2 py-1 rounded border border-line hover:bg-surface-2 cursor-pointer"
                       >
-                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                        Excel
                       </button>
                       <button
                         type="button"
@@ -1368,12 +1199,11 @@ export default function DataPalPage() {
                           e.stopPropagation();
                           exportLeadsToCSV(camp.results, `DataPal_${camp.title.replace(/\s+/g, "_")}.csv`);
                         }}
-                        className="p-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-line text-text-muted hover:text-brass transition-colors cursor-pointer"
-                        title="Download CSV"
+                        className="px-2 py-1 rounded border border-line hover:bg-surface-2 cursor-pointer"
                       >
-                        <Download className="w-3.5 h-3.5" />
+                        CSV
                       </button>
-                    </div>
+                    </span>
                   </div>
                 </div>
               ))}

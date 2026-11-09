@@ -166,7 +166,7 @@ export function CustomizeAdvisorModal({
   return (
     <PortalModal isOpen={isOpen} onClose={onClose}>
       <div
-        className="w-full max-w-lg bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden animate-scale-in"
+        className="w-full max-w-lg bg-surface border border-line rounded-xl shadow-lg overflow-hidden "
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

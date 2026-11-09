@@ -4,12 +4,13 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Check, ArrowRight, CheckCircle2, X, Building2, Zap, Crown, Tag, ShieldCheck, Loader2, Sparkles, AlertCircle, CreditCard } from "lucide-react";
+import { Check, X, Loader2 } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { loadRazorpaySDK } from "@/lib/payments/loadRazorpay";
+import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
 
 interface PlanTier {
   id: string;
@@ -29,75 +30,8 @@ interface PlanTier {
   enabled?: boolean;
 }
 
-const DEFAULT_FALLBACK_PLANS: PlanTier[] = [
-  {
-    id: "free",
-    name: "BizzPal Starter Free",
-    tagline: "Try BizzPal free to see how it works.",
-    price: "₹0",
-    period: "/forever",
-    color: "border-emerald-400/30 text-emerald-400",
-    badge: "Free Trial",
-    isPopular: false,
-    actionType: "self_serve",
-    features: [
-      "Business Dashboard",
-      "CEO Executive Advisor",
-      "Company Health Score",
-      "Profit & ROI Calculators",
-      "Save up to 5 Documents & SOPs",
-      "Daily Business Briefings",
-      "Task Manager",
-      "Free AI questions",
-    ],
-    ctaLabel: "Start Free & Open Dashboard",
-  },
-  {
-    id: "starter",
-    name: "Starter Business OS",
-    tagline: "For solo founders and early teams (1-5 people).",
-    price: "₹3,999",
-    period: "/month",
-    color: "border-cyan-400/30 text-cyan-400",
-    badge: "Most Popular",
-    isPopular: true,
-    actionType: "self_serve",
-    features: [
-      "All Free tier features",
-      "All 3 AI Executives (CEO, CFO, CMO)",
-      "Automated Daily 8:00 AM WhatsApp Briefings",
-      "Connect 3 Business Tools (Stripe, Slack, Zoho)",
-      "Cash Runway & Burn Alarm System",
-      "Unlimited AI Strategy Consultations",
-      "3 Team Member Seats",
-      "Email & WhatsApp Support",
-    ],
-    ctaLabel: "Activate Starter Plan",
-  },
-  {
-    id: "growth",
-    name: "Growth Scale",
-    tagline: "For expanding businesses ready to scale (5-30 people).",
-    price: "₹9,999",
-    period: "/month",
-    color: "border-violet-400/30 text-violet-400",
-    badge: "Recommended",
-    isPopular: false,
-    actionType: "self_serve",
-    features: [
-      "All Starter tier features",
-      "Scenario Planner & Simulator",
-      "Executive Playbooks & Growth Vectors",
-      "Connect Unlimited Tools & Bank Accounts",
-      "Weekly AI Strategic Audits",
-      "Custom KPI Dashboards & Role-based Access",
-      "10 Team Member Seats",
-      "Dedicated Account Manager",
-    ],
-    ctaLabel: "Activate Growth Scale",
-  },
-  
-];
+// Used only until the live plan list loads. The live list comes from Admin > Pricing.
+const DEFAULT_FALLBACK_PLANS = DEFAULT_SUBSCRIPTION_PLANS as unknown as PlanTier[];
 
 export default function SubscriptionPage() {
   const router = useRouter();
@@ -388,20 +322,7 @@ export default function SubscriptionPage() {
     }
   };
 
-  const [plans, setPlans] = useState<PlanTier[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("bizzpal_subscription_plans");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed.filter((p: any) => p.enabled !== false);
-          }
-        }
-      } catch {}
-    }
-    return DEFAULT_FALLBACK_PLANS;
-  });
+  const [plans, setPlans] = useState<PlanTier[]>(() => DEFAULT_FALLBACK_PLANS.filter(p => p.enabled !== false));
 
   const loadPlans = () => {
     fetch("/api/public/config", { cache: "no-store" })
@@ -419,6 +340,15 @@ export default function SubscriptionPage() {
   };
 
   useEffect(() => {
+    try {
+      const cached = localStorage.getItem("bizzpal_subscription_plans");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setPlans(parsed.filter((p: any) => p.enabled !== false));
+        }
+      }
+    } catch {}
     loadPlans();
 
     // Listen for live updates when Superadmin edits plans in another tab or window
@@ -460,229 +390,174 @@ export default function SubscriptionPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-bg text-text p-4 sm:p-6 lg:p-8 flex flex-col justify-between">
-      {/* Toast */}
+    <div className="min-h-screen bg-bg text-text p-4 sm:p-6 lg:p-8 flex flex-col">
       {toast && (
-        <div className="fixed top-6 right-6 z-50 p-4 rounded-xl bg-surface border border-brass/40 shadow-2xl text-xs font-semibold text-text flex items-center gap-2 animate-fade-in ring-1 ring-brass/20">
-          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          <span>{toast}</span>
+        <div className="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-lg bg-surface border border-line shadow-lg text-sm text-text">
+          {toast}
         </div>
       )}
 
-      {/* Top Header */}
-      <div className="max-w-7xl w-full mx-auto pb-5 sm:pb-6 border-b border-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center p-1 shadow-sm group-hover:scale-105 transition-transform">
-              <Image
-                src="/logo.png"
-                alt="BizzPal Logo"
-                width={28}
-                height={28}
-                className="object-contain"
-              />
-            </div>
-            <div>
-              <span className="font-extrabold text-sm tracking-tight text-text font-sans">BizzPal</span>
-              <span className="text-[10px] ml-2 px-1.5 py-0.2 rounded bg-brass-soft text-brass font-bold uppercase">
-                Capability Tiers
-              </span>
-            </div>
-          </Link>
-        </div>
+      <header className="max-w-7xl w-full mx-auto pb-5 border-b border-line flex items-center justify-between gap-3">
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-surface border border-line flex items-center justify-center p-1">
+            <Image src="/logo.png" alt="BizzPal" width={28} height={28} className="object-contain" />
+          </div>
+          <span className="font-semibold text-text">BizzPal</span>
+        </Link>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+        <div className="flex items-center gap-3">
           <Link
             href="/dashboard"
-            className="text-xs font-semibold text-text-muted hover:text-text btn-tactile px-3 py-1.5 rounded-lg border border-line bg-surface-2 whitespace-nowrap"
+            className="text-sm text-text-muted hover:text-text px-3.5 py-2 rounded-lg border border-line bg-surface whitespace-nowrap"
           >
-            Go to Dashboard →
+            Back to dashboard
           </Link>
           <div className="w-28 sm:w-32 shrink-0">
             <ThemeSwitch compact />
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Container */}
-      <div className="max-w-7xl w-full mx-auto my-auto py-8 sm:py-12 space-y-8 sm:space-y-12">
-        <div className="text-center space-y-4 max-w-2xl mx-auto px-2">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/10 border border-gold/25 text-gold text-xs font-bold uppercase tracking-wider">
-            <Tag className="w-3.5 h-3.5" />
-            <span>Plans & Pricing</span>
-          </div>
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-text tracking-tight font-sans leading-tight">
-            Choose the Plan That Fits Your Business
-          </h1>
-          <p className="text-sm sm:text-base text-text-muted leading-relaxed max-w-xl mx-auto">
-            Start free to see what BizzPal can do, or choose a plan with more tools, AI executives, and automated workflows.
+      <main className="max-w-6xl w-full mx-auto flex-1 py-12 sm:py-16 space-y-12">
+        <div className="text-center max-w-2xl mx-auto space-y-3">
+          <h1 className="text-4xl sm:text-5xl font-semibold text-text">Choose your plan</h1>
+          <p className="text-base sm:text-lg text-text-muted leading-relaxed">
+            Start free and upgrade when you need more tools, advisors or team seats.
           </p>
         </div>
 
-        {/* Plans Grid */}
         <div
-          className={`grid grid-cols-1 gap-6 items-stretch mx-auto ${
-            {
-              1: "max-w-sm md:grid-cols-1",
-              2: "max-w-3xl md:grid-cols-2",
-              3: "max-w-6xl md:grid-cols-2 lg:grid-cols-3",
-              4: "max-w-7xl md:grid-cols-2 lg:grid-cols-4",
-            }[Math.min(plans.length, 4) as 1 | 2 | 3 | 4] ?? "max-w-7xl md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5"
+          className={`grid grid-cols-1 gap-6 items-stretch mx-auto pt-3 ${
+            plans.length <= 1
+              ? "max-w-sm"
+              : plans.length === 2
+              ? "max-w-3xl md:grid-cols-2"
+              : plans.length === 3
+              ? "md:grid-cols-2 lg:grid-cols-3"
+              : "md:grid-cols-2 xl:grid-cols-4"
           }`}
         >
           {plans.map(p => {
-            const isPopular = Boolean(p.isPopular);
+            const featured = Boolean(p.isPopular);
             const isCurrent = currentPlan === p.id;
-            const isContact =
-              p.actionType === "contact" ||
-              p.price.toLowerCase().includes("custom") ||
-              p.ctaLabel.toLowerCase().includes("contact");
-
-            const accent = isPopular
-              ? { text: "text-gold", icon: "text-gold" }
-              : { text: "text-text", icon: "text-emerald-500/80" };
+            const busy = isProcessing && processingPlanId === p.id;
+            const [first, ...rest] = p.features;
+            const hasInherit = typeof first === "string" && /^all\b/i.test(first) && /feature/i.test(first);
+            const listItems = hasInherit ? rest : p.features;
+            const badgeText = isCurrent ? "Your plan" : p.badge;
 
             return (
-              <div
+              <section
                 key={p.id}
-                className={`group rounded-2xl sm:rounded-3xl border p-5 sm:p-8 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
-                  isPopular
-                    ? "bg-surface border-gold/40 shadow-[0_20px_50px_-12px_var(--gold-glow)] ring-1 ring-gold/20 lg:scale-[1.04] lg:-translate-y-2 z-10"
-                    : "bg-surface border-line hover:border-gold/30 shadow-sm hover:shadow-lg hover:shadow-gold/5 hover:-translate-y-1.5"
+                className={`relative rounded-2xl p-7 pt-8 flex flex-col border bg-surface ${
+                  featured ? "border-line-strong shadow-[0_8px_30px_-12px_rgba(0,0,0,0.18)]" : "border-line"
                 }`}
               >
-                {isPopular && (
-                  <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-gold/[0.08] blur-3xl" />
-                )}
-
-                {p.badge && (
-                  <div
-                    className={`absolute top-0 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-b-xl text-[10px] font-extrabold uppercase tracking-wider ${
-                      isPopular
-                        ? "btn-gold-gradient shadow-md"
-                        : "bg-surface-2 text-text-muted border border-line border-t-0"
+                {badgeText && (
+                  <span
+                    className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                      featured && !isCurrent
+                        ? "bg-brass text-white"
+                        : "bg-surface border border-line-strong text-text"
                     }`}
                   >
-                    {p.badge}
-                  </div>
+                    {badgeText}
+                  </span>
                 )}
 
-                <div className="space-y-6 pt-5">
-                  <div className="space-y-1.5">
-                    <h3 className="text-lg font-extrabold text-text tracking-tight">{p.name}</h3>
-                    <p className="text-[13px] text-text-muted leading-relaxed min-h-[2.5rem]">
-                      {p.tagline}
-                    </p>
-                  </div>
+                <h2 className="text-lg font-semibold text-text">{p.name}</h2>
+                <p className="text-sm text-text-muted leading-relaxed mt-1.5 min-h-[2.75rem]">{p.tagline}</p>
 
-                  <div className="flex items-baseline gap-1.5">
-                    <span className={`text-4xl font-extrabold tracking-tight ${accent.text}`}>
-                      {p.price}
-                    </span>
-                    <span className="text-sm text-text-muted font-medium">{p.period}</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={isProcessing && processingPlanId === p.id}
-                    onClick={() => handleInitiatePayment(p)}
-                    className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition-all btn-tactile cursor-pointer text-center flex items-center justify-center gap-2 ${
-                      isCurrent
-                        ? "bg-surface-2 border border-line text-emerald-500 dark:text-emerald-400 hover:bg-surface"
-                        : isPopular
-                        ? "btn-gold-gradient shadow-md hover:brightness-105 active:scale-[0.98]"
-                        : "bg-surface-2 hover:bg-surface border border-line-strong hover:border-gold/30 text-text"
-                    }`}
-                  >
-                    {isProcessing && processingPlanId === p.id ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-brass" />
-                        <span>Initializing Checkout…</span>
-                      </>
-                    ) : isCurrent ? (
-                      <>
-                        <Check className="w-4 h-4 text-emerald-500" />
-                        <span>Current Plan (Active)</span>
-                      </>
-                    ) : (
-                      p.ctaLabel || "Select Plan"
-                    )}
-                  </button>
-
-                  {/* Features List */}
-                  <div className="pt-6 border-t border-line space-y-3">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted/80 block">
-                      What's included
-                    </span>
-                    <ul className="space-y-2.5">
-                      {p.features.map((feat, fIdx) => (
-                        <li key={fIdx} className="flex items-start gap-2.5">
-                          <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${accent.icon}`} />
-                          <span className="text-text text-[13px] leading-snug">{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                <div className="flex items-baseline gap-1.5 mt-5 h-12">
+                  <span className="text-4xl font-semibold text-text">{p.price}</span>
+                  <span className="text-sm text-text-muted">{p.period}</span>
                 </div>
-              </div>
+
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => handleInitiatePayment(p)}
+                  className={`mt-6 w-full py-3 px-4 rounded-xl text-sm font-medium cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 transition-colors ${
+                    isCurrent
+                      ? "border border-line text-text hover:bg-surface-2"
+                      : featured
+                      ? "bg-brass text-white hover:brightness-110"
+                      : "bg-surface-2 text-text hover:bg-line"
+                  }`}
+                >
+                  {busy ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Starting checkout…</span>
+                    </>
+                  ) : isCurrent ? (
+                    "Open dashboard"
+                  ) : (
+                    p.ctaLabel || "Choose plan"
+                  )}
+                </button>
+
+                <div className="mt-7 pt-6 border-t border-line flex-1">
+                  <p className="text-sm font-medium text-text mb-3">{hasInherit ? `${first}, plus:` : "What's included:"}</p>
+                  <ul className="space-y-3">
+                    {listItems.map((feat, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-sm text-text-muted leading-snug">
+                        <Check className="w-4 h-4 text-jade shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
             );
           })}
         </div>
-      </div>
 
-      {/* ============================================================== */}
-      {/* RAZORPAY SANDBOX TEST SIMULATION MODAL                         */}
-      {/* ============================================================== */}
+        <p className="text-center text-sm text-text-muted">
+          Not sure which plan fits?{" "}
+          <a href="mailto:sales@bizzpal.app?subject=Help%20choosing%20a%20plan" className="text-brass hover:underline">
+            Talk to us
+          </a>
+        </p>
+      </main>
+
       {sandboxModalOrder && (
         <PortalModal isOpen={Boolean(sandboxModalOrder)} onClose={() => setSandboxModalOrder(null)}>
           <div
-            className="w-full max-w-md p-6 rounded-2xl border border-line bg-surface shadow-2xl space-y-5 animate-scale-up"
+            className="w-[28rem] max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-surface shadow-lg overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-line">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
-                  <CreditCard className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-text">Razorpay Checkout</h3>
-                  <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">
-                    Sandbox / Test Simulation Mode
-                  </span>
-                </div>
+            <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-text">Checkout</h3>
+                <p className="text-sm text-text-muted mt-1">Test mode. No real payment is taken.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setSandboxModalOrder(null)}
-                className="text-xs text-text-muted hover:text-text cursor-pointer p-1"
+                aria-label="Close"
+                className="p-1 text-text-muted hover:text-text cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div className="p-3.5 rounded-xl bg-surface-2 border border-line flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-text text-sm">{sandboxModalOrder.planName}</div>
-                  <div className="text-[11px] text-text-muted">Order ID: {sandboxModalOrder.orderId}</div>
-                  <div className="text-[11px] text-text-muted">Billing To: {sandboxModalOrder.userEmail}</div>
+            <div className="px-6 pb-6">
+              <div className="p-4 rounded-lg border border-line flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text">{sandboxModalOrder.planName}</p>
+                  <p className="text-xs text-text-muted mt-1 truncate">Billed to {sandboxModalOrder.userEmail}</p>
+                  <p className="text-xs text-text-muted truncate">Order {sandboxModalOrder.orderId}</p>
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold font-mono text-brass">
-                    {sandboxModalOrder.priceFormatted}
-                  </div>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold">
-                    UPI · Cards · NetBanking
-                  </span>
-                </div>
+                <p className="text-lg text-text shrink-0">{sandboxModalOrder.priceFormatted}</p>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-line flex items-center justify-end gap-2.5">
+            <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setSandboxModalOrder(null)}
-                className="px-4 py-2 rounded-xl border border-line text-xs font-semibold text-text-muted hover:text-text cursor-pointer hover:bg-surface-2 transition-all"
+                className="px-3.5 py-2 rounded-lg text-sm text-text-muted hover:text-text cursor-pointer"
               >
                 Cancel
               </button>
@@ -702,18 +577,15 @@ export default function SubscriptionPage() {
                     isSandboxMode: true,
                   });
                 }}
-                className="px-5 py-2.5 rounded-xl btn-gold-gradient text-xs font-bold btn-tactile hover:brightness-105 cursor-pointer disabled:opacity-50 shadow-md flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-50 flex items-center gap-2"
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Verifying Payment…</span>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Verifying…</span>
                   </>
                 ) : (
-                  <>
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Simulate Successful Payment (Test)</span>
-                  </>
+                  "Complete test payment"
                 )}
               </button>
             </div>
@@ -721,56 +593,41 @@ export default function SubscriptionPage() {
         </PortalModal>
       )}
 
-      {/* ============================================================== */}
-      {/* CELEBRATORY PAYMENT SUCCESS MODAL                              */}
-      {/* ============================================================== */}
       {paymentSuccessModal && (
         <PortalModal isOpen={Boolean(paymentSuccessModal)} onClose={() => {}}>
           <div
-            className="w-full max-w-md p-6 rounded-3xl border border-emerald-500/30 bg-surface shadow-2xl space-y-5 text-center animate-scale-up"
+            className="w-[28rem] max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-surface shadow-lg overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 mx-auto">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">
-                Payment Confirmed
-              </span>
-              <h2 className="text-xl font-extrabold text-text tracking-tight">
-                Welcome to {paymentSuccessModal.planName}!
-              </h2>
-              <p className="text-xs text-text-muted leading-relaxed max-w-sm mx-auto">
-                Your payment was verified and processed successfully. All specialized executive tools, AI assistants, and automated workflows are now active.
+            <div className="px-6 pt-6 pb-5 space-y-2">
+              <h2 className="text-lg font-semibold text-text">You&apos;re on {paymentSuccessModal.planName}</h2>
+              <p className="text-sm text-text-muted leading-relaxed">
+                Your payment went through and the new features are now active in your workspace.
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-surface-2 border border-line text-left text-xs space-y-1 font-mono">
-              <div className="flex justify-between text-text-muted">
-                <span>Plan Tier:</span>
-                <span className="text-text font-bold uppercase">{paymentSuccessModal.planId}</span>
+            <dl className="mx-6 mb-6 rounded-lg border border-line divide-y divide-line text-sm">
+              <div className="flex justify-between gap-4 px-4 py-2.5">
+                <dt className="text-text-muted">Plan</dt>
+                <dd className="text-text capitalize">{paymentSuccessModal.planId}</dd>
               </div>
-              <div className="flex justify-between text-text-muted">
-                <span>Payment Reference:</span>
-                <span className="text-emerald-500 truncate max-w-[180px]">{paymentSuccessModal.paymentId}</span>
+              <div className="flex justify-between gap-4 px-4 py-2.5">
+                <dt className="text-text-muted">Payment reference</dt>
+                <dd className="text-text truncate max-w-[180px]">{paymentSuccessModal.paymentId}</dd>
               </div>
-              <div className="flex justify-between text-text-muted">
-                <span>Status:</span>
-                <span className="text-emerald-500 font-bold">Active Workspace</span>
-              </div>
-            </div>
+            </dl>
 
-            <button
-              type="button"
-              onClick={() => {
-                window.location.href = "/dashboard";
-              }}
-              className="w-full py-3 rounded-xl btn-gold-gradient font-bold text-xs btn-tactile hover:brightness-105 shadow-md flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>Launch Business OS Dashboard</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="px-6 py-4 border-t border-line bg-surface-2/40">
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = "/dashboard";
+                }}
+                className="w-full py-2.5 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
+              >
+                Go to dashboard
+              </button>
+            </div>
           </div>
         </PortalModal>
       )}

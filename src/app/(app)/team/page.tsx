@@ -1,22 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Users,
-  ShieldCheck,
-  UserPlus,
-  Key,
-  Shield,
-  Clock,
-  CheckCircle2,
-  Lock,
-  Search,
-  Sliders,
-  FileText,
-  AlertTriangle,
-  Trash2,
-  RotateCw
-} from "lucide-react";
+import { UserPlus, Trash2, RotateCw } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
 
@@ -159,144 +144,149 @@ export default function TeamPage() {
       m.department.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const inputClass =
+    "w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
+
+  const statusDot: Record<TeamMember["status"], string> = {
+    active: "bg-jade",
+    invited: "bg-amber-500",
+    suspended: "bg-rust",
+  };
+  const statusText: Record<TeamMember["status"], string> = {
+    active: "Active",
+    invited: "Invited",
+    suspended: "Suspended",
+  };
+
+  const matrix: { label: string; access: [string, string, string, string] }[] = [
+    { label: "Cash ledger and financial projections", access: ["Full", "Full", "Read only", "None"] },
+    { label: "AI advisors (CEO and CFO)", access: ["Full", "Full", "Full", "Prompts only"] },
+    { label: "Legal and GST compliance", access: ["Full", "Edit", "None", "None"] },
+    { label: "Tools and calculators", access: ["Full", "Full", "Full", "Read only"] },
+    { label: "Workflows", access: ["Full", "Full", "Edit", "None"] },
+    { label: "Integrations and API tokens", access: ["Full", "None", "None", "None"] },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-line">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-4 border-b border-line">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-brass/10 border border-brass/30 flex items-center justify-center text-brass">
-              <Users className="w-4 h-4" />
-            </div>
-            <h1 className="text-lg font-bold text-text">Team & Permissions</h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider">
-              Governance & RBAC
-            </span>
-          </div>
-          <p className="text-xs text-text-muted mt-1 font-medium">
-            Control organizational member roles, AI agent invocation privileges, and security access tiers across your business workspace.
-          </p>
+          <h1 className="text-xl font-bold text-text">Team</h1>
+          <p className="text-sm text-text-muted mt-1">Manage who can access your workspace and what they can do.</p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={fetchTeamData}
-            title="Refresh team"
+            aria-label="Refresh"
+            title="Refresh"
             className="p-2 rounded-lg border border-line bg-surface hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
           >
-            <RotateCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-brass" : ""}`} />
+            <RotateCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
           <button
             type="button"
             onClick={() => setIsInviteOpen(true)}
-            className="px-4 py-2 rounded-lg bg-brass text-white text-xs font-bold shadow-md hover:brightness-110 btn-tactile inline-flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 inline-flex items-center gap-2 cursor-pointer"
           >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>Invite Team Member</span>
+            <UserPlus className="w-4 h-4" />
+            Invite member
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1.5 border-b border-line pb-2 text-xs">
+      <nav
+        className="inline-flex max-w-full items-center gap-1 p-1 rounded-lg bg-surface-2 border border-line overflow-x-auto"
+        aria-label="Team sections"
+      >
         {[
-          { id: "members", label: `Members (${members.length})` },
-          { id: "roles", label: "Permission Matrix" },
-          { id: "sso", label: "Enterprise SSO / SAML" },
-          { id: "audit", label: `Security Audit Logs (${auditLogs.length})` },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setSelectedTab(tab.id as any)}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all btn-tactile cursor-pointer ${
-              selectedTab === tab.id
-                ? "bg-brass text-white shadow-xs"
-                : "text-text-muted hover:text-text hover:bg-surface-2"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+          { id: "members", label: "Members", count: members.length },
+          { id: "roles", label: "Permissions", count: undefined },
+          { id: "sso", label: "Single sign-on", count: undefined },
+          { id: "audit", label: "Activity log", count: auditLogs.length },
+        ].map(tab => {
+          const active = selectedTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setSelectedTab(tab.id as any)}
+              className={`px-4 py-1.5 rounded-md text-sm whitespace-nowrap cursor-pointer transition-colors ${
+                active ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
+              }`}
+            >
+              {tab.label}
+              {tab.count !== undefined && <span className="ml-1.5 text-xs text-text-muted">{tab.count}</span>}
+            </button>
+          );
+        })}
+      </nav>
 
-      {/* Tab 1: Members Directory */}
       {selectedTab === "members" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="relative w-full sm:w-64">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-              <input
-                type="text"
-                placeholder="Search employees or copilots..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
-              />
-            </div>
-          </div>
+          <input
+            type="text"
+            placeholder="Search by name, email or department"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full sm:w-80 px-3.5 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
+          />
 
-          <div className="rounded-xl border border-line bg-surface overflow-hidden shadow-xs">
+          <div className="rounded-xl border border-line bg-surface overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-line bg-surface-2/60 text-[11px] font-bold text-text-muted uppercase tracking-wider">
-                    <th className="p-3">Member / Entity</th>
-                    <th className="p-3">Role</th>
-                    <th className="p-3">Department</th>
-                    <th className="p-3">2FA Security</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Activity</th>
-                    <th className="p-3 text-right">Actions</th>
+                  <tr className="border-b border-line text-xs font-medium text-text-muted">
+                    <th className="py-3 pl-5 pr-3">Member</th>
+                    <th className="py-3 px-3">Role</th>
+                    <th className="py-3 px-3">Department</th>
+                    <th className="py-3 px-3">2FA</th>
+                    <th className="py-3 px-3">Status</th>
+                    <th className="py-3 px-3">Last active</th>
+                    <th className="py-3 pl-3 pr-5 w-12"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {loading && members.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-xs text-text-muted">
-                        Loading live team directory from SQLite database...
+                      <td colSpan={7} className="py-12 text-center text-sm text-text-muted">
+                        Loading team…
                       </td>
                     </tr>
                   ) : filteredMembers.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-xs text-text-muted">
-                        No team members match the search filter.
+                      <td colSpan={7} className="py-12 text-center text-sm text-text-muted">
+                        No members match your search.
                       </td>
                     </tr>
                   ) : (
                     filteredMembers.map(m => (
-                      <tr key={m.id} className="hover:bg-surface-2/40 transition-colors">
-                        <td className="p-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-brass/10 border border-brass/30 flex items-center justify-center font-bold text-brass text-[11px]">
+                      <tr key={m.id} className="hover:bg-surface-2/40">
+                        <td className="py-4 pl-5 pr-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-surface-2 border border-line flex items-center justify-center text-sm text-text shrink-0">
                               {m.name.charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                              <div className="font-semibold text-text flex items-center gap-1.5">
-                                <span>{m.name}</span>
-                                {m.role === "Owner" && (
-                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-brass/20 text-brass font-bold">
-                                    FOUNDER
-                                  </span>
-                                )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-text">
+                                {m.name}
+                                {m.role === "Owner" && <span className="ml-2 text-xs font-normal text-text-muted">Founder</span>}
                                 {m.email.includes(".ai@") && (
-                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-jade/20 text-jade font-bold">
-                                    AUTONOMOUS AGENT
-                                  </span>
+                                  <span className="ml-2 text-xs font-normal text-text-muted">AI advisor</span>
                                 )}
-                              </div>
-                              <div className="text-[11px] text-text-muted font-mono">{m.email}</div>
+                              </p>
+                              <p className="text-xs text-text-muted">{m.email}</p>
                             </div>
                           </div>
                         </td>
 
-                        <td className="p-3">
+                        <td className="py-4 px-3">
                           <select
                             value={m.role}
                             disabled={m.role === "Owner"}
                             onChange={e => handleChangeRole(m.id, e.target.value)}
-                            className="px-2 py-1 rounded bg-surface border border-line text-[11px] font-semibold text-text focus:outline-none focus:border-brass cursor-pointer disabled:opacity-60"
+                            className="px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text focus:outline-none focus:border-brass cursor-pointer disabled:opacity-60 disabled:cursor-default"
                           >
                             <option value="Owner">Owner</option>
                             <option value="Executive">Executive</option>
@@ -305,52 +295,38 @@ export default function TeamPage() {
                           </select>
                         </td>
 
-                        <td className="p-3 text-text-muted font-medium">{m.department}</td>
+                        <td className="py-4 px-3 text-sm text-text-muted">{m.department}</td>
 
-                        <td className="p-3">
+                        <td className="py-4 px-3">
                           <button
                             type="button"
                             onClick={() => handleToggle2FA(m)}
-                            className="inline-flex items-center gap-1 cursor-pointer"
-                            title="Click to toggle 2FA requirement"
+                            className={`text-sm cursor-pointer hover:underline ${m.twoFactor ? "text-text" : "text-rust"}`}
+                            title="Click to change"
                           >
-                            {m.twoFactor ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-jade font-semibold">
-                                <ShieldCheck className="w-3.5 h-3.5" /> Enforced
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-rust font-semibold">
-                                <AlertTriangle className="w-3.5 h-3.5" /> Optional
-                              </span>
-                            )}
+                            {m.twoFactor ? "Required" : "Optional"}
                           </button>
                         </td>
 
-                        <td className="p-3">
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                              m.status === "active"
-                                ? "bg-jade/15 text-jade"
-                                : m.status === "invited"
-                                ? "bg-brass/15 text-brass"
-                                : "bg-rust/15 text-rust"
-                            }`}
-                          >
-                            {m.status}
+                        <td className="py-4 px-3">
+                          <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
+                            <span className={`w-1.5 h-1.5 rounded-full ${statusDot[m.status]}`} />
+                            {statusText[m.status]}
                           </span>
                         </td>
 
-                        <td className="p-3 text-text-muted text-[11px]">{m.lastActive}</td>
+                        <td className="py-4 px-3 text-sm text-text-muted whitespace-nowrap">{m.lastActive}</td>
 
-                        <td className="p-3 text-right">
+                        <td className="py-4 pl-3 pr-5 text-right">
                           {m.role !== "Owner" && !m.email.includes(".ai@") && (
                             <button
                               type="button"
                               onClick={() => handleDeleteMember(m.id, m.name)}
-                              className="p-1.5 rounded text-text-muted hover:text-rust hover:bg-rust/10 transition-colors cursor-pointer"
-                              title="Revoke access"
+                              className="p-1.5 rounded text-text-muted hover:text-rust cursor-pointer"
+                              title="Remove access"
+                              aria-label={`Remove ${m.name}`}
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           )}
                         </td>
@@ -364,241 +340,177 @@ export default function TeamPage() {
         </div>
       )}
 
-      {/* Tab 2: Roles Matrix */}
       {selectedTab === "roles" && (
-        <div className="rounded-xl border border-line bg-surface overflow-hidden shadow-xs space-y-4 p-5">
-          <div>
-            <h2 className="text-xs font-bold text-text uppercase tracking-wider">Role-Based Access Control (RBAC)</h2>
-            <p className="text-xs text-text-muted mt-0.5">
-              Granular capability authorization enforced at the API gateway layer across all business intelligence domains.
-            </p>
+        <div className="rounded-xl border border-line bg-surface overflow-hidden">
+          <div className="p-5 border-b border-line">
+            <h2 className="text-base font-semibold text-text">What each role can access</h2>
+            <p className="text-sm text-text-muted mt-0.5">Assign roles from the Members tab.</p>
           </div>
-
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-line bg-surface-2/60 text-[11px] font-bold text-text-muted">
-                  <th className="p-3">Capability / Surface</th>
-                  <th className="p-3 text-center">Owner</th>
-                  <th className="p-3 text-center">Executive</th>
-                  <th className="p-3 text-center">Manager</th>
-                  <th className="p-3 text-center">Operator</th>
+                <tr className="border-b border-line text-xs font-medium text-text-muted">
+                  <th className="py-3 pl-5 pr-3">Area</th>
+                  {["Owner", "Executive", "Manager", "Operator"].map(r => (
+                    <th key={r} className="py-3 px-3">
+                      {r}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line text-[11px]">
-                <tr>
-                  <td className="p-3 font-semibold text-text">Live Cash Ledger & Financial Projections</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-text-muted">Read-only</td>
-                  <td className="p-3 text-center text-rust">✕ Restricted</td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-semibold text-text">Autonomous Executive Advisors (CEO / CFO)</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-text-muted">Prompt-only</td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-semibold text-text">Company Legal & GST Tax Compliance Hub</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Edit</td>
-                  <td className="p-3 text-center text-rust">✕ Restricted</td>
-                  <td className="p-3 text-center text-rust">✕ Restricted</td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-semibold text-text">Tools & Financial Calculators</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-text-muted">Read-only</td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-semibold text-text">Visual Workflows Execution & Build</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Edit</td>
-                  <td className="p-3 text-center text-rust">✕ Restricted</td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-semibold text-text">Integrations & API Tokens</td>
-                  <td className="p-3 text-center text-jade font-bold">✓ Full</td>
-                  <td className="p-3 text-center text-rust">✕ Restricted</td>
-                  <td className="p-3 text-center text-rust">✕ Restricted</td>
-                  <td className="p-3 text-center text-rust">✕ Restricted</td>
-                </tr>
+              <tbody className="divide-y divide-line">
+                {matrix.map(row => (
+                  <tr key={row.label}>
+                    <td className="py-4 pl-5 pr-3 text-sm text-text">{row.label}</td>
+                    {row.access.map((a, i) => (
+                      <td key={i} className={`py-4 px-3 text-sm ${a === "None" ? "text-text-muted/60" : "text-text-muted"}`}>
+                        {a}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* Tab 3: SSO */}
       {selectedTab === "sso" && (
-        <div className="p-6 rounded-2xl border border-line bg-surface shadow-xs space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass">
-              <Key className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xs font-bold text-text uppercase tracking-wider">Enterprise Single Sign-On (SSO)</h2>
-              <p className="text-xs text-text-muted mt-0.5">
-                Enforce SAML 2.0 / OIDC authentication for all employees logging into BizzPal OS.
-              </p>
-            </div>
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold text-text">Single sign-on</h2>
+            <p className="text-sm text-text-muted mt-0.5">Let your team sign in with the accounts they already use.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-            <div className="p-4 rounded-xl bg-surface-2 border border-line space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text">Google Workspace SSO</span>
-                <span className="text-[10px] text-jade font-semibold">● Verified</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { name: "Google Workspace", note: "Sign in with company Google accounts.", status: "Available" },
+              { name: "Okta (SAML 2.0)", note: "User provisioning and group sync.", status: "Enterprise plan" },
+              { name: "Microsoft Entra ID", note: "Active Directory sign-in.", status: "Enterprise plan" },
+            ].map(p => (
+              <div key={p.name} className="p-5 rounded-xl border border-line bg-surface">
+                <h3 className="text-sm font-medium text-text">{p.name}</h3>
+                <p className="text-sm text-text-muted mt-1">{p.note}</p>
+                <p className="text-xs text-text-muted mt-3">{p.status}</p>
               </div>
-              <p className="text-[11px] text-text-muted">One-click login with company Google accounts.</p>
-            </div>
-            <div className="p-4 rounded-xl bg-surface-2 border border-line space-y-2 opacity-70">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text">Okta SAML 2.0</span>
-                <span className="text-[10px] text-text-muted font-semibold">Enterprise</span>
-              </div>
-              <p className="text-[11px] text-text-muted">Automate user provisioning and SCIM group sync.</p>
-            </div>
-            <div className="p-4 rounded-xl bg-surface-2 border border-line space-y-2 opacity-70">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text">Microsoft Entra ID</span>
-                <span className="text-[10px] text-text-muted font-semibold">Enterprise</span>
-              </div>
-              <p className="text-[11px] text-text-muted">Seamless enterprise Active Directory authentication.</p>
-            </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Tab 4: Audit Logs */}
       {selectedTab === "audit" && (
-        <div className="rounded-xl border border-line bg-surface overflow-hidden shadow-xs">
-          <div className="p-4 border-b border-line flex items-center justify-between">
-            <h2 className="text-xs font-bold text-text uppercase tracking-wider">
-              Immutable Security Audit Trail
-            </h2>
-            <span className="text-[11px] text-text-muted">Live SQLite Log Stream</span>
+        <div className="rounded-xl border border-line bg-surface overflow-hidden">
+          <div className="p-5 border-b border-line">
+            <h2 className="text-base font-semibold text-text">Activity log</h2>
+            <p className="text-sm text-text-muted mt-0.5">Sign-ins and changes made by your team.</p>
           </div>
-          <div className="divide-y divide-line text-xs">
-            {auditLogs.length === 0 ? (
-              <div className="p-6 text-center text-xs text-text-muted">
-                No audit events recorded yet.
-              </div>
-            ) : (
-              auditLogs.map(log => (
-                <div key={log.id} className="p-3.5 flex items-center justify-between hover:bg-surface-2/40 transition-colors">
-                  <div className="space-y-0.5">
-                    <span className="font-semibold text-text">{log.action}</span>
-                    <div className="text-[11px] text-text-muted">
-                      Initiated by <span className="text-brass font-medium">{log.user}</span> · IP: {log.ip}
-                    </div>
+          {auditLogs.length === 0 ? (
+            <p className="p-10 text-center text-sm text-text-muted">No activity recorded yet.</p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {auditLogs.map(log => (
+                <li key={log.id} className="px-5 py-4 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-text">{log.action}</p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {log.user} · {log.ip}
+                    </p>
                   </div>
-                  <span className="text-[11px] text-text-muted font-mono">{log.time}</span>
-                </div>
-              ))
-            )}
-          </div>
+                  <span className="text-xs text-text-muted whitespace-nowrap">{log.time}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
-      {/* Invite Member Modal */}
       <PortalModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)}>
-        <div className="w-full max-w-md p-6 rounded-2xl border border-line bg-surface shadow-2xl space-y-4 animate-scale-in">
-          <div className="flex items-center justify-between pb-3 border-b border-line">
-            <h3 className="text-sm font-bold text-text">Invite Colleague to BizzPal</h3>
+        <form
+          onSubmit={handleInvite}
+          className="w-[30rem] max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-surface shadow-lg overflow-hidden"
+        >
+          <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-text">Invite a colleague</h3>
+              <p className="text-sm text-text-muted mt-1">They will get an email to join your workspace.</p>
+            </div>
             <button
               type="button"
               onClick={() => setIsInviteOpen(false)}
-              className="text-xs text-text-muted hover:text-text cursor-pointer"
+              aria-label="Close"
+              className="p-1 text-text-muted hover:text-text cursor-pointer"
             >
               ✕
             </button>
           </div>
 
-          <form onSubmit={handleInvite} className="space-y-3 text-xs">
+          <div className="px-6 pb-6 space-y-4 text-sm">
             <div>
-              <label className="block text-[11px] font-semibold text-text-muted mb-1">Full Name</label>
+              <label className="block font-medium text-text mb-1.5">Full name</label>
               <input
                 type="text"
                 placeholder="e.g. Rahul Mehta"
                 value={inviteName}
                 onChange={e => setInviteName(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-line text-text focus:outline-none focus:border-brass"
+                className={inputClass}
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-text-muted mb-1">Company Email *</label>
+              <label className="block font-medium text-text mb-1.5">Email</label>
               <input
                 type="email"
                 required
                 placeholder="colleague@yourcompany.com"
                 value={inviteEmail}
                 onChange={e => setInviteEmail(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-line text-text focus:outline-none focus:border-brass"
+                className={inputClass}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold text-text-muted mb-1">Role Permission</label>
-                <select
-                  value={inviteRole}
-                  onChange={e => setInviteRole(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-line text-text focus:outline-none focus:border-brass"
-                >
+                <label className="block font-medium text-text mb-1.5">Role</label>
+                <select value={inviteRole} onChange={e => setInviteRole(e.target.value as any)} className={inputClass}>
                   <option value="Executive">Executive</option>
                   <option value="Manager">Manager</option>
                   <option value="Operator">Operator</option>
                 </select>
               </div>
-
               <div>
-                <label className="block text-[11px] font-semibold text-text-muted mb-1">Department</label>
-                <input
-                  type="text"
-                  value={inviteDept}
-                  onChange={e => setInviteDept(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-line text-text focus:outline-none focus:border-brass"
-                />
+                <label className="block font-medium text-text mb-1.5">Department</label>
+                <input type="text" value={inviteDept} onChange={e => setInviteDept(e.target.value)} className={inputClass} />
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={invite2FA}
-                  onChange={e => setInvite2FA(e.target.checked)}
-                  className="rounded border-line text-brass focus:ring-brass"
-                />
-                <span className="text-[11px] text-text">Require 2FA Authentication</span>
-              </label>
-            </div>
+            <label className="flex items-center gap-2 cursor-pointer text-text">
+              <input
+                type="checkbox"
+                checked={invite2FA}
+                onChange={e => setInvite2FA(e.target.checked)}
+                className="w-4 h-4 accent-[#8a6414]"
+              />
+              Require two-factor authentication
+            </label>
+          </div>
 
-            <div className="flex items-center justify-end gap-2 pt-4 border-t border-line">
-              <button
-                type="button"
-                onClick={() => setIsInviteOpen(false)}
-                className="px-3 py-1.5 rounded-lg border border-line text-text-muted hover:text-text cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="px-4 py-1.5 rounded-lg bg-brass text-white font-bold hover:brightness-110 shadow-xs cursor-pointer disabled:opacity-60"
-              >
-                {submitting ? "Inviting..." : "Send Invitation"}
-              </button>
-            </div>
-          </form>
-        </div>
+          <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsInviteOpen(false)}
+              className="px-3.5 py-2 rounded-lg text-sm text-text-muted hover:text-text cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-60"
+            >
+              {submitting ? "Sending…" : "Send invitation"}
+            </button>
+          </div>
+        </form>
       </PortalModal>
     </div>
   );

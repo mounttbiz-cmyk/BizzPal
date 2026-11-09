@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { MultiSelectCombobox } from "./MultiSelectCombobox";
 import { PostalCodeField } from "./PostalCodeField";
 import { locationService, LocationItem } from "@/lib/datapal/locationService";
-import { MapPin, RotateCcw } from "lucide-react";
+
 
 interface LocationStepProps {
   countryCodes: string[];
@@ -181,10 +181,7 @@ export function LocationStep({
       {/* 3. Quick Pick Chips & Reset Action */}
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs select-none">
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted shrink-0 flex items-center gap-1">
-            <MapPin className="w-3 h-3 text-brass" />
-            <span>Quick Cities:</span>
-          </span>
+          <span className="text-xs text-text-muted shrink-0">Quick pick:</span>
           {quickCities.map(qc => {
             const isSelected = cityNames.includes(qc.name);
             return (
@@ -192,10 +189,10 @@ export function LocationStep({
                 key={qc.name}
                 type="button"
                 onClick={() => handleQuickCityClick(qc.name, qc.state)}
-                className={`shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-all cursor-pointer shadow-2xs ${
+                className={`shrink-0 px-2.5 py-1 rounded-md border text-xs cursor-pointer ${
                   isSelected
-                    ? "bg-brass/15 border-brass text-brass font-bold"
-                    : "bg-surface border-line hover:border-brass/40 text-text-muted hover:text-text hover:bg-surface-2"
+                    ? "border-brass text-brass font-medium"
+                    : "border-line text-text-muted hover:text-text hover:bg-surface-2"
                 }`}
               >
                 {qc.name}
@@ -209,8 +206,7 @@ export function LocationStep({
           onClick={onResetLocation}
           className="text-xs text-text-muted hover:text-brass flex items-center gap-1 cursor-pointer transition-colors"
         >
-          <RotateCcw className="w-3 h-3" />
-          <span>Clear location</span>
+          Clear location
         </button>
       </div>
     </div>

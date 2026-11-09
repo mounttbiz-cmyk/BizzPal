@@ -2,29 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  Layers,
-  CheckCircle2,
-  AlertCircle,
-  ExternalLink,
-  Shield,
-  ArrowRight,
-  Bot,
-  Search,
-  Plus,
-  Zap,
-  Database,
-  Lock,
-  RotateCcw,
-  Check,
-  ChevronRight,
-  Cable,
-  Workflow,
-  Send,
-  RefreshCw,
-  Clock,
-  Radio
-} from "lucide-react";
+import { Bot, Search, Database, Check, Send } from "lucide-react";
 import { IntegrationLogo } from "@/components/ui/IntegrationLogo";
 import { isFirebaseConfigured, firebaseConfig } from "@/lib/firebase/config";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
@@ -440,192 +418,124 @@ export default function IntegrationsPage() {
   });
 
   const getStatusBadge = (status: IntegrationItem["status"]) => {
-    switch (status) {
-      case "connected":
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border bg-jade/10 border-jade/30 text-jade inline-flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-jade animate-pulse" />
-            <span>Connected</span>
-          </span>
-        );
-      case "pending_connection":
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border bg-amber-500/10 border-amber-500/30 text-amber-500 inline-flex items-center gap-1">
-            <Clock className="w-2.5 h-2.5" />
-            <span>Pending Setup</span>
-          </span>
-        );
-      case "error":
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border bg-rust/10 border-rust/30 text-rust inline-flex items-center gap-1">
-            <AlertCircle className="w-2.5 h-2.5" />
-            <span>Action Required</span>
-          </span>
-        );
-      default:
-        return (
-          <span className="text-[9px] px-2 py-0.5 rounded-full font-medium border bg-surface-2 border-line text-text-muted inline-flex items-center gap-1">
-            <Radio className="w-2.5 h-2.5 text-text-muted/60" />
-            <span>Manual Check-in</span>
-          </span>
-        );
-    }
+    const map = {
+      connected: { dot: "bg-jade", text: "Connected" },
+      pending_connection: { dot: "bg-amber-500", text: "Pending setup" },
+      error: { dot: "bg-rust", text: "Needs attention" },
+      not_connected: { dot: "bg-line-strong", text: "Not connected" },
+    } as const;
+    const s = map[status] || map.not_connected;
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-text-muted whitespace-nowrap">
+        <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+        {s.text}
+      </span>
+    );
   };
+
+  const inputClass =
+    "w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
+
+  const connectedCount = integrations.filter(i => i.status === "connected").length;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-line">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-4 border-b border-line">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-brass/10 border border-brass/30 flex items-center justify-center text-brass">
-              <Layers className="w-4 h-4" />
-            </div>
-            <h1 className="text-lg font-bold text-text">Platform Integrations</h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass-soft text-brass font-bold uppercase tracking-wider">
-              Persistent Registry
-            </span>
-          </div>
-          <p className="text-xs text-text-muted mt-1 font-medium">
-            Connect your payment processors, accounting software, CRM systems, and cloud data feeds to feed real-time truth to your AI executive suite.
+          <h1 className="text-xl font-bold text-text">Integrations</h1>
+          <p className="text-sm text-text-muted mt-1">
+            Connect your payments, accounting, CRM and cloud tools so your advisors work from real data.
+            {!loading && integrations.length > 0 && ` ${connectedCount} of ${integrations.length} connected.`}
           </p>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search integrations…"
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brass"
-          />
-        </div>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search integrations…"
+          className="w-full sm:w-64 px-3.5 py-2 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
+        />
       </div>
 
-      {/* Architecture Alert Box */}
-      <div className="p-4 rounded-xl bg-surface-2 border border-line flex items-start gap-3 text-xs leading-relaxed">
-        <div className="w-8 h-8 rounded-lg bg-surface border border-line flex items-center justify-center text-brass shrink-0 mt-0.5 shadow-2xs">
-          <Cable className="w-4 h-4" />
-        </div>
-        <div className="space-y-1 flex-1">
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-text block">Data Collection Architecture</span>
-            <Link
-              href="/settings/tools"
-              className="text-[11px] text-brass hover:underline font-semibold flex items-center gap-1"
-            >
-              <span>Edit Intake Choices</span>
-              <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <p className="text-text-muted text-[11px]">
-            Connected systems stream metrics automatically. For anything marked <span className="text-text font-semibold">Manual Check-in</span>, BizzPal dynamically prompts you for a quick 60-second update on the dashboard and via WhatsApp without requiring spreadsheet uploads.
-          </p>
-        </div>
-      </div>
+      <p className="text-sm text-text-muted">
+        Anything that isn&apos;t connected is collected through a quick 60-second check-in on your dashboard or WhatsApp.{" "}
+        <Link href="/settings/tools" className="text-brass hover:underline">
+          Change intake choices
+        </Link>
+      </p>
 
-      {/* Category Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+      <nav
+        className="inline-flex max-w-full items-center gap-1 p-1 rounded-lg bg-surface-2 border border-line overflow-x-auto"
+        aria-label="Integration categories"
+      >
         {[
-          { id: "all", label: `All Integrations (${integrations.length})` },
-          { id: "business", label: "Business Integrations" },
+          { id: "all", label: "All" },
+          { id: "business", label: "Business" },
           { id: "automation", label: "Automation" },
-          { id: "data", label: "Data Connections" },
-        ].map(cat => (
-          <button
-            key={cat.id}
-            type="button"
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition-all btn-tactile cursor-pointer ${
-              selectedCategory === cat.id
-                ? "bg-brass text-white shadow-xs"
-                : "bg-surface border border-line text-text-muted hover:text-text"
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
+          { id: "data", label: "Data" },
+        ].map(cat => {
+          const count = cat.id === "all" ? integrations.length : integrations.filter(i => i.category === cat.id).length;
+          const active = selectedCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-4 py-1.5 rounded-md text-sm whitespace-nowrap cursor-pointer transition-colors ${
+                active ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
+              }`}
+            >
+              {cat.label}
+              <span className="ml-1.5 text-xs text-text-muted">{count}</span>
+            </button>
+          );
+        })}
+      </nav>
 
-      {/* Grid of Integrations */}
       {loading ? (
-        <div className="p-12 text-center text-xs text-text-muted">Loading integration registry…</div>
+        <p className="p-12 text-center text-sm text-text-muted">Loading integrations…</p>
+      ) : filtered.length === 0 ? (
+        <p className="p-12 text-center text-sm text-text-muted rounded-xl border border-line">No integrations match your search.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(item => (
             <div
               key={item.id}
               onClick={() => setViewerItem(item)}
-              className="p-4 rounded-xl border border-line bg-surface hover:border-brass/50 hover:shadow-md transition-all flex flex-col justify-between shadow-xs group cursor-pointer"
+              className="p-5 rounded-xl border border-line bg-surface hover:border-line-strong transition-colors flex flex-col gap-4 cursor-pointer"
             >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-surface-2 border border-line flex items-center justify-center p-2 shrink-0 shadow-inner group-hover:scale-105 transition-transform">
-                      <IntegrationLogo id={item.id} className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h2 className="text-xs font-bold text-text group-hover:text-brass transition-colors">
-                        {item.name}
-                      </h2>
-                      <span className="text-[10px] text-text-muted capitalize">
-                        {item.category}
-                      </span>
-                    </div>
-                  </div>
-
-                  {getStatusBadge(item.status)}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-surface-2 border border-line flex items-center justify-center p-2 shrink-0">
+                  <IntegrationLogo id={item.id} className="w-6 h-6" />
                 </div>
-
-                <p className="text-[11px] text-text-muted leading-relaxed line-clamp-2">
-                  {item.tagline}
-                </p>
-
-                {/* Service badges snippet */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {item.services.slice(0, 3).map((svc, i) => (
-                    <span
-                      key={i}
-                      className="text-[9px] px-1.5 py-0.2 rounded bg-surface-2 border border-line text-text-muted"
-                    >
-                      {svc}
-                    </span>
-                  ))}
+                <div className="min-w-0">
+                  <h2 className="text-sm font-medium text-text truncate">{item.name}</h2>
+                  <p className="text-xs text-text-muted capitalize">{item.category}</p>
                 </div>
               </div>
 
-              <div className="pt-4 mt-3 border-t border-line flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setViewerItem(item);
-                  }}
-                  className="text-xs font-semibold text-brass hover:underline inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <span>Open Live Telemetry</span>
-                  <ChevronRight className="w-3 h-3" />
-                </button>
+              <p className="text-sm text-text-muted leading-relaxed line-clamp-2">{item.tagline}</p>
 
-                <div className="flex items-center gap-1.5">
+              <div className="mt-auto pt-4 border-t border-line flex items-center justify-between gap-3">
+                {getStatusBadge(item.status)}
+
+                <div className="flex items-center gap-2">
                   {item.status === "connected" && (
                     <button
                       type="button"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation();
                         setAuthModalTool(item);
                       }}
-                      title="Manage real credentials"
-                      className="p-1 rounded-md text-text-muted hover:text-text hover:bg-surface-2 border border-transparent hover:border-line text-[10px] cursor-pointer"
+                      className="text-sm text-text-muted hover:text-text cursor-pointer"
                     >
-                      <Lock className="w-3 h-3" />
+                      Manage
                     </button>
                   )}
                   <button
                     type="button"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       if (item.status === "connected") {
                         setViewerItem(item);
@@ -633,13 +543,13 @@ export default function IntegrationsPage() {
                         setAuthModalTool(item);
                       }
                     }}
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-md border btn-tactile cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-lg text-sm cursor-pointer ${
                       item.status === "connected"
-                        ? "bg-surface-2 border-line text-text-muted hover:text-text"
-                        : "bg-brass text-white border-brass hover:brightness-110"
+                        ? "border border-line text-text hover:bg-surface-2"
+                        : "bg-brass text-white font-medium hover:brightness-110"
                     }`}
                   >
-                    {item.status === "connected" ? "View App Details" : "Connect Live"}
+                    {item.status === "connected" ? "View" : "Connect"}
                   </button>
                 </div>
               </div>
@@ -648,295 +558,231 @@ export default function IntegrationsPage() {
         </div>
       )}
 
-      {/* STRIPE FULL END-TO-END MODAL */}
+      {/* Stripe */}
       <PortalModal isOpen={stripeModalOpen} onClose={() => setStripeModalOpen(false)}>
-        <div className="max-w-xl w-full p-6 rounded-2xl bg-surface border border-line shadow-2xl space-y-5 animate-scale-in">
-          <div className="flex items-center justify-between pb-3 border-b border-line">
+        <div className="w-[34rem] max-w-[calc(100vw-2rem)] rounded-xl bg-surface border border-line shadow-lg overflow-hidden">
+          <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-surface-2 border border-line flex items-center justify-center p-2 shadow-inner">
+              <div className="w-10 h-10 rounded-lg bg-surface-2 border border-line flex items-center justify-center p-2">
                 <IntegrationLogo id="stripe" className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-text">Stripe Integration & Live Webhook</h2>
-                <p className="text-[11px] text-text-muted">Real-time payment telemetry and ledger sync</p>
+                <h2 className="text-lg font-semibold text-text">Stripe</h2>
+                <p className="text-sm text-text-muted">Payments and subscriptions</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setStripeModalOpen(false)}
-              className="text-xs text-text-muted hover:text-text font-semibold px-2 py-1 rounded bg-surface-2 cursor-pointer"
+              aria-label="Close"
+              className="p-1 text-text-muted hover:text-text cursor-pointer"
             >
               ✕
             </button>
           </div>
 
-          {stripeSuccessMsg && (
-            <div className="p-3 rounded-lg bg-jade/10 border border-jade/30 text-xs text-jade font-semibold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{stripeSuccessMsg}</span>
-            </div>
-          )}
+          <div className="px-6 pb-6 space-y-5 text-sm">
+            {stripeSuccessMsg && (
+              <p className="p-3 rounded-lg border border-line bg-surface-2 text-text">{stripeSuccessMsg}</p>
+            )}
 
-          <div className="space-y-4 text-xs">
-            {/* API Key Input */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="font-semibold text-text">Stripe Restricted API Secret Key</label>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="font-medium text-text">Restricted API key</label>
                 <button
                   type="button"
                   onClick={() => handleConnectStripe("sk_test_demo_live_sync_verified_1234")}
-                  className="text-[10px] text-brass hover:underline font-mono cursor-pointer"
+                  className="text-xs text-brass hover:underline cursor-pointer"
                 >
-                  Use Instant Test Key
+                  Use a test key
                 </button>
               </div>
               <input
                 type="password"
                 value={stripeApiKey}
                 onChange={e => setStripeApiKey(e.target.value)}
-                placeholder="sk_live_... or sk_test_..."
-                className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-line text-text font-mono text-xs focus:ring-1 focus:ring-brass"
+                placeholder="sk_live_… or sk_test_…"
+                className={inputClass}
               />
-              <p className="text-[10px] text-text-muted">
-                Requires Read permissions for Charges, Invoices, and Subscriptions.
-              </p>
+              <p className="text-xs text-text-muted mt-1.5">Needs read access to charges, invoices and subscriptions.</p>
             </div>
 
-            {/* Webhook Endpoint Info */}
-            <div className="p-3 rounded-xl bg-surface-2 border border-line space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-text flex items-center gap-1.5">
-                  <Cable className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Inbound Webhook Endpoint</span>
-                </span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-jade/10 text-jade border border-jade/20 font-bold uppercase">
-                  Active Endpoint
-                </span>
-              </div>
-              <div className="p-2 rounded bg-surface border border-line font-mono text-[11px] text-text select-all">
+            <div className="rounded-lg border border-line p-4 space-y-2">
+              <p className="font-medium text-text">Webhook endpoint</p>
+              <p className="px-3 py-2 rounded-md bg-surface-2 text-xs font-mono text-text select-all">
                 /api/integrations/stripe/webhook
-              </div>
-              <p className="text-[10px] text-text-muted">
-                Subscribed events: <code className="font-mono text-text">payment_intent.succeeded</code>, <code className="font-mono text-text">invoice.paid</code>
+              </p>
+              <p className="text-xs text-text-muted">
+                Listens for payment_intent.succeeded and invoice.paid.
               </p>
             </div>
 
-            {/* Action Buttons */}
-            <div className="pt-2 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={handleTriggerTestWebhook}
-                disabled={stripeTestingWebhook}
-                className="px-3.5 py-2 rounded-lg bg-surface-2 border border-line text-text hover:border-line-strong text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                <Send className="w-3 h-3 text-cyan-400" />
-                <span>{stripeTestingWebhook ? "Sending…" : "Send Test Payment Webhook (₹25,000)"}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleConnectStripe()}
-                disabled={stripeConnecting}
-                className="px-4 py-2 rounded-lg bg-brass text-white font-bold text-xs hover:brightness-110 shadow-sm inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>{stripeConnecting ? "Verifying…" : "Save & Connect Stripe"}</span>
-              </button>
-            </div>
-
-            {/* Event Logs */}
             {stripeEvents.length > 0 && (
-              <div className="pt-3 border-t border-line space-y-2">
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                  Recent Webhook Telemetry Events (Persistent SQLite Ledger)
-                </span>
-                <div className="space-y-1.5 max-h-36 overflow-y-auto">
+              <div className="space-y-2">
+                <p className="font-medium text-text">Recent events</p>
+                <ul className="divide-y divide-line border border-line rounded-lg max-h-36 overflow-y-auto">
                   {stripeEvents.map(evt => (
-                    <div
-                      key={evt.id}
-                      className="p-2 rounded-lg bg-surface-2 border border-line flex items-center justify-between text-[11px] font-mono"
-                    >
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-3 h-3 text-jade shrink-0" />
-                        <span className="text-text font-semibold">{evt.eventType}</span>
-                      </div>
-                      <div className="text-text-muted">
-                        <span className="text-jade font-bold mr-2">
-                          +₹{evt.amount?.toLocaleString("en-IN")}
-                        </span>
-                        <span>{new Date(evt.createdAt).toLocaleTimeString()}</span>
-                      </div>
-                    </div>
+                    <li key={evt.id} className="px-3 py-2 flex items-center justify-between text-xs">
+                      <span className="text-text">{evt.eventType}</span>
+                      <span className="text-text-muted">
+                        +₹{evt.amount?.toLocaleString("en-IN")} · {new Date(evt.createdAt).toLocaleTimeString()}
+                      </span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
+          </div>
+
+          <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={handleTriggerTestWebhook}
+              disabled={stripeTestingWebhook}
+              className="px-3.5 py-2 rounded-lg border border-line text-sm text-text hover:bg-surface disabled:opacity-50 cursor-pointer"
+            >
+              {stripeTestingWebhook ? "Sending…" : "Send test payment"}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleConnectStripe()}
+              disabled={stripeConnecting}
+              className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
+            >
+              {stripeConnecting ? "Verifying…" : "Save and connect"}
+            </button>
           </div>
         </div>
       </PortalModal>
 
-      {/* GENERIC CONNECT MODAL (Honest Setup for Slack, Zoho, GCal, HelpDesk) */}
+      {/* Generic connect */}
       <PortalModal isOpen={Boolean(genericModalItem)} onClose={() => setGenericModalItem(null)}>
         {genericModalItem && (
-          <div className="max-w-lg w-full p-6 rounded-2xl bg-surface border border-line shadow-2xl space-y-5 animate-scale-in">
-            <div className="flex items-center justify-between pb-3 border-b border-line">
+          <div className="w-[32rem] max-w-[calc(100vw-2rem)] rounded-xl bg-surface border border-line shadow-lg overflow-hidden">
+            <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-surface-2 border border-line flex items-center justify-center p-2 shadow-inner">
+                <div className="w-10 h-10 rounded-lg bg-surface-2 border border-line flex items-center justify-center p-2">
                   <IntegrationLogo id={genericModalItem.id} className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-text">Connect {genericModalItem.name}</h2>
-                  <p className="text-[11px] text-text-muted">{genericModalItem.category} integration setup</p>
+                  <h2 className="text-lg font-semibold text-text">Connect {genericModalItem.name}</h2>
+                  <p className="text-sm text-text-muted capitalize">{genericModalItem.category}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setGenericModalItem(null)}
-                className="text-xs text-text-muted hover:text-text font-semibold px-2 py-1 rounded bg-surface-2 cursor-pointer"
+                aria-label="Close"
+                className="p-1 text-text-muted hover:text-text cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
-              <p className="text-text-muted text-[11px] leading-relaxed">
-                Provide your authentication token or webhook URL for <span className="font-semibold text-text">{genericModalItem.name}</span>. This sets your status to <span className="font-bold text-amber-500">Pending Setup</span> without fabricating synthetic data.
-              </p>
-
-              <div className="space-y-1.5">
-                <label className="font-semibold text-text">
+            <div className="px-6 pb-6 space-y-4 text-sm">
+              <div>
+                <label className="font-medium text-text block mb-1.5">
                   {genericModalItem.id === "slack"
-                    ? "Slack Incoming Webhook URL / Bot Token"
+                    ? "Webhook URL or bot token"
                     : genericModalItem.id === "zoho_books"
-                    ? "Zoho Books Organization ID / Authtoken"
+                    ? "Organization ID or auth token"
                     : genericModalItem.id === "google_calendar"
-                    ? "Google Calendar ID / Service Account Email"
-                    : "API Key / Access Token"}
+                    ? "Calendar ID or service account email"
+                    : "API key or access token"}
                 </label>
                 <input
                   type="text"
                   value={genericCredential}
                   onChange={e => setGenericCredential(e.target.value)}
-                  placeholder="Enter credential / URL..."
-                  className="w-full px-3 py-2 rounded-lg bg-surface-2 border border-line text-text font-mono text-xs focus:ring-1 focus:ring-brass"
+                  placeholder="Paste it here"
+                  className={inputClass}
                 />
+                <p className="text-xs text-text-muted mt-1.5">
+                  Saving without activating marks it as pending setup. Credentials are stored in your workspace database.
+                </p>
               </div>
+            </div>
 
-              <div className="p-3 rounded-lg bg-surface-2 border border-line text-[11px] text-text-muted flex items-start gap-2">
-                <Shield className="w-3.5 h-3.5 text-brass shrink-0 mt-0.5" />
-                <span>
-                  Telemetry credentials are encrypted at rest in your local workspace database (<code className="font-mono text-text">data/bizzpal.db</code>).
-                </span>
-              </div>
-
-              <div className="pt-3 border-t border-line flex items-center justify-between">
+            <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => handleSaveGenericIntegration("not_connected")}
+                className="text-sm text-rust hover:underline cursor-pointer"
+              >
+                Disconnect
+              </button>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => handleSaveGenericIntegration("not_connected")}
-                  className="text-xs text-rust hover:underline font-semibold cursor-pointer"
+                  onClick={() => handleSaveGenericIntegration("pending_connection")}
+                  disabled={genericSaving}
+                  className="px-3.5 py-2 rounded-lg border border-line text-sm text-text hover:bg-surface cursor-pointer"
                 >
-                  Disconnect / Clear
+                  Save for later
                 </button>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleSaveGenericIntegration("pending_connection")}
-                    disabled={genericSaving}
-                    className="px-3.5 py-2 rounded-lg bg-surface-2 border border-line text-text hover:border-line-strong text-xs font-semibold cursor-pointer"
-                  >
-                    Mark Pending Setup
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveGenericIntegration("connected")}
-                    disabled={genericSaving}
-                    className="px-4 py-2 rounded-lg bg-brass text-white font-bold text-xs hover:brightness-110 shadow-sm cursor-pointer"
-                  >
-                    Save & Activate
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSaveGenericIntegration("connected")}
+                  disabled={genericSaving}
+                  className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
+                >
+                  Save and activate
+                </button>
               </div>
             </div>
           </div>
         )}
       </PortalModal>
 
-      {/* INSPECT ITEM MODAL */}
+      {/* Details */}
       <PortalModal isOpen={Boolean(inspectItem)} onClose={() => setInspectItem(null)}>
         {inspectItem && (
-          <div className="max-w-2xl w-full p-6 rounded-2xl bg-surface border border-line shadow-2xl space-y-5 animate-scale-in">
-            <div className="flex items-start justify-between pb-3 border-b border-line gap-4">
+          <div className="w-[40rem] max-w-[calc(100vw-2rem)] rounded-xl bg-surface border border-line shadow-lg overflow-hidden">
+            <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-surface-2 border border-line flex items-center justify-center p-2.5 shadow-inner">
-                  <IntegrationLogo id={inspectItem.id} className="w-8 h-8" />
+                <div className="w-11 h-11 rounded-lg bg-surface-2 border border-line flex items-center justify-center p-2">
+                  <IntegrationLogo id={inspectItem.id} className="w-7 h-7" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-bold text-text">{inspectItem.name}</h2>
-                    {getStatusBadge(inspectItem.status)}
-                  </div>
-                  <p className="text-xs text-text-muted mt-0.5">{inspectItem.tagline}</p>
+                  <h2 className="text-lg font-semibold text-text">{inspectItem.name}</h2>
+                  <div className="mt-0.5">{getStatusBadge(inspectItem.status)}</div>
                 </div>
               </div>
-
               <button
                 type="button"
                 onClick={() => setInspectItem(null)}
-                className="text-xs text-text-muted hover:text-text font-semibold px-2.5 py-1 rounded-md bg-surface-2 border border-line cursor-pointer"
+                aria-label="Close"
+                className="p-1 text-text-muted hover:text-text cursor-pointer"
               >
-                Close Details ✕
+                ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-              <div className="p-3.5 rounded-xl bg-surface-2 border border-line space-y-2">
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                  Authorized Services
-                </span>
-                <ul className="space-y-1.5 text-[11px]">
-                  {inspectItem.services.map((svc, i) => (
-                    <li key={i} className="flex items-center gap-2 text-text">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-jade shrink-0" />
-                      <span>{svc}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <div className="px-6 pb-6 space-y-5 text-sm">
+              <p className="text-text-muted leading-relaxed">{inspectItem.tagline}</p>
 
-              <div className="p-3.5 rounded-xl bg-surface-2 border border-line space-y-2">
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                  Permissions & Scopes
-                </span>
-                <ul className="space-y-1.5 text-[11px]">
-                  {inspectItem.permissions.map((perm, i) => (
-                    <li key={i} className="flex items-start gap-1.5 text-text-muted">
-                      <Shield className="w-3.5 h-3.5 text-brass shrink-0 mt-0.5" />
-                      <span>{perm}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-surface-2 border border-line space-y-2">
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                  Used By (AI Agents)
-                </span>
-                <ul className="space-y-1.5 text-[11px]">
-                  {inspectItem.usedBy.map((consumer, i) => (
-                    <li key={i} className="flex items-center gap-1.5 text-text">
-                      <Bot className="w-3 h-3 text-cyan-400 shrink-0" />
-                      <span>{consumer}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[
+                  { title: "Services", items: inspectItem.services },
+                  { title: "Permissions", items: inspectItem.permissions },
+                  { title: "Used by", items: inspectItem.usedBy },
+                ].map(group => (
+                  <div key={group.title} className="p-4 rounded-lg border border-line">
+                    <p className="text-xs text-text-muted mb-2">{group.title}</p>
+                    <ul className="space-y-1.5 text-sm text-text">
+                      {group.items.map((it, i) => (
+                        <li key={i}>{it}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="pt-3 border-t border-line flex items-center justify-between">
-              <div className="text-[11px] text-text-muted">
-                {inspectItem.configSummary || "Telemetry credentials stored in persistent tenant database."}
-              </div>
+            <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-between gap-3">
+              <p className="text-xs text-text-muted">
+                {inspectItem.configSummary || "Credentials are stored in your workspace database."}
+              </p>
               <button
                 type="button"
                 onClick={() => {
@@ -949,9 +795,9 @@ export default function IntegrationsPage() {
                     setGenericCredential(target.apiKey || "");
                   }
                 }}
-                className="px-4 py-2 rounded-lg bg-brass text-white font-bold text-xs hover:brightness-110 shadow-sm cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer shrink-0"
               >
-                Configure Settings
+                Configure
               </button>
             </div>
           </div>

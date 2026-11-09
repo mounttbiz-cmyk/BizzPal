@@ -1,30 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import {
-  FileText,
-  UploadCloud,
-  Plus,
-  RefreshCw,
-  Trash2,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  Eye,
-  Layers,
-  Database,
-  Search,
-  Copy,
-  Check,
-  FileType,
-  FileSpreadsheet,
-  FileCode,
-  HardDrive,
-  Cpu,
-  Activity,
-  X,
-  ExternalLink,
-} from "lucide-react";
+import { FileText, UploadCloud, RefreshCw, Trash2, AlertCircle, Layers, Search, Copy, Check, FileType, FileSpreadsheet, FileCode, X } from "lucide-react";
 
 interface DocumentItem {
   id: string;
@@ -279,71 +256,16 @@ export function DocumentsManager() {
 
   return (
     <div className="space-y-6">
-      {/* Repository Stats Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Ingested Documents</span>
-            <div className="w-6 h-6 rounded-lg bg-brass/10 flex items-center justify-center text-brass">
-              <FileText className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-text">{totalDocs}</span>
-            <span className="text-[10px] text-text-muted font-mono">files</span>
-          </div>
-          <p className="text-[10px] text-text-muted/80">PDF, Markdown, CSV & JSON</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Vector Embeddings</span>
-            <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-              <Cpu className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">{totalChunks}</span>
-            <span className="text-[10px] text-text-muted font-mono">vectors</span>
-          </div>
-          <p className="text-[10px] text-text-muted/80">HNSW Index • 768 / 1536 dim</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Memory Footprint</span>
-            <div className="w-6 h-6 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-500">
-              <HardDrive className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-text">
-              {totalBytes < 1024 * 1024 ? `${(totalBytes / 1024).toFixed(1)} KB` : `${(totalBytes / (1024 * 1024)).toFixed(2)} MB`}
-            </span>
-          </div>
-          <p className="text-[10px] text-text-muted/80">pgvector & SQLite Dual-Store</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span className="font-medium">Index Health</span>
-            <div className="w-6 h-6 rounded-lg bg-brass/10 flex items-center justify-center text-brass">
-              <Activity className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold font-mono text-text">{healthPct}%</span>
-            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Synced
-            </span>
-          </div>
-          <p className="text-[10px] text-text-muted/80">Automated deduplication active</p>
-        </div>
-      </div>
+      <p className="text-sm text-text-muted">
+        <span className="font-semibold text-text">{totalDocs}</span> {totalDocs === 1 ? "document" : "documents"} ·{" "}
+        <span className="font-semibold text-text">{totalChunks}</span> indexed passages ·{" "}
+        <span className="font-semibold text-text">
+          {totalBytes < 1024 * 1024 ? `${(totalBytes / 1024).toFixed(1)} KB` : `${(totalBytes / (1024 * 1024)).toFixed(2)} MB`}
+        </span>
+      </p>
 
       {/* Action Header & Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-surface border border-line shadow-2xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-1 flex-wrap">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -351,7 +273,7 @@ export function DocumentsManager() {
               type="text"
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              placeholder="Search company files, SOPs, decks…"
+              placeholder="Search documents…"
               className="w-full pl-9 pr-8 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:border-brass/70 transition-all font-sans"
             />
             {searchFilter && (
@@ -368,11 +290,11 @@ export function DocumentsManager() {
           {/* Format Filter Pills */}
           <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-line">
             {[
-              { id: "all", label: "All Formats" },
+              { id: "all", label: "All" },
               { id: "pdf", label: "PDF" },
-              { id: "sheets", label: "CSV/Sheets" },
+              { id: "sheets", label: "CSV" },
               { id: "json", label: "JSON" },
-              { id: "markdown", label: "MD" },
+              { id: "markdown", label: "Markdown" },
             ].map((f) => (
               <button
                 key={f.id}
@@ -403,39 +325,31 @@ export function DocumentsManager() {
         <button
           type="button"
           onClick={() => setIsUploadModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brass text-white text-xs font-bold shadow-2xs hover:brightness-110 btn-tactile cursor-pointer shrink-0"
+          className="px-3.5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer shrink-0"
         >
-          <UploadCloud className="w-4 h-4" />
-          <span>Upload & Ingest Document</span>
+          Upload document
         </button>
       </div>
 
       {toastMessage && (
-        <div className="p-3 rounded-xl bg-brass/10 border border-brass/30 text-xs font-medium text-brass flex items-center gap-2 animate-fade-in shadow-2xs">
-          <CheckCircle2 className="w-4 h-4 text-brass shrink-0" />
+        <div className="p-3 rounded-lg border border-line bg-surface-2 text-sm text-text">
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Document Table / Cards */}
       {filteredDocs.length === 0 ? (
-        <div className="rounded-2xl border border-line bg-surface p-12 text-center space-y-4 shadow-2xs">
-          <div className="w-14 h-14 rounded-2xl bg-brass/10 border border-brass/25 mx-auto flex items-center justify-center text-brass shadow-2xs">
-            <Database className="w-7 h-7" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-text">No company documents found</h3>
-            <p className="text-xs text-text-muted max-w-md mx-auto leading-relaxed">
-              Upload your company&apos;s financial models, product roadmaps, legal contracts, or client pitch decks to establish persistent, citation-backed memory.
-            </p>
-          </div>
+        <div className="rounded-xl border border-line bg-surface p-12 text-center space-y-3">
+          <h3 className="text-sm font-semibold text-text">No documents yet</h3>
+          <p className="text-sm text-text-muted max-w-md mx-auto">
+            Upload financial models, contracts or pitch decks so your advisors can answer from them.
+          </p>
           <button
             type="button"
             onClick={() => setIsUploadModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer shadow-2xs btn-tactile"
+            className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span>Upload First Document</span>
+            Upload document
           </button>
         </div>
       ) : (
