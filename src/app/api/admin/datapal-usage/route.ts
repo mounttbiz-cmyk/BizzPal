@@ -16,6 +16,7 @@ export async function GET() {
                 MAX(account_name) AS name,
                 COUNT(*) AS runs,
                 SUM(returned) AS leads,
+                SUM(real_leads) AS realLeads,
                 SUM(google_requests) AS googleRequests,
                 SUM(est_cost_usd) AS costUsd,
                 SUM(CASE WHEN created_at >= ? THEN est_cost_usd ELSE 0 END) AS monthCostUsd,
@@ -28,7 +29,7 @@ export async function GET() {
 
     const recent = db
       .prepare(
-        `SELECT id, account_email AS email, account_name AS name, requested, returned,
+        `SELECT id, account_email AS email, account_name AS name, requested, returned, real_leads AS realLeads,
                 source_mode AS sourceMode, google_requests AS googleRequests,
                 est_cost_usd AS costUsd, created_at AS createdAt
            FROM datapal_usage_log

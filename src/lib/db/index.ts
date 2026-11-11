@@ -588,6 +588,13 @@ try {
     // column already exists
   }
 
+  // DataPal usage: how many of the delivered records came from a real source
+  try {
+    db.exec(`ALTER TABLE datapal_usage_log ADD COLUMN real_leads INTEGER DEFAULT 0`);
+  } catch (e) {
+    // column already exists
+  }
+
   // Migrate existing businesses table if logo_url column is missing
   try {
     db.exec(`ALTER TABLE businesses ADD COLUMN logo_url TEXT`);
@@ -1839,18 +1846,20 @@ export function logDataPalUsage(entry: {
   name?: string;
   requested: number;
   returned: number;
+  realLeads: number;
   sourceMode: string;
   googleRequests: number;
 }): void {
   try {
     db.prepare(
-      `INSERT INTO datapal_usage_log (account_email, account_name, requested, returned, source_mode, google_requests, est_cost_usd, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO datapal_usage_log (account_email, account_name, requested, returned, real_leads, source_mode, google_requests, est_cost_usd, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       (entry.email || "guest").trim().toLowerCase(),
       entry.name || null,
       entry.requested,
       entry.returned,
+      entry.realLeads,
       entry.sourceMode,
       entry.googleRequests,
       entry.googleRequests * PLACES_COST_PER_REQUEST_USD,

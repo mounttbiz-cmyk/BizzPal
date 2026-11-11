@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
       email: String(account?.email || "guest"),
       name: account?.name,
       requested: targetCount,
-      returned: realLeads.length,
+      returned: leads.length,
+      realLeads: realLeads.length,
       sourceMode,
       googleRequests,
     });
