@@ -48,7 +48,7 @@ export function ChatMarkdown({ content }: { content: string }) {
             </th>
           ),
           td: ({ children }) => (
-            <td className="px-2.5 py-1.5 align-top border-b border-line/60 last:border-b-0">{children}</td>
+            <td className="px-2.5 py-1.5 align-top border-b border-line last:border-b-0">{children}</td>
           ),
         }}
       >

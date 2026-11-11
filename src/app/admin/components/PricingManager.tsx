@@ -303,22 +303,12 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
   return (
     <div className="space-y-6">
       {/* Header Bar */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-theme">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 shrink-0">
-            <CreditCard className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-text">Subscription Plans & Commercial CMS</h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold uppercase font-mono">
-                100% Dynamic
-              </span>
-            </div>
-            <p className="text-xs text-text-muted mt-0.5">
-              Live edit names, prices, badges, popular flags, and entitlements. Updates immediately synchronize to /subscription and the dashboard.
-            </p>
-          </div>
+      <div className="p-5 rounded-2xl bg-surface border border-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+        <div>
+          <h2 className="text-base font-semibold text-text">Subscription plans</h2>
+          <p className="text-sm text-text-muted mt-0.5 max-w-2xl">
+            Edit plan names, prices, badges and features. Changes show on the pricing page and the dashboard straight away.
+          </p>
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-center">
@@ -328,20 +318,20 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                 type="button"
                 onClick={handleResetDefaults}
                 disabled={saving}
-                className="px-3 py-2 rounded-xl text-xs font-semibold border border-line text-text-muted hover:text-text hover:bg-surface-2 flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-3.5 py-2.5 rounded-xl text-sm border border-line text-text hover:bg-surface-2 flex items-center gap-1.5 cursor-pointer"
                 title="Reset to default tiers"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Reset Defaults</span>
+                <span className="hidden sm:inline">Reset to defaults</span>
               </button>
 
               <button
                 type="button"
                 onClick={openCreateModal}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 transition-all shadow-md shadow-blue-500/20 cursor-pointer shrink-0"
+                className="px-4 py-2.5 rounded-xl text-sm font-medium bg-brass hover:brightness-110 text-white flex items-center gap-1.5 cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>New Pricing Tier</span>
+                <span>New plan</span>
               </button>
             </>
           )}
@@ -351,55 +341,40 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
               type="button"
               onClick={fetchTransactions}
               disabled={loadingTransactions}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-surface-2 hover:bg-surface border border-line text-text flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-4 py-2.5 rounded-xl text-sm border border-line text-text hover:bg-surface-2 flex items-center gap-1.5 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loadingTransactions ? "animate-spin" : ""}`} />
-              <span>Refresh Ledger</span>
+              <span>Refresh</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Sub-tab Pill Switch */}
-      <div className="flex items-center gap-2 border-b border-line pb-3">
-        <button
-          type="button"
-          onClick={() => setSubTab("tiers")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            subTab === "tiers"
-              ? "bg-blue-600 text-white shadow-xs"
-              : "bg-surface text-text-muted hover:text-text border border-line"
-          }`}
-        >
-          <CreditCard className="w-3.5 h-3.5" />
-          <span>Pricing Tiers ({planList.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setSubTab("gateway");
-            fetchTransactions();
-          }}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-            subTab === "gateway"
-              ? "bg-blue-600 text-white shadow-xs"
-              : "bg-surface text-text-muted hover:text-text border border-line"
-          }`}
-        >
-          <Zap className="w-3.5 h-3.5" />
-          <span>Razorpay Gateway & Ledger</span>
-          {transactions.length > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full bg-surface-2 text-[10px] font-mono">
-              {transactions.length}
-            </span>
-          )}
-        </button>
+      {/* Sub-tab switch */}
+      <div className="inline-flex p-1 rounded-xl bg-surface-2 border border-line">
+        {([
+          { id: "tiers", label: `Plans (${planList.length})` },
+          { id: "gateway", label: `Payments${transactions.length > 0 ? ` (${transactions.length})` : ""}` },
+        ] as const).map(t => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => {
+              setSubTab(t.id);
+              if (t.id === "gateway") fetchTransactions();
+            }}
+            className={`px-4 py-2 rounded-lg text-sm cursor-pointer ${
+              subTab === t.id ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* VIEW 1: Pricing Tiers Grid */}
       {subTab === "tiers" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {planList.map((plan, index) => {
           const isPopular = Boolean(plan.isPopular);
           const isEnabled = plan.enabled !== false;
@@ -407,26 +382,21 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
           return (
             <div
               key={plan.id}
-              className={`p-5 rounded-2xl bg-surface border flex flex-col justify-between shadow-theme transition-all relative ${!isEnabled
+              className={`p-6 rounded-2xl bg-surface border flex flex-col justify-between shadow-sm relative ${!isEnabled
                   ? "opacity-60 border-dashed border-line"
                   : isPopular
-                    ? "border-blue-500/60 ring-2 ring-blue-500/20 shadow-lg shadow-blue-500/5"
+                    ? "border-line"
                     : "border-line"
                 }`}
             >
               {/* Badge & Popular Indicator */}
               <div className="flex items-center justify-between gap-2 mb-3">
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-2 border border-line text-text-muted">
-                  ID: {plan.id}
-                </span>
+                <span className="text-xs text-text-muted">{isPopular ? "Most popular" : isEnabled ? "Active" : "Hidden"}</span>
 
                 <div className="flex items-center gap-1.5">
                   {plan.badge && (
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${isPopular
-                          ? "bg-blue-500 text-white shadow-xs"
-                          : "bg-surface-2 border border-line text-text-muted"
-                        }`}
+                      className="text-xs text-text-muted"
                     >
                       {plan.badge}
                     </span>
@@ -436,50 +406,50 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                     onClick={() => handleTogglePopular(plan.id)}
                     title={isPopular ? "Unmark as Most Popular" : "Mark as Most Popular"}
                     className={`p-1 rounded-lg border transition-colors cursor-pointer ${isPopular
-                        ? "bg-amber-500/15 border-amber-500/40 text-amber-500"
-                        : "border-line text-text-muted hover:text-amber-500 hover:bg-surface-2"
+                        ? "bg-brass/10 border-brass/40 text-brass"
+                        : "border-line text-text-muted hover:text-brass hover:bg-surface-2"
                       }`}
                   >
-                    <Star className={`w-3.5 h-3.5 ${isPopular ? "fill-amber-500" : ""}`} />
+                    <Star className={`w-3.5 h-3.5 ${isPopular ? "fill-current" : ""}`} />
                   </button>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <h3 className="font-extrabold text-base text-text">{plan.name}</h3>
-                  <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed min-h-[2rem]">
+                  <h3 className="font-semibold text-lg text-text">{plan.name}</h3>
+                  <p className="text-sm text-text-muted mt-0.5 leading-relaxed min-h-[2.5rem]">
                     {plan.tagline}
                   </p>
                 </div>
 
-                <div className="pt-2 border-t border-line/60">
+                <div className="pt-2 border-t border-line">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-text font-mono">{plan.price}</span>
-                    <span className="text-xs text-text-muted font-mono">{plan.period}</span>
+                    <span className="text-2xl font-semibold text-text">{plan.price}</span>
+                    <span className="text-sm text-text-muted">{plan.period}</span>
                   </div>
-                  <div className="text-[10px] text-text-muted mt-1 flex items-center gap-1">
-                    <span className="font-semibold text-text">CTA:</span>
-                    <span className="truncate">"{plan.ctaLabel}"</span>
+                  <div className="text-xs text-text-muted mt-1 flex items-center gap-1">
+                    <span>Button:</span>
+                    <span className="truncate text-text">{plan.ctaLabel}</span>
                   </div>
                 </div>
 
                 {/* Features List */}
-                <div className="pt-3 border-t border-line/60 space-y-1.5">
-                  <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono flex items-center justify-between">
-                    <span>Entitlements</span>
-                    <span>({plan.features?.length || 0})</span>
+                <div className="pt-3 border-t border-line space-y-1.5">
+                  <div className="text-xs font-medium text-text-muted flex items-center justify-between">
+                    <span>Features</span>
+                    <span>{plan.features?.length || 0}</span>
                   </div>
-                  <ul className="space-y-1 text-xs text-text-muted">
+                  <ul className="space-y-1.5 text-sm text-text-muted">
                     {(plan.features || []).slice(0, 5).map((feat, i) => (
                       <li key={i} className="flex items-start gap-1.5 leading-tight">
-                        <Check className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
-                        <span className="text-[11px] text-text truncate">{feat}</span>
+                        <Check className="w-4 h-4 text-jade shrink-0 mt-0.5" />
+                        <span className="text-sm text-text">{feat}</span>
                       </li>
                     ))}
                     {(plan.features || []).length > 5 && (
-                      <li className="text-[10px] text-text-muted italic pl-5">
-                        +{(plan.features || []).length - 5} more features
+                      <li className="text-xs text-text-muted pl-5">
+                        +{(plan.features || []).length - 5} more
                       </li>
                     )}
                   </ul>
@@ -554,7 +524,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
           {/* Gateway Status Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 rounded-xl bg-surface border border-line space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
                 Gateway Operational Mode
               </span>
               <div className="flex items-center gap-2">
@@ -567,7 +537,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                   {gatewayStatus?.mode || "Sandbox Simulation"}
                 </span>
               </div>
-              <p className="text-[11px] text-text-muted leading-relaxed">
+              <p className="text-xs text-text-muted leading-relaxed">
                 {gatewayStatus?.isLive
                   ? "Live Razorpay keys detected. Processing real UPI & card payments."
                   : "Running in Sandbox Test mode. To switch to live, paste your Key & Secret in .env.local."}
@@ -575,7 +545,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
             </div>
 
             <div className="p-4 rounded-xl bg-surface border border-line space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
                 Key ID Status
               </span>
               <div className="flex items-center gap-2">
@@ -588,19 +558,19 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                   {gatewayStatus?.keyPrefix || "Placeholder Mode"}
                 </span>
               </div>
-              <p className="text-[11px] text-text-muted">
+              <p className="text-xs text-text-muted">
                 {gatewayStatus?.keyConfigured ? "Public Key verified." : "NEXT_PUBLIC_RAZORPAY_KEY_ID needed for live."}
               </p>
             </div>
 
             <div className="p-4 rounded-xl bg-surface border border-line space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
                 Webhook Listener Endpoint
               </span>
               <div className="text-xs font-mono text-text bg-surface-2 p-1.5 rounded border border-line truncate select-all">
                 /api/payments/razorpay/webhook
               </div>
-              <p className="text-[11px] text-text-muted">
+              <p className="text-xs text-text-muted">
                 Add this URL in Razorpay Dashboard → Settings → Webhooks for automatic sync.
               </p>
             </div>
@@ -622,14 +592,14 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
 
             {loadingTransactions ? (
               <div className="py-12 text-center text-xs text-text-muted flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                <RefreshCw className="w-4 h-4 animate-spin text-text-muted" />
                 <span>Loading payment ledger…</span>
               </div>
             ) : transactions.length === 0 ? (
               <div className="py-12 text-center space-y-2">
                 <CreditCard className="w-8 h-8 text-text-muted mx-auto opacity-50" />
                 <p className="text-xs font-semibold text-text">No payment transactions recorded yet</p>
-                <p className="text-[11px] text-text-muted max-w-sm mx-auto">
+                <p className="text-xs text-text-muted max-w-sm mx-auto">
                   When a customer activates a plan on /subscription, their Order ID, Payment ID, and verified status will be audited here in real-time.
                 </p>
               </div>
@@ -637,7 +607,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-line text-[10px] uppercase font-bold text-text-muted tracking-wider">
+                    <tr className="border-b border-line text-xs uppercase font-bold text-text-muted tracking-wider">
                       <th className="py-2.5 px-3">Order / Payment ID</th>
                       <th className="py-2.5 px-3">Customer Email</th>
                       <th className="py-2.5 px-3">Plan Tier</th>
@@ -646,16 +616,16 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                       <th className="py-2.5 px-3">Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-line font-mono text-[11px]">
+                  <tbody className="divide-y divide-line font-mono text-xs">
                     {transactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-surface-2/50 transition-colors">
                         <td className="py-3 px-3">
                           <div className="font-bold text-text">{tx.order_id}</div>
-                          <div className="text-[10px] text-text-muted">{tx.payment_id || "Awaiting Payment"}</div>
+                          <div className="text-xs text-text-muted">{tx.payment_id || "Awaiting Payment"}</div>
                         </td>
                         <td className="py-3 px-3 font-sans text-text">{tx.user_email}</td>
                         <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold uppercase text-[10px]">
+                          <span className="px-2 py-0.5 rounded-full bg-surface-2 text-text-muted font-bold uppercase text-xs">
                             {tx.plan_id}
                           </span>
                         </td>
@@ -664,7 +634,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                         </td>
                         <td className="py-3 px-3">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
                               tx.status === "success"
                                 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                                 : tx.status === "created"
@@ -675,7 +645,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                             {tx.status}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-text-muted font-sans text-[11px]">
+                        <td className="py-3 px-3 text-text-muted font-sans text-xs">
                           {tx.created_at ? new Date(tx.created_at).toLocaleString() : "Recently"}
                         </td>
                       </tr>
@@ -700,14 +670,14 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-surface shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+                <div className="w-8 h-8 rounded-lg bg-surface-2 border border-line flex items-center justify-center text-text-muted">
                   <CreditCard className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-text">
                     {editingPlan ? `Edit Tier: ${editingPlan.name}` : "Create New Pricing Tier"}
                   </h3>
-                  <p className="text-[11px] text-text-muted">Subscription pricing, entitlements, badges & actions</p>
+                  <p className="text-xs text-text-muted">Subscription pricing, entitlements, badges & actions</p>
                 </div>
               </div>
               <button
@@ -855,7 +825,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="font-semibold text-text">Feature Bullets (One per line)</label>
-                  <span className="text-[10px] text-text-muted">
+                  <span className="text-xs text-text-muted">
                     {form.featuresRaw.split("\n").filter((f) => f.trim()).length} features configured
                   </span>
                 </div>
@@ -864,7 +834,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                   placeholder="All Free tier features&#10;All 3 AI Executives (CEO, CFO, CMO)&#10;Cash Runway & Burn Alarm System"
                   value={form.featuresRaw}
                   onChange={(e) => setForm({ ...form, featuresRaw: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-[11px] focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-xs focus:outline-none focus:border-brass"
                 />
               </div>
 
@@ -875,7 +845,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                     type="checkbox"
                     checked={form.isPopular}
                     onChange={(e) => setForm({ ...form, isPopular: e.target.checked })}
-                    className="rounded border-line text-blue-600 focus:ring-0"
+                    className="rounded border-line text-brass focus:ring-0"
                   />
                   <span className="text-xs font-semibold text-text">Highlight as Popular Tier (Halo Glow + Prominence)</span>
                 </label>
@@ -885,7 +855,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                     type="checkbox"
                     checked={form.enabled}
                     onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
-                    className="rounded border-line text-blue-600 focus:ring-0"
+                    className="rounded border-line text-brass focus:ring-0"
                   />
                   <span className="text-xs font-semibold text-text">Plan Active</span>
                 </label>
@@ -905,7 +875,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                 type="submit"
                 form="pricing-modal-form"
                 disabled={saving}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 active:scale-[0.98] cursor-pointer transition-all shadow-md shadow-blue-500/25 flex items-center gap-1.5 disabled:opacity-50"
+                className="px-5 py-2 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all  flex items-center gap-1.5 disabled:opacity-50"
               >
                 {saving ? (
                   <>

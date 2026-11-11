@@ -260,240 +260,154 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
       (t.ownerEmail && t.ownerEmail.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const lakh = (n: number) => `₹${((n || 0) / 100000).toFixed(1)}L`;
+  const kpis = [
+    { label: "Registered enterprises", value: String(stats.totalBusinesses || tenants.length), note: "Across the platform", Icon: Building2 },
+    { label: "Total annual revenue", value: lakh(stats.totalAnnualRevenue), note: "Reported by enterprises", Icon: DollarSign },
+    { label: "Monthly spending", value: lakh(stats.totalMonthlyBurn), note: "Combined monthly costs", Icon: TrendingUp },
+    { label: "Cash in the bank", value: lakh(stats.totalCashReserves), note: "Combined cash balance", Icon: ShieldCheck },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Platform Overview Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-theme">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span>Registered Enterprises</span>
-            <Building2 className="w-4 h-4 text-gold" />
+        {kpis.map(k => (
+          <div key={k.label} className="p-5 rounded-2xl bg-surface border border-line shadow-sm">
+            <div className="flex items-center justify-between text-sm text-text-muted">
+              <span>{k.label}</span>
+              <k.Icon className="w-4 h-4" />
+            </div>
+            <div className="text-2xl font-semibold text-text mt-2">{k.value}</div>
+            <div className="text-xs text-text-muted mt-1">{k.note}</div>
           </div>
-          <div className="text-2xl font-extrabold text-text mt-1.5">{stats.totalBusinesses || tenants.length}</div>
-          <div className="text-[11px] text-text-muted mt-1 font-mono">Managed in SQLite</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-theme">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span>Total Annual Revenue</span>
-            <DollarSign className="w-4 h-4 text-jade" />
-          </div>
-          <div className="text-2xl font-extrabold text-text mt-1.5">
-            ₹{((stats.totalAnnualRevenue || 0) / 100000).toFixed(1)}L
-          </div>
-          <div className="text-[11px] text-jade mt-1 font-semibold">Live Enterprise ARR</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-theme">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span>Monthly Operational Burn</span>
-            <TrendingUp className="w-4 h-4 text-rust" />
-          </div>
-          <div className="text-2xl font-extrabold text-text mt-1.5">
-            ₹{((stats.totalMonthlyBurn || 0) / 100000).toFixed(1)}L
-          </div>
-          <div className="text-[11px] text-text-muted mt-1 font-mono">Aggregated Net Outflow</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-surface border border-line shadow-theme">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span>Liquid Cash Reserves</span>
-            <ShieldCheck className="w-4 h-4 text-gold" />
-          </div>
-          <div className="text-2xl font-extrabold text-text mt-1.5">
-            ₹{((stats.totalCashReserves || 0) / 100000).toFixed(1)}L
-          </div>
-          <div className="text-[11px] text-gold mt-1 font-semibold">Aggregate Liquidity</div>
-        </div>
+        ))}
       </div>
 
-      {/* Control Bar: Search & Action */}
-      <div className="p-4 rounded-2xl bg-surface border border-line flex flex-col sm:flex-row items-center justify-between gap-3 shadow-theme">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+      <div className="p-4 rounded-2xl bg-surface border border-line shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-96">
+          <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search enterprise by name, founder, or industry..."
+            placeholder="Search by name, founder or industry"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text placeholder:text-text-muted focus:outline-none focus:border-gold"
+            className="w-full pl-9 pr-3.5 py-2.5 text-sm rounded-xl bg-surface border border-line text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
           />
         </div>
-
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <button
             type="button"
             onClick={() => onRefresh()}
-            className="p-2 rounded-xl border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer transition-colors"
-            title="Refresh tenants"
+            className="p-2.5 rounded-xl border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
+            title="Refresh"
+            aria-label="Refresh"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={openCreateModal}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+            className="px-4 py-2.5 rounded-xl text-sm font-medium bg-brass hover:brightness-110 text-white flex items-center gap-1.5 cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Enterprise</span>
+            <Plus className="w-4 h-4" />
+            <span>New enterprise</span>
           </button>
         </div>
       </div>
 
-      {/* Tenants Table / Cards */}
-      <div className="bg-surface rounded-2xl border border-line divide-y divide-line overflow-hidden shadow-theme">
+      <div className="bg-surface rounded-2xl border border-line divide-y divide-line overflow-hidden shadow-sm">
         {filtered.length === 0 ? (
-          <div className="p-12 text-center text-xs text-text-muted">
-            No enterprises found matching "{search}".
-          </div>
+          <div className="p-12 text-center text-sm text-text-muted">No enterprises match &ldquo;{search}&rdquo;.</div>
         ) : (
-          filtered.map((t, idx) => (
-            <div
-              key={t.id}
-              className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-surface-2/40 transition-colors"
-            >
-              <div className="space-y-1.5 min-w-0">
-                <div className="flex items-center gap-2.5 flex-wrap">
+          filtered.map((t) => {
+            const runway = Number(t.runwayMonths);
+            const initials = t.name.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "EP";
+            return (
+              <div key={t.id} className="p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+                <div className="flex items-start gap-3.5 min-w-0">
                   {t.logoUrl ? (
-                    <img
-                      src={t.logoUrl}
-                      alt={t.name}
-                      className="w-7 h-7 object-contain shrink-0"
-                    />
+                    <img src={t.logoUrl} alt={t.name} className="w-10 h-10 rounded-xl object-contain shrink-0 border border-line" />
                   ) : (
-                    <div className="w-7 h-7 rounded-lg bg-brass/10 text-brass text-[10px] font-bold flex items-center justify-center shrink-0 border border-brass/20 shadow-xs">
-                      {t.name.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "EP"}
+                    <div className="w-10 h-10 rounded-xl bg-surface-2 text-text-muted text-xs font-semibold flex items-center justify-center shrink-0 border border-line">
+                      {initials}
                     </div>
                   )}
-                  <span className="font-extrabold text-sm text-text">{t.name}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-gold/10 text-gold font-semibold border border-gold/20">
-                    {t.industryLabel}
-                  </span>
-                  {t.isRegisteredUser ? (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold border border-cyan-500/30">
-                      User Account
-                    </span>
-                  ) : (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-2 text-text-muted font-medium border border-line">
-                      Enterprise
-                    </span>
-                  )}
-                  {idx === 0 && <StatusBadge label="Active Tenant" tone="live" />}
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-base font-semibold text-text">{t.name}</span>
+                      <span className="text-xs text-text-muted">{t.isRegisteredUser ? "User account" : "Enterprise"}</span>
+                    </div>
+                    <p className="text-sm text-text-muted truncate">
+                      {t.founderName}
+                      {t.ownerEmail ? ` · ${t.ownerEmail}` : ""}
+                    </p>
+                    <p className="text-sm text-text-muted">
+                      {t.industryLabel} · {t.teamSize} {t.teamSize === 1 ? "member" : "members"}
+                      {t.authProvider ? ` · Signs in with ${t.authProvider}` : ""}
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      Last login {formatDateTime(t.lastLoginAt || t.updatedAt || t.createdAt)}
+                      {t.connectedTools && t.connectedTools.length > 0 ? ` · Connected: ${t.connectedTools.join(", ")}` : ""}
+                      {t.website && (
+                        <>
+                          {" · "}
+                          <a href={t.website} target="_blank" rel="noreferrer" className="text-brass hover:underline inline-flex items-center gap-0.5">
+                            {t.website.replace(/^https?:\/\//, "")}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </>
+                      )}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-xs text-text-muted flex-wrap">
-                  <span>
-                    Founder: <strong className="text-text font-medium">{t.founderName}</strong>
-                    {t.ownerEmail && (
-                      <span className="ml-1 text-[11px] text-text-muted font-mono">({t.ownerEmail})</span>
-                    )}
-                  </span>
-                  {t.authProvider && (
-                    <>
-                      <span>•</span>
-                      <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 bg-surface-2 rounded border border-line">
-                        via {t.authProvider}
-                      </span>
-                    </>
-                  )}
-                  <span>•</span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gold/10 border border-gold/25 text-gold text-[11px] font-mono">
-                    <Clock className="w-3 h-3 text-gold shrink-0" />
-                    <span>Last Login: <strong className="text-text font-semibold">{formatDateTime(t.lastLoginAt || t.updatedAt || t.createdAt)}</strong></span>
-                  </span>
-                  <span>•</span>
-                  <span>Team: {t.teamSize} members</span>
-                  {t.website && (
-                    <>
-                      <span>•</span>
-                      <a
-                        href={t.website}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-gold hover:underline flex items-center gap-0.5"
-                      >
-                        <span>{t.website.replace(/^https?:\/\//, "")}</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  <span className="text-[10px] text-text-muted">Connected Integrations:</span>
-                  {t.connectedTools && t.connectedTools.length > 0 ? (
-                    t.connectedTools.map((tool: string) => (
-                      <span
-                        key={tool}
-                        className="text-[9px] px-1.5 py-0.2 rounded bg-surface-2 border border-line font-mono text-text uppercase"
-                      >
-                        {tool}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-[10px] text-text-muted italic">Manual telemetry</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Financial Metrics Strip */}
-              <div className="grid grid-cols-2 min-[460px]:grid-cols-4 gap-2.5 sm:gap-4 bg-surface-2/60 p-3 rounded-xl border border-line w-full lg:w-auto shrink-0">
-                <div>
-                  <div className="text-[10px] text-text-muted uppercase font-mono">Monthly Rev</div>
-                  <div className="text-xs font-bold text-text mt-0.5">₹{(t.monthlyRevenue / 1000).toFixed(0)}k</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-text-muted uppercase font-mono">Monthly Burn</div>
-                  <div className="text-xs font-bold text-rust mt-0.5">₹{(t.monthlyBurn / 1000).toFixed(0)}k</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-text-muted uppercase font-mono">Liquid Cash</div>
-                  <div className="text-xs font-bold text-jade mt-0.5">₹{(t.cashOnHand / 1000).toFixed(0)}k</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-text-muted uppercase font-mono">Runway</div>
-                  <div
-                    className={`text-xs font-extrabold mt-0.5 ${
-                      Number(t.runwayMonths) <= 6 ? "text-rust" : "text-gold"
-                    }`}
-                  >
-                    {t.runwayMonths} mo
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 xl:gap-6 shrink-0">
+                  <dl className="grid grid-cols-2 min-[460px]:grid-cols-4 gap-x-6 gap-y-2">
+                    {[
+                      { k: "Revenue / mo", v: `₹${(t.monthlyRevenue / 1000).toFixed(0)}k`, c: "text-text" },
+                      { k: "Spending / mo", v: `₹${(t.monthlyBurn / 1000).toFixed(0)}k`, c: "text-text" },
+                      { k: "Cash", v: `₹${(t.cashOnHand / 1000).toFixed(0)}k`, c: "text-text" },
+                      { k: "Runway", v: `${t.runwayMonths} mo`, c: runway <= 6 ? "text-rust" : "text-text" },
+                    ].map(m => (
+                      <div key={m.k}>
+                        <dt className="text-xs text-text-muted">{m.k}</dt>
+                        <dd className={`text-sm font-semibold mt-0.5 ${m.c}`}>{m.v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <div className="flex items-center gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleSwitchActive(t)}
+                      className="px-3.5 py-2 rounded-xl text-sm text-text border border-line hover:bg-surface-2 flex items-center gap-1.5 cursor-pointer"
+                      title="Open this business in the dashboard"
+                    >
+                      <Zap className="w-4 h-4" />
+                      <span>Open dashboard</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(t)}
+                      className="p-2.5 rounded-xl border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
+                      title="Edit"
+                      aria-label="Edit"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(t)}
+                      className="p-2.5 rounded-xl border border-line hover:bg-rust/10 text-text-muted hover:text-rust cursor-pointer"
+                      title="Delete"
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 w-full lg:w-auto justify-end pt-1 lg:pt-0 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => handleSwitchActive(t)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-surface-2 border border-line hover:border-gold/50 text-text hover:text-gold flex items-center gap-1.5 cursor-pointer transition-all shadow-xs"
-                  title="Switch to this business on Dashboard"
-                >
-                  <Zap className="w-3.5 h-3.5 text-gold" />
-                  <span>Launch Dashboard</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => openEditModal(t)}
-                  className="p-2 rounded-xl border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer transition-colors"
-                  title="Edit business parameters"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDelete(t)}
-                  className="p-2 rounded-xl border border-line hover:bg-rust/10 text-text-muted hover:text-rust cursor-pointer transition-colors"
-                  title="Delete business"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -516,7 +430,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
                   <h3 className="text-sm font-bold text-text">
                     {editingTenant ? `Edit Enterprise: ${editingTenant.name}` : "Create New Enterprise Profile"}
                   </h3>
-                  <p className="text-[11px] text-text-muted">Multi-tenant profile & financial telemetry</p>
+                  <p className="text-xs text-text-muted">Multi-tenant profile & financial telemetry</p>
                 </div>
               </div>
               <button
@@ -608,7 +522,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
                   placeholder="https://company.in"
                   value={form.website}
                   onChange={(e) => setForm({ ...form, website: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-[11px]"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-xs"
                 />
               </div>
 
@@ -620,7 +534,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
                     <button
                       type="button"
                       onClick={() => setForm({ ...form, logoUrl: "" })}
-                      className="text-[11px] text-rust hover:underline cursor-pointer font-medium"
+                      className="text-xs text-rust hover:underline cursor-pointer font-medium"
                     >
                       Remove Logo
                     </button>
@@ -632,7 +546,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
                       <img src={form.logoUrl} alt="Logo preview" className="w-full h-full object-contain" />
                     </div>
                   ) : (
-                    <div className="w-12 h-12 rounded-xl bg-surface border border-dashed border-line text-text-muted text-[10px] flex items-center justify-center text-center p-1 shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-surface border border-dashed border-line text-text-muted text-xs flex items-center justify-center text-center p-1 shrink-0">
                       No Logo
                     </div>
                   )}
@@ -664,7 +578,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
                       placeholder="Or paste direct image URL (https://...)"
                       value={form.logoUrl}
                       onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-                      className="w-full px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface border border-line text-text placeholder:text-text-muted/60"
+                      className="w-full px-2.5 py-1 text-xs font-mono rounded-lg bg-surface border border-line text-text placeholder:text-text-muted/60"
                     />
                   </div>
                 </div>
@@ -672,12 +586,12 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
 
               {/* Financial Inputs */}
               <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-3">
-                <span className="text-[11px] font-bold text-text uppercase tracking-wider block">
+                <span className="text-xs font-bold text-text uppercase tracking-wider block">
                   Financial Baseline & Health Metrics (₹)
                 </span>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[11px] text-text-muted">Monthly Revenue (₹)</label>
+                    <label className="text-xs text-text-muted">Monthly Revenue (₹)</label>
                     <input
                       type="number"
                       step="1000"
@@ -687,7 +601,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] text-text-muted">Annual Revenue (₹)</label>
+                    <label className="text-xs text-text-muted">Annual Revenue (₹)</label>
                     <input
                       type="number"
                       step="10000"
@@ -700,7 +614,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[11px] text-text-muted">Monthly Burn Rate (₹)</label>
+                    <label className="text-xs text-text-muted">Monthly Burn Rate (₹)</label>
                     <input
                       type="number"
                       step="1000"
@@ -710,7 +624,7 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] text-text-muted">Liquid Cash Reserves (₹)</label>
+                    <label className="text-xs text-text-muted">Liquid Cash Reserves (₹)</label>
                     <input
                       type="number"
                       step="10000"

@@ -336,6 +336,14 @@ export default function DataPalPage() {
           config,
           apiKey: apiSettings.apiKey,
           apiEndpoint: apiSettings.apiEndpoint,
+          account: (() => {
+            try {
+              const sess = JSON.parse(localStorage.getItem("bizzpal_user_session") || "{}");
+              return { email: sess?.email || accountKey, name: sess?.name };
+            } catch {
+              return { email: accountKey };
+            }
+          })(),
         }),
       });
 

@@ -552,7 +552,7 @@ export default function OnboardingPage() {
                   disabled={!reachable}
                   onClick={() => reachable && setStepIdx(i)}
                   className={`shrink-0 px-2.5 py-1 rounded-full border text-[11px] font-semibold inline-flex items-center gap-1 transition-colors ${
-                    current ? "bg-brass text-bg border-brass" : reachable ? "bg-surface border-line text-text hover:border-brass cursor-pointer" : "bg-transparent border-line/50 text-text-muted/60"
+                    current ? "bg-brass text-bg border-brass" : reachable ? "bg-surface border-line text-text hover:border-brass cursor-pointer" : "bg-transparent border-line text-text-muted/60"
                   }`}
                 >
                   {i < maxStep && !current && <Check className="w-3 h-3 text-jade stroke-[3]" />}{s.label}

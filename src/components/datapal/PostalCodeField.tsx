@@ -66,7 +66,7 @@ export function PostalCodeField({
           disabled={isAreaDisabled}
           className={`h-[46px] px-3 rounded-lg border text-sm text-text placeholder:text-text-muted focus:outline-none ${
             isAreaDisabled
-              ? "bg-surface-2/40 border-line/60 opacity-60 cursor-not-allowed"
+              ? "bg-surface-2/40 border-line opacity-60 cursor-not-allowed"
               : "bg-surface border-line hover:border-line-strong focus:border-brass"
           }`}
         />
@@ -90,7 +90,7 @@ export function PostalCodeField({
               disabled={isPostalDisabled}
               className={`h-[46px] w-full pl-3 pr-8 rounded-lg border text-sm text-text placeholder:text-text-muted focus:outline-none ${
                 isPostalDisabled
-                  ? "bg-surface-2/40 border-line/60 opacity-60 cursor-not-allowed"
+                  ? "bg-surface-2/40 border-line opacity-60 cursor-not-allowed"
                   : postalCodeValue && !validation.isValid
                   ? "bg-surface border-rust/60 text-rust focus:border-rust"
                   : postalCodeValue && validation.isValid

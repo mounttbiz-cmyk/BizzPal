@@ -78,95 +78,64 @@ export function UsersManager({ users, onRefresh, notify }: UsersManagerProps) {
 
   return (
     <div className="space-y-6">
-      {/* Search & Stats Bar */}
-      <div className="p-4 rounded-2xl bg-surface border border-line flex flex-col sm:flex-row items-center justify-between gap-3 shadow-theme">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="w-10 h-10 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-text">User Accounts Ledger</h2>
-            <p className="text-xs text-text-muted">
-              {users.length} registered authentication identity records in SQLite
-            </p>
-          </div>
+      <div className="p-4 rounded-2xl bg-surface border border-line shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="w-full sm:w-auto">
+          <h2 className="text-base font-semibold text-text">User accounts</h2>
+          <p className="text-sm text-text-muted">
+            {users.length} registered {users.length === 1 ? "account" : "accounts"}
+          </p>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by email, name..."
+              placeholder="Search by email or name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-surface-2 border border-line text-text placeholder:text-text-muted focus:outline-none focus:border-gold"
+              className="w-full pl-9 pr-3.5 py-2.5 text-sm rounded-xl bg-surface border border-line text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
             />
           </div>
           <button
             type="button"
             onClick={() => onRefresh()}
-            className="p-2 rounded-xl border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer transition-colors"
-            title="Refresh users"
+            className="p-2.5 rounded-xl border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
+            title="Refresh"
+            aria-label="Refresh"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Users List */}
-      <div className="bg-surface rounded-2xl border border-line divide-y divide-line overflow-hidden shadow-theme">
+      <div className="bg-surface rounded-2xl border border-line divide-y divide-line overflow-hidden shadow-sm">
         {filtered.length === 0 ? (
-          <div className="p-12 text-center text-xs text-text-muted">
-            No registered users found matching "{search}".
-          </div>
+          <div className="p-12 text-center text-sm text-text-muted">No accounts match &ldquo;{search}&rdquo;.</div>
         ) : (
           filtered.map((u) => (
-            <div
-              key={u.id || u.email}
-              className="p-4 flex items-center justify-between gap-4 hover:bg-surface-2/40 transition-colors"
-            >
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="font-bold text-xs text-text break-all">{u.email}</span>
-                  <span
-                    className={`text-[9px] px-2 py-0.5 rounded-full font-mono uppercase font-bold border ${
-                      u.provider === "google"
-                        ? "bg-gold/10 border-gold/30 text-gold"
-                        : "bg-jade/10 border-jade/30 text-jade"
-                    }`}
-                  >
-                    {u.provider || "email"}
-                  </span>
-                  {u.name && (
-                    <span className="text-xs text-text-muted font-medium">({u.name})</span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3 text-[11px] text-text-muted font-mono flex-wrap">
-                  <span className="break-all">ID: {u.id}</span>
-                  <span>•</span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gold/10 border border-gold/25 text-gold text-[11px] font-mono">
-                    <Clock className="w-3 h-3 text-gold shrink-0" />
-                    <span>Last Login: <strong className="text-text font-semibold">{formatDateTime(u.lastLoginAt || u.createdAt)}</strong></span>
-                  </span>
-                  {u.createdAt && (
-                    <>
-                      <span>•</span>
-                      <span>Registered: {formatDateTime(u.createdAt)}</span>
-                    </>
-                  )}
-                </div>
+            <div key={u.id || u.email} className="px-5 py-4 flex items-center justify-between gap-4">
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-sm font-semibold text-text break-all">
+                  {u.email}
+                  {u.name && <span className="font-normal text-text-muted"> · {u.name}</span>}
+                </p>
+                <p className="text-xs text-text-muted">
+                  Signs in with {u.provider === "google" ? "Google" : u.provider === "password" ? "password" : "email"}
+                  {" · "}Last login {formatDateTime(u.lastLoginAt || u.createdAt)}
+                  {u.createdAt ? ` · Joined ${formatDateTime(u.createdAt)}` : ""}
+                </p>
               </div>
 
               <button
                 type="button"
                 onClick={() => handleDeleteUser(u)}
                 disabled={deletingEmail === u.email}
-                className="p-2 rounded-xl border border-line hover:bg-rose-500/10 text-text-muted hover:text-rose-500 cursor-pointer transition-colors shrink-0"
-                title="Delete user account"
+                className="p-2.5 rounded-xl border border-line hover:bg-rust/10 text-text-muted hover:text-rust cursor-pointer shrink-0 disabled:opacity-50"
+                title="Delete account"
+                aria-label="Delete account"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           ))

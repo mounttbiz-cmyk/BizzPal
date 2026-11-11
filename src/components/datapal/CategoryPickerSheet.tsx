@@ -207,7 +207,7 @@ export function CategoryPickerSheet({
             type="button"
             onClick={onClose}
             aria-label="Close category picker"
-            className="p-2 rounded-xl text-text-muted hover:text-text hover:bg-surface-2 border border-line/60 hover:border-line transition-colors cursor-pointer shrink-0"
+            className="p-2 rounded-xl text-text-muted hover:text-text hover:bg-surface-2 border border-line hover:border-line transition-colors cursor-pointer shrink-0"
           >
             <X className="w-4 h-4" />
           </button>

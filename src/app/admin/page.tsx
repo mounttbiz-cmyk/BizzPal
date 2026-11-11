@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Globe,
+  Database,
   Compass,
   Sliders,
   Layers,
@@ -46,6 +47,7 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { DataPalFeatureFlagsSection } from "@/components/admin/DataPalFeatureFlagsSection";
 import { TenantsManager } from "./components/TenantsManager";
 import { UsersManager } from "./components/UsersManager";
+import { DataPalUsageManager } from "./components/DataPalUsageManager";
 import { PricingManager } from "./components/PricingManager";
 import { WebsiteCmsExtra } from "./components/WebsiteCmsExtra";
 import { defaultNavItems } from "@/config/seeds/defaultNav";
@@ -60,7 +62,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<
-    "website" | "navigation" | "features" | "widgets" | "tools" | "tenants" | "users" | "plans" | "audit"
+    "website" | "navigation" | "features" | "widgets" | "tools" | "tenants" | "users" | "plans" | "audit" | "datapal"
   >("tenants");
   const [subWebTab, setSubWebTab] = useState<
     "sections" | "hero" | "scenes" | "about_solutions" | "stats" | "contact" | "nav_brand" | "vision_words" | "announcement" | "footer"
@@ -766,6 +768,8 @@ export default function AdminPage() {
         return { group: "Executive Dashboard", current: "Dashboard Widgets" };
       case "tools":
         return { group: "Specialist Engines", current: "Tools Catalog & Calculators" };
+      case "datapal":
+        return { group: "Specialist Engines", current: "DataPal Usage" };
       case "audit":
         return { group: "Governance & Security", current: "Audit Ledger & Version History" };
       default:
@@ -782,7 +786,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg text-text flex flex-col lg:flex-row relative selection:bg-gold/30 selection:text-gold overflow-x-hidden">
+    <div className="admin-shell min-h-screen bg-bg text-text flex flex-col lg:flex-row relative selection:bg-gold/30 selection:text-gold overflow-x-clip">
       {/* Ambient background radiant aura mesh matching 3D Gold Logo */}
       <div className="fixed top-[-10%] left-[20%] w-[650px] h-[350px] bg-gradient-to-br from-gold/10 via-gold/5 to-transparent blur-[120px] pointer-events-none -z-10" />
       <div className="fixed bottom-[-10%] right-[15%] w-[550px] h-[350px] bg-gradient-to-tl from-gold/10 via-gold/5 to-transparent blur-[120px] pointer-events-none -z-10" />
@@ -811,15 +815,15 @@ export default function AdminPage() {
       {/* PERSISTENT MODERN LEFT SIDEBAR                                            */}
       {/* ========================================================================= */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-surface border-r border-line/60 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 shrink-0 shadow-2xl lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-surface border-r border-line flex flex-col justify-between transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:self-start lg:h-screen lg:translate-x-0 shrink-0 shadow-2xl lg:shadow-none ${
           isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         }`}
       >
         {/* Sidebar Brand & Status Header */}
-        <div className="p-4 border-b border-line/60 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
+        <div className="h-16 px-4 border-b border-line flex items-center shrink-0">
+          <div className="w-full flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 flex items-center justify-center shrink-0">
                 <Image
                   src="/logo-icon.png"
                   alt="BizzPal Logo"
@@ -829,18 +833,17 @@ export default function AdminPage() {
                 />
               </div>
               <div>
-                <h1 className="text-sm font-bold text-text tracking-tight flex items-center gap-1.5">
-                  <span className="font-black text-base flex items-center leading-none">
+                <h1 className="text-sm font-semibold text-text tracking-tight flex items-center gap-1.5">
+                  <span className="font-semibold text-base flex items-center leading-none">
                     <span>Bizz</span>
-                    <span className="font-black ml-0.5 bizzpal-brand-pal">
+                    <span className="font-semibold ml-0.5 bizzpal-brand-pal">
                       Pal
                     </span>
                   </span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gold/15 text-gold font-mono font-bold border border-gold/30">PRO</span>
+                  
                 </h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[10px] text-text-muted font-mono tracking-wider uppercase">Superadmin Engine</span>
+                  <span className="text-xs text-text-muted">Admin console</span>
                 </div>
               </div>
             </div>
@@ -856,10 +859,10 @@ export default function AdminPage() {
         </div>
 
         {/* Sidebar Categorized Navigation */}
-        <div className="p-3 flex-1 overflow-y-auto space-y-5 text-xs">
+        <div className="p-3 flex-1 overflow-y-auto space-y-5 text-sm">
           {/* GROUP 0: MULTI-TENANT PLATFORM */}
           <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
+            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
               Multi-Tenant Platform
             </div>
             {[
@@ -876,10 +879,10 @@ export default function AdminPage() {
                     setActiveTab(item.tab as any);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-semibold cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
                     isActive
-                      ? "bg-gold/[0.12] text-gold border border-gold/30 font-bold"
-                      : "text-text-muted hover:text-text hover:bg-surface-2/80 border border-transparent"
+                      ? "bg-surface-2 text-text font-medium"
+                      : "text-text-muted hover:text-text hover:bg-surface-2/60"
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -887,7 +890,7 @@ export default function AdminPage() {
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface-2 border border-line font-mono text-text-muted">
+                    <span className="text-xs text-text-muted">
                       {item.badge}
                     </span>
                   )}
@@ -898,7 +901,7 @@ export default function AdminPage() {
 
           {/* GROUP 1: MONETIZATION & COMMERCIAL */}
           <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
+            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
               Commercial & Pricing
             </div>
             <button
@@ -907,17 +910,17 @@ export default function AdminPage() {
                 setActiveTab("plans");
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-semibold cursor-pointer ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
                 activeTab === "plans"
-                  ? "bg-gold/[0.12] text-gold border border-gold/30 font-bold"
-                  : "text-text-muted hover:text-text hover:bg-surface-2/80 border border-transparent"
+                  ? "bg-surface-2 text-text font-medium"
+                  : "text-text-muted hover:text-text hover:bg-surface-2/60"
               }`}
             >
               <div className="flex items-center gap-2.5">
                 <CreditCard className="w-4 h-4" />
                 <span>Subscription Plans</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface-2 border border-line font-mono text-text-muted">
+              <span className="text-xs text-text-muted">
                 {plans.length}
               </span>
             </button>
@@ -925,7 +928,7 @@ export default function AdminPage() {
 
           {/* GROUP 2: MARKETING & CMS */}
           <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
+            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
               Marketing & Website CMS
             </div>
             {[
@@ -951,10 +954,10 @@ export default function AdminPage() {
                     setSubWebTab(item.sub as any);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-semibold cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
                     isActive
-                      ? "bg-gold/[0.12] text-gold border border-gold/30 font-bold"
-                      : "text-text-muted hover:text-text hover:bg-surface-2/80 border border-transparent"
+                      ? "bg-surface-2 text-text font-medium"
+                      : "text-text-muted hover:text-text hover:bg-surface-2/60"
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -962,7 +965,7 @@ export default function AdminPage() {
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface-2 border border-line font-mono text-text-muted">
+                    <span className="text-xs text-text-muted">
                       {item.badge}
                     </span>
                   )}
@@ -973,7 +976,7 @@ export default function AdminPage() {
 
           {/* GROUP 2: EXECUTIVE DASHBOARD */}
           <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
+            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
               Executive Dashboard
             </div>
             {[
@@ -991,10 +994,10 @@ export default function AdminPage() {
                     setActiveTab(item.tab as any);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-semibold cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
                     isActive
-                      ? "bg-gold/[0.12] text-gold border border-gold/30 font-bold"
-                      : "text-text-muted hover:text-text hover:bg-surface-2/80 border border-transparent"
+                      ? "bg-surface-2 text-text font-medium"
+                      : "text-text-muted hover:text-text hover:bg-surface-2/60"
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -1002,7 +1005,7 @@ export default function AdminPage() {
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface-2 border border-line font-mono text-text-muted">
+                    <span className="text-xs text-text-muted">
                       {item.badge}
                     </span>
                   )}
@@ -1013,7 +1016,7 @@ export default function AdminPage() {
 
           {/* GROUP 3: SPECIALIST ENGINES */}
           <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
+            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
               Specialist Engines
             </div>
             <button
@@ -1022,25 +1025,42 @@ export default function AdminPage() {
                 setActiveTab("tools");
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-semibold cursor-pointer ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
                 activeTab === "tools"
-                  ? "bg-gold/[0.12] text-gold border border-gold/30 font-bold"
-                  : "text-text-muted hover:text-text hover:bg-surface-2/80 border border-transparent"
+                  ? "bg-surface-2 text-text font-medium"
+                  : "text-text-muted hover:text-text hover:bg-surface-2/60"
               }`}
             >
               <div className="flex items-center gap-2.5">
                 <Wrench className="w-4 h-4" />
                 <span>Tools & Calculators</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-gold/15 text-gold font-mono font-bold border border-gold/30">
+              <span className="text-xs text-text-muted">
                 {tools.length}
               </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("datapal");
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
+                activeTab === "datapal"
+                  ? "bg-surface-2 text-text font-medium"
+                  : "text-text-muted hover:text-text hover:bg-surface-2/60"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Database className="w-4 h-4" />
+                <span>DataPal Usage</span>
+              </div>
             </button>
           </div>
 
           {/* GROUP 4: GOVERNANCE & SECURITY */}
           <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
+            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
               Governance & Security
             </div>
             <button
@@ -1049,24 +1069,24 @@ export default function AdminPage() {
                 setActiveTab("audit");
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all font-semibold cursor-pointer ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
                 activeTab === "audit"
-                  ? "bg-gold/[0.12] text-gold border border-gold/30 font-bold"
-                  : "text-text-muted hover:text-text hover:bg-surface-2/80 border border-transparent"
+                  ? "bg-surface-2 text-text font-medium"
+                  : "text-text-muted hover:text-text hover:bg-surface-2/60"
               }`}
             >
               <div className="flex items-center gap-2.5">
                 <History className="w-4 h-4" />
                 <span>Audit Ledger</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface-2 border border-line font-mono text-text-muted">
+              <span className="text-xs text-text-muted">
                 {auditLogs.length}
               </span>
             </button>
 
             
-            <div className="pt-2 border-t border-line/60 space-y-1.5">
-              <div className="px-2.5 pb-1 text-[10px] font-bold text-text-muted uppercase tracking-wider font-mono">
+            <div className="pt-2 border-t border-line space-y-1.5">
+              <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
                 Config Backup & Sync
               </div>
               <button
@@ -1109,7 +1129,7 @@ export default function AdminPage() {
               href="/"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-xl text-[11px] font-semibold bg-surface border border-line hover:border-gold/40 text-text hover:text-gold flex items-center justify-center gap-1.5 transition-all shadow-xs"
+              className="p-2 rounded-xl text-xs font-semibold bg-surface border border-line hover:border-gold/40 text-text hover:text-gold flex items-center justify-center gap-1.5 transition-all "
             >
               <Globe className="w-3.5 h-3.5" />
               <span>Website ↗</span>
@@ -1118,7 +1138,7 @@ export default function AdminPage() {
               href="/dashboard"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-xl text-[11px] font-semibold bg-surface border border-line hover:border-gold/40 text-text hover:text-gold flex items-center justify-center gap-1.5 transition-all shadow-xs"
+              className="p-2 rounded-xl text-xs font-semibold bg-surface border border-line hover:border-gold/40 text-text hover:text-gold flex items-center justify-center gap-1.5 transition-all "
             >
               <Compass className="w-3.5 h-3.5" />
               <span>App ↗</span>
@@ -1147,7 +1167,7 @@ export default function AdminPage() {
       {/* ========================================================================= */}
       <div className="flex-1 min-w-0 flex flex-col min-h-screen">
         {/* Sticky Workspace Top Bar */}
-        <header className="sticky top-0 z-30 h-16 bg-surface/75 backdrop-blur-xl border-b border-line/60 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-30 h-16 bg-surface/75 backdrop-blur-xl border-b border-line px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
@@ -1158,22 +1178,19 @@ export default function AdminPage() {
             </button>
 
             {/* Breadcrumb Navigation */}
-            <div className="flex items-center gap-2 text-xs font-semibold min-w-0">
+            <div className="flex items-center gap-2 text-sm min-w-0">
               <span className="text-text-muted/70 hidden sm:inline">{breadcrumb.group}</span>
               <span className="text-text-muted/50 hidden sm:inline">/</span>
-              <span className="text-text font-bold tracking-tight truncate">{breadcrumb.current}</span>
+              <span className="text-text font-medium truncate">{breadcrumb.current}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             {/* Live System Pulse Indicator */}
-            <div className="hidden xl:flex">
-              <StatusBadge label="Superadmin Secure" tone="live" pulse />
-            </div>
 
             <Link
               href="/dashboard"
-              className="hidden md:flex items-center gap-1.5 text-xs text-text-muted hover:text-text px-3 py-1.5 rounded-xl border border-line/70 hover:border-gold/40 hover:bg-surface-2 transition-all font-semibold"
+              className="hidden md:flex items-center gap-1.5 text-sm text-text hover:bg-surface-2 px-3.5 py-2 rounded-xl border border-line"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Exit to App</span>
@@ -1184,7 +1201,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => handleOpenNavModal()}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient flex items-center gap-1.5 transition-all shadow-lg shadow-[0_8px_20px_-6px_var(--gold-glow)] hover:brightness-110 hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+                className="px-3.5 py-1.5 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 flex items-center gap-1.5 cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Nav Button</span>
@@ -1195,18 +1212,18 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => handleOpenWidgetModal()}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient flex items-center gap-1.5 transition-all shadow-lg shadow-[0_8px_20px_-6px_var(--gold-glow)] hover:brightness-110 hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+                className="px-3.5 py-1.5 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 flex items-center gap-1.5 cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Widget</span>
               </button>
             )}
 
-            {activeTab === "tools" && (
+      {activeTab === "tools" && (
               <button
                 type="button"
                 onClick={() => handleOpenToolModal()}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient flex items-center gap-1.5 transition-all shadow-lg shadow-[0_8px_20px_-6px_var(--gold-glow)] hover:brightness-110 hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+                className="px-3.5 py-1.5 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 flex items-center gap-1.5 cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Tool</span>
@@ -1267,7 +1284,7 @@ export default function AdminPage() {
       {activeTab === "website" && (
         <div className="space-y-6">
           {/* Website Subtabs */}
-          <div className="flex items-center gap-2 border-b border-line pb-2 text-xs font-semibold overflow-x-auto">
+          <div className="lg:hidden flex items-center gap-1 border-b border-line pb-2 text-sm overflow-x-auto">
             {[
               { id: "sections", label: "1. Section Toggles" },
               { id: "hero", label: "2. Hero Copy & CTAs" },
@@ -1286,7 +1303,7 @@ export default function AdminPage() {
                 onClick={() => setSubWebTab(st.id as any)}
                 className={`px-3 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap ${
                   subWebTab === st.id
-                    ? "bg-surface-2 text-gold font-bold"
+                    ? "bg-surface-2 text-text font-medium"
                     : "text-text-muted hover:text-text"
                 }`}
               >
@@ -1300,8 +1317,8 @@ export default function AdminPage() {
             <div className="space-y-4">
               <div className="p-4 rounded-xl bg-surface border border-line flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-bold text-text">Website Section Toggles</h2>
-                  <p className="text-xs text-text-muted mt-0.5">
+                  <h2 className="text-base font-semibold text-text">Website sections</h2>
+                  <p className="text-sm text-text-muted mt-0.5">
                     Toggle entire sections on or off. Changes immediately affect the marketing homepage.
                   </p>
                 </div>
@@ -1309,10 +1326,10 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => saveSection("website", websiteConfig, "Saved section visibility switches")}
                   disabled={saving}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-brass hover:brightness-110 text-white flex items-center gap-1.5 cursor-pointer"
                 >
                   <Save className="w-3.5 h-3.5" />
-                  <span>{saving ? "Saving..." : "Save Visibility Changes"}</span>
+                  <span>{saving ? "Saving..." : "Save changes"}</span>
                 </button>
               </div>
 
@@ -1320,8 +1337,8 @@ export default function AdminPage() {
               <div className="p-4 rounded-xl bg-surface border border-line space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-text">Top Announcement Banner</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-gold/10 text-gold font-mono">Optional</span>
+                    <span className="text-sm font-medium text-text">Top announcement banner</span>
+                    <span className="text-xs text-text-muted">Optional</span>
                   </div>
                   <button
                     type="button"
@@ -1335,19 +1352,19 @@ export default function AdminPage() {
                       };
                       setWebsiteConfig(updated);
                     }}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
+                    className={`px-3 py-1 rounded-lg text-sm border cursor-pointer ${
                       websiteConfig.announcement?.enabled
-                        ? "bg-jade/15 border-jade/40 text-jade"
-                        : "bg-surface-2 border-line text-text-muted"
+                        ? "border-line text-jade hover:bg-surface-2"
+                        : "border-line text-text-muted hover:bg-surface-2"
                     }`}
                   >
-                    {websiteConfig.announcement?.enabled ? "ENABLED" : "DISABLED"}
+                    {websiteConfig.announcement?.enabled ? "Enabled" : "Disabled"}
                   </button>
                 </div>
                 {websiteConfig.announcement?.enabled && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
                     <div className="md:col-span-2 space-y-1">
-                      <label className="text-[11px] text-text-muted font-medium">Banner Text</label>
+                      <label className="text-sm text-text-muted">Banner Text</label>
                       <input
                         type="text"
                         value={websiteConfig.announcement?.text || ""}
@@ -1357,11 +1374,11 @@ export default function AdminPage() {
                             announcement: { ...websiteConfig.announcement, text: e.target.value },
                           })
                         }
-                        className="w-full px-3 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-gold"
+                        className="w-full px-3 py-1.5 rounded-lg bg-surface-2 border border-line text-sm text-text focus:outline-none focus:border-brass"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted font-medium">Link Text & URL</label>
+                      <label className="text-sm text-text-muted">Link Text & URL</label>
                       <div className="flex gap-2">
                         <input
                           type="text"
@@ -1373,7 +1390,7 @@ export default function AdminPage() {
                               announcement: { ...websiteConfig.announcement, linkText: e.target.value },
                             })
                           }
-                          className="w-1/2 px-2 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-gold"
+                          className="w-1/2 px-2 py-1.5 rounded-lg bg-surface-2 border border-line text-sm text-text focus:outline-none focus:border-brass"
                         />
                         <input
                           type="text"
@@ -1385,7 +1402,7 @@ export default function AdminPage() {
                               announcement: { ...websiteConfig.announcement, linkUrl: e.target.value },
                             })
                           }
-                          className="w-1/2 px-2 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-gold"
+                          className="w-1/2 px-2 py-1.5 rounded-lg bg-surface-2 border border-line text-sm text-text focus:outline-none focus:border-brass"
                         />
                       </div>
                     </div>
@@ -1405,8 +1422,8 @@ export default function AdminPage() {
                     }`}
                   >
                     <div>
-                      <span className="text-xs font-bold text-text block">{sec.title || key}</span>
-                      <span className="text-[10px] text-text-muted font-mono">{key}</span>
+                      <span className="text-sm font-medium text-text block">{sec.title || key}</span>
+                      <span className="text-xs text-text-muted">{key}</span>
                     </div>
                     <button
                       type="button"
@@ -1420,13 +1437,13 @@ export default function AdminPage() {
                         };
                         setWebsiteConfig(updated);
                       }}
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
+                      className={`px-3 py-1 rounded-lg text-sm border cursor-pointer ${
                         sec.enabled
-                          ? "bg-jade/15 border-jade/40 text-jade"
-                          : "bg-surface-2 border-line text-text-muted"
+                          ? "border-line text-jade hover:bg-surface-2"
+                          : "border-line text-text-muted hover:bg-surface-2"
                       }`}
                     >
-                      {sec.enabled ? "VISIBLE" : "HIDDEN"}
+                      {sec.enabled ? "Visible" : "Hidden"}
                     </button>
                   </div>
                 ))}
@@ -1440,7 +1457,7 @@ export default function AdminPage() {
               <div className="p-5 rounded-2xl bg-surface border border-line space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-sm font-bold text-text">Hero Section & Call-To-Action Buttons</h2>
+                    <h2 className="text-base font-semibold text-text">Hero Section & Call-To-Action Buttons</h2>
                     <p className="text-xs text-text-muted">
                       Edit the main brand mark, eyebrow, subtitle, and primary/secondary button labels and links.
                     </p>
@@ -1449,7 +1466,7 @@ export default function AdminPage() {
                     type="button"
                     onClick={() => saveSection("website", websiteConfig, "Saved Hero section & buttons")}
                     disabled={saving}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl text-sm font-medium bg-brass hover:brightness-110 text-white flex items-center gap-1.5 cursor-pointer"
                   >
                     <Save className="w-3.5 h-3.5" />
                     <span>{saving ? "Saving..." : "Save Hero Changes"}</span>
@@ -1458,7 +1475,7 @@ export default function AdminPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text">Hero Eyebrow Text</label>
+                    <label className="text-sm font-medium text-text">Hero Eyebrow Text</label>
                     <input
                       type="text"
                       value={websiteConfig.hero?.eyebrow || ""}
@@ -1468,12 +1485,12 @@ export default function AdminPage() {
                           hero: { ...websiteConfig.hero, eyebrow: e.target.value },
                         })
                       }
-                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-gold"
+                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text focus:outline-none focus:border-brass"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text">Brand Title Wordmark (Rendered with Cinematic Letter Split)</label>
+                    <label className="text-sm font-medium text-text">Brand Title Wordmark (Rendered with Cinematic Letter Split)</label>
                     <input
                       type="text"
                       value={websiteConfig.hero?.word || ""}
@@ -1484,14 +1501,14 @@ export default function AdminPage() {
                         })
                       }
                       placeholder="e.g. Autonomous Enterprise Engine or BizzPal™"
-                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-bold focus:outline-none focus:border-gold"
+                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text font-semibold focus:outline-none focus:border-brass"
                     />
                   </div>
 
                   <div className="md:col-span-2 space-y-1">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-text">Hero Subtitle</label>
-                      <span className="text-[10px] text-text-muted font-mono">
+                      <label className="text-sm font-medium text-text">Hero Subtitle</label>
+                      <span className="text-xs text-text-muted font-mono">
                         {(websiteConfig.hero?.subtitle || "").length} characters
                       </span>
                     </div>
@@ -1504,14 +1521,14 @@ export default function AdminPage() {
                           hero: { ...websiteConfig.hero, subtitle: e.target.value },
                         })
                       }
-                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-gold"
+                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text focus:outline-none focus:border-brass"
                     />
                   </div>
 
                   {/* Primary CTA Button */}
                   <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-gold block">
+                      <span className="text-xs font-semibold text-gold block">
                         Primary CTA Button (Solid Glow)
                       </span>
                       <button
@@ -1525,18 +1542,18 @@ export default function AdminPage() {
                             },
                           })
                         }
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                        className={`px-2 py-0.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
                           websiteConfig.hero?.primaryCtaEnabled !== false
                             ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
                             : "bg-surface border-line text-text-muted"
                         }`}
                       >
-                        {websiteConfig.hero?.primaryCtaEnabled !== false ? "VISIBLE" : "HIDDEN"}
+                        {websiteConfig.hero?.primaryCtaEnabled !== false ? "Visible" : "Hidden"}
                       </button>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted">Button Label</label>
+                      <label className="text-xs text-text-muted">Button Label</label>
                       <input
                         type="text"
                         value={websiteConfig.hero?.primaryCtaText || ""}
@@ -1546,11 +1563,11 @@ export default function AdminPage() {
                             hero: { ...websiteConfig.hero, primaryCtaText: e.target.value },
                           })
                         }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted">Destination Link (e.g. #s01 or /dashboard)</label>
+                      <label className="text-xs text-text-muted">Destination Link (e.g. #s01 or /dashboard)</label>
                       <input
                         type="text"
                         value={websiteConfig.hero?.primaryCtaHref || ""}
@@ -1560,7 +1577,7 @@ export default function AdminPage() {
                             hero: { ...websiteConfig.hero, primaryCtaHref: e.target.value },
                           })
                         }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text font-mono"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text font-mono"
                       />
                     </div>
                   </div>
@@ -1568,7 +1585,7 @@ export default function AdminPage() {
                   {/* Secondary CTA Button */}
                   <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-text-muted block">
+                      <span className="text-xs font-semibold text-text-muted block">
                         Secondary CTA Button (Outline)
                       </span>
                       <button
@@ -1582,18 +1599,18 @@ export default function AdminPage() {
                             },
                           })
                         }
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                        className={`px-2 py-0.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
                           websiteConfig.hero?.secondaryCtaEnabled !== false
                             ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
                             : "bg-surface border-line text-text-muted"
                         }`}
                       >
-                        {websiteConfig.hero?.secondaryCtaEnabled !== false ? "VISIBLE" : "HIDDEN"}
+                        {websiteConfig.hero?.secondaryCtaEnabled !== false ? "Visible" : "Hidden"}
                       </button>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted">Button Label</label>
+                      <label className="text-xs text-text-muted">Button Label</label>
                       <input
                         type="text"
                         value={websiteConfig.hero?.secondaryCtaText || ""}
@@ -1603,11 +1620,11 @@ export default function AdminPage() {
                             hero: { ...websiteConfig.hero, secondaryCtaText: e.target.value },
                           })
                         }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] text-text-muted">Destination Link (e.g. #s03 or /subscription)</label>
+                      <label className="text-xs text-text-muted">Destination Link (e.g. #s03 or /subscription)</label>
                       <input
                         type="text"
                         value={websiteConfig.hero?.secondaryCtaHref || ""}
@@ -1617,7 +1634,7 @@ export default function AdminPage() {
                             hero: { ...websiteConfig.hero, secondaryCtaHref: e.target.value },
                           })
                         }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text font-mono"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text font-mono"
                       />
                     </div>
                   </div>
@@ -1626,13 +1643,13 @@ export default function AdminPage() {
 
               {/* Live Visual Card Preview */}
               <div className="p-6 rounded-2xl bg-[#08070A] border border-[#D6B46A]/25 text-center space-y-3">
-                <span className="text-[10px] font-mono text-[#D6B46A] uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D6B46A]/10 border border-[#D6B46A]/20">
+                <span className="text-xs font-mono text-[#D6B46A] uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D6B46A]/10 border border-[#D6B46A]/20">
                   Live Landing Page Hero Preview
                 </span>
                 <p className="text-xs text-white/60 tracking-widest uppercase font-mono mt-2">
                   {websiteConfig.hero?.eyebrow || "Artificial Intelligence · For Business"}
                 </p>
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight py-1 font-sans">
+                <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight py-1 font-sans">
                   {websiteConfig.hero?.word || "BizzPal™"}
                 </h1>
                 <p className="text-sm text-[#E0D8C3] max-w-lg mx-auto">
@@ -1640,7 +1657,7 @@ export default function AdminPage() {
                 </p>
                 <div className="flex items-center justify-center gap-3 pt-3">
                   {websiteConfig.hero?.primaryCtaEnabled !== false && (
-                    <span className="px-4 py-2 rounded-xl text-xs font-bold bg-[#D6B46A] text-black">
+                    <span className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#D6B46A] text-black">
                       {websiteConfig.hero?.primaryCtaText || "Explore BizzPal"} →
                     </span>
                   )}
@@ -1659,7 +1676,7 @@ export default function AdminPage() {
             <div className="p-5 rounded-2xl bg-surface border border-line space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-bold text-text">Cinematic Story Scenes (01–07)</h2>
+                  <h2 className="text-base font-semibold text-text">Cinematic Story Scenes (01–07)</h2>
                   <p className="text-xs text-text-muted">
                     Edit the headlines, subtitles, and CTAs displayed during the 3D scroll journey.
                   </p>
@@ -1668,7 +1685,7 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => saveSection("website", websiteConfig, "Saved story scene copy")}
                   disabled={saving}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-brass hover:brightness-110 text-white flex items-center gap-1.5 cursor-pointer"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>{saving ? "Saving..." : "Save Scenes Changes"}</span>
@@ -1688,7 +1705,7 @@ export default function AdminPage() {
                   return (
                     <div key={key} className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-text">{title}</span>
+                        <span className="text-xs font-semibold text-text">{title}</span>
                         <button
                           type="button"
                           onClick={() =>
@@ -1700,13 +1717,13 @@ export default function AdminPage() {
                               },
                             })
                           }
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                          className={`px-2 py-0.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
                             s.enabled !== false
                               ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
                               : "bg-surface border-line text-text-muted"
                           }`}
                         >
-                          {s.enabled !== false ? "ACTIVE" : "HIDDEN"}
+                          {s.enabled !== false ? "Active" : "Hidden"}
                         </button>
                       </div>
                       <input
@@ -1722,7 +1739,7 @@ export default function AdminPage() {
                             },
                           })
                         }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                       />
                       <textarea
                         rows={2}
@@ -1737,7 +1754,7 @@ export default function AdminPage() {
                             },
                           })
                         }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                       />
                       {s.lead !== undefined && (
                         <textarea
@@ -1753,7 +1770,7 @@ export default function AdminPage() {
                               },
                             })
                           }
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                         />
                       )}
                     </div>
@@ -1763,7 +1780,7 @@ export default function AdminPage() {
                 {/* Scene 07 with Final Action Button */}
                 <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-3 md:col-span-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-text">Scene 07 — Future & Final CTA Button</span>
+                    <span className="text-xs font-semibold text-text">Scene 07 — Future & Final CTA Button</span>
                     <button
                       type="button"
                       onClick={() =>
@@ -1778,19 +1795,19 @@ export default function AdminPage() {
                           },
                         })
                       }
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                      className={`px-2 py-0.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
                         websiteConfig.scenes?.s07?.enabled !== false
                           ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
                           : "bg-surface border-line text-text-muted"
                       }`}
                     >
-                      {websiteConfig.scenes?.s07?.enabled !== false ? "ACTIVE" : "HIDDEN"}
+                      {websiteConfig.scenes?.s07?.enabled !== false ? "Active" : "Hidden"}
                     </button>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-text-muted">Eyebrow</label>
+                      <label className="text-xs text-text-muted">Eyebrow</label>
                       <input
                         type="text"
                         value={websiteConfig.scenes?.s07?.eyebrow || ""}
@@ -1803,11 +1820,11 @@ export default function AdminPage() {
                             },
                           })
                         }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-text-muted">Headline</label>
+                      <label className="text-xs text-text-muted">Headline</label>
                       <input
                         type="text"
                         value={websiteConfig.scenes?.s07?.headline || ""}
@@ -1820,11 +1837,11 @@ export default function AdminPage() {
                             },
                           })
                         }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-text-muted">CTA Button Label</label>
+                      <label className="text-xs text-text-muted">CTA Button Label</label>
                       <input
                         type="text"
                         value={websiteConfig.scenes?.s07?.ctaText || ""}
@@ -1837,11 +1854,11 @@ export default function AdminPage() {
                             },
                           })
                         }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-text-muted">CTA Button Href</label>
+                      <label className="text-xs text-text-muted">CTA Button Href</label>
                       <input
                         type="text"
                         value={websiteConfig.scenes?.s07?.ctaHref || ""}
@@ -1854,7 +1871,7 @@ export default function AdminPage() {
                             },
                           })
                         }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text font-mono"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text font-mono"
                       />
                     </div>
                   </div>
@@ -1868,7 +1885,7 @@ export default function AdminPage() {
             <div className="p-5 rounded-2xl bg-surface border border-line space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-bold text-text">About & Solutions Content</h2>
+                  <h2 className="text-base font-semibold text-text">About & Solutions Content</h2>
                   <p className="text-xs text-text-muted">
                     Configure narrative copy, approach pillars, and capabilities cards.
                   </p>
@@ -1877,7 +1894,7 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => saveSection("website", websiteConfig, "Saved About & Solutions content")}
                   disabled={saving}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-brass hover:brightness-110 text-white flex items-center gap-1.5 cursor-pointer"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>{saving ? "Saving..." : "Save About/Solutions"}</span>
@@ -1886,10 +1903,10 @@ export default function AdminPage() {
 
               {/* About Text */}
               <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-3">
-                <span className="text-xs font-bold text-text block">About Narrative</span>
+                <span className="text-xs font-semibold text-text block">About Narrative</span>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] text-text-muted">Headline</label>
+                    <label className="text-xs text-text-muted">Headline</label>
                     <input
                       type="text"
                       value={websiteConfig.about?.headline || ""}
@@ -1899,11 +1916,11 @@ export default function AdminPage() {
                           about: { ...websiteConfig.about, headline: e.target.value },
                         })
                       }
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] text-text-muted">Eyebrow</label>
+                    <label className="text-xs text-text-muted">Eyebrow</label>
                     <input
                       type="text"
                       value={websiteConfig.about?.eyebrow || ""}
@@ -1913,11 +1930,11 @@ export default function AdminPage() {
                           about: { ...websiteConfig.about, eyebrow: e.target.value },
                         })
                       }
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="text-[11px] text-text-muted">Paragraph 1</label>
+                    <label className="text-xs text-text-muted">Paragraph 1</label>
                     <textarea
                       rows={2}
                       value={websiteConfig.about?.p1 || ""}
@@ -1927,11 +1944,11 @@ export default function AdminPage() {
                           about: { ...websiteConfig.about, p1: e.target.value },
                         })
                       }
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="text-[11px] text-text-muted">Paragraph 2</label>
+                    <label className="text-xs text-text-muted">Paragraph 2</label>
                     <textarea
                       rows={2}
                       value={websiteConfig.about?.p2 || ""}
@@ -1941,7 +1958,7 @@ export default function AdminPage() {
                           about: { ...websiteConfig.about, p2: e.target.value },
                         })
                       }
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text"
                     />
                   </div>
                 </div>
@@ -1950,7 +1967,7 @@ export default function AdminPage() {
               {/* Approach Pillars Full CRUD */}
               <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-text">Approach Pillars (Step-by-Step Methodology)</span>
+                  <span className="text-xs font-semibold text-text">Approach Pillars (Step-by-Step Methodology)</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -1962,7 +1979,7 @@ export default function AdminPage() {
                         about: { ...websiteConfig.about, approach: updated },
                       });
                     }}
-                    className="px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs font-bold flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass text-text text-sm font-semibold flex items-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-3 h-3 text-brass" />
                     <span>Add Pillar</span>
@@ -1983,7 +2000,7 @@ export default function AdminPage() {
                             about: { ...websiteConfig.about, approach: list },
                           });
                         }}
-                        className="w-12 px-2 py-1 rounded-lg bg-surface-2 border border-line text-xs font-mono font-bold text-gold text-center"
+                        className="w-12 px-2 py-1 rounded-lg bg-surface-2 border border-line text-sm font-mono font-semibold text-gold text-center"
                       />
                       <input
                         type="text"
@@ -1996,7 +2013,7 @@ export default function AdminPage() {
                             about: { ...websiteConfig.about, approach: list },
                           });
                         }}
-                        className="flex-1 px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-xs text-text font-semibold"
+                        className="flex-1 px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-sm text-text font-semibold"
                       />
                       <button
                         type="button"
@@ -2019,7 +2036,7 @@ export default function AdminPage() {
               {/* Solution Capability Cards Full CRUD */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-text">Capabilities Cards ({(websiteConfig.solutions?.cards || []).length} Cards)</span>
+                  <span className="text-xs font-semibold text-text">Capabilities Cards ({(websiteConfig.solutions?.cards || []).length} Cards)</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -2038,7 +2055,7 @@ export default function AdminPage() {
                         solutions: { ...websiteConfig.solutions, cards: [...cur, newCard] },
                       });
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-surface border border-line hover:border-brass text-text text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-3 py-1.5 rounded-xl bg-surface border border-line hover:border-brass text-text text-sm font-semibold flex items-center gap-1.5 cursor-pointer "
                   >
                     <Plus className="w-3.5 h-3.5 text-brass" />
                     <span>Add Capability Card</span>
@@ -2061,7 +2078,7 @@ export default function AdminPage() {
                                 solutions: { ...websiteConfig.solutions, cards: updatedCards },
                               });
                             }}
-                            className="w-10 px-1.5 py-0.5 rounded bg-surface border border-line font-mono font-bold text-xs text-gold text-center"
+                            className="w-10 px-1.5 py-0.5 rounded bg-surface border border-line font-mono font-semibold text-xs text-gold text-center"
                           />
                           <select
                             value={card.fx || "ai"}
@@ -2073,7 +2090,7 @@ export default function AdminPage() {
                                 solutions: { ...websiteConfig.solutions, cards: updatedCards },
                               });
                             }}
-                            className="px-2 py-0.5 rounded bg-surface border border-line font-mono text-[10px] text-text"
+                            className="px-2 py-0.5 rounded bg-surface border border-line font-mono text-xs text-text"
                           >
                             <option value="ai">FX: ai</option>
                             <option value="auto">FX: auto</option>
@@ -2094,13 +2111,13 @@ export default function AdminPage() {
                                 solutions: { ...websiteConfig.solutions, cards: updatedCards },
                               });
                             }}
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold border cursor-pointer ${
+                            className={`px-2 py-0.5 rounded text-xs font-semibold border cursor-pointer ${
                               card.enabled !== false
                                 ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
                                 : "bg-surface border-line text-text-muted"
                             }`}
                           >
-                            {card.enabled !== false ? "ACTIVE" : "HIDDEN"}
+                            {card.enabled !== false ? "Active" : "Hidden"}
                           </button>
                           <button
                             type="button"
@@ -2131,7 +2148,7 @@ export default function AdminPage() {
                             solutions: { ...websiteConfig.solutions, cards: updatedCards },
                           });
                         }}
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-xs text-text font-semibold"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text font-semibold"
                       />
                       <textarea
                         rows={2}
@@ -2145,7 +2162,7 @@ export default function AdminPage() {
                             solutions: { ...websiteConfig.solutions, cards: updatedCards },
                           });
                         }}
-                        className="w-full px-2.5 py-1 rounded-lg bg-surface border border-line text-xs text-text"
+                        className="w-full px-2.5 py-1 rounded-lg bg-surface border border-line text-sm text-text"
                       />
                     </div>
                   ))}
@@ -2159,7 +2176,7 @@ export default function AdminPage() {
             <div className="p-5 rounded-2xl bg-surface border border-line space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-bold text-text">Contact Onboarding & Direct Channels</h2>
+                  <h2 className="text-base font-semibold text-text">Contact Onboarding & Direct Channels</h2>
                   <p className="text-xs text-text-muted">
                     Configure the onboarding form headline, CTA button, contact emails, and social profiles.
                   </p>
@@ -2168,7 +2185,7 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => saveSection("website", websiteConfig, "Saved contact details & socials")}
                   disabled={saving}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-brass hover:brightness-110 text-white flex items-center gap-1.5 cursor-pointer"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>{saving ? "Saving..." : "Save Contact Info"}</span>
@@ -2177,7 +2194,7 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text">Headline</label>
+                  <label className="text-sm font-medium text-text">Headline</label>
                   <input
                     type="text"
                     value={websiteConfig.contact?.headline || ""}
@@ -2187,12 +2204,12 @@ export default function AdminPage() {
                         contact: { ...websiteConfig.contact, headline: e.target.value },
                       })
                     }
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text">Form CTA Button Label</label>
+                  <label className="text-sm font-medium text-text">Form CTA Button Label</label>
                   <input
                     type="text"
                     value={websiteConfig.contact?.ctaText || ""}
@@ -2202,12 +2219,12 @@ export default function AdminPage() {
                         contact: { ...websiteConfig.contact, ctaText: e.target.value },
                       })
                     }
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text">Direct Contact Email</label>
+                  <label className="text-sm font-medium text-text">Direct Contact Email</label>
                   <input
                     type="email"
                     value={websiteConfig.contact?.email || ""}
@@ -2217,12 +2234,12 @@ export default function AdminPage() {
                         contact: { ...websiteConfig.contact, email: e.target.value },
                       })
                     }
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text font-mono"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text">Website Domain Display</label>
+                  <label className="text-sm font-medium text-text">Website Domain Display</label>
                   <input
                     type="text"
                     value={websiteConfig.contact?.site || ""}
@@ -2232,12 +2249,12 @@ export default function AdminPage() {
                         contact: { ...websiteConfig.contact, site: e.target.value },
                       })
                     }
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text font-mono"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text">LinkedIn Profile URL</label>
+                  <label className="text-sm font-medium text-text">LinkedIn Profile URL</label>
                   <input
                     type="text"
                     value={websiteConfig.contact?.linkedin || ""}
@@ -2247,12 +2264,12 @@ export default function AdminPage() {
                         contact: { ...websiteConfig.contact, linkedin: e.target.value },
                       })
                     }
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text font-mono"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text">X / Twitter Profile URL</label>
+                  <label className="text-sm font-medium text-text">X / Twitter Profile URL</label>
                   <input
                     type="text"
                     value={websiteConfig.contact?.twitter || ""}
@@ -2262,12 +2279,12 @@ export default function AdminPage() {
                         contact: { ...websiteConfig.contact, twitter: e.target.value },
                       })
                     }
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text font-mono"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text">GitHub URL (Optional)</label>
+                  <label className="text-sm font-medium text-text">GitHub URL (Optional)</label>
                   <input
                     type="text"
                     value={websiteConfig.contact?.github || ""}
@@ -2278,12 +2295,12 @@ export default function AdminPage() {
                       })
                     }
                     placeholder="https://github.com/..."
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text font-mono"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text">WhatsApp Direct Chat Link (Optional)</label>
+                  <label className="text-sm font-medium text-text">WhatsApp Direct Chat Link (Optional)</label>
                   <input
                     type="text"
                     value={websiteConfig.contact?.whatsapp || ""}
@@ -2294,12 +2311,12 @@ export default function AdminPage() {
                       })
                     }
                     placeholder="https://wa.me/..."
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text font-mono"
                   />
                 </div>
 
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-text">Note / Privacy Notice</label>
+                  <label className="text-sm font-medium text-text">Note / Privacy Notice</label>
                   <input
                     type="text"
                     value={websiteConfig.contact?.note || ""}
@@ -2310,7 +2327,7 @@ export default function AdminPage() {
                       })
                     }
                     placeholder="Opens your mail app — nothing is stored on this page."
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text"
+                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-sm text-text"
                   />
                 </div>
               </div>
@@ -2337,28 +2354,20 @@ export default function AdminPage() {
       {/* ============================================================= */}
       {activeTab === "navigation" && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-surface border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-5 rounded-2xl bg-surface border border-line shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-bold text-text">Dashboard Navigation Buttons & Links</h2>
-              <p className="text-xs text-text-muted mt-0.5">
-                Add new navigation buttons, edit destinations, change order, or remove links from the tenant sidebar.
+              <h2 className="text-base font-semibold text-text">Navigation buttons</h2>
+              <p className="text-sm text-text-muted mt-0.5">
+                Add, edit, reorder or remove the links in the customer sidebar.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleOpenNavModal()}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md self-start sm:self-auto cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Navigation Button</span>
-            </button>
           </div>
 
-          <div className="bg-surface rounded-2xl border border-line overflow-hidden shadow-theme">
+          <div className="bg-surface rounded-2xl border border-line overflow-hidden shadow-sm">
             <div className="overflow-x-auto touch-scroll">
-              <table className="w-full min-w-[640px] text-left text-xs border-collapse">
+              <table className="w-full min-w-[640px] text-left text-sm border-collapse">
                 <thead>
-                  <tr className="border-b border-line bg-surface-2/60 text-text-muted font-semibold">
+                  <tr className="border-b border-line text-text-muted font-medium">
                     <th className="p-3 pl-4">Order</th>
                     <th className="p-3">Button Label</th>
                     <th className="p-3">Route / URL</th>
@@ -2374,35 +2383,31 @@ export default function AdminPage() {
                     .sort((a, b) => a.order - b.order)
                     .map((item) => (
                       <tr key={item.id} className="hover:bg-surface-2/40 transition-colors">
-                        <td className="p-3 pl-4 font-mono text-text-muted">#{item.order}</td>
-                        <td className="p-3 font-bold text-text">{item.label}</td>
-                        <td className="p-3 font-mono text-gold">{item.href}</td>
+                        <td className="p-3 pl-4 text-text-muted">{item.order}</td>
+                        <td className="p-3 font-medium text-text">{item.label}</td>
+                        <td className="p-3 text-text-muted">{item.href}</td>
                         <td className="p-3 font-mono text-text-muted">{item.icon}</td>
-                        <td className="p-3">
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-2 border border-line font-mono text-text-muted uppercase">
-                            {item.group || "core"}
-                          </span>
-                        </td>
+                        <td className="p-3 text-text-muted capitalize">{item.group || "core"}</td>
                         <td className="p-3">
                           {item.badge ? (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass/15 text-brass font-bold font-mono">
+                            <span className="text-text">
                               {item.badge}
                             </span>
                           ) : (
-                            <span className="text-text-muted text-[10px]">—</span>
+                            <span className="text-text-muted">—</span>
                           )}
                         </td>
                         <td className="p-3">
                           <button
                             type="button"
                             onClick={() => handleToggleNavItem(item)}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
+                            className={`px-2.5 py-1 rounded-lg text-sm border cursor-pointer ${
                               item.enabled !== false
-                                ? "bg-jade/15 border-jade/30 text-jade"
-                                : "bg-surface-2 border-line text-text-muted"
+                                ? "border-line text-jade hover:bg-surface-2"
+                                : "border-line text-text-muted hover:bg-surface-2"
                             }`}
                           >
-                            {item.enabled !== false ? "ACTIVE" : "HIDDEN"}
+                            {item.enabled !== false ? "Active" : "Hidden"}
                           </button>
                         </td>
                         <td className="p-3 pr-4 text-right">
@@ -2410,7 +2415,7 @@ export default function AdminPage() {
                             <button
                               type="button"
                               onClick={() => handleOpenNavModal(item)}
-                              className="p-1.5 rounded-lg hover:bg-surface-2 text-text-muted hover:text-text transition-colors cursor-pointer"
+                              className="p-2 rounded-lg border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
                               title="Edit button"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -2418,7 +2423,7 @@ export default function AdminPage() {
                             <button
                               type="button"
                               onClick={() => handleDeleteNavItem(item.id, item.label)}
-                              className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-400 hover:text-rose-500 transition-colors cursor-pointer"
+                              className="p-2 rounded-lg border border-line hover:bg-rust/10 text-text-muted hover:text-rust cursor-pointer"
                               title="Delete button"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -2439,81 +2444,57 @@ export default function AdminPage() {
       {/* ============================================================= */}
       {activeTab === "features" && featuresConfig && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-surface border border-line">
-            <h2 className="text-sm font-bold text-text">Global Platform Capabilities & Feature Flags</h2>
-            <p className="text-xs text-text-muted mt-0.5">
-              Instantly enable or disable executive tools, floating widgets, and integrations across all tenant accounts.
+          <div className="p-5 rounded-2xl bg-surface border border-line shadow-sm">
+            <h2 className="text-base font-semibold text-text">Feature switches</h2>
+            <p className="text-sm text-text-muted mt-0.5">
+              Turn tools and integrations on or off for every customer account.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-line bg-surface shadow-sm divide-y divide-line overflow-hidden">
             {[
               {
                 key: "enableAiCopilot",
                 title: "Ask Executive AI Floating Launcher",
                 desc: "Floating 24/7 AI Workspace launcher button in the bottom right corner of tenant pages.",
-                icon: MessageSquare,
               },
               {
                 key: "enableDailyCheckin",
                 title: "Daily Executive Pulse Check Ribbon",
                 desc: "60-second operational telemetry collection modal and ribbon on the top of the dashboard.",
-                icon: CheckCircle2,
               },
               {
                 key: "enableCommandPalette",
                 title: "Universal Command Palette (⌘K / Ctrl+K)",
                 desc: "Spotlight search modal for finding metrics, tools, and execution tasks with quick jump.",
-                icon: Search,
               },
               {
                 key: "enableWhatsApp",
                 title: "WhatsApp Executive Assistant",
                 desc: "Direct integration sending morning check-in links and telemetry prompts via WhatsApp API.",
-                icon: Globe,
               },
               {
                 key: "enableToolsCatalog",
                 title: "Specialist Tools & Calculators Module",
                 desc: "Interactive financial modeling, break-even simulation, and CAC/LTV calculations catalog.",
-                icon: Wrench,
               },
             ].map((feat) => {
-              const Icon = feat.icon;
               const isEnabled = featuresConfig[feat.key] !== false;
               return (
-                <div
-                  key={feat.key}
-                  className={`p-4 rounded-2xl border transition-all flex items-start justify-between gap-3 ${
-                    isEnabled ? "bg-surface border-line" : "bg-surface-2/40 border-dashed border-line opacity-60"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 ${
-                        isEnabled
-                          ? "bg-gold/10 border-gold/30 text-gold"
-                          : "bg-surface-2 border-line text-text-muted"
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-text">{feat.title}</h3>
-                      <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{feat.desc}</p>
-                    </div>
+                <div key={feat.key} className="px-5 py-4 flex items-start justify-between gap-6">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-medium text-text">{feat.title}</h3>
+                    <p className="text-sm text-text-muted mt-0.5 leading-relaxed max-w-2xl">{feat.desc}</p>
                   </div>
-
                   <button
                     type="button"
+                    role="switch"
+                    aria-checked={isEnabled}
+                    aria-label={feat.title}
                     onClick={() => handleToggleFeature(feat.key)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold border transition-all shrink-0 cursor-pointer ${
-                      isEnabled
-                        ? "bg-jade/15 border-jade/40 text-jade"
-                        : "bg-surface-2 border-line text-text-muted"
-                    }`}
+                    className={`relative w-10 h-6 rounded-full shrink-0 cursor-pointer transition-colors ${isEnabled ? "bg-brass" : "bg-line-strong"}`}
                   >
-                    {isEnabled ? "ENABLED" : "DISABLED"}
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${isEnabled ? "translate-x-4" : ""}`} />
                   </button>
                 </div>
               );
@@ -2530,76 +2511,71 @@ export default function AdminPage() {
       {/* ============================================================= */}
       {activeTab === "widgets" && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-surface border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-bold text-text">Configured Dashboard Widgets ({widgets.length})</h2>
-              <p className="text-xs text-text-muted mt-0.5">
-                Manage widget components, grid column spans (1–4 columns), priority ordering, and visibility.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleOpenWidgetModal()}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md self-start sm:self-auto cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Custom Widget</span>
-            </button>
+          <div className="p-5 rounded-2xl bg-surface border border-line shadow-sm">
+            <h2 className="text-base font-semibold text-text">Dashboard widgets</h2>
+            <p className="text-sm text-text-muted mt-0.5">
+              Choose which blocks appear on the customer dashboard, how wide they are, and the order they show in.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {widgets
-              .sort((a, b) => b.priority - a.priority)
-              .map((widget) => (
-                <div
-                  key={widget.id}
-                  className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                    widget.enabled !== false
-                      ? "bg-surface border-line"
-                      : "bg-surface-2/40 border-dashed border-line opacity-60"
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-xs font-bold text-text">{widget.title}</h3>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-gold/10 text-gold font-mono font-semibold">
-                        {widget.defaultSpan}/4 col span
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-text-muted font-mono mt-1">
-                      Component: {widget.component} · Priority: {widget.priority}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleWidget(widget)}
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
-                        widget.enabled !== false
-                          ? "bg-jade/15 border-jade/30 text-jade"
-                          : "bg-surface-2 border-line text-text-muted"
-                      }`}
-                    >
-                      {widget.enabled !== false ? "ACTIVE" : "HIDDEN"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenWidgetModal(widget)}
-                      className="p-1.5 rounded-lg hover:bg-surface-2 text-text-muted hover:text-text transition-colors cursor-pointer"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteWidget(widget.id, widget.title)}
-                      className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-400 hover:text-rose-500 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+          <div className="bg-surface rounded-2xl border border-line overflow-hidden shadow-sm">
+            <div className="overflow-x-auto touch-scroll">
+              <table className="w-full min-w-[560px] text-left text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-line text-text-muted font-medium">
+                    <th className="p-3 pl-5">Widget</th>
+                    <th className="p-3">Width</th>
+                    <th className="p-3">Order</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 pr-5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {[...widgets]
+                    .sort((x, y) => y.priority - x.priority)
+                    .map((widget) => (
+                      <tr key={widget.id} className={widget.enabled !== false ? "" : "opacity-60"}>
+                        <td className="p-3 pl-5 font-medium text-text">{widget.title}</td>
+                        <td className="p-3 text-text-muted">{widget.defaultSpan >= 4 ? "Full width" : widget.defaultSpan === 2 ? "Half width" : `${widget.defaultSpan} of 4 columns`}</td>
+                        <td className="p-3 text-text-muted">{widget.priority}</td>
+                        <td className="p-3">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleWidget(widget)}
+                            className={`px-2.5 py-1 rounded-lg text-sm border border-line cursor-pointer hover:bg-surface-2 ${
+                              widget.enabled !== false ? "text-jade" : "text-text-muted"
+                            }`}
+                          >
+                            {widget.enabled !== false ? "Shown" : "Hidden"}
+                          </button>
+                        </td>
+                        <td className="p-3 pr-5">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenWidgetModal(widget)}
+                              className="p-2 rounded-lg border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
+                              title="Edit"
+                              aria-label="Edit"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteWidget(widget.id, widget.title)}
+                              className="p-2 rounded-lg border border-line hover:bg-rust/10 text-text-muted hover:text-rust cursor-pointer"
+                              title="Delete"
+                              aria-label="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -2607,86 +2583,78 @@ export default function AdminPage() {
       {/* ============================================================= */}
       {/* TAB 5: SPECIALIST TOOLS CATALOG                               */}
       {/* ============================================================= */}
+      {activeTab === "datapal" && <DataPalUsageManager />}
+
       {activeTab === "tools" && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-surface border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-5 rounded-2xl bg-surface border border-line shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-bold text-text">Specialist Calculators & Tools Catalog ({tools.length})</h2>
-              <p className="text-xs text-text-muted mt-0.5">
-                Add, configure, or remove business tools available to founders on the /tools catalog page.
+              <h2 className="text-base font-semibold text-text">Tools and calculators ({tools.length})</h2>
+              <p className="text-sm text-text-muted mt-0.5">
+                The tools founders can open from the Tools page.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleOpenToolModal()}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all shadow-md self-start sm:self-auto cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add New Tool</span>
-            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {tools.map((t) => (
-              <div
-                key={t.id}
-                className={`p-4 rounded-xl border transition-all flex flex-col justify-between gap-2.5 ${
-                  t.enabled !== false
-                    ? "bg-surface border-line"
-                    : "bg-surface-2/40 border-dashed border-line opacity-60"
-                }`}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-xs font-bold text-text">{t.name}</h3>
-                      <span className="text-[10px] px-2 py-0.2 rounded-full bg-surface-2 border border-line text-text-muted font-mono uppercase">
-                        {t.category}
-                      </span>
-                      {t.hasInteractiveCalculator && (
-                        <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-gold/15 text-gold font-bold">
-                          Interactive Pop-up
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-text-muted mt-1 leading-relaxed">{t.description}</p>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleTool(t)}
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
-                        t.enabled !== false
-                          ? "bg-jade/15 border-jade/30 text-jade"
-                          : "bg-surface-2 border-line text-text-muted"
-                      }`}
-                    >
-                      {t.enabled !== false ? "ACTIVE" : "DISABLED"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenToolModal(t)}
-                      className="p-1.5 rounded-lg hover:bg-surface-2 text-text-muted hover:text-text transition-colors cursor-pointer"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteTool(t.id, t.name)}
-                      className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-400 hover:text-rose-500 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[10px] text-text-muted pt-2 border-t border-line/60">
-                  <span>Required Plan: <b className="text-text font-semibold">{t.requiredPlan.charAt(0).toUpperCase() + t.requiredPlan.slice(1)}</b></span>
-                  <span>Badge: <b className="text-text font-mono">{t.badge}</b></span>
-                </div>
-              </div>
-            ))}
+          <div className="bg-surface rounded-2xl border border-line overflow-hidden shadow-sm">
+            <div className="overflow-x-auto touch-scroll">
+              <table className="w-full min-w-[640px] text-left text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-line text-text-muted font-medium">
+                    <th className="p-3 pl-5">Tool</th>
+                    <th className="p-3">Category</th>
+                    <th className="p-3">Plan</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 pr-5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {tools.map((t) => (
+                    <tr key={t.id} className={t.enabled !== false ? "" : "opacity-60"}>
+                      <td className="p-3 pl-5">
+                        <div className="font-medium text-text">{t.name}</div>
+                        <div className="text-xs text-text-muted mt-0.5 max-w-md">{t.description}</div>
+                      </td>
+                      <td className="p-3 text-text-muted">{t.category}</td>
+                      <td className="p-3 text-text-muted capitalize">{t.requiredPlan}</td>
+                      <td className="p-3">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTool(t)}
+                          className={`px-2.5 py-1 rounded-lg text-sm border border-line cursor-pointer hover:bg-surface-2 ${
+                            t.enabled !== false ? "text-jade" : "text-text-muted"
+                          }`}
+                        >
+                          {t.enabled !== false ? "Shown" : "Hidden"}
+                        </button>
+                      </td>
+                      <td className="p-3 pr-5">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenToolModal(t)}
+                            className="p-2 rounded-lg border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
+                            title="Edit"
+                            aria-label="Edit"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTool(t.id, t.name)}
+                            className="p-2 rounded-lg border border-line hover:bg-rust/10 text-text-muted hover:text-rust cursor-pointer"
+                            title="Delete"
+                            aria-label="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -2696,32 +2664,25 @@ export default function AdminPage() {
       {/* ============================================================= */}
       {activeTab === "audit" && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-surface border border-line">
-            <h2 className="text-sm font-bold text-text">Append-Only Platform Audit Log</h2>
-            <p className="text-xs text-text-muted mt-0.5">
-              Historical ledger of every change made to the website, navigation, widgets, and feature flags.
+          <div className="p-5 rounded-2xl bg-surface border border-line shadow-sm">
+            <h2 className="text-base font-semibold text-text">Change history</h2>
+            <p className="text-sm text-text-muted mt-0.5">
+              Every change made to the website, navigation, widgets and feature switches.
             </p>
           </div>
 
-          <div className="bg-surface rounded-2xl border border-line divide-y divide-line overflow-hidden shadow-theme">
+          <div className="bg-surface rounded-2xl border border-line divide-y divide-line overflow-hidden shadow-sm">
             {auditLogs.length === 0 ? (
-              <div className="p-6 text-center text-xs text-text-muted">No audit logs recorded yet.</div>
+              <div className="p-10 text-center text-sm text-text-muted">No changes recorded yet.</div>
             ) : (
               auditLogs.map((log) => (
-                <div key={log.id} className="p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4 text-xs">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-text">{log.note || log.action}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-2 border border-line font-mono text-text-muted uppercase">
-                        {log.entityType}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-text-muted mt-0.5 font-mono break-all">
-                      Actor: {log.actor} · Target ID: {log.entityId}
-                    </p>
-                  </div>
-                  <span className="text-[10px] text-text-muted font-mono self-end sm:self-auto shrink-0">
-                    {new Date(log.timestamp).toLocaleString()}
+                <div key={log.id} className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-6">
+                  <p className="text-sm text-text">
+                    {log.note || log.action}
+                    {log.entityType ? <span className="text-text-muted"> · {String(log.entityType).charAt(0).toUpperCase() + String(log.entityType).slice(1)}</span> : null}
+                  </p>
+                  <span className="text-sm text-text-muted shrink-0">
+                    {new Date(log.timestamp).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}
                   </span>
                 </div>
               ))
@@ -2747,14 +2708,14 @@ export default function AdminPage() {
           <div className="relative w-full max-w-lg max-h-[88vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-line bg-surface shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-gold">
+                <div className="w-8 h-8 rounded-lg bg-surface-2 border border-line flex items-center justify-center text-gold">
                   <Compass className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-text">
+                  <h3 className="text-base font-semibold text-text">
                     {editingNavItem ? `Edit Navigation Button: ${editingNavItem.label}` : "Add New Navigation Button"}
                   </h3>
-                  <p className="text-[11px] text-text-muted">Sidebar navigation routing & icon configuration</p>
+                  <p className="text-xs text-text-muted">Sidebar navigation routing & icon configuration</p>
                 </div>
               </div>
               <button
@@ -2776,7 +2737,7 @@ export default function AdminPage() {
                   placeholder="e.g. Financial Models"
                   value={navForm.label}
                   onChange={(e) => setNavForm({ ...navForm, label: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold font-semibold"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-brass font-semibold"
                 />
               </div>
 
@@ -2788,7 +2749,7 @@ export default function AdminPage() {
                   placeholder="e.g. /models or https://..."
                   value={navForm.href}
                   onChange={(e) => setNavForm({ ...navForm, href: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono focus:outline-none focus:border-gold"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono focus:outline-none focus:border-brass"
                 />
               </div>
 
@@ -2867,7 +2828,7 @@ export default function AdminPage() {
                 type="submit"
                 form="nav-modal-form"
                 disabled={saving}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all shadow-md shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
+                className="px-5 py-2 rounded-xl text-sm font-medium text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all  shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
               >
                 {saving ? "Saving..." : "Save Navigation Button"}
               </button>
@@ -2890,14 +2851,14 @@ export default function AdminPage() {
           <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-line bg-surface shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-surface-2 border border-line flex items-center justify-center text-gold shrink-0">
                   <Layers className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-text truncate">
+                  <h3 className="text-sm font-semibold text-text truncate">
                     {editingWidget ? `Edit Widget: ${editingWidget.title}` : "Add Dashboard Widget"}
                   </h3>
-                  <p className="text-[11px] text-text-muted truncate">Executive dashboard modular card configuration</p>
+                  <p className="text-xs text-text-muted truncate">Executive dashboard modular card configuration</p>
                 </div>
               </div>
               <button
@@ -2919,7 +2880,7 @@ export default function AdminPage() {
                   placeholder="e.g. Sales Pipeline Velocity"
                   value={widgetForm.title}
                   onChange={(e) => setWidgetForm({ ...widgetForm, title: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold font-semibold text-sm sm:text-xs"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-brass font-semibold text-sm sm:text-sm"
                 />
               </div>
 
@@ -2928,7 +2889,7 @@ export default function AdminPage() {
                 <select
                   value={widgetForm.component}
                   onChange={(e) => setWidgetForm({ ...widgetForm, component: e.target.value })}
-                  className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-sm sm:text-xs"
+                  className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-sm sm:text-sm"
                 >
                   <option value="KpiGridWidget">KpiGridWidget (4-column Sparkline Tiles)</option>
                   <option value="HealthScoreWidget">HealthScoreWidget (Gauge + Breakdown)</option>
@@ -2945,7 +2906,7 @@ export default function AdminPage() {
                   <select
                     value={widgetForm.defaultSpan}
                     onChange={(e) => setWidgetForm({ ...widgetForm, defaultSpan: Number(e.target.value) as any })}
-                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text text-sm sm:text-xs"
+                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text text-sm sm:text-sm"
                   >
                     <option value={1}>1 Column (Compact)</option>
                     <option value={2}>2 Columns (Half Width)</option>
@@ -2962,7 +2923,7 @@ export default function AdminPage() {
                     max={100}
                     value={widgetForm.priority}
                     onChange={(e) => setWidgetForm({ ...widgetForm, priority: Number(e.target.value) })}
-                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-sm sm:text-xs"
+                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-sm sm:text-sm"
                   />
                 </div>
               </div>
@@ -2980,7 +2941,7 @@ export default function AdminPage() {
                 type="submit"
                 form="widget-modal-form"
                 disabled={saving}
-                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all shadow-md shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
+                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl text-sm font-medium text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all  shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
               >
                 {saving ? "Saving..." : "Save Widget"}
               </button>
@@ -3003,14 +2964,14 @@ export default function AdminPage() {
           <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-line bg-surface shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-gold shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-surface-2 border border-line flex items-center justify-center text-gold shrink-0">
                   <Wrench className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-text truncate">
+                  <h3 className="text-sm font-semibold text-text truncate">
                     {editingTool ? `Edit Tool: ${editingTool.name}` : "Add Specialist Tool"}
                   </h3>
-                  <p className="text-[11px] text-text-muted truncate">Business specialist calculator & entitlement settings</p>
+                  <p className="text-xs text-text-muted truncate">Business specialist calculator & entitlement settings</p>
                 </div>
               </div>
               <button
@@ -3032,7 +2993,7 @@ export default function AdminPage() {
                   placeholder="e.g. Valuation Multiples Calculator"
                   value={toolForm.name}
                   onChange={(e) => setToolForm({ ...toolForm, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold font-semibold text-sm sm:text-xs"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-brass font-semibold text-sm sm:text-sm"
                 />
               </div>
 
@@ -3042,7 +3003,7 @@ export default function AdminPage() {
                   <select
                     value={toolForm.category}
                     onChange={(e) => setToolForm({ ...toolForm, category: e.target.value as any })}
-                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text text-sm sm:text-xs"
+                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text text-sm sm:text-sm"
                   >
                     <option value="finance">Finance</option>
                     <option value="sales">Sales</option>
@@ -3057,7 +3018,7 @@ export default function AdminPage() {
                   <select
                     value={toolForm.requiredPlan}
                     onChange={(e) => setToolForm({ ...toolForm, requiredPlan: e.target.value as any })}
-                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text text-sm sm:text-xs"
+                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text text-sm sm:text-sm"
                   >
                     <option value="free">Free</option>
                     <option value="starter">Starter</option>
@@ -3075,7 +3036,7 @@ export default function AdminPage() {
                   placeholder="Brief description of what this calculator or tool computes."
                   value={toolForm.description}
                   onChange={(e) => setToolForm({ ...toolForm, description: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold text-sm sm:text-xs"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-brass text-sm sm:text-sm"
                 />
               </div>
 
@@ -3086,7 +3047,7 @@ export default function AdminPage() {
                   placeholder="e.g. Valuation, Risk"
                   value={toolForm.badge}
                   onChange={(e) => setToolForm({ ...toolForm, badge: e.target.value })}
-                  className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-sm sm:text-xs"
+                  className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-sm sm:text-sm"
                 />
               </div>
 
@@ -3099,8 +3060,8 @@ export default function AdminPage() {
                     className="rounded border-line text-gold focus:ring-0"
                   />
                   <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-text">Tool Active</span>
-                    <span className="text-[10px] text-text-muted">Visible on /tools</span>
+                    <span className="text-sm font-medium text-text">Tool Active</span>
+                    <span className="text-xs text-text-muted">Visible on /tools</span>
                   </div>
                 </label>
 
@@ -3112,8 +3073,8 @@ export default function AdminPage() {
                     className="rounded border-line text-gold focus:ring-0"
                   />
                   <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-text">Has Calculator</span>
-                    <span className="text-[10px] text-text-muted">Interactive Pop-up</span>
+                    <span className="text-sm font-medium text-text">Has Calculator</span>
+                    <span className="text-xs text-text-muted">Interactive Pop-up</span>
                   </div>
                 </label>
               </div>
@@ -3131,7 +3092,7 @@ export default function AdminPage() {
                 type="submit"
                 form="tool-modal-form"
                 disabled={saving}
-                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all shadow-md shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
+                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl text-sm font-medium text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all  shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
               >
                 {saving ? "Saving..." : "Save Tool"}
               </button>

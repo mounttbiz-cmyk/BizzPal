@@ -397,7 +397,7 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
                               </div>
                             </div>
 
-                            <div className="pt-2 border-t border-line/60 flex items-center justify-between">
+                            <div className="pt-2 border-t border-line flex items-center justify-between">
                               <span className="text-[10px] text-text-muted uppercase">
                                 Priority: {action.priority}
                               </span>

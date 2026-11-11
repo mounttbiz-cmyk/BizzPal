@@ -397,7 +397,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                     <th className="py-2.5 px-3">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-line/60">
+                <tbody className="divide-y divide-line">
                   {filteredEmployees.map((emp) => (
                     <tr key={emp.id} className="hover:bg-surface-2/40 transition-colors">
                       <td className="py-2.5 px-3 font-mono font-semibold text-brass text-[11px]">{emp.id}</td>
@@ -525,7 +525,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                   </p>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-line/60 flex items-center justify-between text-[11px]">
+                <div className="mt-3 pt-3 border-t border-line flex items-center justify-between text-[11px]">
                   <span className="text-text-muted flex items-center gap-1 font-mono text-[10px]">
                     <Key className="w-3 h-3 text-brass" /> Direct API Sync
                   </span>
@@ -577,7 +577,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                   </p>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-line/60 flex items-center justify-between text-[11px]">
+                <div className="mt-3 pt-3 border-t border-line flex items-center justify-between text-[11px]">
                   <span className="text-text-muted flex items-center gap-1 text-[10px]">
                     <Key className="w-3 h-3 text-blue-400" /> CRM User Sync
                   </span>
@@ -727,7 +727,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                   </p>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-line/60 flex items-center justify-between text-[11px]">
+                <div className="mt-3 pt-3 border-t border-line flex items-center justify-between text-[11px]">
                   <span className="text-text-muted flex items-center gap-1 text-[10px]">
                     <Shield className="w-3 h-3 text-jade" /> Official Third-Party Proof
                   </span>

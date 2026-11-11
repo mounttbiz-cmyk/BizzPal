@@ -325,3 +325,8 @@ html, body {
 .dark .bg-brass.text-white {
   color: #1a1206;
 }
+
+/* Admin console: same plain, readable type as the rest of the app */
+.admin-shell .font-mono { font-family: inherit; }
+.admin-shell .uppercase { text-transform: none; letter-spacing: normal; }
+.admin-shell .tracking-wider, .admin-shell .tracking-widest { letter-spacing: normal; }

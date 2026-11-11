@@ -386,6 +386,18 @@ try {
     created_at TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS datapal_usage_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_email TEXT NOT NULL,
+    account_name TEXT,
+    requested INTEGER DEFAULT 0,
+    returned INTEGER DEFAULT 0,
+    source_mode TEXT,
+    google_requests INTEGER DEFAULT 0,
+    est_cost_usd REAL DEFAULT 0,
+    created_at TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS team_members (
     id TEXT PRIMARY KEY,
     business_id TEXT NOT NULL,
@@ -1812,3 +1824,39 @@ export function getAllPaymentTransactions(limit = 100) {
 export { db };
 
 
+
+
+// ---------------------------------------------------------------
+// DataPal usage: every extraction run, who made it and what it cost
+// ---------------------------------------------------------------
+// Google Places "Text Search" (the fields DataPal asks for include phone,
+// website and rating) is billed per request. This is an estimate of that
+// list price; actual GCP billing is the source of truth.
+export const PLACES_COST_PER_REQUEST_USD = Number(process.env.PLACES_COST_PER_REQUEST_USD || 0.035);
+
+export function logDataPalUsage(entry: {
+  email: string;
+  name?: string;
+  requested: number;
+  returned: number;
+  sourceMode: string;
+  googleRequests: number;
+}): void {
+  try {
+    db.prepare(
+      `INSERT INTO datapal_usage_log (account_email, account_name, requested, returned, source_mode, google_requests, est_cost_usd, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      (entry.email || "guest").trim().toLowerCase(),
+      entry.name || null,
+      entry.requested,
+      entry.returned,
+      entry.sourceMode,
+      entry.googleRequests,
+      entry.googleRequests * PLACES_COST_PER_REQUEST_USD,
+      new Date().toISOString()
+    );
+  } catch (err: any) {
+    console.warn("[DataPal usage] could not log:", err?.message);
+  }
+}

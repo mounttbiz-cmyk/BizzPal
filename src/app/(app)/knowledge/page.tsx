@@ -665,7 +665,7 @@ export default function KnowledgeHubPage() {
                 {activeDoc.description}
               </div>
 
-              <div className="overflow-y-auto max-h-[45vh] pr-2 space-y-2 text-xs text-text leading-relaxed font-sans border-t border-line/60 pt-3">
+              <div className="overflow-y-auto max-h-[45vh] pr-2 space-y-2 text-xs text-text leading-relaxed font-sans border-t border-line pt-3">
                 <div className="whitespace-pre-line font-mono text-[11px] bg-surface-2/30 p-4 rounded-xl border border-line">
                   {activeDoc.content}
                 </div>

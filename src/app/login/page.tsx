@@ -897,7 +897,7 @@ export default function LoginPage() {
 
           {/* Right Column: Luxury Glassmorphism Auth Card */}
           <div className="w-full max-w-md mx-auto lg:col-span-6">
-            <div className="p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-line-strong/80 bg-surface/90 dark:bg-surface/80 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] space-y-5">
+            <div className="p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-line-strong bg-surface/90 dark:bg-surface/80 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] space-y-5">
               {!isSuperadminMode ? (
                 <>
                   {/* Top Segmented Tab Switcher */}

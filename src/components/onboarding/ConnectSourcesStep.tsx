@@ -35,7 +35,7 @@ export function ConnectSourcesStep({ auth, onConnect, onBack, onNext }: Props) {
             <div
               key={tool.id}
               className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
-                isOn ? "bg-jade/5 border-jade/30" : isLive ? "bg-surface-2/40 border-line hover:border-line-strong" : "bg-surface-2/20 border-line/60 opacity-70"
+                isOn ? "bg-jade/5 border-jade/30" : isLive ? "bg-surface-2/40 border-line hover:border-line-strong" : "bg-surface-2/20 border-line opacity-70"
               }`}
             >
               <div className="flex items-start gap-3.5 min-w-0">

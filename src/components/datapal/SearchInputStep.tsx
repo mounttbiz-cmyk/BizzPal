@@ -704,7 +704,7 @@ export function SearchInputStep({
             aria-expanded={isSubcategoryOpen}
             className={`h-[46px] w-full px-3 py-2 rounded-lg border flex items-center justify-between gap-2 select-none text-left ${
               !selectedCategory
-                ? "bg-surface/50 border-line/60 text-text-muted opacity-60 cursor-not-allowed"
+                ? "bg-surface/50 border-line text-text-muted opacity-60 cursor-not-allowed"
                 : isSubcategoryOpen
                 ? "border-brass ring-1 ring-brass bg-surface cursor-pointer"
                 : selectedSubcategory

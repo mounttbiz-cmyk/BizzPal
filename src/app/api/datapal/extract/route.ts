@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateSyntheticLeads } from "@/lib/datapal/storage";
 import { extractRealBusinessLeads } from "@/lib/datapal/realExtractor";
 import { DataPalBusinessLead, DataPalSearchConfig } from "@/lib/datapal/types";
+import { logDataPalUsage } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { config, apiKey, apiEndpoint } = body as {
+    const { config, apiKey, apiEndpoint, account } = body as {
+      account?: { email?: string; name?: string };
       config: DataPalSearchConfig;
       apiKey?: string;
       apiEndpoint?: string;
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. LIVE FREE REAL-DATA EXTRACTION (OpenStreetMap Live + Google Places Free Tier)
-    const { leads: realLeads, sourceMode } = await extractRealBusinessLeads(config, apiKey);
+    const { leads: realLeads, sourceMode, googleRequests } = await extractRealBusinessLeads(config, apiKey);
 
     const targetCount = config.requestedCount && config.requestedCount > 0 ? config.requestedCount : 25;
     let leads: DataPalBusinessLead[] = [];
@@ -67,6 +69,15 @@ export async function POST(req: NextRequest) {
     } else {
       leads = generateSyntheticLeads(config);
     }
+    logDataPalUsage({
+      email: String(account?.email || "guest"),
+      name: account?.name,
+      requested: targetCount,
+      returned: realLeads.length,
+      sourceMode,
+      googleRequests,
+    });
+
     const campaignId = `camp_${Date.now()}`;
     const locationString = [config.areaPincode, config.city, config.state, config.countryCode === "IN" ? "India" : config.countryCode]
       .filter(Boolean)

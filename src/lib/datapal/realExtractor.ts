@@ -9,7 +9,7 @@ import { COUNTRY_HIERARCHIES } from "./constants";
 export async function extractRealBusinessLeads(
   config: DataPalSearchConfig,
   customApiKey?: string
-): Promise<{ leads: DataPalBusinessLead[]; sourceMode: "google_places_live" | "openstreetmap_live" | "hybrid_live" | "fallback" }> {
+): Promise<{ leads: DataPalBusinessLead[]; sourceMode: "google_places_live" | "openstreetmap_live" | "hybrid_live" | "fallback"; googleRequests: number }> {
   const googleApiKey =
     customApiKey ||
     process.env.GEMINI_MAPS_API_KEY ||
@@ -40,6 +40,8 @@ export async function extractRealBusinessLeads(
   const locationParts = [config.areaPincode, config.city, config.state, countryName].filter(Boolean);
   const locationTerm = locationParts.join(", ") || countryName;
 
+  let googleRequests = 0;
+
   // 1. TRY GOOGLE PLACES API (NEW) WITH GOOGLE MAPS API KEY (WITH AUTOMATIC PAGINATION)
   if (googleApiKey && googleApiKey.trim().length > 10) {
     try {
@@ -60,6 +62,7 @@ export async function extractRealBusinessLeads(
           reqBody.pageToken = pageToken;
         }
 
+        googleRequests++;
         const newPlacesRes = await fetch("https://places.googleapis.com/v1/places:searchText", {
           method: "POST",
           headers: {
@@ -85,6 +88,9 @@ export async function extractRealBusinessLeads(
 
         pageToken = newData.nextPageToken;
         if (!pageToken) break;
+        // Each page is a billed Google request: stop once we have enough results
+        const wanted = config.requestedCount && config.requestedCount > 0 ? config.requestedCount : 25;
+        if (collectedPlaces.length >= wanted) break;
       }
 
       if (collectedPlaces.length > 0) {
@@ -141,7 +147,7 @@ export async function extractRealBusinessLeads(
           };
         });
 
-        return { leads: googleLeads, sourceMode: "google_places_live" };
+        return { leads: googleLeads, sourceMode: "google_places_live", googleRequests };
       }
     } catch (gErr) {
       console.warn("Google Places API live query error, falling back to OpenStreetMap:", gErr);
@@ -235,11 +241,11 @@ export async function extractRealBusinessLeads(
         };
       });
 
-      return { leads: realOsmLeads, sourceMode: "openstreetmap_live" };
+      return { leads: realOsmLeads, sourceMode: "openstreetmap_live", googleRequests };
     }
   } catch (osmErr) {
     console.warn("OpenStreetMap free live scraper error:", osmErr);
   }
 
-  return { leads: [], sourceMode: "fallback" };
+  return { leads: [], sourceMode: "fallback", googleRequests };
 }

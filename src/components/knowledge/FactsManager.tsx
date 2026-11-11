@@ -173,7 +173,7 @@ export function FactsManager() {
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-surface text-text shadow-2xs font-bold border border-line/60"
+                      ? "bg-surface text-text shadow-2xs font-bold border border-line"
                       : "text-text-muted hover:text-text"
                   }`}
                 >
@@ -285,7 +285,7 @@ export function FactsManager() {
                 </div>
 
                 {/* Provenance Footnote */}
-                <div className="flex items-center justify-between text-[11px] text-text-muted pt-2.5 border-t border-line/60">
+                <div className="flex items-center justify-between text-[11px] text-text-muted pt-2.5 border-t border-line">
                   <span className="flex items-center gap-1 truncate max-w-[240px]">
                     <Bookmark className="w-3 h-3 text-brass shrink-0" />
                     <span className="truncate">Source: {fact.sourceCitation || "Verified Corporate Governance"}</span>

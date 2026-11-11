@@ -191,7 +191,7 @@ export function MultiSelectCombobox({
         }}
         className={`min-h-[46px] w-full px-3 py-1.5 rounded-lg border flex items-center justify-between gap-2 cursor-pointer select-none ${
           disabled
-            ? "bg-surface-2/40 border-line/60 opacity-60 cursor-not-allowed"
+            ? "bg-surface-2/40 border-line opacity-60 cursor-not-allowed"
             : isOpen
             ? "bg-surface border-brass ring-1 ring-brass/30"
             : "bg-surface hover:bg-surface-2/40 border-line hover:border-line-strong"
@@ -355,7 +355,7 @@ export function MultiSelectCombobox({
               <button
                 type="button"
                 onClick={handleAddCustom}
-                className="w-full text-left px-2.5 py-2 rounded-xl text-xs text-brass hover:bg-brass/10 flex items-center gap-1.5 font-medium border-t border-line/60 cursor-pointer mt-1"
+                className="w-full text-left px-2.5 py-2 rounded-xl text-xs text-brass hover:bg-brass/10 flex items-center gap-1.5 font-medium border-t border-line cursor-pointer mt-1"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Use &ldquo;{search.trim()}&rdquo; as typed</span>

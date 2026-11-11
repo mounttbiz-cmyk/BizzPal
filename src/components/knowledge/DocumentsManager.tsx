@@ -302,7 +302,7 @@ export function DocumentsManager() {
                 onClick={() => setSelectedFormat(f.id)}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
                   selectedFormat === f.id
-                    ? "bg-surface text-text shadow-2xs font-bold border border-line/60"
+                    ? "bg-surface text-text shadow-2xs font-bold border border-line"
                     : "text-text-muted hover:text-text"
                 }`}
               >

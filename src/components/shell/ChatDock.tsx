@@ -293,7 +293,7 @@ export function ChatDock({
 
                 {/* Substantive 6-part executive structure on document surface (§12.2) */}
                 {msg.situation && (
-                  <div className="mt-3 pt-3 border-t border-line/60 space-y-2 text-[11.5px]">
+                  <div className="mt-3 pt-3 border-t border-line space-y-2 text-[11.5px]">
                     <div>
                       <span className="font-semibold text-text uppercase tracking-wider text-[9.5px] block text-brass">
                         1. The Situation
