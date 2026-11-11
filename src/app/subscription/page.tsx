@@ -389,6 +389,22 @@ export default function SubscriptionPage() {
     };
   }, []);
 
+  // Layout adapts to however many plans exist (cards wrap and stay centred)
+  const planCount = plans.length;
+  const wrapMax =
+    planCount <= 2 ? "max-w-3xl" : planCount === 3 ? "max-w-6xl" : planCount === 4 ? "max-w-7xl" : "max-w-[90rem]";
+  const cardBasis =
+    planCount <= 1
+      ? "w-full max-w-sm"
+      : planCount === 2
+      ? "w-full md:basis-[calc(50%-0.75rem)]"
+      : planCount === 3
+      ? "w-full md:basis-[calc(50%-0.75rem)] lg:basis-[calc(33.333%-1rem)]"
+      : planCount === 4
+      ? "w-full md:basis-[calc(50%-0.75rem)] xl:basis-[calc(25%-1.125rem)]"
+      : "w-full md:basis-[calc(50%-0.75rem)] lg:basis-[calc(33.333%-1rem)] 2xl:basis-[calc(20%-1.2rem)]";
+  const compact = planCount >= 4;
+
   return (
     <div className="min-h-screen bg-bg text-text p-4 sm:p-6 lg:p-8 flex flex-col">
       {toast && (
@@ -410,7 +426,8 @@ export default function SubscriptionPage() {
             href="/dashboard"
             className="text-sm text-text-muted hover:text-text px-3.5 py-2 rounded-lg border border-line bg-surface whitespace-nowrap"
           >
-            Back to dashboard
+            <span className="hidden sm:inline">Back to dashboard</span>
+            <span className="sm:hidden">Back</span>
           </Link>
           <div className="w-28 sm:w-32 shrink-0">
             <ThemeSwitch compact />
@@ -418,7 +435,7 @@ export default function SubscriptionPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl w-full mx-auto flex-1 py-12 sm:py-16 space-y-12">
+      <main className="max-w-[90rem] w-full mx-auto flex-1 py-12 sm:py-16 space-y-12">
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <h1 className="text-4xl sm:text-5xl font-semibold text-text">Choose your plan</h1>
           <p className="text-base sm:text-lg text-text-muted leading-relaxed">
@@ -426,17 +443,7 @@ export default function SubscriptionPage() {
           </p>
         </div>
 
-        <div
-          className={`grid grid-cols-1 gap-6 items-stretch mx-auto pt-3 ${
-            plans.length <= 1
-              ? "max-w-sm"
-              : plans.length === 2
-              ? "max-w-3xl md:grid-cols-2"
-              : plans.length === 3
-              ? "md:grid-cols-2 lg:grid-cols-3"
-              : "md:grid-cols-2 xl:grid-cols-4"
-          }`}
-        >
+        <div className={`flex flex-wrap justify-center items-stretch gap-6 mx-auto pt-3 ${wrapMax}`}>
           {plans.map(p => {
             const featured = Boolean(p.isPopular);
             const isCurrent = currentPlan === p.id;
@@ -449,7 +456,7 @@ export default function SubscriptionPage() {
             return (
               <section
                 key={p.id}
-                className={`relative rounded-2xl p-7 pt-8 flex flex-col border bg-surface ${
+                className={`relative rounded-2xl ${compact ? "p-6 xl:p-7 pt-9" : "p-7 sm:p-8 pt-9"} grow-0 shrink-0 ${cardBasis} flex flex-col border bg-surface ${
                   featured ? "border-line-strong shadow-[0_8px_30px_-12px_rgba(0,0,0,0.18)]" : "border-line"
                 }`}
               >
@@ -465,41 +472,43 @@ export default function SubscriptionPage() {
                   </span>
                 )}
 
-                <h2 className="text-lg font-semibold text-text">{p.name}</h2>
-                <p className="text-sm text-text-muted leading-relaxed mt-1.5 min-h-[2.75rem]">{p.tagline}</p>
+                <h2 className="text-xl font-semibold text-text">{p.name}</h2>
+                <p className={`text-sm text-text-muted leading-6 mt-2 ${planCount >= 5 ? "min-h-[6rem]" : "min-h-[4.5rem]"}`}>{p.tagline}</p>
 
-                <div className="flex items-baseline gap-1.5 mt-5 h-12">
-                  <span className="text-4xl font-semibold text-text">{p.price}</span>
-                  <span className="text-sm text-text-muted">{p.period}</span>
+                <div className="flex items-baseline gap-1.5 mt-4 h-14">
+                  <span className={`${compact ? "text-3xl 2xl:text-4xl" : "text-4xl"} font-semibold text-text whitespace-nowrap`}>{p.price}</span>
+                  <span className="text-sm text-text-muted whitespace-nowrap">{p.period}</span>
                 </div>
 
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => handleInitiatePayment(p)}
-                  className={`mt-6 w-full py-3 px-4 rounded-xl text-sm font-medium cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 transition-colors ${
-                    isCurrent
-                      ? "border border-line text-text hover:bg-surface-2"
-                      : featured
-                      ? "bg-brass text-white hover:brightness-110"
-                      : "bg-surface-2 text-text hover:bg-line"
-                  }`}
-                >
-                  {busy ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Starting checkout…</span>
-                    </>
-                  ) : isCurrent ? (
-                    "Open dashboard"
-                  ) : (
-                    p.ctaLabel || "Choose plan"
-                  )}
-                </button>
+                <div className={`mt-6 ${compact ? "min-h-[4.25rem]" : ""}`}>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => handleInitiatePayment(p)}
+                    className={`w-full py-3 px-4 rounded-xl border text-sm font-medium cursor-pointer flex items-center justify-center text-center gap-2 disabled:opacity-60 transition-colors ${
+                      isCurrent
+                        ? "border-line text-text hover:bg-surface-2"
+                        : featured
+                        ? "border-transparent bg-brass text-white hover:brightness-110"
+                        : "border-transparent bg-surface-2 text-text hover:bg-line"
+                    }`}
+                  >
+                    {busy ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Starting checkout…</span>
+                      </>
+                    ) : isCurrent ? (
+                      "Open dashboard"
+                    ) : (
+                      p.ctaLabel || "Choose plan"
+                    )}
+                  </button>
+                </div>
 
-                <div className="mt-7 pt-6 border-t border-line flex-1">
+                <div className={`${compact ? "mt-3" : "mt-8"} pt-6 border-t border-line flex-1`}>
                   <p className="text-sm font-medium text-text mb-3">{hasInherit ? `${first}, plus:` : "What's included:"}</p>
-                  <ul className="space-y-3">
+                  <ul className="space-y-3.5">
                     {listItems.map((feat, i) => (
                       <li key={i} className="flex items-start gap-2.5 text-sm text-text-muted leading-snug">
                         <Check className="w-4 h-4 text-jade shrink-0 mt-0.5" />
@@ -513,12 +522,18 @@ export default function SubscriptionPage() {
           })}
         </div>
 
-        <p className="text-center text-sm text-text-muted">
-          Not sure which plan fits?{" "}
-          <a href="mailto:sales@bizzpal.app?subject=Help%20choosing%20a%20plan" className="text-brass hover:underline">
+        <div className="max-w-3xl mx-auto rounded-2xl border border-line bg-surface shadow-sm px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-base font-medium text-text">Not sure which plan fits?</p>
+            <p className="text-sm text-text-muted mt-0.5">Tell us about your business and we&apos;ll help you choose.</p>
+          </div>
+          <a
+            href="mailto:sales@bizzpal.app?subject=Help%20choosing%20a%20plan"
+            className="px-5 py-2.5 rounded-xl border border-line text-sm text-text hover:bg-surface-2 whitespace-nowrap self-start sm:self-auto"
+          >
             Talk to us
           </a>
-        </p>
+        </div>
       </main>
 
       {sandboxModalOrder && (

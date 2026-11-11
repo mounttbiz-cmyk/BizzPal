@@ -1,17 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { ChatMessage, AgentMeta, CompanyProfile } from "./types";
-import { AgentAvatarIcon } from "./CustomizeAdvisorModal";
 import { ChatMarkdown } from "@/components/shell/ChatMarkdown";
 import { PlaybookActions } from "./PlaybookActions";
-import {
-  User,
-  BrainCircuit,
-  CheckCircle2,
-  Clock,
-  FileText,
-} from "lucide-react";
 import { getAdvisorGreeting } from "@/lib/advisors";
 
 interface MessageBubbleProps {
@@ -34,7 +26,7 @@ export function MessageBubble({
   const isUser = message.sender === "user";
 
   // Clean formatted content
-  const displayContent = isUser
+  const rawContent = isUser
     ? message.content
     : message.id.startsWith("msg_init_")
     ? getAdvisorGreeting(activeAgent, companyProfile)
@@ -43,171 +35,115 @@ export function MessageBubble({
         .replace(/\bI am Astra\b/gi, `I am ${activeAgent.name}`)
         .replace(/\bAstra\b/g, activeAgent.name);
 
-  const senderName = isUser
-    ? companyProfile?.founderName || "You"
-    : activeAgent.name;
+  // Turn "•" bullets into a proper list so they don't run together in one paragraph
+  const displayContent = isUser
+    ? rawContent
+    : rawContent.replace(/^[ \t]*•[ \t]*/gm, "- ").replace(/([^\n])\n- /, "$1\n\n- ");
 
-  return (
-    <div
-      id={message.id}
-      className={`flex gap-3 scroll-mt-6 w-full ${isUser ? "justify-end" : "justify-start"}`}
-    >
-      {/* Advisor Avatar (Left for AI) */}
-      {!isUser && (
-        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-surface-2 border border-line flex items-center justify-center text-brass shrink-0 mt-1 shadow-2xs">
-          <AgentAvatarIcon iconName={activeAgent.avatar} className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-        </div>
-      )}
+  const [copied, setCopied] = useState(false);
 
-      {/* Bubble Container: expands to use available width without awkward gaps */}
-      <div
-        className={`flex flex-col min-w-0 ${
-          isUser
-            ? "items-end max-w-[85%] sm:max-w-[75%]"
-            : "items-start w-full max-w-full sm:max-w-[95%]"
-        }`}
-      >
-        {/* Sender & Timestamp Row */}
-        <div className="flex items-center gap-2 mb-1.5 px-1 text-xs">
-          <span className="font-bold text-text text-[11px] sm:text-xs">{senderName}</span>
-          <span className="text-[10px] text-text-muted font-sans flex items-center gap-1">
-            <Clock className="w-2.5 h-2.5" />
-            {message.timestamp}
-          </span>
-        </div>
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(displayContent);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
 
-        {/* Message Card */}
-        <div
-          className={`w-full p-4 sm:p-5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
-            isUser
-              ? "bg-brass text-white font-medium rounded-tr-xs shadow-md"
-              : "bg-surface-2/60 border border-line text-text rounded-tl-xs shadow-theme"
-          }`}
-        >
-          {/* Attached Files & Images */}
+  if (isUser) {
+    return (
+      <div id={message.id} className="flex justify-end scroll-mt-6 w-full">
+        <div className="max-w-[85%] sm:max-w-[75%] space-y-2">
           {message.attachments && message.attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2.5">
+            <div className="flex flex-wrap justify-end gap-2">
               {message.attachments.map((att, idx) => (
-                <div
-                  key={idx}
-                  className={`flex items-center gap-2 p-2 rounded-xl border text-xs shadow-2xs ${
-                    isUser
-                      ? "bg-white/20 border-white/30 text-white"
-                      : "bg-surface border-line text-text"
-                  }`}
-                >
-                  {att.previewUrl ? (
+                <div key={idx} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-2 text-xs text-text">
+                  {att.previewUrl && (
                     /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={att.previewUrl}
-                      alt={att.name}
-                      className="w-7 h-7 rounded-lg object-cover border border-line"
-                    />
-                  ) : (
-                    <FileText className={`w-4 h-4 ${isUser ? "text-white" : "text-brass"}`} />
+                    <img src={att.previewUrl} alt={att.name} className="w-7 h-7 rounded object-cover" />
                   )}
-                  <div className="min-w-0 max-w-[180px]">
-                    <p className="truncate font-medium text-[11px]">{att.name}</p>
-                    <span className="text-[10px] opacity-80 font-sans">
-                      {att.size < 1024 * 1024
-                        ? `${(att.size / 1024).toFixed(1)} KB`
-                        : `${(att.size / (1024 * 1024)).toFixed(1)} MB`}
-                    </span>
-                  </div>
+                  <span className="truncate max-w-[180px]">{att.name}</span>
                 </div>
               ))}
             </div>
           )}
+          <div
+            title={message.timestamp}
+            className="px-4 py-2.5 rounded-2xl bg-surface-2 text-text text-[15px] leading-relaxed whitespace-pre-wrap"
+          >
+            {displayContent}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-          {isUser ? (
-            <div className="whitespace-pre-wrap">{displayContent}</div>
-          ) : (
-            <div className="space-y-3">
-              <ChatMarkdown content={displayContent} />
+  return (
+    <div id={message.id} className="group scroll-mt-6 w-full">
+      <div className="text-[15px] leading-7 text-text">
+        <ChatMarkdown content={displayContent} />
+      </div>
 
-              {/* Day-to-Day Operational Update Detected Card */}
-              {message.structuredRecord && (
-                <div className="mt-3 p-3.5 rounded-xl bg-surface border border-brass/40 text-text space-y-2.5 shadow-2xs text-left">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-brass flex items-center gap-1.5">
-                      <BrainCircuit className="w-3.5 h-3.5 text-brass" />
-                      <span>Operational Update Detected</span>
-                    </span>
-                    {message.recordCommitted ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Committed to Ledger</span>
-                      </span>
-                    ) : (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface-2 border border-line text-text-muted font-sans font-semibold">
-                        Uncommitted
-                      </span>
-                    )}
-                  </div>
+      {message.structuredRecord && (
+        <div className="mt-4 p-4 rounded-xl border border-line text-left space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-sm font-medium text-text">Update found in your message</span>
+            <span className={`text-xs ${message.recordCommitted ? "text-jade" : "text-text-muted"}`}>
+              {message.recordCommitted ? "Saved to your records" : "Not saved yet"}
+            </span>
+          </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                    {message.structuredRecord.dailyOrders !== undefined && (
-                      <div className="p-2 rounded-lg bg-surface-2/60 border border-line">
-                        <span className="text-[10px] text-text-muted block">Orders</span>
-                        <span className="text-xs font-bold text-text">
-                          {message.structuredRecord.dailyOrders}
-                        </span>
-                      </div>
-                    )}
-                    {message.structuredRecord.dailyRevenue !== undefined && (
-                      <div className="p-2 rounded-lg bg-surface-2/60 border border-line">
-                        <span className="text-[10px] text-text-muted block">Revenue</span>
-                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                          ₹{message.structuredRecord.dailyRevenue.toLocaleString("en-IN")}
-                        </span>
-                      </div>
-                    )}
-                    {message.structuredRecord.dailyExpenses !== undefined && (
-                      <div className="p-2 rounded-lg bg-surface-2/60 border border-line">
-                        <span className="text-[10px] text-text-muted block">Expenses</span>
-                        <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                          ₹{message.structuredRecord.dailyExpenses.toLocaleString("en-IN")}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+            {message.structuredRecord.dailyOrders !== undefined && (
+              <div className="p-2.5 rounded-lg bg-surface-2">
+                <span className="text-xs text-text-muted block">Orders</span>
+                <span className="font-medium text-text">{message.structuredRecord.dailyOrders}</span>
+              </div>
+            )}
+            {message.structuredRecord.dailyRevenue !== undefined && (
+              <div className="p-2.5 rounded-lg bg-surface-2">
+                <span className="text-xs text-text-muted block">Revenue</span>
+                <span className="font-medium text-text">₹{message.structuredRecord.dailyRevenue.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            {message.structuredRecord.dailyExpenses !== undefined && (
+              <div className="p-2.5 rounded-lg bg-surface-2">
+                <span className="text-xs text-text-muted block">Expenses</span>
+                <span className="font-medium text-text">₹{message.structuredRecord.dailyExpenses.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+          </div>
 
-                  {!message.recordCommitted && onCommitRecord && (
-                    <div className="pt-1 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onCommitRecord(message.structuredRecord, message.id)
-                        }
-                        className="px-3.5 py-1.5 rounded-lg bg-brass text-white text-[11px] font-bold hover:brightness-110 inline-flex items-center gap-1.5 cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Confirm & Record to Business Ledger</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Tools & Recommendations Toggleable Section */}
-              {((message.nextSteps && message.nextSteps.length > 0) || message.id.startsWith("msg_init_")) && onSelectPlaybook && (
-                <PlaybookActions
-                  playbooks={message.nextSteps || []}
-                  tools={activeAgent.quickTools || []}
-                  promptSuggestions={activeAgent.promptSuggestions || []}
-                  onSelectAction={onSelectPlaybook}
-                  disabled={isTyping}
-                />
-              )}
+          {!message.recordCommitted && onCommitRecord && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => onCommitRecord(message.structuredRecord, message.id)}
+                className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
+              >
+                Save to records
+              </button>
             </div>
           )}
         </div>
-      </div>
+      )}
 
-      {/* User Avatar (Right for User) */}
-      {isUser && (
-        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brass text-white flex items-center justify-center text-sm shrink-0 mt-1 shadow-xs">
-          <User className="w-4 h-4 text-white" />
+      {((message.nextSteps && message.nextSteps.length > 0) || message.id.startsWith("msg_init_")) && onSelectPlaybook && (
+        <PlaybookActions
+          playbooks={message.nextSteps || []}
+          tools={activeAgent.quickTools || []}
+          promptSuggestions={activeAgent.promptSuggestions || []}
+          onSelectAction={onSelectPlaybook}
+          disabled={isTyping}
+        />
+      )}
+
+      {!message.id.startsWith("msg_init_") && (
+        <div className="mt-2 flex items-center gap-3 text-xs text-text-muted opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button type="button" onClick={handleCopy} className="hover:text-text cursor-pointer">
+            {copied ? "Copied" : "Copy"}
+          </button>
+          <span>{message.timestamp}</span>
         </div>
       )}
     </div>

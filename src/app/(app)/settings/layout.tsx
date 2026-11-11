@@ -4,43 +4,42 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const NAV = [
-  { href: "/settings/profile", label: "Business & account", match: "/settings/profile" },
-  { href: "/settings/advisors", label: "AI advisors", match: "/settings/advisors" },
-  { href: "/settings/appearance", label: "Appearance", match: "/settings/appearance" },
-  { href: "/settings/tools", label: "Connected tools", match: "/settings/tools" },
+const TABS = [
+  { href: "/settings/profile", label: "Business & account" },
+  { href: "/settings/advisors", label: "AI advisors" },
+  { href: "/settings/appearance", label: "Appearance" },
+  { href: "/settings/tools", label: "Connected tools" },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="space-y-6">
-      <div className="pb-4 border-b border-line">
-        <h1 className="text-xl font-bold text-text">Settings</h1>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold text-text">Settings</h1>
         <p className="text-sm text-text-muted mt-1">Manage your business profile, advisors and preferences.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)] gap-8 items-start">
-        <nav aria-label="Settings sections" className="flex lg:flex-col gap-1 overflow-x-auto lg:sticky lg:top-6">
-          {NAV.map(item => {
-            const active = item.match !== null && pathname === item.match;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`px-3 py-2 rounded-lg text-sm whitespace-nowrap ${
-                  active ? "bg-surface-2 text-text font-medium" : "text-text-muted hover:text-text hover:bg-surface-2/60"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+      <nav aria-label="Settings sections" className="inline-flex items-center p-1 rounded-xl bg-surface-2 overflow-x-auto max-w-full">
+        {TABS.map(tab => {
+          const active = pathname === tab.href;
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              aria-current={active ? "page" : undefined}
+              className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-colors ${
+                active ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
+      </nav>
 
-        <div className="max-w-3xl min-w-0">{children}</div>
-      </div>
+      <div>{children}</div>
     </div>
   );
 }

@@ -6,19 +6,19 @@ import remarkGfm from "remark-gfm";
 
 export function ChatMarkdown({ content }: { content: string }) {
   return (
-    <div className="chat-markdown text-xs leading-relaxed">
+    <div className="chat-markdown">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          p: ({ children }) => <p className="mb-2.5 last:mb-0">{children}</p>,
-          strong: ({ children }) => <strong className="font-bold text-text">{children}</strong>,
+          p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+          strong: ({ children }) => <strong className="font-semibold text-text">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,
-          ul: ({ children }) => <ul className="list-disc pl-4 mb-2.5 space-y-1 last:mb-0">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal pl-4 mb-2.5 space-y-1 last:mb-0">{children}</ol>,
+          ul: ({ children }) => <ul className="list-disc pl-5 mb-3 space-y-1.5 last:mb-0">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 space-y-1.5 last:mb-0">{children}</ol>,
           li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-          h1: ({ children }) => <h1 className="text-sm font-extrabold text-text mt-3 mb-2 first:mt-0">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-xs font-extrabold text-text mt-3 mb-1.5 first:mt-0">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-xs font-bold text-text mt-2.5 mb-1 first:mt-0">{children}</h3>,
+          h1: ({ children }) => <h1 className="text-base font-semibold text-text mt-3 mb-2 first:mt-0">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-sm font-semibold text-text mt-3 mb-1.5 first:mt-0">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-sm font-medium text-text mt-2.5 mb-1 first:mt-0">{children}</h3>,
           code: ({ children }) => (
             <code className="px-1 py-0.5 rounded bg-surface border border-line font-mono text-[10.5px]">{children}</code>
           ),

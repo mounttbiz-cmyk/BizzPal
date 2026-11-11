@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, X } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
+import { runAutomation, timeAgo, RunLog } from "@/lib/automations/engine";
 
 interface AutomationItem {
   id: string;
@@ -12,18 +13,9 @@ interface AutomationItem {
   trigger: string;
   action: string;
   enabled: boolean;
-  frequency: string;
-  lastRun: string;
-  runsCount: number;
 }
 
-interface LogItem {
-  id: string;
-  automationName: string;
-  status: "success" | "triggered" | "warning";
-  timestamp: string;
-  detail: string;
-}
+const LOG_KEY = "bizzpal_automation_runs";
 
 export default function AutomationsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -40,136 +32,47 @@ export default function AutomationsPage() {
   const [newAction, setNewAction] = useState("");
   const [newCategory, setNewCategory] = useState<AutomationItem["category"]>("finance");
 
-  const [automations, setAutomations] = useState<AutomationItem[]>([
-    {
-      id: "auto-batch-100",
-      name: "100-Person Lead Outreach & Throttled Batch Dispatch Protocol",
-      category: "communications",
-      trigger: "When 100-recipient target cohort is uploaded or tagged 'Ready for Outreach'",
-      action: "Marketing AI verifies MX/DKIM deliverability, generates 100 bespoke personalized emails, and dispatches via SendGrid warm pool throttled at 20 emails/min.",
-      enabled: true,
-      frequency: "Event-triggered batch sweep",
-      lastRun: "24 mins ago",
-      runsCount: 52,
-    },
-    {
-      id: "auto-1",
-      name: "Runway Critical Threshold Alarm",
-      category: "finance",
-      trigger: "When liquid cash runway falls below 6.0 months",
-      action: "Alert CFO, halt discretionary subscriptions, and draft emergency board memo.",
-      enabled: true,
-      frequency: "Daily telemetry sweep",
-      lastRun: "2 hours ago",
-      runsCount: 142,
-    },
-    {
-      id: "auto-2",
-      name: "Client Revenue Concentration Interceptor",
-      category: "risk",
-      trigger: "When single client exceeds 25% of company revenue",
-      action: "Flag high-severity risk in Gap Register and seed outbound pipeline acquisition tasks.",
-      enabled: true,
-      frequency: "Real-time ledger check",
-      lastRun: "Yesterday",
-      runsCount: 38,
-    },
-    {
-      id: "auto-3",
-      name: "Overdue Receivables Escalation Protocol",
-      category: "finance",
-      trigger: "When client invoice is 15+ days past due",
-      action: "Generate polite executive reminder from Finance and dispatch via email/Slack.",
-      enabled: true,
-      frequency: "Every 48 hours",
-      lastRun: "5 hours ago",
-      runsCount: 64,
-    },
-    {
-      id: "auto-4",
-      name: "Weekly C-Suite Intelligence Briefing Dispatch",
-      category: "communications",
-      trigger: "Every Friday at 09:00 AM local time",
-      action: "Synthesize operational highlights, margin spreads, and task completions into Executive Briefing.",
-      enabled: true,
-      frequency: "Weekly recurring",
-      lastRun: "Friday, 09:00 AM",
-      runsCount: 26,
-    },
-    {
-      id: "auto-5",
-      name: "Founder Bottleneck Workload Balancer",
-      category: "operations",
-      trigger: "When founder has > 5 active high-touch sales tasks",
-      action: "Auto-draft delegation briefing and recommend deal transfer to senior team closers.",
-      enabled: false,
-      frequency: "Daily audit",
-      lastRun: "3 days ago",
-      runsCount: 19,
-    },
-  ]);
+  const [automations, setAutomations] = useState<AutomationItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [logs, setLogs] = useState<RunLog[]>([]);
 
-  const [logs, setLogs] = useState<LogItem[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("bizzpal_automation_logs");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch {}
-    }
-    return [
-      {
-        id: "log-1",
-        automationName: "Runway Critical Threshold Alarm",
-        status: "success",
-        timestamp: "10:14 AM Today",
-        detail: "Runway calculated at 8.0 months. Solvency guardrails verified healthy.",
-      },
-      {
-        id: "log-2",
-        automationName: "Overdue Receivables Escalation Protocol",
-        status: "triggered",
-        timestamp: "07:30 AM Today",
-        detail: "Invoice #1094 reached 15 days overdue. Reminder dispatched to billing contact.",
-      },
-      {
-        id: "log-3",
-        automationName: "Client Revenue Concentration Interceptor",
-        status: "success",
-        timestamp: "Yesterday, 06:00 PM",
-        detail: "Primary account concentration measured at 21.4% (Threshold: 25.0%). Safe.",
-      },
-      {
-        id: "log-4",
-        automationName: "Weekly C-Suite Intelligence Briefing Dispatch",
-        status: "success",
-        timestamp: "Sep 1, 09:00 AM",
-        detail: "Briefing successfully synthesized and pushed to Executive Briefings portal.",
-      },
-    ];
-  });
+  // Real run history for this browser's workspace
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(LOG_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) setLogs(parsed);
+      }
+    } catch {}
+  }, []);
 
   const fetchAutomations = async () => {
     try {
       const res = await fetch("/api/automations");
       const data = await res.json();
-      if (data.success && Array.isArray(data.automations) && data.automations.length > 0) {
-        setAutomations(data.automations.map((a: any) => ({
-          id: a.id,
-          name: a.title,
-          category: (a.category?.toLowerCase()?.includes("finance") ? "finance" : a.category?.toLowerCase()?.includes("risk") ? "risk" : a.category?.toLowerCase()?.includes("comm") ? "communications" : "operations") as any,
-          trigger: a.trigger,
-          action: a.action,
-          enabled: a.enabled,
-          frequency: "Event-driven real-time",
-          lastRun: a.lastRun,
-          runsCount: a.executions || 1,
-        })));
+      if (data.success && Array.isArray(data.automations)) {
+        setAutomations(
+          data.automations.map((a: any) => ({
+            id: a.id,
+            name: a.title,
+            category: (a.category?.toLowerCase()?.includes("finance")
+              ? "finance"
+              : a.category?.toLowerCase()?.includes("risk")
+              ? "risk"
+              : a.category?.toLowerCase()?.includes("comm") || a.category?.toLowerCase()?.includes("report")
+              ? "communications"
+              : "operations") as any,
+            trigger: a.trigger,
+            action: a.action,
+            enabled: a.enabled,
+          }))
+        );
       }
+      setLoaded(true);
     } catch (err) {
       console.error("Failed to load automations:", err);
+      setLoaded(true);
     }
   };
 
@@ -206,69 +109,62 @@ export default function AutomationsPage() {
   };
 
   const handleTestTrigger = async (automation: AutomationItem) => {
-    let detail = `Autonomous condition evaluated: "${automation.trigger}". Action "${automation.action}" executed successfully.`;
-    let bizProfile: any = null;
+    let profile: any = null;
     try {
-      const rawProfile = localStorage.getItem("bizzpal_business_profile");
-      if (rawProfile) bizProfile = JSON.parse(rawProfile);
+      const raw = localStorage.getItem("bizzpal_business_profile");
+      if (raw) profile = JSON.parse(raw);
     } catch {}
 
-    const nameLower = (automation.name + " " + automation.trigger).toLowerCase();
-    if (nameLower.includes("runway") || nameLower.includes("spend") || nameLower.includes("burn") || nameLower.includes("guard")) {
-      const cash = bizProfile?.cashOnHand || bizProfile?.cash || 1500000;
-      const burn = bizProfile?.monthlyBurn || bizProfile?.burn || 200000;
-      const runwayMonths = (Number(cash) / (Number(burn) || 1)).toFixed(1);
-      detail = `Liquid cash reserves (₹${Number(cash).toLocaleString()}) audited against projected burn (₹${Number(burn).toLocaleString()}/mo). Computed runway: ${runwayMonths} months. Solvency guardrails verified healthy.`;
-    } else if (nameLower.includes("receivable") || nameLower.includes("invoice") || nameLower.includes("overdue")) {
-      detail = `Accounts receivable ledger audited for ${bizProfile?.name || "Enterprise"}. 0 invoices exceeding 15-day tolerance. Dispatched zero-delinquency status confirmation.`;
-    } else if (nameLower.includes("concentration") || nameLower.includes("client")) {
-      detail = `Customer revenue share telemetry calculated: Top client contributes 21.4% of total ARR (Safety threshold: 25.0%). Solvency safe.`;
-    } else if (nameLower.includes("briefing") || nameLower.includes("digest") || nameLower.includes("check-in")) {
-      detail = `Synthesized latest executive telemetry across Sales, Runway & Tasks into Executive Briefing digest card. Dispatched to executive briefings log.`;
-    } else if (nameLower.includes("outreach") || nameLower.includes("batch") || nameLower.includes("lead")) {
-      detail = `MX & SPF deliverability ping verified across warm pool. Personalized cohort dispatch primed at 20 emails/min throttle.`;
-    }
+    let openTasks: number | null = null;
+    try {
+      const res = await fetch("/api/tasks");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.tasks)) {
+        openTasks = data.tasks.filter((t: any) => t.status !== "done").length;
+      }
+    } catch {}
 
-    const newLog: LogItem = {
-      id: `log-${Date.now()}`,
+    const result = runAutomation(automation, { profile, openTasks });
+
+    const entry: RunLog = {
+      id: `run-${Date.now()}`,
+      automationId: automation.id,
       automationName: automation.name,
-      status: "success",
-      timestamp: "Just now",
-      detail,
+      status: result.status,
+      at: new Date().toISOString(),
+      detail: result.detail,
     };
-
     setLogs(prev => {
-      const updated = [newLog, ...prev];
+      const updated = [entry, ...prev].slice(0, 100);
       try {
-        localStorage.setItem("bizzpal_automation_logs", JSON.stringify(updated.slice(0, 50)));
+        localStorage.setItem(LOG_KEY, JSON.stringify(updated));
       } catch {}
       return updated;
     });
 
-    // Increment execution count and update lastRun
-    setAutomations(prev =>
-      prev.map(a =>
-        a.id === automation.id
-          ? { ...a, runsCount: a.runsCount + 1, lastRun: "Just now" }
-          : a
-      )
+    // Only create a real task when the rule's condition was actually met
+    if (result.task) {
+      try {
+        await fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: `[Automation] ${result.task.title}`,
+            owner: "Founder",
+            priority: result.task.priority,
+            gap: result.task.gap,
+          }),
+        });
+      } catch {}
+    }
+
+    notify(
+      result.status === "triggered"
+        ? "Condition met. A task was added to your task list."
+        : result.status === "success"
+        ? "Checked. Nothing needs attention."
+        : "Run finished, but nothing could be measured. See the note on the right."
     );
-
-    // Persist outcome as an active task in /tasks
-    try {
-      fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: `[Autonomous Protocol] ${automation.name}`,
-          owner: "Autonomous AI",
-          priority: "high",
-          gap: "Automations & Workflows",
-        }),
-      }).catch(() => {});
-    } catch {}
-
-    notify(`Live telemetry executed for '${automation.name}'. Action logged to /tasks & live audit trail.`);
   };
 
   const notify = (msg: string) => {
@@ -306,6 +202,8 @@ export default function AutomationsPage() {
       notify("Failed to deploy new automation.");
     }
   };
+
+  const runsFor = (id: string) => logs.filter(l => l.automationId === id);
 
   const filteredAutomations = selectedCategory === "all"
     ? automations
@@ -355,7 +253,6 @@ export default function AutomationsPage() {
           { id: "operations", label: "Operations" },
           { id: "communications", label: "Reporting" },
         ].map(cat => {
-          const count = cat.id === "all" ? automations.length : automations.filter(a => a.category === cat.id).length;
           const active = selectedCategory === cat.id;
           return (
             <button
@@ -367,7 +264,6 @@ export default function AutomationsPage() {
               }`}
             >
               {cat.label}
-              <span className={`ml-1.5 text-xs ${active ? "text-text-muted" : "text-text-muted/70"}`}>{count}</span>
             </button>
           );
         })}
@@ -378,19 +274,19 @@ export default function AutomationsPage() {
         <div className="lg:col-span-8 space-y-3">
           {filteredAutomations.length === 0 ? (
             <p className="p-10 text-center rounded-xl border border-line text-sm text-text-muted">
-              No automations in this category.
+              {loaded ? "No automations in this category." : "Loading…"}
             </p>
           ) : (
             filteredAutomations.map(auto => (
               <div
                 key={auto.id}
-                className={`p-5 rounded-xl border border-line bg-surface space-y-4 ${auto.enabled ? "" : "opacity-60"}`}
+                className={`p-6 rounded-2xl border border-line bg-surface shadow-sm space-y-4 ${auto.enabled ? "" : "opacity-60"}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <h3 className="text-sm font-medium text-text leading-snug">{auto.name}</h3>
                     <p className="text-xs text-text-muted mt-1">
-                      {categoryLabel[auto.category]} · {auto.frequency} · run {auto.runsCount} times
+                      {categoryLabel[auto.category]} · {runsFor(auto.id).length === 0 ? "Not run yet" : `Run ${runsFor(auto.id).length} ${runsFor(auto.id).length === 1 ? "time" : "times"}`}
                     </p>
                   </div>
 
@@ -420,7 +316,7 @@ export default function AutomationsPage() {
                 </dl>
 
                 <div className="flex items-center justify-between pt-3 border-t border-line text-xs text-text-muted">
-                  <span>Last run: {auto.lastRun}</span>
+                  <span>Last run: {runsFor(auto.id).length ? timeAgo(runsFor(auto.id)[0].at) : "Never"}</span>
                   <button
                     type="button"
                     onClick={() => handleTestTrigger(auto)}
@@ -436,20 +332,27 @@ export default function AutomationsPage() {
 
         {/* Activity */}
         <aside className="lg:col-span-4">
-          <div className="rounded-xl border border-line bg-surface lg:sticky lg:top-6">
+          <div className="rounded-2xl border border-line bg-surface shadow-sm lg:sticky lg:top-6">
             <h2 className="px-5 py-4 text-sm font-medium text-text border-b border-line">Recent activity</h2>
-            <ul className="divide-y divide-line">
-              {logs.map(log => (
-                <li key={log.id} className="px-5 py-4">
-                  <p className="text-sm text-text leading-snug">{log.automationName}</p>
-                  <p className="text-sm text-text-muted leading-relaxed mt-1">{log.detail}</p>
-                  <p className="text-xs text-text-muted mt-2">
-                    {log.timestamp}
-                    {log.status === "triggered" && <span className="text-rust"> · triggered</span>}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            {logs.length === 0 ? (
+              <p className="px-5 py-6 text-sm text-text-muted leading-relaxed">
+                Nothing has run yet. Press &ldquo;Run test&rdquo; on a rule to check it against your real numbers.
+              </p>
+            ) : (
+              <ul className="divide-y divide-line max-h-[32rem] overflow-y-auto">
+                {logs.map(log => (
+                  <li key={log.id} className="px-5 py-4">
+                    <p className="text-sm text-text leading-snug">{log.automationName}</p>
+                    <p className="text-sm text-text-muted leading-relaxed mt-1">{log.detail}</p>
+                    <p className="text-xs text-text-muted mt-2">
+                      {timeAgo(log.at)}
+                      {log.status === "triggered" && <span className="text-rust"> · condition met</span>}
+                      {log.status === "warning" && <span> · not checked</span>}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </aside>
       </div>

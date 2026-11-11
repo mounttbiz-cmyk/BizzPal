@@ -319,3 +319,9 @@ html, body {
   max-width: 100vw;
   width: 100%;
 }
+
+/* Gold buttons: dark mode uses a light gold, so white text on it is hard to read */
+[data-theme="dark"] .bg-brass.text-white,
+.dark .bg-brass.text-white {
+  color: #1a1206;
+}

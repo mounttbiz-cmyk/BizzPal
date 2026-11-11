@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Plus, X } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
+import { runAutomation, timeAgo } from "@/lib/automations/engine";
 
 interface PipelineStage {
   stepNumber: 1 | 2 | 3 | 4 | 5 | 6;
@@ -319,66 +320,91 @@ const DEFAULT_WORKFLOWS: WorkflowItem[] = [
   },
 ];
 
-export default function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState<WorkflowItem[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("bizzpal_workflows");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch {}
+interface WorkflowRun {
+  id: string;
+  workflowId: string;
+  at: string;
+  status: "success" | "triggered" | "warning";
+  outputs: string[];
+}
+
+interface LeadCheck {
+  total: number;
+  valid: string[];
+  invalid: number;
+  duplicates: number;
+}
+
+const RUNS_KEY = "bizzpal_workflow_runs";
+const EMAIL_RE = /[^\s,;"'<>]+@[^\s,;"'<>]+\.[a-z]{2,}/i;
+const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+
+function checkLeads(text: string): LeadCheck {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const seen = new Set<string>();
+  const valid: string[] = [];
+  let invalid = 0;
+  let duplicates = 0;
+  let total = 0;
+  lines.forEach((line, i) => {
+    // skip a header row (first line with no email in it)
+    if (i === 0 && !EMAIL_RE.test(line)) return;
+    total += 1;
+    const m = line.match(EMAIL_RE);
+    if (!m) {
+      invalid += 1;
+      return;
     }
-    return DEFAULT_WORKFLOWS;
+    const email = m[0].toLowerCase();
+    if (seen.has(email)) {
+      duplicates += 1;
+      return;
+    }
+    seen.add(email);
+    valid.push(email);
   });
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>("wf_bulk_email_100");
-  const [simulationActive, setSimulationActive] = useState(false);
-  const [simulationCurrentStage, setSimulationCurrentStage] = useState<number>(0);
-  const [executionLogs, setExecutionLogs] = useState<string[]>([]);
+  return { total, valid, invalid, duplicates };
+}
+
+export default function WorkflowsPage() {
+  const [workflows, setWorkflows] = useState<WorkflowItem[]>(DEFAULT_WORKFLOWS);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>(DEFAULT_WORKFLOWS[0].id);
+  const [runs, setRuns] = useState<WorkflowRun[]>([]);
+  const [running, setRunning] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState("");
   const [newWorkflowCategory, setNewWorkflowCategory] = useState<"sales" | "finance" | "operations" | "retention">("sales");
 
-  // 100-Email Campaign Execution Simulation State
-  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [emailProgress, setEmailProgress] = useState(0);
-  const [isSending100Emails, setIsSending100Emails] = useState(false);
-  const [sentLog, setSentLog] = useState<string[]>([]);
+  // Lead list checker (Batch outreach)
+  const [isBatchOpen, setIsBatchOpen] = useState(false);
+  const [leadText, setLeadText] = useState("");
+  const [leadFile, setLeadFile] = useState<string | null>(null);
+  const [leadCheck, setLeadCheck] = useState<LeadCheck | null>(null);
+
+  // Load saved workflows and real run history after the page loads
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("bizzpal_workflows");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) setWorkflows(parsed);
+      }
+      const savedRuns = localStorage.getItem(RUNS_KEY);
+      if (savedRuns) {
+        const parsed = JSON.parse(savedRuns);
+        if (Array.isArray(parsed)) setRuns(parsed);
+      }
+    } catch {}
+  }, []);
 
   const activeWorkflow = workflows.find(w => w.id === selectedWorkflowId) || workflows[0];
+  const runsFor = (id: string) => runs.filter(r => r.workflowId === id);
+  const lastRun = runsFor(activeWorkflow.id)[0];
 
-  const handleStart100EmailCampaign = () => {
-    setIsSending100Emails(true);
-    setEmailProgress(0);
-    setSentLog([
-      "[Batch Init] Uploaded 100 enterprise target leads from target_cohort_q3.csv",
-      "[Enrichment] 100/100 accounts enriched via Clearbit & LinkedIn APIs (Verified MX records)",
-      "[AI Personalization] Marketing generated 100 bespoke 1-to-1 icebreakers and pain-point value propositions",
-      "[Spam Guard] SPF, DKIM, DMARC alignment verified. Spam score 0.08 / 10.0 (Green / Inbox Primary)",
-    ]);
-
-    let count = 0;
-    const interval = setInterval(() => {
-      count += 10;
-      setEmailProgress(count);
-      if (count <= 100) {
-        setSentLog(prev => [
-          ...prev,
-          `[Batch Dispatch] Dispatched batch #${count / 10} (${count}/100 sent) · Throttled at 20 emails/min to protect sender reputation.`,
-        ]);
-      }
-      if (count >= 100) {
-        clearInterval(interval);
-        setIsSending100Emails(false);
-        setSentLog(prev => [
-          ...prev,
-          "[Complete] ✓ All 100 personalized emails dispatched successfully via SendGrid warm pool.",
-          "[Telemetry] 100 CRM records transitioned to 'Outreach Active'. Tracking pixel & link redirects primed.",
-          "[Projected Yield] 64 opens, 22 clicks, and 8-12 demo conversions expected within 72 hours.",
-        ]);
-      }
-    }, 450);
+  const notify = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 4000);
   };
 
   const toggleWorkflowStatus = (id: string) => {
@@ -393,164 +419,172 @@ export default function WorkflowsPage() {
     });
   };
 
-  const handleSimulatePipeline = () => {
-    setSimulationActive(true);
-    setSimulationCurrentStage(1);
-    setExecutionLogs([
-      `[00.00s] Initializing Event-to-Outcome Engine for: ${activeWorkflow.name}`,
-      `[00.15s] [Stage 1: Trigger] Inbound event verified & cryptographic signature validated.`,
-    ]);
+  // Runs the workflow against the business's real numbers and tasks
+  const handleRunWorkflow = async () => {
+    if (!activeWorkflow) return;
+    setRunning(true);
 
-    const runStage = (stageNum: number) => {
-      setTimeout(() => {
-        setSimulationCurrentStage(stageNum);
-        if (stageNum === 2) {
-          setExecutionLogs(prev => [
-            ...prev,
-            `[00.42s] [Stage 2: Retrieve Relevant Data] Querying connected integrations & internal telemetry.`,
-            `[00.60s] Extracted ${activeWorkflow.stages[1]?.telemetryData || "dataset records"}.`,
-          ]);
-          runStage(3);
-        } else if (stageNum === 3) {
-          setExecutionLogs(prev => [
-            ...prev,
-            `[00.95s] [Stage 3: AI Reasoning & Rules] Executing neural evaluation with auto-routed model.`,
-            `[01.20s] Logic check passed: Confidence score 96.2%.`,
-          ]);
-          runStage(4);
-        } else if (stageNum === 4) {
-          setExecutionLogs(prev => [
-            ...prev,
-            `[01.55s] [Stage 4: Action / Approval] Dispatching payload / verifying executive permission.`,
-            `[01.80s] Action dispatched successfully.`,
-          ]);
-          runStage(5);
-        } else if (stageNum === 5) {
-          setExecutionLogs(prev => [
-            ...prev,
-            `[02.10s] [Stage 5: Update Records] Persisting state mutations to CRM & business ledger.`,
-            `[02.30s] Audit transaction hash committed to local storage & ledger.`,
-          ]);
-          runStage(6);
-        } else if (stageNum === 6) {
-          setExecutionLogs(prev => [
-            ...prev,
-            `[02.65s] [Stage 6: Monitor Outcome] Active telemetry listener registered. Operational loop closed.`,
-            `[02.90s] ✓ Entire 6-stage Event-to-Outcome cycle executed with 0 errors.`,
-          ]);
+    let profile: any = null;
+    try {
+      const raw = localStorage.getItem("bizzpal_business_profile");
+      if (raw) profile = JSON.parse(raw);
+    } catch {}
 
-          // Increment execution count and persist to localStorage
-          setWorkflows(prev => {
-            const updated: WorkflowItem[] = prev.map(w =>
-              w.id === activeWorkflow.id
-                ? { ...w, executionsCount: w.executionsCount + 1, lastRun: "Just now" }
-                : w
-            );
-            try {
-              localStorage.setItem("bizzpal_workflows", JSON.stringify(updated));
-            } catch {}
-            return updated;
-          });
+    let openTasks: number | null = null;
+    try {
+      const res = await fetch("/api/tasks");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.tasks)) openTasks = data.tasks.filter((t: any) => t.status !== "done").length;
+    } catch {}
 
-          // Post a real task to /tasks for this pipeline outcome
-          try {
-            fetch("/api/tasks", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                title: `[Pipeline Executed] ${activeWorkflow.name}: Verified outcome closed`,
-                owner: "Autonomous Workflow Engine",
-                priority: "high",
-                gap: "Workflows & Automation",
-              }),
-            }).catch(() => {});
-          } catch {}
+    let connectedTools = 0;
+    try {
+      const res = await fetch("/api/automations");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.connectedTools)) connectedTools = data.connectedTools.length;
+    } catch {}
 
-          setTimeout(() => {
-            setSimulationActive(false);
-          }, 1200);
-        }
-      }, 500);
+    const cash = Number(profile?.cash || profile?.cashOnHand || 0);
+    const burn = Number(profile?.burn || profile?.monthlyBurn || 0);
+    const revenue = Number(profile?.revenue || profile?.monthlyRevenue || 0);
+
+    // The review step uses the same real checks as Automations
+    const result = runAutomation(
+      {
+        name: activeWorkflow.name,
+        trigger: `${activeWorkflow.description} ${activeWorkflow.category}`,
+        action: `Follow up on "${activeWorkflow.name}"`,
+      },
+      { profile, openTasks }
+    );
+
+    let taskNote = "No action needed.";
+    if (result.task) {
+      try {
+        await fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: `[Workflow] ${result.task.title}`,
+            owner: "Founder",
+            priority: result.task.priority,
+            gap: result.task.gap,
+          }),
+        });
+        taskNote = `Added a task to your task list: "${result.task.title}".`;
+      } catch {
+        taskNote = "Wanted to add a task, but your task list could not be reached.";
+      }
+    }
+
+    const dataLine =
+      cash || burn || revenue
+        ? `Revenue ${inr(revenue)} a month, cash ${inr(cash)}${burn > 0 ? `, runway ${(cash / burn).toFixed(1)} months` : ""}. ${
+            openTasks === null ? "Tasks unavailable." : `${openTasks} open tasks.`
+          } ${connectedTools} connected tool${connectedTools === 1 ? "" : "s"}.`
+        : `No business numbers added yet. ${openTasks === null ? "" : `${openTasks} open tasks.`} ${connectedTools} connected tool${
+            connectedTools === 1 ? "" : "s"
+          }.`;
+
+    const run: WorkflowRun = {
+      id: `run-${Date.now()}`,
+      workflowId: activeWorkflow.id,
+      at: new Date().toISOString(),
+      status: result.status,
+      outputs: [
+        `Started by you on ${new Date().toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}.`,
+        dataLine.trim(),
+        result.detail,
+        taskNote,
+        "Saved to this workflow's run history.",
+        "Runs only when you start it. Automatic runs need a connected tool (see Integrations).",
+      ],
     };
 
-    runStage(2);
+    setRuns(prev => {
+      const updated = [run, ...prev].slice(0, 200);
+      try {
+        localStorage.setItem(RUNS_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setRunning(false);
+    notify(result.task ? "Run finished. A task was added to your task list." : "Run finished.");
+  };
+
+  const handleLeadFile = async (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      notify("Please choose a file under 2MB.");
+      return;
+    }
+    const text = await file.text();
+    setLeadFile(file.name);
+    setLeadText(text);
+    setLeadCheck(checkLeads(text));
+  };
+
+  const downloadCleanLeads = () => {
+    if (!leadCheck) return;
+    const csv = ["email", ...leadCheck.valid].join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "clean-leads.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const createOutreachTask = async () => {
+    if (!leadCheck || leadCheck.valid.length === 0) return;
+    try {
+      await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `[Outreach] Contact ${leadCheck.valid.length} checked leads${leadFile ? ` from ${leadFile}` : ""}`,
+          owner: "Founder",
+          priority: "medium",
+          gap: "Sales outreach",
+        }),
+      });
+      notify(`Task added: contact ${leadCheck.valid.length} leads.`);
+      setIsBatchOpen(false);
+    } catch {
+      notify("Could not add the task. Please try again.");
+    }
   };
 
   const handleCreateWorkflow = () => {
     if (!newWorkflowName.trim()) return;
+    const stageTemplates: Array<[PipelineStage["stageName"], string, string]> = [
+      ["Trigger (Event)", "Start", "You start this workflow, or a connected tool starts it"],
+      ["Retrieve Relevant Data", "Get your numbers", "Reads your business numbers, tasks and connected tools"],
+      ["AI Reasoning & Rules", "Check the rules", "Compares your numbers with the rules for this area"],
+      ["Action / Approval", "Act or ask you", "Adds a task for you when something needs attention"],
+      ["Update Records", "Save the result", "Keeps a history of every run"],
+      ["Monitor Outcome", "Follow up", "Runs again when you start it"],
+    ];
     const newWf: WorkflowItem = {
       id: `wf_${Date.now()}`,
       name: newWorkflowName.trim(),
-      description: `Autonomous ${newWorkflowCategory} Event-to-Outcome pipeline created by executive team.`,
+      description: `A ${newWorkflowCategory} workflow created by you.`,
       category: newWorkflowCategory,
       status: "active",
-      executionsCount: 1,
-      successRate: "100%",
-      lastRun: "Just now",
-      stages: [
-        {
-          stepNumber: 1,
-          stageName: "Trigger (Event)",
-          title: "Custom Event Ingestion",
-          subtitle: "Webhook listener active for incoming operational triggers",
-          telemetryData: "Event stream configured with HMAC authentication.",
-          icon: "zap",
-          status: "completed",
-          badgeColor: "text-amber-500 bg-amber-500/10 border-amber-500/20",
-        },
-        {
-          stepNumber: 2,
-          stageName: "Retrieve Relevant Data",
-          title: "Telemetry & State Extraction",
-          subtitle: "Pull historical context and user metadata",
-          telemetryData: "Context matched against operational database.",
-          icon: "search",
-          status: "completed",
-          badgeColor: "text-blue-500 bg-blue-500/10 border-blue-500/20",
-        },
-        {
-          stepNumber: 3,
-          stageName: "AI Reasoning & Rules",
-          title: "Adaptive Decision Matrix",
-          subtitle: "Auto-routed LLM reasons over business rules",
-          telemetryData: "Evaluated rule thresholds and assigned priority.",
-          icon: "brain",
-          status: "completed",
-          badgeColor: "text-purple-500 bg-purple-500/10 border-purple-500/20",
-        },
-        {
-          stepNumber: 4,
-          stageName: "Action / Approval",
-          title: "Execution Dispatch",
-          subtitle: "Execute action or queue for executive confirmation",
-          telemetryData: "Dispatched to target system API endpoint.",
-          icon: "pen",
-          status: "completed",
-          badgeColor: "text-brass bg-brass/10 border-brass/20",
-        },
-        {
-          stepNumber: 5,
-          stageName: "Update Records",
-          title: "Ledger & CRM Sync",
-          subtitle: "Commit changes to central source of truth",
-          telemetryData: "Record updated and immutable event logged.",
-          icon: "database",
-          status: "completed",
-          badgeColor: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-        },
-        {
-          stepNumber: 6,
-          stageName: "Monitor Outcome",
-          title: "Feedback & SLA Loop",
-          subtitle: "Track resolution and trigger follow-up if uncompleted",
-          telemetryData: "Listener active with 48-hour SLA timeout.",
-          icon: "chart",
-          status: "running",
-          badgeColor: "text-cyan-500 bg-cyan-500/10 border-cyan-500/20",
-        },
-      ],
+      executionsCount: 0,
+      successRate: "",
+      lastRun: "",
+      stages: stageTemplates.map(([stageName, title, subtitle], i) => ({
+        stepNumber: (i + 1) as PipelineStage["stepNumber"],
+        stageName,
+        title,
+        subtitle,
+        telemetryData: "",
+        icon: "zap",
+        status: "idle",
+        badgeColor: "",
+      })),
     };
-
     setWorkflows(prev => {
       const updated = [newWf, ...prev];
       try {
@@ -564,45 +598,38 @@ export default function WorkflowsPage() {
   };
 
   const inputClass =
-    "w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
-
-  const stageState = (stage: PipelineStage) => {
-    if (simulationActive && simulationCurrentStage === stage.stepNumber) return "running";
-    if (simulationActive && simulationCurrentStage > stage.stepNumber) return "done";
-    if (simulationActive) return "waiting";
-    return stage.status === "running" ? "monitoring" : "done";
-  };
+    "w-full px-3 py-2 rounded-xl bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-4 border-b border-line">
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text">Workflows</h1>
+          <h1 className="text-2xl font-semibold text-text">Workflows</h1>
           <p className="text-sm text-text-muted mt-1">
-            Multi-step processes that turn an event, like a payment failure or a new lead, into a result.
+            Multi-step processes that check your real numbers and tell you what needs attention.
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={() => setIsEmailModalOpen(true)}
-            className="px-3.5 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-text hover:bg-surface-2 cursor-pointer"
+            onClick={() => setIsBatchOpen(true)}
+            className="px-4 py-2 rounded-xl border border-line text-sm text-text hover:bg-surface-2 cursor-pointer"
           >
-            Batch outreach
+            Check a lead list
           </button>
           <button
             type="button"
-            onClick={handleSimulatePipeline}
-            disabled={simulationActive}
-            className="px-3.5 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-text hover:bg-surface-2 disabled:opacity-50 cursor-pointer"
+            onClick={handleRunWorkflow}
+            disabled={running}
+            className="px-4 py-2 rounded-xl border border-line text-sm text-text hover:bg-surface-2 disabled:opacity-50 cursor-pointer"
           >
-            {simulationActive ? `Running step ${simulationCurrentStage} of 6…` : "Run test"}
+            {running ? "Running…" : "Run now"}
           </button>
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-3.5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 inline-flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 inline-flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             New workflow
@@ -610,24 +637,26 @@ export default function WorkflowsPage() {
         </div>
       </div>
 
+      {toast && <p className="px-4 py-3 rounded-xl bg-surface-2 text-sm text-text">{toast}</p>}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Workflow list */}
-        <aside className="lg:col-span-4 space-y-2">
+        <aside className="lg:col-span-4 space-y-3">
           {workflows.map(wf => {
             const isSelected = wf.id === selectedWorkflowId;
+            const wfRuns = runsFor(wf.id);
             return (
               <div
                 key={wf.id}
                 onClick={() => setSelectedWorkflowId(wf.id)}
-                className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                  isSelected ? "border-brass bg-brass/[0.04]" : "border-line bg-surface hover:border-line-strong"
+                className={`p-5 rounded-2xl border cursor-pointer transition-colors ${
+                  isSelected ? "border-line-strong bg-surface-2" : "border-line bg-surface hover:bg-surface-2/60"
                 } ${wf.status === "paused" ? "opacity-70" : ""}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="text-sm font-medium text-text leading-snug">{wf.name}</h3>
-                    <p className="text-xs text-text-muted mt-1 capitalize">
-                      {wf.category} · {wf.executionsCount} runs · {wf.successRate} success
+                    <p className="text-xs text-text-muted mt-1">
+                      <span className="capitalize">{wf.category}</span> · {wfRuns.length === 0 ? "Not run yet" : `Run ${wfRuns.length} ${wfRuns.length === 1 ? "time" : "times"}`}
                     </p>
                   </div>
                   <button
@@ -650,86 +679,54 @@ export default function WorkflowsPage() {
                     />
                   </button>
                 </div>
-                <p className="text-xs text-text-muted mt-2">Last run {wf.lastRun}</p>
+                <p className="text-xs text-text-muted mt-2">Last run: {wfRuns.length ? timeAgo(wfRuns[0].at) : "Never"}</p>
               </div>
             );
           })}
         </aside>
 
-        {/* Selected workflow */}
-        <section className="lg:col-span-8 rounded-xl border border-line bg-surface p-6 sm:p-7 space-y-6">
+        <section className="lg:col-span-8 rounded-2xl border border-line bg-surface shadow-sm p-6 sm:p-8 space-y-6">
           <div className="pb-5 border-b border-line">
-            <h2 className="text-lg font-semibold text-text">{activeWorkflow.name}</h2>
+            <h2 className="text-xl font-semibold text-text">{activeWorkflow.name}</h2>
             <p className="text-sm text-text-muted leading-relaxed mt-1.5">{activeWorkflow.description}</p>
           </div>
 
           <ol className="relative">
             {activeWorkflow.stages.map((stage, idx) => {
-              const state = stageState(stage);
               const isLast = idx === activeWorkflow.stages.length - 1;
+              const output = lastRun?.outputs[idx];
               return (
                 <li key={stage.stepNumber} className="relative flex gap-4 pb-6 last:pb-0">
                   {!isLast && <span className="absolute left-[15px] top-8 bottom-0 w-px bg-line" aria-hidden="true" />}
                   <span
                     className={`relative z-10 w-8 h-8 rounded-full border flex items-center justify-center text-sm shrink-0 ${
-                      state === "running"
-                        ? "border-brass bg-brass text-white"
-                        : state === "done"
+                      running
                         ? "border-brass/50 text-brass bg-surface"
+                        : output
+                        ? "border-brass bg-brass text-white"
                         : "border-line text-text-muted bg-surface"
                     }`}
                   >
                     {stage.stepNumber}
                   </span>
                   <div className="flex-1 min-w-0 pt-0.5">
-                    <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                      <h3 className="text-sm font-medium text-text">{stage.title}</h3>
-                      <span className="text-xs text-text-muted">
-                        {state === "running"
-                          ? "Running…"
-                          : state === "monitoring"
-                          ? "Monitoring"
-                          : state === "waiting"
-                          ? "Waiting"
-                          : "Ready"}
-                      </span>
-                    </div>
+                    <h3 className="text-sm font-medium text-text">{stage.title}</h3>
                     <p className="text-xs text-text-muted mt-0.5">{stage.stageName}</p>
                     <p className="text-sm text-text-muted leading-relaxed mt-2">{stage.subtitle}</p>
-                    <p className="text-sm text-text leading-relaxed mt-1.5">{stage.telemetryData}</p>
+                    {output && <p className="text-sm text-text leading-relaxed mt-1.5">{output}</p>}
                   </div>
                 </li>
               );
             })}
           </ol>
 
-          {executionLogs.length > 0 && (
-            <div className="rounded-lg border border-line bg-surface-2/50">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-line">
-                <span className="text-sm font-medium text-text">Test run log</span>
-                <button
-                  type="button"
-                  onClick={() => setExecutionLogs([])}
-                  className="text-xs text-text-muted hover:text-text cursor-pointer"
-                >
-                  Clear
-                </button>
-              </div>
-              <ul className="p-4 space-y-1 text-xs font-mono max-h-44 overflow-y-auto">
-                {executionLogs.map((log, i) => (
-                  <li key={i} className="text-text-muted">
-                    {log}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           <div className="pt-5 border-t border-line flex flex-wrap items-center justify-between gap-3 text-sm">
-            <span className="text-text-muted">Results are sent to your briefings, tasks and gap register.</span>
+            <span className="text-text-muted">
+              {lastRun ? `Showing the result of the run ${timeAgo(lastRun.at).toLowerCase()}.` : "Press “Run now” to see real results for each step."}
+            </span>
             <span className="flex items-center gap-4">
-              <Link href="/reports" className="text-brass hover:underline">
-                Briefings
+              <Link href="/tasks" className="text-brass hover:underline">
+                Tasks
               </Link>
               <Link href="/integrations" className="text-brass hover:underline">
                 Integrations
@@ -742,7 +739,7 @@ export default function WorkflowsPage() {
       {isCreateModalOpen && (
         <PortalModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)}>
           <div
-            className="w-[30rem] max-w-[calc(100vw-2rem)] bg-surface border border-line rounded-xl shadow-lg overflow-hidden"
+            className="w-[30rem] max-w-[calc(100vw-2rem)] bg-surface border border-line rounded-2xl shadow-lg overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
@@ -754,7 +751,7 @@ export default function WorkflowsPage() {
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
                 aria-label="Close"
-                className="p-1 rounded-lg text-text-muted hover:text-text cursor-pointer"
+                className="p-1 text-text-muted hover:text-text cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -762,28 +759,28 @@ export default function WorkflowsPage() {
 
             <div className="px-6 pb-6 space-y-5 text-sm">
               <div>
-                <label className="font-medium text-text block mb-1.5">Name</label>
+                <label className="text-sm text-text block mb-1.5">Name</label>
                 <input
                   type="text"
                   value={newWorkflowName}
                   onChange={e => setNewWorkflowName(e.target.value)}
-                  placeholder="e.g. VIP customer retention"
+                  placeholder="e.g. Late payment follow-up"
                   className={inputClass}
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="font-medium text-text block mb-1.5">Area</label>
+                <label className="text-sm text-text block mb-1.5">Area</label>
                 <div className="grid grid-cols-4 gap-2">
                   {(["sales", "finance", "operations", "retention"] as const).map(cat => (
                     <button
                       key={cat}
                       type="button"
                       onClick={() => setNewWorkflowCategory(cat)}
-                      className={`px-2 py-2 rounded-lg border text-sm capitalize cursor-pointer ${
+                      className={`px-2 py-2 rounded-xl border text-sm capitalize cursor-pointer ${
                         newWorkflowCategory === cat
-                          ? "border-brass bg-brass/[0.06] text-text font-medium"
+                          ? "border-line-strong bg-surface-2 text-text font-medium"
                           : "border-line text-text-muted hover:text-text"
                       }`}
                     >
@@ -794,7 +791,7 @@ export default function WorkflowsPage() {
               </div>
 
               <p className="text-xs text-text-muted leading-relaxed">
-                Steps: trigger, get data, AI review, action or approval, update records, monitor the result.
+                Steps: start, get your numbers, check the rules, act or ask you, save the result, follow up.
               </p>
             </div>
 
@@ -802,7 +799,7 @@ export default function WorkflowsPage() {
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="px-3.5 py-2 rounded-lg text-text-muted hover:text-text text-sm cursor-pointer"
+                className="px-4 py-2 rounded-lg text-text-muted hover:text-text text-sm cursor-pointer"
               >
                 Cancel
               </button>
@@ -810,7 +807,7 @@ export default function WorkflowsPage() {
                 type="button"
                 onClick={handleCreateWorkflow}
                 disabled={!newWorkflowName.trim()}
-                className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
               >
                 Create workflow
               </button>
@@ -819,83 +816,103 @@ export default function WorkflowsPage() {
         </PortalModal>
       )}
 
-      {isEmailModalOpen && (
-        <PortalModal isOpen={isEmailModalOpen} onClose={() => setIsEmailModalOpen(false)}>
+      {isBatchOpen && (
+        <PortalModal isOpen={isBatchOpen} onClose={() => setIsBatchOpen(false)}>
           <div
-            className="w-[40rem] max-w-[calc(100vw-2rem)] bg-surface border border-line rounded-xl shadow-lg max-h-[92vh] overflow-y-auto"
+            className="w-[38rem] max-w-[calc(100vw-2rem)] bg-surface border border-line rounded-2xl shadow-lg max-h-[92vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
               <div>
-                <h3 className="text-lg font-semibold text-text">Batch outreach</h3>
-                <p className="text-sm text-text-muted mt-1">
-                  Send personalised emails to 100 leads, a few at a time to protect your sender reputation.
+                <h3 className="text-lg font-semibold text-text">Check a lead list</h3>
+                <p className="text-sm text-text-muted mt-1 leading-relaxed">
+                  Upload a CSV or paste emails. We remove bad addresses and duplicates so your outreach list is clean.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setIsEmailModalOpen(false)}
+                onClick={() => setIsBatchOpen(false)}
                 aria-label="Close"
-                className="p-1 rounded-lg text-text-muted hover:text-text cursor-pointer"
+                className="p-1 text-text-muted hover:text-text cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="px-6 pb-6 space-y-5">
-              <ol className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                {[
-                  { t: "Ingest and enrich", d: "Load 100 leads and add company details like size and tech stack." },
-                  { t: "Write and send", d: "Draft a tailored email for each person and send 20 per minute." },
-                  { t: "Sync and track", d: "Update your CRM and alert you when someone books a demo." },
-                ].map((s, i) => (
-                  <li key={s.t} className="p-4 rounded-lg border border-line">
-                    <p className="text-xs text-text-muted">Step {i + 1}</p>
-                    <p className="font-medium text-text mt-0.5">{s.t}</p>
-                    <p className="text-xs text-text-muted leading-relaxed mt-1.5">{s.d}</p>
-                  </li>
-                ))}
-              </ol>
+            <div className="px-6 pb-6 space-y-4">
+              <label className="block rounded-xl border border-dashed border-line-strong p-5 text-center cursor-pointer hover:bg-surface-2/50">
+                <span className="block text-sm text-text">{leadFile ? leadFile : "Choose a CSV or text file"}</span>
+                <span className="block text-xs text-text-muted mt-1">One lead per line. Up to 2MB.</span>
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  className="hidden"
+                  onChange={e => handleLeadFile(e.target.files?.[0])}
+                />
+              </label>
 
-              <div className="p-4 rounded-lg border border-line space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-text">{emailProgress} of 100 sent</span>
-                  <span className="text-xs text-text-muted">
-                    {isSending100Emails ? "Sending" : emailProgress === 100 ? "Done" : "Ready"}
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-line rounded-full overflow-hidden">
-                  <div className="h-full bg-brass transition-all duration-300 rounded-full" style={{ width: `${emailProgress}%` }} />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleStart100EmailCampaign}
-                  disabled={isSending100Emails}
-                  className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
-                >
-                  {isSending100Emails ? "Sending…" : "Start batch"}
-                </button>
+              <div>
+                <label className="text-sm text-text block mb-1.5">Or paste emails</label>
+                <textarea
+                  rows={4}
+                  value={leadText}
+                  onChange={e => {
+                    setLeadText(e.target.value);
+                    setLeadFile(null);
+                    setLeadCheck(e.target.value.trim() ? checkLeads(e.target.value) : null);
+                  }}
+                  placeholder={"name@company.com\nanother@company.com"}
+                  className={inputClass}
+                />
               </div>
 
-              <div className="rounded-lg border border-line bg-surface-2/50">
-                <p className="px-4 py-2.5 text-sm font-medium text-text border-b border-line">Activity</p>
-                <ul className="p-4 space-y-1 text-xs font-mono text-text-muted max-h-44 overflow-y-auto">
-                  {sentLog.length === 0 ? (
-                    <li>Press &ldquo;Start batch&rdquo; to begin.</li>
-                  ) : (
-                    sentLog.map((log, idx) => <li key={idx}>{log}</li>)
-                  )}
-                </ul>
-              </div>
+              {leadCheck && (
+                <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-surface-2/60 text-sm">
+                  <div>
+                    <dt className="text-xs text-text-muted">Rows read</dt>
+                    <dd className="font-medium text-text mt-0.5">{leadCheck.total}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-muted">Good emails</dt>
+                    <dd className="font-medium text-jade mt-0.5">{leadCheck.valid.length}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-muted">No valid email</dt>
+                    <dd className="font-medium text-text mt-0.5">{leadCheck.invalid}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-muted">Duplicates</dt>
+                    <dd className="font-medium text-text mt-0.5">{leadCheck.duplicates}</dd>
+                  </div>
+                </dl>
+              )}
+
+              <p className="text-xs text-text-muted leading-relaxed">
+                Sending email isn&apos;t connected yet, so nothing is sent from here. You can download the clean list or
+                add a task to contact these leads. Connect an email tool in{" "}
+                <Link href="/integrations" className="text-brass hover:underline">
+                  Integrations
+                </Link>
+                .
+              </p>
             </div>
 
-            <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex justify-end">
+            <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setIsEmailModalOpen(false)}
-                className="px-4 py-2 rounded-lg border border-line text-sm text-text hover:bg-surface cursor-pointer"
+                onClick={downloadCleanLeads}
+                disabled={!leadCheck || leadCheck.valid.length === 0}
+                className="px-4 py-2 rounded-xl border border-line text-sm text-text hover:bg-surface disabled:opacity-50 cursor-pointer"
               >
-                Close
+                Download clean list
+              </button>
+              <button
+                type="button"
+                onClick={createOutreachTask}
+                disabled={!leadCheck || leadCheck.valid.length === 0}
+                className="px-5 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
+              >
+                Add outreach task
               </button>
             </div>
           </div>

@@ -475,7 +475,6 @@ export default function IntegrationsPage() {
           { id: "automation", label: "Automation" },
           { id: "data", label: "Data" },
         ].map(cat => {
-          const count = cat.id === "all" ? integrations.length : integrations.filter(i => i.category === cat.id).length;
           const active = selectedCategory === cat.id;
           return (
             <button
@@ -487,7 +486,6 @@ export default function IntegrationsPage() {
               }`}
             >
               {cat.label}
-              <span className="ml-1.5 text-xs text-text-muted">{count}</span>
             </button>
           );
         })}

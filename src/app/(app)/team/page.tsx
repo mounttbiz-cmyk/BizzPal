@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { ROLES, LEVELS, AREAS, DEFAULT_MATRIX, Matrix, Level, Role } from "@/lib/permissions";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import { UserPlus, Trash2, RotateCw } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
@@ -158,14 +160,47 @@ export default function TeamPage() {
     suspended: "Suspended",
   };
 
-  const matrix: { label: string; access: [string, string, string, string] }[] = [
-    { label: "Cash ledger and financial projections", access: ["Full", "Full", "Read only", "None"] },
-    { label: "AI advisors (CEO and CFO)", access: ["Full", "Full", "Full", "Prompts only"] },
-    { label: "Legal and GST compliance", access: ["Full", "Edit", "None", "None"] },
-    { label: "Tools and calculators", access: ["Full", "Full", "Full", "Read only"] },
-    { label: "Workflows", access: ["Full", "Full", "Edit", "None"] },
-    { label: "Integrations and API tokens", access: ["Full", "None", "None", "None"] },
-  ];
+  const perms = usePermissions();
+  const [draft, setDraft] = useState<Matrix>(DEFAULT_MATRIX);
+  const [permSaving, setPermSaving] = useState(false);
+  const [permMessage, setPermMessage] = useState<string | null>(null);
+  const isOwner = perms.role === "Owner";
+
+  // Start from what is saved on the server
+  useEffect(() => {
+    setDraft(perms.matrix);
+  }, [perms.matrix]);
+
+  const changeLevel = (areaId: string, role: Role, level: Level) => {
+    setDraft(prev => ({ ...prev, [areaId]: { ...prev[areaId], [role]: level } }));
+    setPermMessage(null);
+  };
+
+  const savePermissions = async () => {
+    setPermSaving(true);
+    setPermMessage(null);
+    try {
+      const res = await fetch("/api/team/permissions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matrix: draft }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        try {
+          localStorage.setItem("bizzpal_team_permissions", JSON.stringify(data.matrix));
+        } catch {}
+        window.dispatchEvent(new Event("bizzpal_permissions_updated"));
+        setPermMessage("Saved. The sidebar and page access now follow these settings.");
+      } else {
+        setPermMessage(data.error || "Could not save. Please try again.");
+      }
+    } catch {
+      setPermMessage("Could not save. Please try again.");
+    }
+    setPermSaving(false);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -217,7 +252,6 @@ export default function TeamPage() {
               }`}
             >
               {tab.label}
-              {tab.count !== undefined && <span className="ml-1.5 text-xs text-text-muted">{tab.count}</span>}
             </button>
           );
         })}
@@ -341,17 +375,35 @@ export default function TeamPage() {
       )}
 
       {selectedTab === "roles" && (
-        <div className="rounded-xl border border-line bg-surface overflow-hidden">
-          <div className="p-5 border-b border-line">
-            <h2 className="text-base font-semibold text-text">What each role can access</h2>
-            <p className="text-sm text-text-muted mt-0.5">Assign roles from the Members tab.</p>
+        <div className="rounded-2xl border border-line bg-surface shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-line flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-text">What each role can access</h2>
+              <p className="text-sm text-text-muted mt-0.5 max-w-xl">
+                Choose &ldquo;None&rdquo; to hide a section from a role completely. Owners always have full access, and only
+                owners can open this Team page.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={savePermissions}
+              disabled={!isOwner || permSaving}
+              className="px-5 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer shrink-0"
+            >
+              {permSaving ? "Saving…" : "Save permissions"}
+            </button>
           </div>
+          {(permMessage || !isOwner) && (
+            <p className="px-6 pt-4 text-sm text-text-muted">
+              {!isOwner ? "Only the account owner can change permissions." : permMessage}
+            </p>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-line text-xs font-medium text-text-muted">
-                  <th className="py-3 pl-5 pr-3">Area</th>
-                  {["Owner", "Executive", "Manager", "Operator"].map(r => (
+                  <th className="py-3 pl-6 pr-3">Area</th>
+                  {ROLES.map(r => (
                     <th key={r} className="py-3 px-3">
                       {r}
                     </th>
@@ -359,12 +411,28 @@ export default function TeamPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {matrix.map(row => (
-                  <tr key={row.label}>
-                    <td className="py-4 pl-5 pr-3 text-sm text-text">{row.label}</td>
-                    {row.access.map((a, i) => (
-                      <td key={i} className={`py-4 px-3 text-sm ${a === "None" ? "text-text-muted/60" : "text-text-muted"}`}>
-                        {a}
+                {AREAS.map(area => (
+                  <tr key={area.id}>
+                    <td className="py-4 pl-6 pr-3 text-sm text-text">{area.label}</td>
+                    {ROLES.map(role => (
+                      <td key={role} className="py-3 px-3">
+                        {role === "Owner" ? (
+                          <span className="text-sm text-text-muted">Full</span>
+                        ) : (
+                          <select
+                            value={draft[area.id]?.[role] ?? "Full"}
+                            onChange={e => changeLevel(area.id, role, e.target.value as Level)}
+                            disabled={!isOwner}
+                            aria-label={`${area.label} for ${role}`}
+                            className="text-sm px-2.5 py-1.5 rounded-lg border border-line bg-surface text-text cursor-pointer disabled:opacity-60"
+                          >
+                            {LEVELS.map(l => (
+                              <option key={l} value={l}>
+                                {l}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       </td>
                     ))}
                   </tr>

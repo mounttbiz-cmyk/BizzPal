@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { defaultGapRules } from "@/config/seeds/defaultRules";
-import { Check, RefreshCw } from "lucide-react";
+import { Check, ChevronDown, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 export type GapStatus = "detected" | "prioritized" | "in_progress" | "under_verification" | "resolved";
@@ -222,185 +222,198 @@ export default function GapsPage() {
   const inProgress = gaps.filter(g => g.status === "in_progress").length;
   const resolved = gaps.filter(g => g.status === "resolved").length;
 
+  const severityTone = (s: ExtendedGapItem["severity"]) =>
+    s === "critical" ? "text-rust" : s === "high" ? "text-orange-500" : "text-text-muted";
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-4 border-b border-line">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text">Gap Register</h1>
-          <p className="text-sm text-text-muted mt-1">
-            Where your business is off target, and the steps to fix it.
-          </p>
+          <h1 className="text-2xl font-semibold text-text">Gap register</h1>
+          <p className="text-sm text-text-muted mt-1">Where your business is off target, and the steps to fix it.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             disabled={isScanning}
             onClick={runScan}
-            className="px-3.5 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-text hover:bg-surface-2 inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
+            className="px-4 py-2 rounded-xl border border-line text-sm text-text hover:bg-surface-2 inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
           >
             <RefreshCw className={`w-4 h-4 ${isScanning ? "animate-spin" : ""}`} />
             {isScanning ? "Scanning…" : "Rescan"}
           </button>
-          <Link
-            href="/simulator"
-            className="px-3.5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110"
-          >
+          <Link href="/simulator" className="px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110">
             Open simulator
           </Link>
         </div>
       </div>
 
-      <p className="text-sm text-text-muted">
-        <span className="font-semibold text-text">{open}</span> open ·{" "}
-        <span className="font-semibold text-rust">{critical}</span> critical ·{" "}
-        <span className="font-semibold text-text">{inProgress}</span> in progress ·{" "}
-        <span className="font-semibold text-text">{resolved}</span> resolved
-      </p>
-
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-1">
+        <div className="inline-flex items-center p-1 rounded-xl bg-surface-2 overflow-x-auto max-w-full">
           {STATUS_FILTERS.map(f => (
             <button
               key={f.id}
               type="button"
               onClick={() => setStatusFilter(f.id)}
-              className={`px-3 py-1.5 rounded-lg text-sm cursor-pointer ${
-                statusFilter === f.id
-                  ? "bg-surface-2 text-text font-semibold"
-                  : "text-text-muted hover:text-text"
+              className={`px-3.5 py-1.5 rounded-lg text-sm whitespace-nowrap cursor-pointer transition-colors ${
+                statusFilter === f.id ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
               }`}
             >
               {f.label}
             </button>
           ))}
         </div>
-        <select
-          value={category}
-          onChange={e => setCategory(e.target.value)}
-          className="text-sm px-3 py-1.5 rounded-lg border border-line bg-surface text-text capitalize cursor-pointer"
-          aria-label="Department"
-        >
-          {DEPARTMENTS.map(d => (
-            <option key={d} value={d}>
-              {d === "all" ? "All departments" : d}
-            </option>
-          ))}
-        </select>
+
+        <div className="flex items-center gap-4 text-sm text-text-muted">
+          <span>
+            <span className="text-text font-medium">{open}</span> open
+          </span>
+          <span>
+            <span className={`font-medium ${critical > 0 ? "text-rust" : "text-text"}`}>{critical}</span> critical
+          </span>
+          <span>
+            <span className="text-text font-medium">{resolved}</span> resolved
+          </span>
+          <div className="relative">
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="appearance-none text-sm pl-4 pr-10 py-2 rounded-xl border border-line bg-surface text-text capitalize cursor-pointer focus:outline-none focus:border-brass"
+              aria-label="Department"
+            >
+              {DEPARTMENTS.map(d => (
+                <option key={d} value={d}>
+                  {d === "all" ? "All departments" : d}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-text-muted absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        {filtered.length === 0 ? (
-          <div className="p-8 rounded-xl border border-line text-center text-sm text-text-muted">
-            No gaps match these filters.
-          </div>
-        ) : (
-          filtered.map(gap => {
-            const isResolved = gap.status === "resolved";
+      {filtered.length === 0 ? (
+        <div className="p-10 rounded-2xl border border-line text-center text-sm text-text-muted">
+          No gaps match these filters.
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {filtered.map(gap => {
             const steps = gap.solutionPlaybook.steps;
+            const isResolved = gap.status === "resolved";
+
             return (
               <section
                 key={gap.id}
-                className={`p-5 rounded-xl border border-line bg-surface space-y-4 ${isResolved ? "opacity-70" : ""}`}
+                className={`rounded-2xl border border-line bg-surface shadow-sm ${isResolved ? "opacity-70" : ""}`}
               >
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                  <div>
-                    <h2 className="text-base font-semibold text-text">{gap.title}</h2>
-                    <p className="text-xs text-text-muted mt-1">
-                      {gap.category} ·{" "}
-                      <span className={gap.severity === "critical" ? "text-rust font-medium" : ""}>
-                        {gap.severity}
-                      </span>{" "}
-                      · {STATUS_LABEL[gap.status]}
+                <div className="flex items-start justify-between gap-4 px-6 pt-6">
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold text-text leading-snug">{gap.title}</h2>
+                    <p className="text-sm text-text-muted mt-1">
+                      {gap.category} · <span className={severityTone(gap.severity)}>{cap(gap.severity)}</span> ·{" "}
+                      {STATUS_LABEL[gap.status]} · Owner: {gap.assignedOwner}
                     </p>
                   </div>
-                  <p className="text-xs text-text-muted">Owner: {gap.assignedOwner}</p>
-                </div>
-
-                <p className="text-sm text-text-muted leading-relaxed">
-                  {gap.whyItMatters} {gap.evidenceTemplate}
-                </p>
-
-                <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-3 border-y border-line text-sm">
-                  <div>
-                    <dt className="text-xs text-text-muted">Target</dt>
-                    <dd className="font-medium text-text">{gap.targetMetric}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-text-muted">Current</dt>
-                    <dd className="font-medium text-rust">
-                      {gap.actualMetric} <span className="text-xs font-normal">({gap.deviation})</span>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-text-muted">Goal</dt>
-                    <dd className="font-medium text-text">{gap.solutionPlaybook.successMetric}</dd>
-                  </div>
-                </dl>
-
-                <div>
-                  <p className="text-xs font-semibold text-text-muted mb-2">
-                    Steps ({gap.completedSteps.length}/{steps.length} done)
+                  <p className="hidden sm:block text-sm text-text-muted shrink-0 mt-1">
+                    {gap.completedSteps.length} of {steps.length} steps done
                   </p>
-                  <ul className="space-y-2">
-                    {steps.map((step, idx) => {
-                      const done = gap.completedSteps.includes(idx);
-                      return (
-                        <li key={idx}>
-                          <button
-                            type="button"
-                            onClick={() => toggleStep(gap.id, idx)}
-                            className="w-full flex items-start gap-3 text-left cursor-pointer"
-                          >
-                            <span
-                              className={`w-4 h-4 mt-0.5 rounded border flex items-center justify-center shrink-0 ${
-                                done ? "bg-jade border-jade text-white" : "border-line-strong bg-surface"
-                              }`}
-                            >
-                              {done && <Check className="w-3 h-3 stroke-[3]" />}
-                            </span>
-                            <span>
-                              <span className={`text-sm block ${done ? "line-through text-text-muted" : "text-text"}`}>
-                                {step.title}
-                              </span>
-                              <span className="text-xs text-text-muted">{step.detail}</span>
-                            </span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
                 </div>
 
-                <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
-                  {isResolved ? (
-                    <button
-                      type="button"
-                      onClick={() => setStatus(gap.id, "in_progress")}
-                      className="px-3.5 py-2 rounded-lg border border-line text-sm font-medium text-text hover:bg-surface-2 cursor-pointer"
-                    >
-                      Reopen
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setStatus(gap.id, "resolved")}
-                      className="px-3.5 py-2 rounded-lg bg-jade text-white text-sm font-medium hover:brightness-110 cursor-pointer"
-                    >
-                      Mark resolved
-                    </button>
-                  )}
-                  <Link
-                    href={`/chat?query=${encodeURIComponent(`How should we resolve this business gap: "${gap.title}"?`)}`}
-                    className="text-sm text-brass hover:underline"
-                  >
-                    Ask AI for advice →
-                  </Link>
+                <div className="px-6 pb-7 pt-5 space-y-7">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="text-sm font-medium text-text">Why it matters</h3>
+                        <p className="text-sm text-text-muted leading-relaxed mt-1">{gap.whyItMatters}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-text">What we found</h3>
+                        <p className="text-sm text-text-muted leading-relaxed mt-1">{gap.evidenceTemplate}</p>
+                      </div>
+                    </div>
+
+                    <dl className="grid grid-cols-1 sm:grid-cols-3 gap-5 p-5 rounded-xl bg-surface-2/60">
+                      <div>
+                        <dt className="text-xs text-text-muted">Target</dt>
+                        <dd className="text-sm font-medium text-text mt-1">{gap.targetMetric}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-text-muted">Now</dt>
+                        <dd className="text-sm font-medium text-rust mt-1">
+                          {gap.actualMetric} <span className="text-xs font-normal text-text-muted">({gap.deviation})</span>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-text-muted">Goal</dt>
+                        <dd className="text-sm font-medium text-text mt-1">{gap.solutionPlaybook.successMetric}</dd>
+                      </div>
+                    </dl>
+
+                    <div>
+                      <h3 className="text-sm font-medium text-text mb-1">Steps to fix it</h3>
+                      <ul className="divide-y divide-line">
+                        {steps.map((step, idx) => {
+                          const done = gap.completedSteps.includes(idx);
+                          return (
+                            <li key={idx}>
+                              <button
+                                type="button"
+                                onClick={() => toggleStep(gap.id, idx)}
+                                className="w-full flex items-start gap-3 py-3.5 text-left cursor-pointer"
+                              >
+                                <span
+                                  className={`w-5 h-5 mt-0.5 rounded-full border flex items-center justify-center shrink-0 ${
+                                    done ? "bg-brass border-brass text-white" : "border-line-strong bg-surface"
+                                  }`}
+                                >
+                                  {done && <Check className="w-3 h-3 stroke-[3]" />}
+                                </span>
+                                <span className="flex-1 min-w-0">
+                                  <span className={`block text-sm ${done ? "line-through text-text-muted" : "text-text font-medium"}`}>
+                                    {step.title}
+                                  </span>
+                                  <span className="block text-sm text-text-muted mt-0.5">{step.detail}</span>
+                                </span>
+                                <span className="text-xs text-text-muted shrink-0 mt-1">~{step.days} days</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      {isResolved ? (
+                        <button
+                          type="button"
+                          onClick={() => setStatus(gap.id, "in_progress")}
+                          className="px-4 py-2 rounded-xl border border-line text-sm text-text hover:bg-surface-2 cursor-pointer"
+                        >
+                          Reopen
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setStatus(gap.id, "resolved")}
+                          className="px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
+                        >
+                          Mark resolved
+                        </button>
+                      )}
+                      <Link
+                        href={`/chat?query=${encodeURIComponent(`How should we resolve this business gap: "${gap.title}"?`)}`}
+                        className="text-sm text-brass hover:underline"
+                      >
+                        Ask AI for advice
+                      </Link>
+                    </div>
                 </div>
               </section>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </div>
   );
 }

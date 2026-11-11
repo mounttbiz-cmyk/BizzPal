@@ -67,7 +67,7 @@ export default function AdvisorsSettingsPage() {
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
-      <section className="rounded-xl border border-line bg-surface">
+      <section className="rounded-2xl border border-line bg-surface shadow-sm">
         <div className="p-6 border-b border-line flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-text">AI advisors</h2>
@@ -79,17 +79,17 @@ export default function AdvisorsSettingsPage() {
           <button
             type="button"
             onClick={handleReset}
-            className="px-3.5 py-2 rounded-lg border border-line text-sm text-text-muted hover:text-text hover:bg-surface-2 shrink-0 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl border border-line text-sm text-text-muted hover:text-text hover:bg-surface-2 shrink-0 cursor-pointer"
           >
             Reset to defaults
           </button>
         </div>
 
-        <ul className="divide-y divide-line">
+        <ul className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6 p-6">
           {ADVISORS.map(a => (
-            <li key={a.key} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-              <div className="flex items-center gap-3 sm:w-72 shrink-0">
-                <div className="w-10 h-10 rounded-full bg-surface-2 border border-line flex items-center justify-center text-sm text-text shrink-0">
+            <li key={a.key} className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-sm font-medium text-text shrink-0">
                   {(names[a.key] || a.title).charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
@@ -103,18 +103,18 @@ export default function AdvisorsSettingsPage() {
                 onChange={e => setNames(prev => ({ ...prev, [a.key]: e.target.value }))}
                 placeholder={a.placeholder}
                 maxLength={30}
-                className="flex-1 px-3 py-2.5 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
+                className="w-full px-3 py-2.5 rounded-xl border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
               />
             </li>
           ))}
         </ul>
       </section>
 
-      <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 p-4 rounded-xl border border-line bg-surface shadow-lg">
+      <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 p-4 rounded-2xl border border-line bg-surface shadow-lg">
         <p className="text-sm text-text-muted">{saved ? <span className="text-text">Names saved.</span> : "Names update everywhere once saved."}</p>
         <button
           type="submit"
-          className="px-5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
+          className="px-5 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
         >
           Save names
         </button>

@@ -143,7 +143,7 @@ export default function SettingsToolsPage() {
         <p className="p-10 text-center text-sm text-text-muted">Loading…</p>
       ) : (
         <>
-          <section className="rounded-xl border border-line bg-surface">
+          <section className="rounded-2xl border border-line bg-surface shadow-sm">
             <div className="p-6 border-b border-line">
               <h2 className="text-base font-semibold text-text">Tools your business uses</h2>
               <p className="text-sm text-text-muted mt-0.5 leading-relaxed">
@@ -152,12 +152,16 @@ export default function SettingsToolsPage() {
               </p>
             </div>
 
-            <ul className="divide-y divide-line">
+            <ul className="grid grid-cols-1 lg:grid-cols-2 gap-3 p-6">
               {TOOLS_OPTIONS.map(tool => {
                 const isSelected = selectedTools.includes(tool.id);
                 return (
                   <li key={tool.id}>
-                    <label className="flex items-start gap-4 px-6 py-4 cursor-pointer hover:bg-surface-2/40">
+                    <label
+                      className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors h-full ${
+                        isSelected ? "border-line-strong bg-surface-2" : "border-line hover:bg-surface-2/50"
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -176,7 +180,7 @@ export default function SettingsToolsPage() {
             </ul>
           </section>
 
-          <section className="rounded-xl border border-line bg-surface">
+          <section className="rounded-2xl border border-line bg-surface shadow-sm">
             <div className="p-6 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-base font-semibold text-text">WhatsApp daily check-in</h2>
@@ -210,7 +214,7 @@ export default function SettingsToolsPage() {
             )}
           </section>
 
-          <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 p-4 rounded-xl border border-line bg-surface shadow-lg">
+          <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 p-4 rounded-2xl border border-line bg-surface shadow-lg">
             <p className="text-sm text-text-muted">
               {savedSuccess ? <span className="text-text">Changes saved.</span> : "Changes apply to your dashboard and integrations."}
             </p>
@@ -218,7 +222,7 @@ export default function SettingsToolsPage() {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="px-5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save changes"}
             </button>

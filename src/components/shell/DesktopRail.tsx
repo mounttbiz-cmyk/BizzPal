@@ -12,6 +12,7 @@ import { WEBSITE_URL } from "@/config/urls";
 import { auth } from "@/lib/firebase/config";
 import { signOut } from "firebase/auth";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
+import { usePlanName } from "@/lib/hooks/usePlanName";
 import { UpgradeModal } from "./UpgradeModal";
 
 interface DesktopRailProps {
@@ -86,29 +87,9 @@ export function DesktopRail({
     window.location.href = WEBSITE_URL;
   };
 
-  const { plan: currentPlan, hasPlanLevel } = usePlanAccess();
+  const { hasPlanLevel } = usePlanAccess();
   const [lockedItem, setLockedItem] = React.useState<NavItem | null>(null);
-  const [planBadgeLabel, setPlanBadgeLabel] = React.useState<string>("Active Workspace");
-
-  React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem("bizzpal_subscription_plans");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const match = parsed.find((p: any) => p.id === currentPlan);
-        if (match?.name) {
-          const cleaned = match.name.replace(/\s*\/\s*Demo/gi, "").replace(/Demo/gi, "").trim();
-          setPlanBadgeLabel(cleaned || "Starter Free");
-          return;
-        }
-      }
-    } catch {}
-    if (currentPlan === "free") setPlanBadgeLabel("Starter Free");
-    else if (currentPlan === "starter") setPlanBadgeLabel("Starter OS");
-    else if (currentPlan === "growth") setPlanBadgeLabel("Growth Plan");
-    else if (currentPlan === "enterprise") setPlanBadgeLabel("Enterprise");
-    else setPlanBadgeLabel("Active Workspace");
-  }, [currentPlan]);
+  const planBadgeLabel = usePlanName();
 
   // Use navItems directly without force-injecting deleted items
   const effectiveNavItems = React.useMemo(() => {

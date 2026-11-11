@@ -6,31 +6,13 @@ import { RenderWidget } from "@/components/widgets/WidgetRegistry";
 import { WidgetDef } from "@/config/schemas/widget";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import {
-  Layers,
-  Sliders,
-  Check,
-  Eye,
-  EyeOff,
-  RotateCcw,
-  Save,
-  CheckCircle2,
-  X,
-  UploadCloud,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Eye, EyeOff, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Suspense } from "react";
-import { DailyCheckInModal } from "@/components/checkin/DailyCheckInModal";
 import { UploadDataModal } from "@/components/upload/UploadDataModal";
 import { QuickBusinessInputModal } from "@/components/intake/QuickBusinessInputModal";
 import { useBusinessDataSync } from "@/lib/upload/events";
-import { Clock, Send, Radio } from "lucide-react";
-import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
-import { LEGACY_NAMES } from "@/lib/advisors";
+import { usePlanName } from "@/lib/hooks/usePlanName";
+import { computeHealth } from "@/lib/health/score";
 
 const formatIndustryName = (ind: string) => {
   const map: Record<string, string> = {
@@ -55,6 +37,7 @@ const formatCurrencyCompact = (amount: number) => {
 
 function DashboardContent() {
   const searchParams = useSearchParams();
+  const planName = usePlanName();
   const [selectedIndustry, setSelectedIndustry] = useState<TenantContext["industry"]>("saas");
   const [selectedModel, setSelectedModel] = useState<TenantContext["businessModel"]>("subscription");
   const [companyName, setCompanyName] = useState<string>(() => {
@@ -147,51 +130,10 @@ function DashboardContent() {
 
     return { isStart, isEnd, isInRange, isSelected: isStart || isEnd };
   };
-  const [activeTaskCount, setActiveTaskCount] = useState(0);
+  const [activeTaskCount, setActiveTaskCount] = useState<number | null>(null);
   const [bottleneckGapCount, setBottleneckGapCount] = useState(0);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isQuickInputModalOpen, setIsQuickInputModalOpen] = useState(false);
-
-  const [checkinData, setCheckinData] = useState<{
-    isCompletedToday: boolean;
-    todayCheckin: any;
-    questionRules: { skipRevenue: boolean; skipTech: boolean };
-    questions: any[];
-  }>({
-    isCompletedToday: false,
-    todayCheckin: null,
-    questionRules: { skipRevenue: false, skipTech: false },
-    questions: [],
-  });
-  const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
-  const [advisorsSummary, setAdvisorsSummary] = useState("CEO, CFO, Marketing");
-
-  useEffect(() => {
-    const syncAdvisors = () => {
-      try {
-        const raw = localStorage.getItem("bizzpal_custom_advisors");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          const ceo = parsed.ceo?.name && !LEGACY_NAMES.has(parsed.ceo.name.toLowerCase()) ? parsed.ceo.name : "CEO";
-          const cfo = parsed.cfo?.name && !LEGACY_NAMES.has(parsed.cfo.name.toLowerCase()) ? parsed.cfo.name : "CFO";
-          const mkt = parsed.marketing?.name && !LEGACY_NAMES.has(parsed.marketing.name.toLowerCase()) ? parsed.marketing.name : "Marketing";
-          setAdvisorsSummary(`${ceo}, ${cfo}, ${mkt}`);
-          return;
-        }
-      } catch {}
-      setAdvisorsSummary("CEO, CFO, Marketing");
-    };
-    syncAdvisors();
-    window.addEventListener("bizzpal_advisors_updated", syncAdvisors);
-    window.addEventListener("storage", syncAdvisors);
-    return () => {
-      window.removeEventListener("bizzpal_advisors_updated", syncAdvisors);
-      window.removeEventListener("storage", syncAdvisors);
-    };
-  }, []);
-
-  // Close daily check-in modal on Escape
-  useEscapeKey(() => setIsCheckInModalOpen(false), isCheckInModalOpen);
 
   // Fetch Live Tasks Count
   const refreshTasksCount = async () => {
@@ -203,51 +145,22 @@ function DashboardContent() {
       if (data.success && Array.isArray(data.tasks)) {
         const active = data.tasks.filter((t: any) => t.status !== "done").length;
         setActiveTaskCount(active);
-      } else {
-        setActiveTaskCount(0);
       }
     } catch {
-      setActiveTaskCount(0);
+      // keep whatever we last knew; never show a made-up zero
     }
   };
-
-  // Fetch Check-In Status
-  const refreshCheckinStatus = async () => {
-    try {
-      const res = await fetch("/api/checkin");
-      const data = await res.json();
-      if (data.success) {
-        setCheckinData({
-          isCompletedToday: Boolean(data.isCompletedToday),
-          todayCheckin: data.todayCheckin,
-          questionRules: data.questionRules || { skipRevenue: false, skipTech: false },
-          questions: data.questions || [],
-        });
-      }
-    } catch (err) {
-      console.error("Failed to fetch checkin status", err);
-    }
-  };
-
-  const [featureFlags, setFeatureFlags] = useState({
-    enableDailyCheckin: true,
-  });
 
   const hasLoadedBackendWidgetsRef = React.useRef(false);
 
   useEffect(() => {
     let mounted = true;
-    refreshCheckinStatus();
     refreshTasksCount();
 
     const fetchConfig = () => {
       // Instant client-side hydration from Superadmin edits in localStorage
       if (typeof window !== "undefined") {
         try {
-          const cachedFeatures = localStorage.getItem("bizzpal_dashboard_features");
-          if (cachedFeatures) {
-            setFeatureFlags(JSON.parse(cachedFeatures));
-          }
           const cachedWidgets = localStorage.getItem("bizzpal_dashboard_widgets");
           if (cachedWidgets) {
             const wList = JSON.parse(cachedWidgets);
@@ -279,9 +192,6 @@ function DashboardContent() {
         .then(d => {
           if (!mounted) return;
           if (d.success) {
-            if (d.features) {
-              setFeatureFlags(d.features);
-            }
             if (Array.isArray(d.widgets) && d.widgets.length > 0) {
               hasLoadedBackendWidgetsRef.current = true;
               const disabledIds = new Set(
@@ -366,22 +276,8 @@ function DashboardContent() {
     setMonthlyBurn(burn);
     setCashOnHand(cash);
 
-    // Dynamically compute health score
-    let computedScore = 50;
-    if (!hasData) {
-      computedScore = 50;
-    } else {
-      let score = 65;
-      if (rMonths >= 12) score += 15;
-      else if (rMonths >= 6) score += 10;
-      else if (rMonths < 3 && burn > 0) score -= 15;
-
-      if (rev > 500000) score += 12;
-      else if (rev > 100000) score += 8;
-      else if (rev > 0) score += 4;
-
-      computedScore = Math.min(98, Math.max(40, score));
-    }
+    // Same formula as the health score tile
+    const computedScore = computeHealth(saved).overall;
     setOverallHealthScore(computedScore);
     setBaseHealthScore(computedScore);
   };
@@ -588,31 +484,62 @@ function DashboardContent() {
     notify("Restored default dashboard layout");
   };
 
+  const healthLabel = overallHealthScore >= 75 ? "Healthy" : "Needs data";
+  const runwayLabel = Number(liquidRunwayMo) >= 6 ? "Safe" : "Short";
+
+  const stats = [
+    {
+      href: "/analytics",
+      label: "Business health",
+      value: String(overallHealthScore),
+      unit: "/ 100",
+      note: healthLabel,
+      good: overallHealthScore >= 75,
+    },
+    {
+      href: "/simulator",
+      label: "Cash runway",
+      value: liquidRunwayMo,
+      unit: "months",
+      note: runwayLabel,
+      good: Number(liquidRunwayMo) >= 6,
+    },
+    {
+      href: "/tasks",
+      label: "Open tasks",
+      value: activeTaskCount === null ? "—" : String(activeTaskCount),
+      unit: activeTaskCount === 1 ? "task" : "tasks",
+      note: activeTaskCount === null ? "Loading" : activeTaskCount > 0 ? "In progress" : "All caught up",
+      good: activeTaskCount === 0,
+    },
+    {
+      href: "/gaps",
+      label: "Gaps found",
+      value: String(bottleneckGapCount),
+      unit: bottleneckGapCount === 1 ? "gap" : "gaps",
+      note: bottleneckGapCount > 0 ? "Needs review" : "None right now",
+      good: bottleneckGapCount === 0,
+    },
+  ];
+
+  const calendarInput =
+    "w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-text text-sm focus:outline-hidden focus:border-brass cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden";
+
   return (
     <div className="space-y-6 pb-28 sm:pb-32">
-      {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-surface border border-jade shadow-2xl text-xs font-semibold text-jade flex items-center gap-2 animate-bounce">
-          <CheckCircle2 className="w-4 h-4 text-jade" />
-          <span>{toast}</span>
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-lg bg-surface border border-line shadow-lg text-sm text-text">
+          {toast}
         </div>
       )}
 
-      {/* Top Header & Executive Command Center */}
-      <div className="p-5 sm:p-7 space-y-5 rounded-3xl bg-surface border border-line shadow-theme relative">
-        {/* Top Line: Company Name & Timeframe Selector (z-30 for popover stacking priority) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line/60 relative z-30">
-          <div className="flex items-center gap-3.5 min-w-0">
+      <div className="rounded-2xl border border-line bg-surface shadow-sm p-6 sm:p-8 space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-30">
+          <div className="flex items-center gap-4 min-w-0">
             {companyLogo ? (
-              <div className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 flex items-center justify-center">
-                <img
-                  src={companyLogo}
-                  alt={companyName}
-                  className="w-full h-full object-contain"
-                />
-              </div>
+              <img src={companyLogo} alt={companyName} className="w-12 h-12 object-contain shrink-0" />
             ) : (
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-brass/10 text-brass font-extrabold text-base flex items-center justify-center shrink-0 select-none tracking-tight">
+              <div className="w-12 h-12 rounded-lg bg-surface-2 text-text-muted text-base font-medium flex items-center justify-center shrink-0 select-none">
                 {companyName
                   .split(" ")
                   .filter(Boolean)
@@ -622,42 +549,29 @@ function DashboardContent() {
                   .toUpperCase() || "EP"}
               </div>
             )}
-            <div className="space-y-1 min-w-0">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-text tracking-tight font-sans truncate">
-                  {companyName}
-                </h1>
-                {uploadedFileName && (
-                  <span className="text-[11px] text-jade font-medium inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-jade/10 border border-jade/20 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-jade shrink-0" />
-                    Synced
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-text-muted font-medium flex items-center gap-1.5">
-                <span>{formatIndustryName(selectedIndustry)}</span>
-                <span className="text-text-muted/40">·</span>
-                <span>Growth Plan</span>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-text truncate">{companyName}</h1>
+              <p className="text-sm text-text-muted mt-0.5">
+                {formatIndustryName(selectedIndustry)} · {planName}
+                {uploadedFileName ? ` · Data from ${uploadedFileName}` : ""}
               </p>
             </div>
           </div>
 
-          {/* Timeframe Selector with Dynamic Options & Custom Range Picker */}
-          <div className="relative inline-flex items-center p-1 bg-surface-2 rounded-xl border border-line text-xs max-w-full shrink-0">
+          <div className="relative flex sm:inline-flex items-center p-1 bg-surface-2 rounded-xl w-full sm:w-auto sm:shrink-0">
             {["Live Today", "7 Days", "1 Month", "Custom"].map(tf => {
-              const isActive = tf === "Custom"
-                ? selectedTimeframe.startsWith("Custom") || isCustomPickerOpen
-                : selectedTimeframe === tf;
+              const isActive =
+                tf === "Custom"
+                  ? selectedTimeframe.startsWith("Custom") || isCustomPickerOpen
+                  : selectedTimeframe === tf;
 
               return (
                 <button
                   key={tf}
                   type="button"
                   onClick={() => handleTimeframeChange(tf)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
-                    isActive
-                      ? "bg-surface text-text font-semibold shadow-xs border border-line/40"
-                      : "text-text-muted hover:text-text"
+                  className={`flex-1 sm:flex-none px-2 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm cursor-pointer whitespace-nowrap transition-colors ${
+                    isActive ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
                   }`}
                 >
                   {tf === "Custom" && selectedTimeframe.startsWith("Custom") ? selectedTimeframe : tf}
@@ -665,158 +579,110 @@ function DashboardContent() {
               );
             })}
 
-            {/* Custom Range Popover & Outside-Click Dismiss Backdrop */}
             {isCustomPickerOpen && (
               <>
-                <div
-                  className="fixed inset-0 z-40 cursor-default"
-                  onClick={() => setIsCustomPickerOpen(false)}
-                />
-                <div className="absolute right-0 top-full mt-2 z-50 w-80 p-4 rounded-2xl bg-white dark:bg-[#12151D] border border-slate-200 dark:border-line shadow-2xl space-y-3.5">
-                  {/* Header */}
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-line/60">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-gold" />
-                      <span className="text-xs font-bold text-slate-900 dark:text-text">Select Date Range</span>
-                    </div>
+                <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsCustomPickerOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 z-50 w-80 p-4 rounded-2xl bg-surface border border-line shadow-lg space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-text">Select date range</span>
                     <button
                       type="button"
                       onClick={() => setIsCustomPickerOpen(false)}
-                      className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:text-text-muted dark:hover:text-text hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
+                      aria-label="Close"
+                      className="p-1 text-text-muted hover:text-text cursor-pointer"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
 
-                  {/* Quick Presets */}
                   <div className="flex items-center gap-1.5">
                     {[7, 14, 30, 90].map(d => (
                       <button
                         key={d}
                         type="button"
                         onClick={() => handleApplyCustomRange(d)}
-                        className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer border ${
+                        className={`flex-1 py-1 rounded-lg text-xs cursor-pointer border ${
                           customDaysDiff === d
-                            ? "bg-amber-500/15 text-amber-900 dark:text-gold border-amber-500/40 font-semibold shadow-xs"
-                            : "bg-slate-100 hover:bg-slate-200 dark:bg-surface-2 dark:hover:bg-white/10 text-slate-700 dark:text-text border-slate-200 dark:border-line/60"
+                            ? "border-line-strong bg-surface-2 text-text font-medium"
+                            : "border-line text-text-muted hover:text-text hover:bg-surface-2"
                         }`}
                       >
-                        {d} Days
+                        {d} days
                       </button>
                     ))}
                   </div>
 
-                  {/* Manual Inputs with Instant Calendar Triggers & Single Calendar Icon */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <label className="block text-[10px] text-slate-600 dark:text-text-muted mb-1 font-semibold uppercase tracking-wider">
-                        Start Date
-                      </label>
-                      <div className="relative flex items-center">
-                        <input
-                          ref={startInputRef}
-                          type="date"
-                          value={customStartDate}
-                          onChange={e => {
-                            setCustomStartDate(e.target.value);
-                            if (e.target.value) {
-                              setCalendarMonth(new Date(e.target.value));
-                            }
-                          }}
-                          onClick={e => {
-                            try {
-                              (e.currentTarget as any).showPicker?.();
-                            } catch {}
-                          }}
-                          className="w-full pl-2.5 pr-8 py-1.5 rounded-lg bg-slate-50 dark:bg-surface-2 border border-slate-200 dark:border-line text-slate-900 dark:text-text text-xs focus:outline-hidden focus:border-amber-500 dark:focus:border-gold cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            try {
-                              startInputRef.current?.showPicker?.();
-                            } catch {}
-                          }}
-                          className="absolute right-2 text-slate-400 hover:text-amber-600 dark:text-text-muted dark:hover:text-gold cursor-pointer p-0.5"
-                          title="Open Calendar"
-                        >
-                          <Calendar className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] text-slate-600 dark:text-text-muted mb-1 font-semibold uppercase tracking-wider">
-                        End Date
-                      </label>
-                      <div className="relative flex items-center">
-                        <input
-                          ref={endInputRef}
-                          type="date"
-                          value={customEndDate}
-                          onChange={e => {
-                            setCustomEndDate(e.target.value);
-                            if (e.target.value) {
-                              setCalendarMonth(new Date(e.target.value));
-                            }
-                          }}
-                          onClick={e => {
-                            try {
-                              (e.currentTarget as any).showPicker?.();
-                            } catch {}
-                          }}
-                          className="w-full pl-2.5 pr-8 py-1.5 rounded-lg bg-slate-50 dark:bg-surface-2 border border-slate-200 dark:border-line text-slate-900 dark:text-text text-xs focus:outline-hidden focus:border-amber-500 dark:focus:border-gold cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            try {
-                              endInputRef.current?.showPicker?.();
-                            } catch {}
-                          }}
-                          className="absolute right-2 text-slate-400 hover:text-amber-600 dark:text-text-muted dark:hover:text-gold cursor-pointer p-0.5"
-                          title="Open Calendar"
-                        >
-                          <Calendar className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block">
+                      <span className="block text-xs text-text-muted mb-1">Start</span>
+                      <input
+                        ref={startInputRef}
+                        type="date"
+                        value={customStartDate}
+                        onChange={e => {
+                          setCustomStartDate(e.target.value);
+                          if (e.target.value) setCalendarMonth(new Date(e.target.value));
+                        }}
+                        onClick={e => {
+                          try {
+                            (e.currentTarget as any).showPicker?.();
+                          } catch {}
+                        }}
+                        className={calendarInput}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="block text-xs text-text-muted mb-1">End</span>
+                      <input
+                        ref={endInputRef}
+                        type="date"
+                        value={customEndDate}
+                        onChange={e => {
+                          setCustomEndDate(e.target.value);
+                          if (e.target.value) setCalendarMonth(new Date(e.target.value));
+                        }}
+                        onClick={e => {
+                          try {
+                            (e.currentTarget as any).showPicker?.();
+                          } catch {}
+                        }}
+                        className={calendarInput}
+                      />
+                    </label>
                   </div>
 
-                  {/* Interactive Visual Mini-Calendar Grid */}
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-surface-2/70 border border-slate-200 dark:border-line/60 space-y-2">
-                    {/* Month Navigator */}
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-text px-1">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
                       <button
                         type="button"
                         onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                        className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-text-muted dark:hover:text-text hover:bg-slate-200 dark:hover:bg-white/10 cursor-pointer"
-                        title="Previous Month"
+                        aria-label="Previous month"
+                        className="p-1 rounded-md text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
                       >
-                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <ChevronLeft className="w-4 h-4" />
                       </button>
-                      <span className="text-[11px] font-bold text-slate-900 dark:text-text">{calendarData.monthName}</span>
+                      <span className="text-sm font-medium text-text">{calendarData.monthName}</span>
                       <button
                         type="button"
                         onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                        className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-text-muted dark:hover:text-text hover:bg-slate-200 dark:hover:bg-white/10 cursor-pointer"
-                        title="Next Month"
+                        aria-label="Next month"
+                        className="p-1 rounded-md text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
                       >
-                        <ChevronRight className="w-3.5 h-3.5" />
+                        <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
 
-                    {/* Day Names */}
-                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-slate-500 dark:text-text-muted/80 font-semibold">
+                    <div className="grid grid-cols-7 gap-1 text-center text-xs text-text-muted">
                       {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(d => (
-                        <div key={d} className="py-0.5">{d}</div>
+                        <div key={d} className="py-0.5">
+                          {d}
+                        </div>
                       ))}
                     </div>
 
-                    {/* Day Cells */}
-                    <div className="grid grid-cols-7 gap-1 text-center text-[11px]">
+                    <div className="grid grid-cols-7 gap-1 text-center text-xs">
                       {Array.from({ length: calendarData.firstDay }).map((_, idx) => (
-                        <div key={`empty-${idx}`} className="h-6" />
+                        <div key={`empty-${idx}`} className="h-7" />
                       ))}
                       {Array.from({ length: calendarData.daysInMonth }).map((_, idx) => {
                         const day = idx + 1;
@@ -826,12 +692,12 @@ function DashboardContent() {
                             key={day}
                             type="button"
                             onClick={() => handleCalendarDaySelect(day)}
-                            className={`h-6 w-full rounded-md flex items-center justify-center font-medium transition-colors cursor-pointer text-[11px] ${
+                            className={`h-7 w-full rounded-md flex items-center justify-center cursor-pointer ${
                               status.isSelected
-                                ? "bg-amber-500 text-white font-bold shadow-xs"
+                                ? "bg-brass text-white font-medium"
                                 : status.isInRange
-                                ? "bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200 font-medium"
-                                : "text-slate-700 dark:text-text hover:bg-slate-200 dark:hover:bg-white/10"
+                                ? "bg-brass/15 text-text"
+                                : "text-text hover:bg-surface-2"
                             }`}
                           >
                             {day}
@@ -841,14 +707,12 @@ function DashboardContent() {
                     </div>
                   </div>
 
-                  {/* Apply Button */}
                   <button
                     type="button"
                     onClick={() => handleApplyCustomRange()}
-                    className="w-full py-2 rounded-xl text-xs font-semibold btn-gold-gradient shadow-sm hover:brightness-105 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full py-2 rounded-lg text-sm font-medium bg-brass text-white hover:brightness-110 cursor-pointer"
                   >
-                    <span>Apply Range</span>
-                    <span className="opacity-75 font-normal">({customDaysDiff} Days)</span>
+                    Apply ({customDaysDiff} days)
                   </button>
                 </div>
               </>
@@ -856,228 +720,127 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Sub-line: Executive Status Overview & Action Controls */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10 pt-1">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-bold text-text uppercase tracking-wider font-sans">
-                Executive Status
-              </span>
-              <span className="text-text-muted/40">·</span>
-              <span className="text-[11px] text-text-muted">Live Telemetry</span>
-              <span className="text-text-muted/40">·</span>
-              <span className="text-[11px] text-text-muted">Advisors: <strong className="text-text font-semibold">{advisorsSummary}</strong></span>
-            </div>
-            <p className="text-xs sm:text-sm text-text-muted leading-relaxed font-normal">
-              {monthlyRevenue > 0 || monthlyBurn > 0 ? (
-                <>
-                  Operating at a verified <strong className="text-text font-semibold">{formatCurrencyCompact(monthlyRevenue)}/mo</strong> run-rate with an <strong className="text-text font-semibold">{liquidRunwayMo}-month runway buffer</strong> ({formatCurrencyCompact(cashOnHand)} in reserves). Corporate health is <strong className="text-text font-semibold">{overallHealthScore >= 75 ? "Optimal" : "Stable"} ({overallHealthScore}/100)</strong>, with <strong className="text-amber-600 dark:text-amber-400 font-semibold">{bottleneckGapCount} priority {bottleneckGapCount === 1 ? "gap" : "gaps"}</strong> flagged for review.
-                </>
-              ) : (
-                <>
-                  Operating on verified baseline telemetry. Enter current billings or upload accounting data to track live cash runway, monthly revenue, and corporate health.
-                </>
-              )}
-            </p>
-          </div>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <p className="text-sm sm:text-base text-text-muted leading-relaxed max-w-2xl">
+            {monthlyRevenue > 0 || monthlyBurn > 0 ? (
+              <>
+                Revenue is <span className="text-text font-medium">{formatCurrencyCompact(monthlyRevenue)} a month</span>{" "}
+                and you have <span className="text-text font-medium">{liquidRunwayMo} months</span> of cash left (
+                {formatCurrencyCompact(cashOnHand)} in the bank). Your health score is{" "}
+                <span className="text-text font-medium">{overallHealthScore} out of 100</span>
+                {bottleneckGapCount > 0 && (
+                  <>
+                    , with{" "}
+                    <span className="text-text font-medium">
+                      {bottleneckGapCount} {bottleneckGapCount === 1 ? "gap" : "gaps"}
+                    </span>{" "}
+                    to review
+                  </>
+                )}
+                .
+              </>
+            ) : (
+              <>Add your monthly billings or upload your accounting data to see cash runway, revenue and health score.</>
+            )}
+          </p>
 
-          {/* Action Controls: Horizontal Side-by-Side */}
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
-            {/* Quick Business Input Button */}
+          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
             <button
               type="button"
               onClick={() => setIsQuickInputModalOpen(true)}
-              className="px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 btn-tactile cursor-pointer btn-gold-gradient hover:brightness-105 shadow-sm active:scale-[0.98] transition-all text-[#1a1206]"
+              className="px-5 py-2.5 rounded-xl text-sm font-medium bg-brass text-white hover:brightness-110 cursor-pointer"
             >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>+ Quick Business Input</span>
+              Quick business input
             </button>
-
-            {/* Upload Business Data Button */}
             <button
               type="button"
               onClick={() => setIsUploadModalOpen(true)}
-              className="px-4 py-2 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-colors btn-tactile cursor-pointer bg-surface hover:bg-surface-2 border border-line text-text"
+              className="px-5 py-2.5 rounded-xl text-sm font-medium border border-line text-text hover:bg-surface-2 cursor-pointer"
             >
-              <UploadCloud className="w-3.5 h-3.5 text-text-muted" />
-              <span>Upload Business Data</span>
-              {uploadedFileName && (
-                <span className="w-1.5 h-1.5 rounded-full bg-jade animate-pulse" title="Custom dataset active" />
-              )}
+              Upload data
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditingLayout(prev => !prev)}
+              className="px-4 py-2.5 rounded-xl text-sm text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
+            >
+              {isEditingLayout ? "Close customize" : "Customize"}
             </button>
           </div>
         </div>
 
-        {/* Quick-Glance Executive KPI Ribbon - Minimal, Clean Typographic Status Indicators */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pt-1 relative z-0">
-          <Link
-            href="/analytics"
-            className="p-4 rounded-2xl bg-surface-2/60 hover:bg-surface-2 border border-line flex flex-col justify-between space-y-2 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-text-muted font-medium group-hover:text-text transition-colors">
-                Overall Health
-              </span>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  overallHealthScore >= 75 ? "bg-emerald-500" : "bg-amber-500"
-                }`} />
-                <span className={`text-[11px] font-medium ${
-                  overallHealthScore >= 75 ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"
-                }`}>
-                  {overallHealthScore >= 75 ? "Optimal" : "Monitor"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-bold text-text font-mono tracking-tight">
-                {overallHealthScore}
-              </span>
-              <span className="text-xs text-text-muted font-mono">/ 100</span>
-            </div>
-          </Link>
-
-          <Link
-            href="/simulator"
-            className="p-4 rounded-2xl bg-surface-2/60 hover:bg-surface-2 border border-line flex flex-col justify-between space-y-2 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-text-muted font-medium group-hover:text-text transition-colors">
-                Liquid Runway
-              </span>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  Number(liquidRunwayMo) >= 6 ? "bg-emerald-500" : "bg-amber-500"
-                }`} />
-                <span className="text-[11px] font-medium text-text-muted">
-                  {Number(liquidRunwayMo) >= 6 ? "Safe Zone" : "Caution"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-bold text-text font-mono tracking-tight">
-                {liquidRunwayMo}
-              </span>
-              <span className="text-xs text-text-muted font-mono">months</span>
-            </div>
-          </Link>
-
-          <Link
-            href="/tasks"
-            className="p-4 rounded-2xl bg-surface-2/60 hover:bg-surface-2 border border-line flex flex-col justify-between space-y-2 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-text-muted font-medium group-hover:text-text transition-colors">
-                Execution Queue
-              </span>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  activeTaskCount > 0 ? "bg-blue-500" : "bg-emerald-500"
-                }`} />
-                <span className="text-[11px] font-medium text-text-muted">
-                  {activeTaskCount > 0 ? `${activeTaskCount} Active` : "On Schedule"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-bold text-text font-mono tracking-tight">
-                {activeTaskCount}
-              </span>
-              <span className="text-xs text-text-muted font-mono">Active</span>
-            </div>
-          </Link>
-
-          <Link
-            href="/gaps"
-            className="p-4 rounded-2xl bg-surface-2/60 hover:bg-surface-2 border border-line flex flex-col justify-between space-y-2 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-text-muted font-medium group-hover:text-text transition-colors">
-                Bottleneck Gaps
-              </span>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  bottleneckGapCount > 0 ? "bg-amber-500" : "bg-emerald-500"
-                }`} />
-                <span className="text-[11px] font-medium text-text-muted">
-                  {bottleneckGapCount > 0 ? "Action Ready" : "Clear"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-bold text-text font-mono tracking-tight">
-                {bottleneckGapCount}
-              </span>
-              <span className="text-xs text-text-muted font-mono">Flagged</span>
-            </div>
-          </Link>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {stats.map(s => (
+            <Link
+              key={s.label}
+              href={s.href}
+              className="rounded-xl bg-surface-2/60 p-5 hover:bg-surface-2 transition-colors"
+            >
+              <p className="text-sm text-text-muted">{s.label}</p>
+              <p className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-3xl font-semibold text-text">{s.value}</span>
+                <span className="text-sm text-text-muted">{s.unit}</span>
+              </p>
+              <p className={`mt-1 text-xs ${s.good ? "text-jade" : "text-text-muted"}`}>{s.note}</p>
+            </Link>
+          ))}
         </div>
       </div>
 
-      {/* Interactive Dashboard Customization Panel */}
       {isEditingLayout && (
-        <div className="p-5 rounded-2xl border border-gold/40 bg-surface/95 backdrop-blur-xl shadow-2xl shadow-[0_16px_40px_-10px_var(--gold-glow)] space-y-4 animate-fade-in">
-          <div className="flex items-center justify-between pb-3 border-b border-line/60">
+        <div className="rounded-2xl border border-line bg-surface shadow-sm p-6 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-gold" />
-                <h2 className="text-xs font-bold text-text uppercase tracking-wider font-sans">
-                  Customize Executive Layout
-                </h2>
-              </div>
-              <p className="text-xs text-text-muted mt-0.5">
-                Toggle widget visibility, adjust grid column spans, or reset to optimal preset.
-              </p>
+              <h2 className="text-base font-semibold text-text">Customize dashboard</h2>
+              <p className="text-sm text-text-muted mt-0.5">Show or hide sections and choose how wide each one is.</p>
             </div>
-
             <div className="flex items-center gap-2">
-              <Button type="button" variant="secondary" size="sm" onClick={handleResetLayout} icon={<RotateCcw className="w-3.5 h-3.5" />}>
-                Reset Preset
-              </Button>
-              <Button type="button" variant="primary" size="sm" onClick={handleSaveLayout} icon={<Save className="w-3.5 h-3.5" />}>
-                Save Layout
-              </Button>
+              <button
+                type="button"
+                onClick={handleResetLayout}
+                className="px-3.5 py-2 rounded-lg text-sm border border-line text-text hover:bg-surface-2 cursor-pointer"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveLayout}
+                className="px-3.5 py-2 rounded-lg text-sm font-medium bg-brass text-white hover:brightness-110 cursor-pointer"
+              >
+                Save
+              </button>
             </div>
           </div>
 
-          {/* Widget customization pills */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {activeWidgets.map(widget => (
               <div
                 key={widget.id}
-                className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 text-xs transition-all ${
-                  widget.enabled
-                    ? "bg-surface-2/80 border-gold/40 shadow-xs"
-                    : "bg-surface-2/20 border-line opacity-50"
+                className={`px-3.5 py-3 rounded-xl bg-surface-2/60 flex items-center justify-between gap-3 ${
+                  widget.enabled ? "" : "opacity-60"
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <button
                     type="button"
                     onClick={() => toggleWidgetVisibility(widget.id)}
-                    className={`p-1.5 rounded-lg transition-colors ${
-                      widget.enabled ? "text-gold bg-gold/15 hover:text-rust" : "text-text-muted hover:text-gold"
-                    }`}
-                    title={widget.enabled ? "Hide from dashboard" : "Show on dashboard"}
+                    aria-label={widget.enabled ? "Hide from dashboard" : "Show on dashboard"}
+                    className="p-1 text-text-muted hover:text-text cursor-pointer"
                   >
                     {widget.enabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                   </button>
-                  <span className="font-semibold text-text truncate">{widget.title}</span>
+                  <span className="text-sm text-text truncate">{widget.title}</span>
                 </div>
 
                 {widget.enabled && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-[10px] text-text-muted font-mono mr-1">Span:</span>
+                  <div className="flex items-center p-0.5 bg-surface-2 rounded-md shrink-0">
                     {([2, 4] as const).map(span => (
                       <button
                         key={span}
                         type="button"
                         onClick={() => changeWidgetSpan(widget.id, span)}
-                        className={`text-[10px] px-2.5 py-1 rounded-lg font-mono font-semibold transition-all ${
-                          widget.defaultSpan === span
-                            ? "bg-gold text-[#1a1206] font-bold shadow-xs"
-                            : "bg-surface border border-line text-text-muted hover:text-text"
+                        className={`px-2 py-0.5 rounded text-xs cursor-pointer ${
+                          widget.defaultSpan === span ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted"
                         }`}
                       >
                         {span === 4 ? "Full" : "Half"}
@@ -1091,63 +854,27 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* Dynamic Dashboard Grid (Masonry-style dense packing) */}
-      <div className="pt-4 mt-2">
-        <div className="flex items-center gap-2 mb-4 px-1">
-          <Layers className="w-4 h-4 text-gold" />
-          <h2 className="text-xs font-bold text-text uppercase tracking-wider font-sans">
-            Executive Operations & Active Tooling
-          </h2>
-        </div>
-        <motion.div 
-          layout
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 auto-rows-max grid-flow-row-dense"
-        >
-          {activeWidgets
-            .filter(w => w.enabled)
-            .map((widget, index) => (
-              <motion.div
-                key={widget.id}
-                layout
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: index * 0.04, ease: [0.22, 1, 0.36, 1] }}
-                className="contents"
-              >
-                <RenderWidget widget={widget} />
-              </motion.div>
-            ))}
-        </motion.div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-max grid-flow-row-dense">
+        {activeWidgets
+          .filter(w => w.enabled)
+          .map(widget => (
+            <RenderWidget key={widget.id} widget={widget} />
+          ))}
       </div>
 
-      {/* Daily Check-In Modal */}
-      <DailyCheckInModal
-        isOpen={isCheckInModalOpen}
-        onClose={() => setIsCheckInModalOpen(false)}
-        onCompleted={() => {
-          refreshCheckinStatus();
-          setToast("Daily Executive Check-In recorded! Telemetry synchronized.");
-          setTimeout(() => setToast(null), 4000);
-        }}
-        questionRules={checkinData.questionRules}
-        questions={checkinData.questions}
-      />
-
-      {/* Business Data Upload Modal */}
       <UploadDataModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        onSuccess={(metrics) => {
-          notify(`Business Data applied: ${metrics.name || companyName}! Telemetry synchronized.`);
+        onSuccess={metrics => {
+          notify(`Data applied: ${metrics.name || companyName}`);
         }}
       />
 
-      {/* Quick Business Input Modal */}
       <QuickBusinessInputModal
         isOpen={isQuickInputModalOpen}
         onClose={() => setIsQuickInputModalOpen(false)}
         onSuccess={() => {
-          notify(`Daily Business Input recorded! Live metrics updated.`);
+          notify("Business input saved");
         }}
       />
     </div>

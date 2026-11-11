@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { Send, Paperclip, X, FileText, Square } from "lucide-react";
+import { ArrowUp, Paperclip, X, FileText, Square } from "lucide-react";
 import { AgentMeta, ChatAttachment } from "./types";
 
 interface ComposerProps {
@@ -27,28 +27,27 @@ export function Composer({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
 
-  // Auto-grow textarea up to max 160px
+  // Auto-grow textarea up to 200px
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      const nextHeight = Math.min(textareaRef.current.scrollHeight, 160);
-      textareaRef.current.style.height = `${Math.max(nextHeight, 44)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
   }, [value]);
+
+  const canSend = (value.trim().length > 0 || attachments.length > 0) && !isTyping;
+
+  const handleTriggerSend = () => {
+    if (!canSend) return;
+    onSend(attachments.length > 0 ? attachments : undefined);
+    setAttachments([]);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if ((value.trim() || attachments.length > 0) && !isTyping) {
-        handleTriggerSend();
-      }
+      handleTriggerSend();
     }
-  };
-
-  const handleTriggerSend = () => {
-    if ((!value.trim() && attachments.length === 0) || isTyping) return;
-    onSend(attachments.length > 0 ? attachments : undefined);
-    setAttachments([]);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,7 +65,6 @@ export function Composer({
     });
 
     setAttachments(prev => [...prev, ...newAttachments]);
-    // Reset file input value so same file can be re-selected if removed
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -74,129 +72,97 @@ export function Composer({
     setAttachments(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  const nameDisplay = activeAgent.name;
-
   return (
-    <div
-      className={`border-t border-line bg-surface/95 backdrop-blur-md px-3 sm:px-6 lg:px-8 py-3 shrink-0 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] ${className}`}
-    >
-      <div className="w-full max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto space-y-2">
-        {/* Attachment Previews */}
-        {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-2 rounded-xl bg-surface-2/60 border border-line">
-            {attachments.map((att, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-2 pl-2 pr-1.5 py-1 rounded-lg bg-surface border border-line text-xs shadow-2xs group"
-              >
-                {att.previewUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={att.previewUrl}
-                    alt={att.name}
-                    className="w-5 h-5 rounded object-cover border border-line"
-                  />
-                ) : (
-                  <FileText className="w-4 h-4 text-brass" />
-                )}
-                <div className="min-w-0 max-w-[160px] sm:max-w-[220px]">
-                  <p className="truncate font-medium text-text text-[11px] leading-tight">
-                    {att.name}
-                  </p>
-                  <span className="text-[10px] text-text-muted font-sans">
-                    {formatFileSize(att.size)}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeAttachment(idx)}
-                  className="p-1 rounded-md text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
-                  title="Remove attachment"
-                  aria-label={`Remove ${att.name}`}
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
+    <div className={`px-4 sm:px-7 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] shrink-0 ${className}`}>
+      <div className="w-full max-w-3xl mx-auto">
         <form
           onSubmit={e => {
             e.preventDefault();
             handleTriggerSend();
           }}
-          className="relative flex items-end gap-2 bg-surface-2 border border-line rounded-2xl p-1.5 focus-within:border-brass focus-within:ring-0 focus-within:outline-none transition-all shadow-theme outline-none"
+          className="bg-surface border border-line-strong rounded-3xl px-4 pt-3 pb-2.5 shadow-sm focus-within:border-text-muted transition-colors"
         >
-          {/* Hidden File Input */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-            multiple
-            accept="image/*,.pdf,.doc,.docx,.csv,.xlsx,.txt"
-            className="hidden"
-            aria-label="Upload files and images"
-          />
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {attachments.map((att, idx) => (
+                <div key={idx} className="flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 rounded-lg bg-surface-2 text-xs">
+                  {att.previewUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={att.previewUrl} alt={att.name} className="w-5 h-5 rounded object-cover" />
+                  ) : (
+                    <FileText className="w-4 h-4 text-text-muted" />
+                  )}
+                  <span className="truncate max-w-[180px] text-text">{att.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(idx)}
+                    aria-label={`Remove ${att.name}`}
+                    className="p-0.5 text-text-muted hover:text-text cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
-          {/* Attachment Paperclip Button */}
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="Attach images, files, or documents"
-            title="Attach images, files, or documents"
-            className="p-2.5 rounded-xl text-text-muted hover:text-brass hover:bg-surface transition-colors cursor-pointer shrink-0 mb-0.5 focus-visible:outline-none"
-          >
-            <Paperclip className="w-4 h-4" />
-          </button>
-
-          {/* Auto-growing Textarea without browser blue ring */}
           <textarea
             ref={textareaRef}
             rows={1}
             value={value}
             onChange={e => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Ask ${nameDisplay} about strategy, runway, financial models, or execution…`}
-            aria-label={`Ask ${activeAgent.name}`}
+            placeholder={`Message ${activeAgent.name}…`}
+            aria-label={`Message ${activeAgent.name}`}
             style={{ outline: "none", boxShadow: "none" }}
-            className="flex-1 max-h-[160px] py-2 px-1 bg-transparent text-xs sm:text-sm text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 outline-none resize-none leading-relaxed border-none ring-0 shadow-none selection:bg-brass selection:text-white"
+            className="w-full max-h-[200px] bg-transparent text-[15px] text-text placeholder:text-text-muted resize-none leading-relaxed border-none outline-none ring-0 focus:outline-none focus:ring-0"
           />
 
-          {/* Send or Stop Generation Button */}
-          {isTyping ? (
+          <div className="flex items-center justify-between mt-1">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              multiple
+              accept="image/*,.pdf,.doc,.docx,.csv,.xlsx,.txt"
+              className="hidden"
+              aria-label="Attach files"
+            />
             <button
               type="button"
-              onClick={onStop}
-              aria-label="Stop generating response"
-              title="Stop generating"
-              className="h-10 px-3.5 sm:px-4 rounded-xl bg-rust text-white text-xs sm:text-sm font-semibold shadow-sm hover:brightness-110 cursor-pointer transition-all inline-flex items-center justify-center gap-1.5 shrink-0 mb-0.5 focus-visible:outline-none"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Attach files"
+              title="Attach files"
+              className="p-2 rounded-full text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
             >
-              <Square className="w-3.5 h-3.5 fill-current" />
-              <span className="hidden sm:inline">Stop</span>
+              <Paperclip className="w-5 h-5" />
             </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={!value.trim() && attachments.length === 0}
-              aria-label="Send message"
-              className="h-10 px-3 sm:px-4 rounded-xl bg-brass text-white text-xs sm:text-sm font-bold shadow-sm hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all inline-flex items-center justify-center gap-1.5 shrink-0 mb-0.5 focus-visible:outline-none"
-            >
-              <span className="hidden sm:inline">Send</span>
-              <Send className="w-3.5 h-3.5" />
-            </button>
-          )}
+
+            {isTyping ? (
+              <button
+                type="button"
+                onClick={onStop}
+                aria-label="Stop generating"
+                title="Stop"
+                className="w-9 h-9 rounded-full bg-text text-bg flex items-center justify-center cursor-pointer hover:opacity-85"
+              >
+                <Square className="w-3.5 h-3.5 fill-current" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!canSend}
+                aria-label="Send message"
+                className="w-9 h-9 rounded-full bg-brass text-white flex items-center justify-center cursor-pointer hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ArrowUp className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </form>
 
-        {/* Small AI Disclaimer */}
-        <p className="text-[11px] text-text-muted/65 text-center select-none pt-0.5">
-          BizzPal is an AI &amp; can make mistakes. Verify critical business &amp; financial decisions.
+        <p className="text-xs text-text-muted text-center select-none pt-2">
+          AI can make mistakes. Please check important business and financial decisions.
         </p>
       </div>
     </div>

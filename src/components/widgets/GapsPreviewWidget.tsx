@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { ContainerTile } from "../ui/ContainerTile";
-import { AlertTriangle, ArrowRight, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useBusinessDataSync } from "@/lib/upload/events";
 
@@ -94,72 +93,44 @@ export function GapsPreviewWidget() {
 
   return (
     <ContainerTile span={2} id="widget_top_gaps">
-      <div className="flex flex-col h-full justify-between space-y-4">
-        <div>
-          <div className="flex items-center justify-between pb-3 border-b border-line">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-sans">
-                  Priority Gaps & Bottlenecks
-                </h2>
-                <span className="text-[10px] text-text-muted">
-                  AI diagnostic engine continuous watch
-                </span>
-              </div>
+      <div className="flex flex-col h-full justify-between gap-6">
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-text">Gaps to fix</h2>
+              <p className="text-sm text-text-muted mt-0.5">Problems found in your numbers.</p>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-text-muted font-medium">
-              <span className={`w-1.5 h-1.5 rounded-full ${topGaps.length > 0 ? "bg-amber-500" : "bg-emerald-500"}`} />
-              <span>{topGaps.length} flagged</span>
-            </div>
+            <span className="text-sm text-text-muted shrink-0">{topGaps.length} found</span>
           </div>
 
-          <div className="space-y-2.5 pt-3">
-            {topGaps.length === 0 ? (
-              <div className="p-4 rounded-xl bg-surface-2/30 border border-line text-center space-y-1.5">
-                <div className="text-xs font-semibold text-text">
-                  No Critical Bottlenecks Flagged
-                </div>
-                <p className="text-[11px] text-text-muted leading-relaxed">
-                  Enterprise telemetry is clear. Autonomous watchdogs are monitoring cash runway, revenue concentration, and pipeline velocity.
-                </p>
-              </div>
-            ) : (
-              topGaps.map(gap => (
-                <div
-                  key={gap.id}
-                  className="p-3 rounded-xl bg-surface-2/40 border border-line hover:border-line-strong hover:bg-surface-2/70 transition-all space-y-1.5 group cursor-pointer"
-                >
-                  <div className="flex items-start justify-between gap-2.5">
-                    <span className="text-xs font-semibold text-text leading-snug group-hover:text-brass transition-colors">
-                      {gap.title}
-                    </span>
-                    <span className="text-[10px] font-bold uppercase font-mono tracking-wider shrink-0 text-amber-600 dark:text-amber-400">
+          {topGaps.length === 0 ? (
+            <p className="text-sm text-text-muted leading-relaxed py-4">
+              Nothing to fix right now. We'll flag anything that needs attention as your numbers change.
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {topGaps.map(gap => (
+                <li key={gap.id} className="py-3 first:pt-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-sm text-text leading-snug">{gap.title}</span>
+                    <span
+                      className={`text-xs shrink-0 capitalize ${gap.severity === "critical" ? "text-rust" : "text-text-muted"}`}
+                    >
                       {gap.severity}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] text-text-muted">
-                    <span className="font-mono text-text font-medium">{gap.impact}</span>
-                    <span className="text-text-muted/40">·</span>
-                    <span className="capitalize">{gap.effort}</span>
-                    <span className="text-text-muted/40">·</span>
-                    <span className="text-blue-600 dark:text-blue-400 font-medium">{gap.category}</span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+                  <p className="text-xs text-text-muted mt-1">
+                    {gap.impact} · {gap.category}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
-        <div className="pt-3 border-t border-white/[0.08]">
-          <Link
-            href="/gaps"
-            className="flex items-center justify-between text-xs text-cyan-400 hover:text-cyan-300 font-semibold btn-tactile group"
-          >
-            <span>Open Gap Register & Solutions Playbooks</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+        <div className="pt-4 border-t border-line">
+          <Link href="/gaps" className="text-sm text-brass hover:underline">
+            Open gap register
           </Link>
         </div>
       </div>

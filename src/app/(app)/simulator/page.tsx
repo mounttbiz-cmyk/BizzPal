@@ -40,6 +40,7 @@ interface CompanyProfileContext {
   cash: number;
   revenue: number;
   teamSize: number;
+  industry: string;
 }
 
 // Preset and Dynamic Scenario Generator
@@ -478,13 +479,85 @@ function generateSimulation(
   };
 }
 
-const PRESET_QUERIES = [
-  "Should I hire an IT guy?",
-  "What happens if we scale our engineering capacity?",
+const SUGGESTIONS_BY_INDUSTRY: Record<string, string[]> = {
+  it_tech: [
+    "Should we hire 3 full-time sales reps?",
+    "What happens if we scale our engineering capacity?",
+    "Should we raise our rates by 20%?",
+    "Should we outsource marketing to an agency?",
+    "Should I hire an IT guy?",
+  ],
+  saas: [
+    "What happens if we scale our engineering capacity?",
+    "Should we raise our pricing by 20%?",
+    "Should we hire 3 full-time sales reps?",
+    "Should we outsource marketing to an agency?",
+    "Should we offer a discount on annual plans?",
+  ],
+  d2c: [
+    "Should we raise our prices by 10%?",
+    "Should we spend more on ads?",
+    "Should we hire a customer support person?",
+    "Should we outsource marketing to an agency?",
+    "Should we stock more inventory before the festive season?",
+  ],
+  agency: [
+    "Should we hire 2 more designers?",
+    "Should we raise our rates by 15%?",
+    "Should we hire 3 full-time sales reps?",
+    "Should we outsource marketing to an agency?",
+    "Should we say no to low-paying clients?",
+  ],
+  healthcare: [
+    "Should we add another doctor or specialist?",
+    "Should we raise our consultation fees by 10%?",
+    "Should we spend more on ads?",
+    "Should we hire a front-desk assistant?",
+  ],
+  manufacturing: [
+    "Should we add a second production shift?",
+    "Should we raise our prices by 10%?",
+    "Should we hire 3 full-time sales reps?",
+    "Should we buy new machinery?",
+  ],
+  real_estate: [
+    "Should we hire 3 full-time sales reps?",
+    "Should we spend more on ads?",
+    "Should we raise our commission by 1%?",
+    "Should we outsource marketing to an agency?",
+  ],
+  finance: [
+    "Should we hire 3 full-time sales reps?",
+    "Should we raise our fees by 10%?",
+    "Should we spend more on ads?",
+    "Should we outsource marketing to an agency?",
+  ],
+};
+
+const DEFAULT_SUGGESTIONS = [
   "Should we hire 3 full-time sales reps?",
   "Should we raise our pricing by 20%?",
   "Should we outsource marketing to an agency?",
+  "What happens if we scale our team?",
 ];
+
+function getSuggestions(profile: CompanyProfileContext): string[] {
+  const list: string[] = [];
+  const runway = profile.burn > 0 ? profile.cash / profile.burn : null;
+
+  // Situation-based ideas come first
+  if (profile.revenue === 0 && profile.burn === 0 && profile.cash === 0) {
+    list.push("What should we do to get our first customers?");
+  } else if (runway !== null && runway < 6) {
+    list.push("How can we extend our cash runway?");
+  }
+
+  const ALIASES: Record<string, string> = { it_services: "it_tech", ecommerce: "d2c", retail: "d2c" };
+  const key = ALIASES[profile.industry] || profile.industry;
+  const byIndustry = SUGGESTIONS_BY_INDUSTRY[key] || DEFAULT_SUGGESTIONS;
+  return [...list, ...byIndustry].slice(0, 6);
+}
+
 
 const cleanName = (name: string) => name.replace(/\s*\(Recommended\)\s*$/, "");
 
@@ -497,10 +570,12 @@ export default function SimulatorPage() {
     cash: 0,
     revenue: 0,
     teamSize: 1,
+    industry: "",
   });
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
-  const [queryInput, setQueryInput] = useState("Should I hire an IT guy?");
-  const [activeQuery, setActiveQuery] = useState("Should I hire an IT guy?");
+  const [queryInput, setQueryInput] = useState("");
+  const [activeQuery, setActiveQuery] = useState("");
   const [isSimulating, setIsSimulating] = useState(false);
   const [selectedScenarioId, setSelectedScenarioId] = useState("");
 
@@ -521,7 +596,9 @@ export default function SimulatorPage() {
           cash: Number(parsed.cash || parsed.cash_on_hand) || prev.cash,
           revenue: Number(parsed.revenue || parsed.monthly_revenue) || prev.revenue,
           teamSize: Number(parsed.teamSize || parsed.team_size) || prev.teamSize,
+          industry: String(parsed.industry || prev.industry || "").toLowerCase(),
         }));
+        setProfileLoaded(true);
       } else {
         fetch("/api/business/intake")
           .then(r => r.json())
@@ -536,16 +613,32 @@ export default function SimulatorPage() {
                 cash: Number(b.cash_on_hand) || prev.cash,
                 revenue: Number(b.monthly_revenue) || prev.revenue,
                 teamSize: Number(b.team_size) || prev.teamSize,
+                industry: String(b.industry || prev.industry || "").toLowerCase(),
               }));
               localStorage.setItem("bizzpal_business_profile", JSON.stringify(b));
             }
           })
-          .catch(() => {});
+          .catch(() => {})
+          .finally(() => setProfileLoaded(true));
       }
     } catch {
-      // ignore bad saved data
+      setProfileLoaded(true);
     }
   }, []);
+
+  const allSuggestions = useMemo(() => getSuggestions(profile), [profile]);
+  const suggestions = useMemo(
+    () => allSuggestions.filter(q => q.toLowerCase() !== activeQuery.toLowerCase()).slice(0, 5),
+    [allSuggestions, activeQuery]
+  );
+
+  // Start with the first idea that fits this business instead of a fixed example
+  useEffect(() => {
+    if (profileLoaded && !activeQuery && allSuggestions.length > 0) {
+      setQueryInput(allSuggestions[0]);
+      setActiveQuery(allSuggestions[0]);
+    }
+  }, [profileLoaded, activeQuery, allSuggestions]);
 
   const simulationResult = useMemo(() => generateSimulation(activeQuery, profile), [activeQuery, profile]);
 
@@ -593,19 +686,21 @@ export default function SimulatorPage() {
     setTimeout(() => setExecutionMessage(null), 6000);
   };
 
+  const recommended = simulationResult.options.find(o => o.isRecommended);
+
   return (
-    <div className="space-y-6">
-      <div className="pb-4 border-b border-line">
-        <h1 className="text-xl font-bold text-text">Decision Simulator</h1>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold text-text">Decision simulator</h1>
         <p className="text-sm text-text-muted mt-1">
           Compare the cost, return and runway impact of a decision before you make it.
         </p>
       </div>
 
       {executionMessage && (
-        <div className="p-3 rounded-lg border border-jade/30 bg-jade/10 text-sm text-jade flex items-center justify-between">
+        <div className="px-4 py-3 rounded-xl bg-surface-2 text-sm text-text flex items-center justify-between gap-3">
           <span>{executionMessage}</span>
-          <Link href="/tasks" className="font-medium underline">
+          <Link href="/tasks" className="text-brass hover:underline shrink-0">
             View tasks
           </Link>
         </div>
@@ -623,125 +718,132 @@ export default function SimulatorPage() {
             type="text"
             value={queryInput}
             onChange={e => setQueryInput(e.target.value)}
-            placeholder="Ask a decision, e.g. Should we raise prices by 20%?"
-            className="flex-1 px-3.5 py-2.5 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
+            placeholder="Type a decision, e.g. Should we raise prices by 20%?"
+            className="flex-1 px-4 py-3 rounded-xl border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
           />
           <button
             type="submit"
             disabled={isSimulating || !queryInput.trim()}
-            className="px-5 py-2.5 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 inline-flex items-center justify-center gap-2 cursor-pointer"
+            className="px-6 py-3 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 inline-flex items-center justify-center gap-2 cursor-pointer"
           >
             {isSimulating && <RefreshCw className="w-4 h-4 animate-spin" />}
             {isSimulating ? "Simulating…" : "Simulate"}
           </button>
         </form>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          <span className="text-text-muted">Try:</span>
-          {PRESET_QUERIES.map(q => (
-            <button
-              key={q}
-              type="button"
-              onClick={() => handleSimulate(q)}
-              className={`cursor-pointer hover:underline ${
-                activeQuery.toLowerCase() === q.toLowerCase() ? "text-brass font-medium" : "text-text-muted"
-              }`}
-            >
-              {q}
-            </button>
-          ))}
-        </div>
+        {suggestions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-text-muted mr-1">Other ideas for your business:</span>
+            {suggestions.map(q => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => handleSimulate(q)}
+                className="px-3.5 py-1.5 rounded-full border border-line text-sm text-text hover:bg-surface-2 cursor-pointer"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-base font-semibold text-text">{simulationResult.title}</h2>
+      {simulationResult.options.length > 0 && activeQuery && (
+        <>
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold text-text">{simulationResult.title}</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {simulationResult.options.map(sc => {
-            const isSelected = sc.id === selectedScenarioId;
-            return (
-              <button
-                key={sc.id}
-                type="button"
-                onClick={() => setSelectedScenarioId(sc.id)}
-                className={`text-left p-4 rounded-xl border bg-surface flex flex-col gap-3 cursor-pointer transition-colors ${
-                  isSelected ? "border-brass ring-1 ring-brass/40" : "border-line hover:border-line-strong"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-sm font-semibold text-text">{cleanName(sc.name)}</h3>
-                  <span
-                    className={`w-4 h-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0 ${
-                      isSelected ? "bg-brass border-brass text-white" : "border-line-strong"
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {simulationResult.options.map(sc => {
+                const isSelected = sc.id === selectedScenarioId;
+                return (
+                  <button
+                    key={sc.id}
+                    type="button"
+                    onClick={() => setSelectedScenarioId(sc.id)}
+                    className={`text-left p-6 rounded-2xl border bg-surface shadow-sm flex flex-col gap-4 cursor-pointer transition-colors ${
+                      isSelected ? "border-line-strong bg-surface-2/50" : "border-line hover:bg-surface-2/40"
                     }`}
                   >
-                    {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                  </span>
-                </div>
-                <p className="text-xs text-text-muted leading-relaxed">{sc.subtitle}</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="text-base font-medium text-text leading-snug">{cleanName(sc.name)}</h3>
+                      <span
+                        className={`w-5 h-5 mt-0.5 rounded-full border flex items-center justify-center shrink-0 ${
+                          isSelected ? "bg-brass border-brass text-white" : "border-line-strong"
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </span>
+                    </div>
+                    <p className="text-sm text-text-muted leading-relaxed">{sc.subtitle}</p>
 
-                <dl className="grid grid-cols-2 gap-3 pt-3 mt-auto border-t border-line text-sm">
-                  <div>
-                    <dt className="text-xs text-text-muted">Monthly cost</dt>
-                    <dd className="font-medium text-text">₹{sc.monthlyCost.toLocaleString("en-IN")}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-text-muted">Expected revenue</dt>
-                    <dd className="font-medium text-text">+₹{sc.projectedRevenueIncrease.toLocaleString("en-IN")}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-text-muted">Runway</dt>
-                    <dd className={`font-medium ${sc.runwayImpactMonths >= 0 ? "text-jade" : "text-rust"}`}>
-                      {sc.runwayImpactMonths > 0 ? "+" : ""}
-                      {sc.runwayImpactMonths} mo
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-text-muted">ROI</dt>
-                    <dd className="font-medium text-text">{sc.roiPercent}%</dd>
-                  </div>
-                </dl>
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-4 pt-4 mt-auto border-t border-line text-sm">
+                      <div>
+                        <dt className="text-xs text-text-muted">Monthly cost</dt>
+                        <dd className="font-medium text-text mt-0.5">₹{sc.monthlyCost.toLocaleString("en-IN")}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-text-muted">Expected revenue</dt>
+                        <dd className="font-medium text-text mt-0.5">+₹{sc.projectedRevenueIncrease.toLocaleString("en-IN")}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-text-muted">Runway</dt>
+                        <dd className={`font-medium mt-0.5 ${sc.runwayImpactMonths >= 0 ? "text-jade" : "text-rust"}`}>
+                          {sc.runwayImpactMonths > 0 ? "+" : ""}
+                          {sc.runwayImpactMonths} months
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-text-muted">Return</dt>
+                        <dd className="font-medium text-text mt-0.5">{sc.roiPercent}%</dd>
+                      </div>
+                    </dl>
 
-                <p className="text-xs text-text-muted">
-                  {sc.riskScore} risk
-                  {sc.isRecommended && <span className="text-brass font-medium"> · Recommended</span>}
-                </p>
+                    <p className="text-sm text-text-muted">
+                      {sc.riskScore} risk
+                      {sc.isRecommended && <span className="text-brass font-medium"> · Recommended</span>}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-line bg-surface shadow-sm p-6 sm:p-7 space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-text">
+                What {ceoName} and {cfoName} suggest
+              </h2>
+              {recommended && (
+                <p className="text-sm text-brass mt-1">Best fit: {cleanName(recommended.name)}</p>
+              )}
+              <p className="text-sm text-text-muted leading-relaxed mt-3 max-w-3xl">
+                {simulationResult.consensusQuote.replace(/^"|"$/g, "")}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-line">
+              <button
+                type="button"
+                onClick={handleExecutePlan}
+                disabled={isExecuting}
+                className="px-5 py-2.5 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 inline-flex items-center gap-2 cursor-pointer"
+              >
+                {isExecuting && <RefreshCw className="w-4 h-4 animate-spin" />}
+                {isExecuting ? "Creating tasks…" : `Create tasks for ${activeScenario?.name.split(":")[0]}`}
               </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="p-5 rounded-xl border border-line bg-surface space-y-4">
-        <div>
-          <h2 className="text-sm font-semibold text-text">
-            {ceoName} &amp; {cfoName}&rsquo;s recommendation
-          </h2>
-          <p className="text-sm text-text-muted leading-relaxed mt-2 max-w-3xl">
-            {simulationResult.consensusQuote.replace(/^"|"$/g, "")}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-line">
-          <button
-            type="button"
-            onClick={handleExecutePlan}
-            disabled={isExecuting}
-            className="px-5 py-2.5 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 inline-flex items-center gap-2 cursor-pointer"
-          >
-            {isExecuting && <RefreshCw className="w-4 h-4 animate-spin" />}
-            {isExecuting ? "Creating tasks…" : `Create tasks for ${activeScenario?.name.split(":")[0]}`}
-          </button>
-          <div className="flex items-center gap-4 text-sm">
-            <Link href="/workflows" className="text-brass hover:underline">
-              Workflows
-            </Link>
-            <Link href="/tasks" className="text-brass hover:underline">
-              Tasks
-            </Link>
-          </div>
-        </div>
-      </div>
+              <div className="flex items-center gap-5 text-sm">
+                <Link href="/workflows" className="text-brass hover:underline">
+                  Workflows
+                </Link>
+                <Link href="/tasks" className="text-brass hover:underline">
+                  Tasks
+                </Link>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }

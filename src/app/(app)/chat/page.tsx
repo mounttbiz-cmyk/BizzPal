@@ -587,35 +587,16 @@ export default function ChatWorkspacePage() {
   const enterpriseName = companyProfile?.name || "MOUNTT GROUP";
 
   return (
-    <div className="h-[calc(100dvh-5.5rem)] md:h-[calc(100vh-5.5rem)] flex flex-col space-y-2 sm:space-y-3 relative overflow-x-hidden">
+    <div className="h-[calc(100dvh-5.5rem)] md:h-[calc(100vh-5.5rem)] flex flex-col space-y-3 sm:space-y-4 relative overflow-x-hidden">
       {/* ============================================================ */}
       {/* 1. TOP PAGE HEADER BAR (DESKTOP & MOBILE COMPACT) */}
       {/* ============================================================ */}
-      <header
-        aria-label="Workspace Status Header"
-        className="flex items-center justify-between pb-2 sm:pb-2.5 border-b border-line shrink-0 gap-2"
-      >
-        {/* Left: App Title */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0 shadow-2xs">
-            <BrainCircuit className="w-4 h-4" />
-          </div>
-          <h1 className="text-base sm:text-lg font-bold text-text truncate tracking-tight font-sans">
-            <span className="hidden sm:inline">Executive Advisory</span>
-            <span className="sm:hidden">Executive Advisory</span>
-          </h1>
-        </div>
-
-        {/* Right: Mobile History Drawer Shortcut */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setIsHistoryOpen(true)}
-            aria-label="Open Chat History"
-            className="md:hidden p-1.5 rounded-xl bg-surface-2 border border-line text-text-muted hover:text-text cursor-pointer"
-          >
-            <MessageSquare className="w-4 h-4 text-brass" />
-          </button>
+      <header aria-label="Page header" className="flex items-center justify-between shrink-0 gap-2 pb-1">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold text-text truncate">Executive advisory</h1>
+          <p className="text-sm text-text-muted mt-0.5 hidden sm:block">
+            Talk to your AI team about strategy, cash, growth and hiring.
+          </p>
         </div>
       </header>
 
@@ -648,7 +629,7 @@ export default function ChatWorkspacePage() {
         {/* Center Main Chat Panel */}
         <main
           aria-label="Active Conversation Stream"
-          className="flex-1 flex flex-col bg-surface border border-line rounded-2xl overflow-hidden shadow-theme min-w-0"
+          className="flex-1 flex flex-col bg-surface border border-line rounded-2xl overflow-hidden min-w-0"
         >
           {/* Active Advisor Clean Header Row */}
           <AdvisorHeader

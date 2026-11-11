@@ -301,7 +301,7 @@ export default function BusinessProfileSettingsPage() {
   };
 
   const inputClass =
-    "w-full px-3 py-2.5 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
+    "w-full px-3 py-2.5 rounded-xl border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
 
   const initials =
     businessName
@@ -342,20 +342,20 @@ export default function BusinessProfileSettingsPage() {
   return (
     <div className="space-y-6">
       {saveError && (
-        <p className="p-3 rounded-lg border border-rust/30 bg-rust/5 text-sm text-rust">{saveError}</p>
+        <p className="p-3 rounded-xl border border-rust/30 bg-rust/5 text-sm text-rust">{saveError}</p>
       )}
 
       <form onSubmit={handleSaveProfile} className="space-y-6">
         {/* Identity summary */}
-        <section className="rounded-xl border border-line bg-surface p-6 flex flex-col sm:flex-row sm:items-center gap-5">
+        <section className="rounded-2xl border border-line bg-surface shadow-sm p-6 flex flex-col sm:flex-row sm:items-center gap-5">
           {businessLogo ? (
             <img
               src={businessLogo}
               alt={businessName || "Business logo"}
-              className="w-20 h-20 rounded-xl border border-line bg-surface-2 object-contain p-1.5 shrink-0"
+              className="w-20 h-20 rounded-2xl border border-line bg-surface shadow-sm-2 object-contain p-1.5 shrink-0"
             />
           ) : (
-            <div className="w-20 h-20 rounded-xl border border-line bg-surface-2 text-text-muted text-2xl flex items-center justify-center shrink-0 select-none">
+            <div className="w-20 h-20 rounded-2xl border border-line bg-surface shadow-sm-2 text-text-muted text-2xl flex items-center justify-center shrink-0 select-none">
               {initials}
             </div>
           )}
@@ -369,7 +369,7 @@ export default function BusinessProfileSettingsPage() {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <label className="px-3.5 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-text hover:bg-surface-2 cursor-pointer">
+            <label className="px-3.5 py-2 rounded-xl border border-line bg-surface text-sm font-medium text-text hover:bg-surface-2 cursor-pointer">
               {businessLogo ? "Change logo" : "Upload logo"}
               <input
                 type="file"
@@ -404,14 +404,14 @@ export default function BusinessProfileSettingsPage() {
         </section>
 
         {/* Details */}
-        <section className="rounded-xl border border-line bg-surface">
+        <section className="rounded-2xl border border-line bg-surface shadow-sm">
           <div className="px-6 py-5 border-b border-line">
             <h2 className="text-base font-semibold text-text">Business details</h2>
             <p className="text-sm text-text-muted mt-0.5">Shown across the dashboard and in your reports.</p>
           </div>
 
-          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-            <div className="sm:col-span-2">
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+            <div className="sm:col-span-2 lg:col-span-1 lg:order-1">
               <label className="block text-sm font-medium text-text mb-1.5">Company name</label>
               <input
                 type="text"
@@ -423,7 +423,7 @@ export default function BusinessProfileSettingsPage() {
               />
             </div>
 
-            <div>
+            <div className="lg:order-4">
               <label className="block text-sm font-medium text-text mb-1.5">Your name</label>
               <input
                 type="text"
@@ -435,7 +435,7 @@ export default function BusinessProfileSettingsPage() {
               />
             </div>
 
-            <div>
+            <div className="lg:order-5">
               <label className="block text-sm font-medium text-text mb-1.5">Work email</label>
               <input
                 type="email"
@@ -447,7 +447,7 @@ export default function BusinessProfileSettingsPage() {
               <p className="text-xs text-text-muted mt-1.5 capitalize">Signed in with {provider}</p>
             </div>
 
-            <div>
+            <div className="lg:order-6">
               <label className="block text-sm font-medium text-text mb-1.5">Website</label>
               <input
                 type="text"
@@ -458,7 +458,7 @@ export default function BusinessProfileSettingsPage() {
               />
             </div>
 
-            <div>
+            <div className="lg:order-2">
               <label className="block text-sm font-medium text-text mb-1.5">Industry</label>
               <select
                 value={industry}
@@ -491,7 +491,7 @@ export default function BusinessProfileSettingsPage() {
               </select>
             </div>
 
-            <div>
+            <div className="lg:order-3">
               <label className="block text-sm font-medium text-text mb-1.5">Team size</label>
               <input
                 type="number"
@@ -507,13 +507,13 @@ export default function BusinessProfileSettingsPage() {
         </section>
 
         {/* Finances */}
-        <section className="rounded-xl border border-line bg-surface">
+        <section className="rounded-2xl border border-line bg-surface shadow-sm">
           <div className="px-6 py-5 border-b border-line flex items-start justify-between gap-4">
             <div>
               <h2 className="text-base font-semibold text-text">Finances</h2>
               <p className="text-sm text-text-muted mt-0.5">Starting numbers used for runway and forecasts.</p>
             </div>
-            <div className="px-4 py-2 rounded-lg bg-surface-2 border border-line text-right shrink-0">
+            <div className="px-4 py-2 rounded-xl bg-surface-2 border border-line text-right shrink-0">
               <p className="text-xs text-text-muted">Estimated runway</p>
               <p className="text-base text-text">{runwayMonths} months</p>
             </div>
@@ -542,22 +542,23 @@ export default function BusinessProfileSettingsPage() {
         </section>
 
         {/* Save bar */}
-        <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 p-4 rounded-xl border border-line bg-surface shadow-lg">
+        <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 p-4 rounded-2xl border border-line bg-surface shadow-lg">
           <p className="text-sm text-text-muted">
             {saveSuccess ? <span className="text-text">Changes saved.</span> : "Changes apply across your workspace once saved."}
           </p>
           <button
             type="submit"
             disabled={isSaving}
-            className="px-5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-60"
+            className="px-5 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-60"
           >
             {isSaving ? "Saving…" : saveSuccess ? "Saved" : "Save changes"}
           </button>
         </div>
       </form>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Session */}
-      <section className="rounded-xl border border-line bg-surface p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <section className="rounded-2xl border border-line bg-surface shadow-sm p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-text">Session</h2>
           <p className="text-sm text-text-muted mt-0.5">
@@ -569,14 +570,14 @@ export default function BusinessProfileSettingsPage() {
           type="button"
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="px-4 py-2 rounded-lg border border-line text-sm font-medium text-text hover:bg-surface-2 shrink-0 cursor-pointer"
+          className="px-4 py-2 rounded-xl border border-line text-sm font-medium text-text hover:bg-surface-2 shrink-0 cursor-pointer"
         >
           {isLoggingOut ? "Signing out…" : "Log out"}
         </button>
       </section>
 
       {/* Delete */}
-      <section className="rounded-xl border border-line bg-surface p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <section className="rounded-2xl border border-line bg-surface shadow-sm p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-text">Delete account</h2>
           <p className="text-sm text-text-muted mt-0.5 max-w-xl">
@@ -590,16 +591,17 @@ export default function BusinessProfileSettingsPage() {
             setDeleteError(null);
             setIsDeleteModalOpen(true);
           }}
-          className="px-4 py-2 rounded-lg border border-rust/40 text-sm font-medium text-rust hover:bg-rust/5 shrink-0 cursor-pointer"
+          className="px-4 py-2 rounded-xl border border-rust/40 text-sm font-medium text-rust hover:bg-rust/5 shrink-0 cursor-pointer"
         >
           Delete account
         </button>
       </section>
+      </div>
 
       {isDeleteModalOpen && (
         <PortalModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)}>
           <div
-            className="w-[28rem] max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-surface shadow-lg overflow-hidden"
+            className="w-[28rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface shadow-lg overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
@@ -639,7 +641,7 @@ export default function BusinessProfileSettingsPage() {
               <button
                 type="button"
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="px-3.5 py-2 rounded-lg text-sm text-text-muted hover:text-text cursor-pointer"
+                className="px-3.5 py-2 rounded-xl text-sm text-text-muted hover:text-text cursor-pointer"
               >
                 Cancel
               </button>
@@ -647,7 +649,7 @@ export default function BusinessProfileSettingsPage() {
                 type="button"
                 onClick={handleDeleteAccount}
                 disabled={deleteConfirmationText.trim().toUpperCase() !== "DELETE" || isDeleting}
-                className="px-4 py-2 rounded-lg bg-rust text-white text-sm font-medium hover:brightness-110 disabled:opacity-40 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-rust text-white text-sm font-medium hover:brightness-110 disabled:opacity-40 cursor-pointer"
               >
                 {isDeleting ? "Deleting…" : "Delete account"}
               </button>

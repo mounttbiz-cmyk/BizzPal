@@ -11,6 +11,7 @@ import { NavItem } from "@/config/schemas/nav";
 import { MessageSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { defaultNavItems } from "@/config/seeds/defaultNav";
@@ -70,6 +71,9 @@ export function AppShell({
   }, []);
 
   const [items, setItems] = useState<NavItem[]>(() => sanitizeNavItems(navItems || []));
+  const perms = usePermissions();
+  const visibleItems = items.filter(i => perms.canAccess(i.href));
+  const hasAccess = perms.canAccess(pathname);
   const [features, setFeatures] = useState<{
     enableAiCopilot: boolean;
     enableDailyCheckin: boolean;
@@ -220,7 +224,7 @@ export function AppShell({
 
       {/* Desktop Left Rail (lg+) */}
       <DesktopRail
-        navItems={items}
+        navItems={visibleItems}
         companyName={companyName}
         industry={industry}
         onOpenSearch={() => features.enableCommandPalette && setSearchOpen(true)}
@@ -228,7 +232,7 @@ export function AppShell({
 
       {/* Tablet Icon Rail (md) */}
       <TabletRail
-        navItems={items}
+        navItems={visibleItems}
         onOpenSearch={() => features.enableCommandPalette && setSearchOpen(true)}
       />
 
@@ -255,7 +259,17 @@ export function AppShell({
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="h-full w-full"
             >
-              {children}
+              {hasAccess ? (
+                children
+              ) : (
+                <div className="max-w-md mx-auto py-20 text-center space-y-2">
+                  <h1 className="text-xl font-semibold text-text">You don&apos;t have access to this page</h1>
+                  <p className="text-sm text-text-muted leading-relaxed">
+                    Your role ({perms.role}) can&apos;t open this section. Ask the account owner to change it in Team &amp;
+                    Permissions.
+                  </p>
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </main>
@@ -267,12 +281,10 @@ export function AppShell({
           type="button"
           onClick={() => setChatOpen(true)}
           aria-label="Open AI Workspace"
-          className="fixed z-40 flex items-center gap-2.5 rounded-full btn-gold-gradient shadow-2xl hover:scale-105 active:scale-95 transition-all text-xs font-bold font-sans cursor-pointer group bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-4 sm:right-6 px-3.5 py-2 sm:px-4 sm:py-2.5"
+          className="fixed z-40 flex items-center gap-2 rounded-full bg-brass text-white shadow-lg shadow-black/10 hover:brightness-110 transition-all text-sm font-medium cursor-pointer bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-4 sm:right-6 pl-4 pr-5 py-3"
         >
-          <MessageSquare className="w-4 h-4 text-[#120E05] group-hover:rotate-6 transition-transform" />
-          <span className="font-bold tracking-wide text-[#120E05]">
-            Ask Executive AI
-          </span>
+          <MessageSquare className="w-4 h-4" />
+          <span>Ask AI</span>
         </button>
       )}
 
@@ -293,7 +305,7 @@ export function AppShell({
       />
 
       {/* Mobile Bottom Tab Bar (xs/sm) */}
-      <MobileBottomBar navItems={items} />
+      <MobileBottomBar navItems={visibleItems} />
     </div>
   );
 }

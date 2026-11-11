@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { ContainerTile } from "../ui/ContainerTile";
-import { ProvenanceBadge } from "../ui/Badge";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
-import { ShieldCheck, ChevronRight, TrendingUp, Activity } from "lucide-react";
 
 import { useBusinessDataSync } from "@/lib/upload/events";
+import { computeHealth, weightedHealth } from "@/lib/health/score";
 
 interface HealthScoreProps {
   score?: number;
@@ -27,73 +26,18 @@ export function HealthScoreWidget({
   const [opsScore, setOpsScore] = useState(50);
   const [teamScore, setTeamScore] = useState(50);
   const [isFresh, setIsFresh] = useState(true);
-  const [isUploaded, setIsUploaded] = useState(false);
 
   const applyProfile = (saved: any) => {
     if (!saved) return;
-    const cash = Number(saved.cash || saved.cashOnHand || 0);
-    const burn = Number(saved.burn || saved.monthlyBurn || saved.monthlyNetBurn || 0);
-    const mRev = Number(saved.revenue || saved.monthlyRevenue || 0);
-    const annRev = Number(saved.annualRevenue || (mRev > 0 ? mRev * 12 : 0));
-    const team = Number(saved.teamSize || (mRev > 0 ? 1 : 0));
-    const margin = Number(saved.grossMargin || 0);
-
-    const hasAnyData = cash > 0 || burn > 0 || mRev > 0 || team > 0;
-    setIsFresh(!hasAnyData);
-
-    // 1. Financial vector
-    if (burn > 0) {
-      const rVal = Number((cash / burn).toFixed(1));
-      setRunwayMo(String(rVal));
-      if (rVal >= 18) setFinancialScore(95);
-      else if (rVal >= 12) setFinancialScore(90);
-      else if (rVal >= 8) setFinancialScore(82);
-      else if (rVal >= 5) setFinancialScore(70);
-      else if (rVal >= 3) setFinancialScore(55);
-      else setFinancialScore(35);
-    } else if (cash > 0) {
-      setRunwayMo("18+");
-      setFinancialScore(92);
-    } else {
-      setRunwayMo("0.0");
-      setFinancialScore(hasAnyData ? 50 : 50);
-    }
-
-    // 2. Growth vector
-    if (mRev >= 1000000) setGrowthScore(92);
-    else if (mRev >= 500000) setGrowthScore(85);
-    else if (mRev >= 100000) setGrowthScore(76);
-    else if (mRev > 0) setGrowthScore(68);
-    else setGrowthScore(50);
-
-    // 3. Customer vector
-    if (mRev >= 500000) setCustomerScore(88);
-    else if (mRev > 0) setCustomerScore(78);
-    else setCustomerScore(50);
-
-    // 4. Operations vector
-    if (margin >= 75) setOpsScore(88);
-    else if (margin >= 50) setOpsScore(78);
-    else if (mRev > 0) setOpsScore(70);
-    else setOpsScore(50);
-
-    // 5. Team vector
-    if (annRev > 0 && team > 0) {
-      const rph = Math.round(annRev / Math.max(1, team));
-      if (rph >= 10000000) {
-        setRevPerHead(`₹${(rph / 10000000).toFixed(1)}Cr`);
-        setTeamScore(92);
-      } else if (rph >= 100000) {
-        setRevPerHead(`₹${(rph / 100000).toFixed(1)}L`);
-        setTeamScore(rph >= 2500000 ? 90 : rph >= 1000000 ? 82 : 72);
-      } else {
-        setRevPerHead(`₹${rph.toLocaleString("en-IN")}`);
-        setTeamScore(65);
-      }
-    } else {
-      setRevPerHead(team > 0 ? `${team} FTE` : "0 FTE");
-      setTeamScore(team > 0 ? 60 : 50);
-    }
+    const h = computeHealth(saved);
+    setIsFresh(h.isFresh);
+    setRunwayMo(h.runwayMonths);
+    setRevPerHead(h.revenuePerHead);
+    setFinancialScore(h.financial);
+    setGrowthScore(h.growth);
+    setCustomerScore(h.customer);
+    setOpsScore(h.operations);
+    setTeamScore(h.team);
 
     if (saved.industry) {
       const names: Record<string, string> = {
@@ -109,9 +53,6 @@ export function HealthScoreWidget({
       setIndustryName(names[saved.industry] || saved.industryLabel || saved.industry.toUpperCase());
     }
 
-    if (saved.isUploadedData) {
-      setIsUploaded(true);
-    }
   };
 
   useEffect(() => {
@@ -139,13 +80,13 @@ export function HealthScoreWidget({
   });
 
   // Calculate dynamic weighted score
-  const displayScore = Math.round(
-    financialScore * 0.25 +
-    growthScore * 0.20 +
-    customerScore * 0.20 +
-    opsScore * 0.20 +
-    teamScore * 0.15
-  );
+  const displayScore = weightedHealth({
+    financial: financialScore,
+    growth: growthScore,
+    customer: customerScore,
+    operations: opsScore,
+    team: teamScore,
+  });
 
   const components = [
     { key: "financial", name: "Financial", score: financialScore, weight: "25%", detail: runwayMo !== "0.0" ? `Runway buffer: ${runwayMo} mo.` : "Cash & burn telemetry unrecorded." },
@@ -155,93 +96,59 @@ export function HealthScoreWidget({
     { key: "team", name: "Team", score: teamScore, weight: "15%", detail: revPerHead !== "₹0" ? `Annual productivity ${revPerHead}/head.` : "Headcount unrecorded." },
   ];
 
-  // SVG circular gauge calculation
   const radius = 50;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (displayScore / 100) * circumference;
-  const strokeColor = displayScore >= 80 ? "var(--gold)" : displayScore >= 65 ? "#38BDF8" : "#F43F5E";
+  const tone = (score: number) =>
+    score >= 75
+      ? { text: "text-jade", bg: "bg-jade", label: "Healthy" }
+      : score >= 50
+      ? { text: "text-orange-500", bg: "bg-orange-500", label: "Needs attention" }
+      : { text: "text-rust", bg: "bg-rust", label: "At risk" };
+  const overall = tone(displayScore);
+  const selected = components.find(c => c.key === selectedComponent);
 
   return (
     <ContainerTile span={2} id="widget_health_score">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-line/60">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gold/10 border border-gold/25 flex items-center justify-center text-gold">
-              <Activity className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-xs font-bold text-text uppercase tracking-wider font-sans">
-                Corporate Health Score
-              </h2>
-              <p className="text-[11px] text-text-muted">
-                Deterministic telemetry synthesized across 5 operational vectors
-              </p>
-            </div>
-          </div>
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-base font-semibold text-text">Business health score</h2>
+          <p className="text-sm text-text-muted mt-0.5">Based on cash, growth, customers, operations and team.</p>
         </div>
 
-        {/* Circular Gauge + Hero Score */}
-        <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-7 py-3">
-          <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
-            <svg viewBox="0 0 128 128" className="w-32 h-32 transform -rotate-90">
+        <div className="flex flex-col sm:flex-row items-center gap-6">
+          <div className="relative w-32 h-32 shrink-0">
+            <svg viewBox="0 0 128 128" className="w-32 h-32 -rotate-90">
+              <circle cx="64" cy="64" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className="text-surface-2" />
               <circle
                 cx="64"
                 cy="64"
                 r={radius}
                 stroke="currentColor"
-                strokeWidth="6"
-                fill="transparent"
-                className="text-surface-2"
-              />
-              <circle
-                cx="64"
-                cy="64"
-                r={radius}
-                stroke={strokeColor}
-                strokeWidth="6"
+                strokeWidth="8"
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
                 fill="transparent"
-                className="transition-all duration-story ease-out-custom"
+                className={`transition-all duration-500 ${overall.text}`}
               />
             </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none pointer-events-none px-2">
-              <span className="text-3xl sm:text-4xl font-extrabold num-tabular text-text font-mono leading-none tracking-tight">
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-4xl font-semibold text-text leading-none">
                 <AnimatedNumber value={String(displayScore)} />
               </span>
-              <span
-                className={`text-[9px] font-bold font-sans mt-1.5 uppercase tracking-wide leading-none ${
-                  displayScore >= 80
-                    ? "text-gold"
-                    : displayScore >= 65
-                    ? "text-sky-500 dark:text-sky-400"
-                    : "text-rose-500 dark:text-rose-400"
-                }`}
-              >
-                {displayScore >= 80 ? "Optimal" : displayScore >= 65 ? "Stable" : "Calibrating"}
-              </span>
+              <span className={`text-xs mt-1.5 ${overall.text}`}>{overall.label}</span>
             </div>
           </div>
 
-          <div className="flex-1 min-w-0 space-y-2 text-center sm:text-left">
-            <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 shadow-xs" />
-              <span>{isFresh ? "Baseline Initiated" : "Live Calibrated"}</span>
-            </div>
-            <p className="text-xs text-text-muted leading-relaxed">
-              Composite telemetry synthesized across cash runway, revenue per FTE, and operational benchmarks for {industryName}.
-            </p>
-          </div>
+          <p className="text-sm text-text-muted leading-relaxed text-center sm:text-left">
+            {isFresh
+              ? "Add your numbers with Quick business input to get a real score. Until then this shows a neutral starting point."
+              : `Calculated from your cash runway, revenue per team member and typical figures for ${industryName}.`}
+          </p>
         </div>
 
-        {/* Component Breakdown with Progress Bars */}
-        <div className="space-y-2 pt-3 border-t border-white/[0.05]">
-          <div className="flex items-center justify-between text-[10px] font-bold uppercase text-text-muted/80 px-1 tracking-widest font-mono">
-            <span>Category Performance</span>
-            <span>Weight</span>
-          </div>
-
+        <div className="space-y-3">
           <div className="grid grid-cols-2 min-[420px]:grid-cols-3 sm:grid-cols-5 gap-2">
             {components.map(comp => {
               const isSelected = selectedComponent === comp.key;
@@ -250,55 +157,26 @@ export function HealthScoreWidget({
                   key={comp.key}
                   type="button"
                   onClick={() => setSelectedComponent(isSelected ? null : comp.key)}
-                  className={`p-2.5 rounded-xl text-left transition-all btn-tactile ${
-                    isSelected
-                      ? "bg-amber-400/15 border border-amber-400/40 shadow-xs"
-                      : "bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.04]"
+                  className={`p-3 rounded-xl text-left cursor-pointer transition-colors ${
+                    isSelected ? "bg-surface-2" : "bg-surface-2/50 hover:bg-surface-2"
                   }`}
                 >
-                  <div className="flex items-center justify-between text-[11px] text-text-muted">
-                    <span className="truncate font-medium">{comp.name}</span>
-                    <span className="font-mono text-[9px] text-text-muted/70">{comp.weight}</span>
-                  </div>
-                  <div className="text-sm sm:text-base font-black num-tabular text-text font-mono mt-1">
+                  <div className="text-xs text-text-muted truncate">{comp.name}</div>
+                  <div className="text-lg font-semibold text-text mt-0.5">
                     <AnimatedNumber value={String(comp.score)} />
                   </div>
-                  <div className="w-full h-1 bg-surface rounded-full overflow-hidden mt-1.5">
-                    <div
-                      className={`h-full rounded-full transition-all duration-slow ease-out-custom ${
-                        comp.score >= 80
-                          ? "bg-gradient-to-r from-gold-light to-gold"
-                          : comp.score >= 70
-                          ? "bg-gradient-to-r from-gold to-gold-dark"
-                          : "bg-gradient-to-r from-rust to-gold-dark"
-                      }`}
-                      style={{ width: `${comp.score}%` }}
-                    />
+                  <div className="w-full h-1 bg-line rounded-full overflow-hidden mt-1.5">
+                    <div className={`h-full rounded-full ${tone(comp.score).bg}`} style={{ width: `${comp.score}%` }} />
                   </div>
                 </button>
               );
             })}
           </div>
 
-          {/* Expandable breakdown explanation */}
-          {selectedComponent && (
-            <div className="mt-2 p-3 rounded-xl bg-surface-2/80 border border-gold/30 text-xs text-text animate-fade-in flex items-start justify-between gap-3">
-              <div className="space-y-0.5">
-                <span className="font-bold text-gold font-mono text-[11px] uppercase tracking-wider block">
-                  {components.find(c => c.key === selectedComponent)?.name} Analysis
-                </span>
-                <p className="text-text-muted text-xs leading-relaxed">
-                  {components.find(c => c.key === selectedComponent)?.detail}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedComponent(null)}
-                className="text-[10px] px-2 py-0.5 rounded-lg bg-surface border border-line text-text-muted hover:text-text font-medium shrink-0"
-              >
-                Dismiss
-              </button>
-            </div>
+          {selected && (
+            <p className="text-sm text-text-muted leading-relaxed">
+              <span className="font-medium text-text">{selected.name}:</span> {selected.detail}
+            </p>
           )}
         </div>
       </div>

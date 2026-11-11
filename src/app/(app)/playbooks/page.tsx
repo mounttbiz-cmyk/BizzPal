@@ -2,26 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  BookOpen,
-  ShieldCheck,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowRight,
-  MessageSquare,
-  Search,
-  ChevronRight,
-  Clock,
-  Layers,
-  Plus,
-  RefreshCw,
-  X,
-  FileText,
-  DollarSign,
-  TrendingUp,
-  Users,
-  Trash2
-} from "lucide-react";
+import { X } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { useCustomAdvisors } from "@/lib/advisors";
@@ -556,340 +537,260 @@ export default function ExecutivePlaybooksPage() {
     return matchesCategory && matchesSearch;
   });
 
+  const inputClass =
+    "w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
+  const labelClass = "block text-sm text-text mb-1.5";
+
+  const displayRoleFor = (pb: Playbook) =>
+    pb.category === "ceo"
+      ? ceoName
+      : pb.category === "cfo"
+      ? cfoName
+      : pb.category === "cmo"
+      ? marketingName
+      : pb.category === "coo"
+      ? opsName
+      : pb.roleLabel;
+
+  const tabs = [
+    { id: "all", label: "All playbooks" },
+    { id: "ceo", label: ceoName },
+    { id: "cfo", label: cfoName },
+    { id: "cmo", label: marketingName },
+    { id: "coo", label: opsName },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-line">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-brass/10 border border-brass/20 flex items-center justify-center text-brass">
-              <BookOpen className="w-4 h-4" />
-            </div>
-            <h1 className="text-lg sm:text-xl font-bold text-text">Executive Playbooks</h1>
-          </div>
-          <p className="text-xs text-text-muted mt-1.5 leading-relaxed font-normal">
-            Battle-tested operational playbooks and step-by-step executive protocols to handle cash crunches, key employee exits, and price increases.
+    <div className="space-y-8">
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+        <div className="max-w-2xl">
+          <h1 className="text-2xl font-semibold text-text">Executive playbooks</h1>
+          <p className="text-sm text-text-muted mt-1 leading-relaxed">
+            Step-by-step guides for common business problems, like running low on cash or relying too much on one client.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full lg:w-auto">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search playbooks"
+            aria-label="Search playbooks"
+            className="w-full lg:w-64 px-4 py-2 rounded-xl bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
+          />
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="px-3.5 py-2 rounded-xl btn-gold-gradient text-slate-950 font-bold text-xs shadow-sm hover:brightness-105 active:scale-95 btn-tactile inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+            className="px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer whitespace-nowrap shrink-0"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Create Custom Playbook</span>
+            New playbook
           </button>
-
-          {/* Search */}
-          <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search playbooks, triggers, SOPs…"
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-brass shadow-2xs"
-            />
-          </div>
         </div>
       </div>
 
       {toastMessage && (
-        <div className="p-3.5 rounded-xl bg-jade/10 border border-jade/30 text-xs text-jade flex items-center justify-between animate-fade-in shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>{toastMessage}</span>
-          </div>
-          <Link href="/tasks" className="underline font-bold text-text hover:text-jade">
-            Go to Tasks & Execution →
+        <div className="px-4 py-3 rounded-xl bg-surface-2 text-sm text-text flex items-center justify-between gap-3">
+          <span>{toastMessage}</span>
+          <Link href="/tasks" className="text-brass hover:underline shrink-0">
+            View tasks
           </Link>
         </div>
       )}
 
-      {/* Role Filter Tabs */}
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-2 border border-line overflow-x-auto text-xs">
-        {[
-          { id: "all", label: `All Playbooks (${playbooks.length})` },
-          { id: "ceo", label: `${ceoName} / Strategy (${playbooks.filter(p => p.category === "ceo").length})` },
-          { id: "cfo", label: `${cfoName} / Solvency (${playbooks.filter(p => p.category === "cfo").length})` },
-          { id: "cmo", label: `${marketingName} (${playbooks.filter(p => p.category === "cmo").length})` },
-          { id: "coo", label: `${opsName} (${playbooks.filter(p => p.category === "coo").length})` },
-        ].map(cat => (
+      <div className="inline-flex items-center p-1 rounded-xl bg-surface-2 overflow-x-auto max-w-full">
+        {tabs.map(tab => (
           <button
-            key={cat.id}
+            key={tab.id}
             type="button"
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all cursor-pointer ${
-              selectedCategory === cat.id
-                ? "bg-surface text-text font-semibold shadow-2xs border border-line"
-                : "text-text-muted hover:text-text"
+            onClick={() => setSelectedCategory(tab.id)}
+            className={`px-3.5 py-1.5 rounded-lg text-sm whitespace-nowrap cursor-pointer transition-colors ${
+              selectedCategory === tab.id ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
             }`}
           >
-            {cat.label}
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Playbooks Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {filteredPlaybooks.length === 0 && (
+        <p className="text-sm text-text-muted py-8">No playbooks match your search.</p>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredPlaybooks.map(pb => {
-          const displayRole =
-            pb.category === "ceo"
-              ? ceoName
-              : pb.category === "cfo"
-              ? cfoName
-              : pb.category === "cmo"
-              ? marketingName
-              : pb.category === "coo"
-              ? opsName
-              : pb.roleLabel;
+          const isApplying = pb.triggerCondition.toLowerCase().includes("runway") && parseFloat(runwayMonths) <= 8.0;
 
           return (
-          <div
-            key={pb.id}
-            className="p-5 rounded-xl border border-line bg-surface hover:border-line-strong transition-all flex flex-col justify-between space-y-4 shadow-xs group"
-          >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-text">
-                  {displayRole}
-                </span>
-                <div className="flex items-center gap-1.5">
+            <div key={pb.id} className="rounded-2xl border border-line bg-surface shadow-sm p-6 flex flex-col">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-text-muted">{displayRoleFor(pb)}</span>
+                <span className={pb.severity === "Critical" ? "text-rust" : "text-text-muted"}>{pb.severity}</span>
+              </div>
+
+              <h3 className="text-lg font-semibold text-text leading-snug mt-2">{pb.title}</h3>
+              <p className="text-sm text-text-muted mt-2 leading-relaxed line-clamp-2">{pb.summary}</p>
+
+              <div className="mt-5 space-y-3 flex-1">
+                <div>
+                  <p className={`text-xs ${isApplying ? "text-rust font-medium" : "text-text-muted"}`}>
+                    {isApplying ? "Applies to you right now" : "Use this when"}
+                  </p>
+                  <p className="text-sm text-text mt-0.5">{pb.triggerCondition}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-text-muted">Goal</p>
+                  <p className="text-sm text-text mt-0.5">{pb.impactTarget}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-line flex items-center justify-between gap-3 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setActivePlaybook(pb)}
+                  className="text-brass hover:underline cursor-pointer"
+                >
+                  View playbook ({pb.phases.length} phases)
+                </button>
+                <div className="flex items-center gap-4">
                   {pb.id.startsWith("custom-pb") && (
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePlaybook(pb.id, pb.title);
-                      }}
-                      title="Delete Custom Playbook"
-                      className="p-1 rounded text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      onClick={() => handleDeletePlaybook(pb.id, pb.title)}
+                      className="text-text-muted hover:text-rust cursor-pointer"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete
                     </button>
                   )}
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${
-                      pb.severity === "Critical"
-                        ? "text-rust bg-rust/10 border border-rust/20"
-                        : "text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20"
-                    }`}
+                  <Link
+                    href={`/chat?message=${encodeURIComponent(`Review our diagnostic protocol for '${pb.title}' under our current business telemetry for ${companyName}.`)}`}
+                    className="text-text-muted hover:text-text"
                   >
-                    {pb.severity}
-                  </span>
+                    Ask AI
+                  </Link>
                 </div>
               </div>
-
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold text-text group-hover:text-brass transition-colors">
-                  {pb.title}
-                </h3>
-                <p className="text-[11px] text-text-muted mt-1 leading-relaxed line-clamp-2">
-                  {pb.summary}
-                </p>
-              </div>
-
-              <div className={`p-2.5 rounded-lg border text-[11px] space-y-1 ${
-                pb.triggerCondition.toLowerCase().includes("runway") && parseFloat(runwayMonths) <= 8.0
-                  ? "bg-rose-500/10 border-rose-500/30 ring-1 ring-rose-500/20"
-                  : "bg-surface-2 border-line"
-              }`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-amber-500 font-semibold text-[10px] uppercase">
-                    <AlertTriangle className="w-3 h-3" />
-                    <span>Activation Trigger:</span>
-                  </div>
-                  {pb.triggerCondition.toLowerCase().includes("runway") && parseFloat(runwayMonths) <= 8.0 && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-500 text-white font-bold uppercase tracking-wider animate-pulse">
-                      Active Condition
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-text-muted font-medium">
-                  {pb.triggerCondition}
-                </p>
-              </div>
-
-              <div className="text-[11px] flex items-center justify-between text-text-muted pt-1 border-t border-line/60">
-                <span>Target: <strong className="text-jade">{pb.impactTarget}</strong></span>
-                <span className="font-mono text-[10px]">{pb.phases.length} Phases</span>
-              </div>
             </div>
-
-            <div className="pt-3 border-t border-line flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setActivePlaybook(pb)}
-                className="text-xs font-semibold text-brass hover:underline inline-flex items-center gap-1 cursor-pointer"
-              >
-                <span>View Full Playbook</span>
-                <ChevronRight className="w-3 h-3" />
-              </button>
-              <Link
-                href={`/chat?message=${encodeURIComponent(`Review our diagnostic protocol for '${pb.title}' under our current business telemetry for ${companyName}.`)}`}
-                className="text-xs font-semibold text-text-muted hover:text-text inline-flex items-center gap-1.5 p-1 rounded hover:bg-surface-2 transition-colors"
-                title="Consult AI Executive"
-              >
-                <MessageSquare className="w-3.5 h-3.5 text-brass" />
-                <span className="text-[11px]">Consult AI</span>
-              </Link>
-            </div>
-          </div>
-        );
+          );
         })}
       </div>
 
-      {/* Interactive Playbook Modal */}
       {activePlaybook && (
         <PortalModal isOpen={Boolean(activePlaybook)} onClose={() => setActivePlaybook(null)}>
-          <div className="relative w-full max-w-2xl max-h-[90vh] rounded-2xl bg-surface border border-line shadow-2xl flex flex-col overflow-hidden animate-scale-up" onClick={e => e.stopPropagation()}>
-              {/* Modal Top Bar */}
-              <div className="p-4 sm:p-5 border-b border-line flex items-center justify-between bg-surface-2/60">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-brass/10 border border-brass/30 flex items-center justify-center text-brass">
-                    <BookOpen className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-brass">
-                      {activePlaybook.roleLabel} · {activePlaybook.severity} Resolution
-                    </span>
-                    <h2 className="text-sm sm:text-base font-bold text-text mt-0.5">
-                      {activePlaybook.title}
-                    </h2>
-                  </div>
+          <div
+            className="w-[40rem] max-w-[calc(100vw-2rem)] max-h-[90vh] rounded-2xl bg-surface border border-line shadow-lg flex flex-col overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-text-muted">
+                  {displayRoleFor(activePlaybook)} · {activePlaybook.severity}
+                </p>
+                <h2 className="text-xl font-semibold text-text mt-0.5 leading-snug">{activePlaybook.title}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActivePlaybook(null)}
+                aria-label="Close"
+                className="p-1 text-text-muted hover:text-text cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 pb-6 overflow-y-auto space-y-6">
+              <p className="text-sm text-text-muted leading-relaxed">{activePlaybook.summary}</p>
+
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <dt className="text-xs text-text-muted">Use this when</dt>
+                  <dd className="text-sm text-text mt-1">{activePlaybook.triggerCondition}</dd>
                 </div>
+                <div>
+                  <dt className="text-xs text-text-muted">Goal</dt>
+                  <dd className="text-sm text-jade mt-1">{activePlaybook.impactTarget}</dd>
+                </div>
+              </dl>
+
+              <div className="space-y-5">
+                {activePlaybook.phases.map((phase, pIdx) => (
+                  <div key={pIdx}>
+                    <h4 className="text-sm font-medium text-text">{phase.phaseTitle}</h4>
+                    <ul className="mt-2 space-y-1.5 pl-5 list-disc text-sm text-text-muted leading-relaxed">
+                      {phase.steps.map((step, sIdx) => (
+                        <li key={sIdx}>{step}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <Link
+                href={`/chat?message=${encodeURIComponent(`Let's execute the '${activePlaybook.title}' playbook for ${companyName}. Walk me through Phase 1 immediately.`)}`}
+                className="text-sm text-brass hover:underline"
+              >
+                Work through it with AI
+              </Link>
+
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setActivePlaybook(null)}
-                  className="p-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-text cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExecutePlaybook(activePlaybook)}
+                  disabled={Boolean(executingId)}
+                  className="px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
+                >
+                  {executingId ? "Creating tasks…" : "Create tasks"}
                 </button>
               </div>
-
-              {/* Modal Content */}
-              <div className="p-5 overflow-y-auto space-y-4 text-xs">
-                {/* Trigger & Impact Alert */}
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
-                  <div className="flex items-center gap-1.5 text-amber-500 font-bold text-[10px] uppercase tracking-wider">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    <span>Operational Trigger Condition</span>
-                  </div>
-                  <p className="text-text font-semibold">
-                    {activePlaybook.triggerCondition}
-                  </p>
-                  <p className="text-[11px] text-text-muted mt-0.5">
-                    Target Impact: <strong className="text-jade font-semibold">{activePlaybook.impactTarget}</strong>
-                  </p>
-                </div>
-
-                <p className="text-xs text-text-muted leading-relaxed">
-                  {activePlaybook.summary}
-                </p>
-
-                {/* Phases Steps */}
-                <div className="space-y-3 pt-2">
-                  <span className="text-[10px] font-bold text-text uppercase tracking-wider block">
-                    Execution Phases & Concrete Steps
-                  </span>
-                  {activePlaybook.phases.map((phase, pIdx) => (
-                    <div key={pIdx} className="p-3.5 rounded-xl bg-surface-2 border border-line space-y-2">
-                      <h4 className="font-bold text-xs text-text flex items-center gap-2">
-                        <span className="w-4 h-4 rounded-full bg-brass text-white text-[10px] flex items-center justify-center font-mono">
-                          {pIdx + 1}
-                        </span>
-                        <span>{phase.phaseTitle}</span>
-                      </h4>
-                      <ul className="space-y-1.5 pl-6 list-disc text-text-muted text-[11px] leading-relaxed">
-                        {phase.steps.map((step, sIdx) => (
-                          <li key={sIdx}>{step}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Modal Footer Bar */}
-              <div className="p-4 border-t border-line bg-surface-2/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <Link
-                  href={`/chat?message=${encodeURIComponent(`Let's execute the '${activePlaybook.title}' playbook for ${companyName}. Walk me through Phase 1 immediately.`)}`}
-                  className="text-xs font-semibold text-brass hover:underline inline-flex items-center gap-1.5"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Launch in AI Workspace →</span>
-                </Link>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActivePlaybook(null)}
-                    className="px-3.5 py-2 rounded-xl border border-line text-xs font-semibold text-text-muted hover:text-text cursor-pointer"
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleExecutePlaybook(activePlaybook)}
-                    disabled={Boolean(executingId)}
-                    className="px-4 py-2 rounded-xl bg-brass text-white font-bold text-xs shadow-md hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all btn-tactile inline-flex items-center gap-1.5 cursor-pointer"
-                  >
-                    {executingId ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Creating Tasks…</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                        <span>Execute Playbook into Tasks</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
             </div>
+          </div>
         </PortalModal>
       )}
 
-      {/* Create Custom Playbook Modal */}
       {isCreateOpen && (
         <PortalModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)}>
-          <div className="relative w-full max-w-xl max-h-[90vh] rounded-2xl bg-surface border border-line shadow-2xl flex flex-col overflow-hidden animate-scale-up" onClick={e => e.stopPropagation()}>
-              <div className="p-5 border-b border-line flex items-center justify-between bg-surface-2/60">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-brass" />
-                  <h2 className="text-sm sm:text-base font-bold text-text">Create Executive Playbook</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+          <div
+            className="w-[36rem] max-w-[calc(100vw-2rem)] max-h-[90vh] rounded-2xl bg-surface border border-line shadow-lg flex flex-col overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-text">New playbook</h2>
+              <button
+                type="button"
+                onClick={() => setIsCreateOpen(false)}
+                aria-label="Close"
+                className="p-1 text-text-muted hover:text-text cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-              <form onSubmit={handleSavePlaybook} className="p-5 overflow-y-auto space-y-4 text-xs">
+            <form onSubmit={handleSavePlaybook} className="flex flex-col min-h-0">
+              <div className="px-6 pb-6 overflow-y-auto space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">
-                    Playbook Title <span className="text-rose-500">*</span>
-                  </label>
+                  <label className={labelClass}>Title</label>
                   <input
                     type="text"
                     required
                     value={newTitle}
                     onChange={e => setNewTitle(e.target.value)}
-                    placeholder="e.g. Key Account Churn Prevention & Escalation Protocol"
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass"
+                    placeholder="e.g. What to do when a key client wants to leave"
+                    className={inputClass}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-semibold text-text block mb-1">Category & Role</label>
+                    <label className={labelClass}>Who owns it</label>
                     <select
                       value={newCategory}
                       onChange={e => {
@@ -900,21 +801,21 @@ export default function ExecutivePlaybooksPage() {
                         else if (cat === "cmo") setNewRoleLabel("Marketing");
                         else setNewRoleLabel("Operations");
                       }}
-                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass cursor-pointer"
+                      className={`${inputClass} cursor-pointer`}
                     >
-                      <option value="ceo">CEO / Strategy</option>
-                      <option value="cfo">CFO / Solvency</option>
-                      <option value="cmo">Marketing</option>
-                      <option value="coo">Operations</option>
+                      <option value="ceo">{ceoName}</option>
+                      <option value="cfo">{cfoName}</option>
+                      <option value="cmo">{marketingName}</option>
+                      <option value="coo">{opsName}</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-text block mb-1">Severity Trigger</label>
+                    <label className={labelClass}>How urgent</label>
                     <select
                       value={newSeverity}
                       onChange={e => setNewSeverity(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass cursor-pointer"
+                      className={`${inputClass} cursor-pointer`}
                     >
                       <option value="Critical">Critical</option>
                       <option value="High">High</option>
@@ -924,103 +825,91 @@ export default function ExecutivePlaybooksPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">Activation Trigger Condition</label>
+                  <label className={labelClass}>Use this when</label>
                   <input
                     type="text"
                     value={newTrigger}
                     onChange={e => setNewTrigger(e.target.value)}
-                    placeholder="e.g. Client concentration breaches 35% or runway dips under 6 months"
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass"
+                    placeholder="e.g. One client is more than 35% of revenue"
+                    className={inputClass}
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">Target Impact</label>
+                  <label className={labelClass}>Goal</label>
                   <input
                     type="text"
                     value={newImpact}
                     onChange={e => setNewImpact(e.target.value)}
-                    placeholder="e.g. Prevent account loss and extend contract by 12 months"
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass"
+                    placeholder="e.g. Keep the client and extend the contract by 12 months"
+                    className={inputClass}
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-text block mb-1">Summary</label>
+                  <label className={labelClass}>Summary</label>
                   <textarea
                     rows={2}
                     value={newSummary}
                     onChange={e => setNewSummary(e.target.value)}
-                    placeholder="Brief description of the operational strategy..."
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass"
+                    placeholder="A short description of the approach"
+                    className={inputClass}
                   />
                 </div>
 
-                <div className="space-y-3 pt-2 border-t border-line">
-                  <span className="text-[10px] font-bold text-text uppercase tracking-wider block">
-                    Execution Phases & Task Dispatch
-                  </span>
+                <div className="pt-4 border-t border-line space-y-4">
                   <div>
-                    <label className="text-[11px] font-medium text-text-muted block mb-1">Phase 1 Title & Action</label>
+                    <label className={labelClass}>Phase 1</label>
                     <input
                       type="text"
                       value={newPhase1Title}
                       onChange={e => setNewPhase1Title(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text mb-1"
+                      className={`${inputClass} mb-2`}
                     />
-                    <input
-                      type="text"
-                      value={newPhase1Step}
-                      onChange={e => setNewPhase1Step(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text-muted"
-                    />
+                    <input type="text" value={newPhase1Step} onChange={e => setNewPhase1Step(e.target.value)} className={inputClass} />
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-medium text-text-muted block mb-1">Phase 2 Title & Action</label>
+                    <label className={labelClass}>Phase 2</label>
                     <input
                       type="text"
                       value={newPhase2Title}
                       onChange={e => setNewPhase2Title(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text mb-1"
+                      className={`${inputClass} mb-2`}
                     />
-                    <input
-                      type="text"
-                      value={newPhase2Step}
-                      onChange={e => setNewPhase2Step(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text-muted"
-                    />
+                    <input type="text" value={newPhase2Step} onChange={e => setNewPhase2Step(e.target.value)} className={inputClass} />
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-medium text-text-muted block mb-1">Auto-Generated Execution Task</label>
+                    <label className={labelClass}>Task to create</label>
                     <input
                       type="text"
                       value={newTask1}
                       onChange={e => setNewTask1(e.target.value)}
-                      placeholder="Task dispatched to /tasks queue"
-                      className="w-full px-3 py-1.5 rounded-lg bg-surface-2 border border-line text-xs text-text"
+                      placeholder="This will be added to your tasks"
+                      className={inputClass}
                     />
                   </div>
                 </div>
+              </div>
 
-                <div className="pt-3 border-t border-line flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateOpen(false)}
-                    className="px-4 py-2 rounded-xl border border-line text-xs font-semibold text-text-muted hover:text-text cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 rounded-xl bg-brass text-white text-xs font-bold shadow-md hover:brightness-110 active:scale-95 transition-all btn-tactile cursor-pointer"
-                  >
-                    Save & Activate Playbook
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  className="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-text cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
+                >
+                  Save playbook
+                </button>
+              </div>
+            </form>
+          </div>
         </PortalModal>
       )}
     </div>
