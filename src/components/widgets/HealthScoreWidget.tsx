@@ -101,9 +101,9 @@ export function HealthScoreWidget({
   const strokeDashoffset = circumference - (displayScore / 100) * circumference;
   const tone = (score: number) =>
     score >= 75
-      ? { text: "text-jade", bg: "bg-jade", label: "Healthy" }
+      ? { text: "text-jade", bg: "bg-jade", label: "Good" }
       : score >= 50
-      ? { text: "text-orange-500", bg: "bg-orange-500", label: "Needs attention" }
+      ? { text: "text-brass", bg: "bg-brass", label: "Fair" }
       : { text: "text-rust", bg: "bg-rust", label: "At risk" };
   const overall = tone(displayScore);
   const selected = components.find(c => c.key === selectedComponent);
