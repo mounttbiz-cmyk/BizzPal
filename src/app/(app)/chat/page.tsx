@@ -499,6 +499,7 @@ export default function ChatWorkspacePage() {
           agentName: activeAgent.name,
           agentRole: activeAgent.role,
           companyProfile,
+          email: (() => { try { return JSON.parse(localStorage.getItem("bizzpal_user_session") || "{}")?.email || ""; } catch { return ""; } })(),
         }),
       });
 

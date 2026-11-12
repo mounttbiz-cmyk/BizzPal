@@ -50,13 +50,13 @@ export function PrioritiesStep({ options, selected, industryLabel, summary, subm
               </span>
               <span className="flex-1 min-w-0">
                 <span className="flex flex-wrap items-center justify-between gap-1.5">
-                  <span className="text-xs font-bold text-text">{o.title}</span>
+                  <span className="text-xs font-semibold text-text">{o.title}</span>
                   <span className="flex items-center gap-1.5">
                     {o.recommended && <Pill tone="info">Recommended</Pill>}
-                    <span className="text-[10px] px-1.5 rounded bg-surface border border-line text-brass font-semibold uppercase">{o.category}</span>
+                    <span className="text-xs px-1.5 rounded bg-surface border border-line text-brass font-semibold uppercase">{o.category}</span>
                   </span>
                 </span>
-                <span className="text-[11px] text-text-muted mt-0.5 leading-relaxed block">{o.detail}</span>
+                <span className="text-xs text-text-muted mt-0.5 leading-relaxed block">{o.detail}</span>
               </span>
             </button>
           );
@@ -75,16 +75,16 @@ export function PrioritiesStep({ options, selected, industryLabel, summary, subm
             placeholder="e.g. Cut onboarding drop-off, renegotiate supplier terms"
             className="flex-1 px-3 py-2 rounded-lg bg-surface border border-line text-xs text-text focus:outline-none focus:ring-2 focus:ring-brass"
           />
-          <button type="button" onClick={add} className="px-3.5 rounded-lg bg-brass text-bg text-xs font-bold hover:brightness-110 btn-tactile cursor-pointer inline-flex items-center gap-1">
+          <button type="button" onClick={add} className="px-3.5 rounded-lg bg-brass text-bg text-xs font-semibold hover:brightness-110 btn-tactile cursor-pointer inline-flex items-center gap-1">
             <Plus className="w-3.5 h-3.5" />Add
           </button>
         </div>
       </div>
 
       <div className="rounded-xl border border-line bg-surface-2/40 p-4 space-y-2">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Ready to set up</div>
+        <div className="text-xs font-semibold text-text-muted">Ready to set up</div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-text">
-          <span className="font-bold">{summary.name}</span>
+          <span className="font-semibold">{summary.name}</span>
           {summary.verified ? <Pill tone="good">GST verified</Pill> : <Pill tone="warn">Not yet verified</Pill>}
           <span className="text-text-muted">{summary.website ? `Website: ${summary.website}` : "No website verified"}</span>
           <span className="text-text-muted">{summary.tools} tool{summary.tools === 1 ? "" : "s"} connected</span>

@@ -71,7 +71,7 @@ export function BankStep({ state, ifsc, account, lookup, registeredName, onIfsc,
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label htmlFor="ifsc" className="text-xs font-semibold text-text flex items-center justify-between">
-            <span>IFSC code</span><span className="text-[10px] font-normal text-text-muted">on your cheque book</span>
+            <span>IFSC code</span><span className="text-xs font-normal text-text-muted">on your cheque book</span>
           </label>
           <input
             id="ifsc"
@@ -89,7 +89,7 @@ export function BankStep({ state, ifsc, account, lookup, registeredName, onIfsc,
         </div>
         <div className="space-y-1.5">
           <label htmlFor="acct" className="text-xs font-semibold text-text flex items-center justify-between">
-            <span>Account number</span><span className="text-[10px] font-normal text-text-muted">9 to 18 digits</span>
+            <span>Account number</span><span className="text-xs font-normal text-text-muted">9 to 18 digits</span>
           </label>
           <input
             id="acct"
@@ -106,19 +106,19 @@ export function BankStep({ state, ifsc, account, lookup, registeredName, onIfsc,
       </div>
 
       {/* Bank + branch found from the IFSC, live */}
-      {lookup.phase === "looking" && <p className="text-[11px] text-text-muted flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Looking up your branch…</p>}
+      {lookup.phase === "looking" && <p className="text-xs text-text-muted flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Looking up your branch…</p>}
       {lookup.phase === "found" && !verified && (
         <div className="px-3.5 py-3 rounded-xl border border-jade/30 bg-jade/5 flex items-start gap-3 animate-fade-in">
           <Banknote className="w-5 h-5 text-jade shrink-0 mt-0.5" />
           <div className="min-w-0">
-            <div className="text-xs font-bold text-text">{lookup.info.bank}</div>
-            <div className="text-[11px] text-text-muted">{lookup.info.branch}{lookup.info.city ? ` · ${lookup.info.city}` : ""}{lookup.info.state ? `, ${lookup.info.state}` : ""}</div>
+            <div className="text-xs font-semibold text-text">{lookup.info.bank}</div>
+            <div className="text-xs text-text-muted">{lookup.info.branch}{lookup.info.city ? ` · ${lookup.info.city}` : ""}{lookup.info.state ? `, ${lookup.info.state}` : ""}</div>
           </div>
           <Pill tone="good">Branch found</Pill>
         </div>
       )}
       {lookup.phase === "bad" && (
-        <p role="alert" className="text-[11px] text-rust font-medium flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0" />{lookup.message}</p>
+        <p role="alert" className="text-xs text-rust font-medium flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 shrink-0" />{lookup.message}</p>
       )}
 
       {!verified && (
@@ -126,14 +126,14 @@ export function BankStep({ state, ifsc, account, lookup, registeredName, onIfsc,
           <PrimaryButton onClick={onVerify} disabled={!canVerify} loading={checking}>
             {checking ? "Asking your bank…" : "Verify account holder"}
           </PrimaryButton>
-          <span className="text-[11px] text-text-muted flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-jade" />No money is taken from you. We only store the last 4 digits.</span>
+          <span className="text-xs text-text-muted flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-jade" />No money is taken from you. We only store the last 4 digits.</span>
         </div>
       )}
 
       {state.phase === "verified" && (
         <div className="rounded-2xl border border-jade/30 bg-jade/5 p-4 sm:p-5 space-y-4 animate-fade-in">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-jade font-bold text-sm"><BadgeCheck className="w-5 h-5" />Account confirmed by your bank</div>
+            <div className="flex items-center gap-2 text-jade font-semibold text-sm"><BadgeCheck className="w-5 h-5" />Account confirmed by your bank</div>
             <Pill tone="good">Name matches</Pill>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5">
@@ -143,7 +143,7 @@ export function BankStep({ state, ifsc, account, lookup, registeredName, onIfsc,
             <Fact label="Account" value={`•••• ${state.last4}`} mono />
             <Fact label="IFSC" value={state.bank.ifsc} mono />
           </div>
-          <button type="button" onClick={onReset} className="text-[11px] text-text-muted hover:text-brass underline decoration-dotted cursor-pointer">
+          <button type="button" onClick={onReset} className="text-xs text-text-muted hover:text-brass underline decoration-dotted cursor-pointer">
             Use a different bank account
           </button>
         </div>

@@ -61,7 +61,7 @@ export function VerifyWebsiteStep({ state, domainInput, onInput, onStart, onChec
             </PrimaryButton>
           </div>
           {state.phase === "error" && (
-            <p className="text-[11px] text-rust font-medium flex items-center gap-1.5">
+            <p className="text-xs text-rust font-medium flex items-center gap-1.5">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
               {state.message}
             </p>
@@ -72,10 +72,10 @@ export function VerifyWebsiteStep({ state, domainInput, onInput, onStart, onChec
       {state.phase === "challenge" && (
         <div className="rounded-2xl border border-line bg-surface-2/40 p-4 sm:p-5 space-y-4 animate-fade-in">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-xs font-bold text-text">
+            <div className="text-xs font-semibold text-text">
               Add your code to <span className="font-mono text-brass">{state.domain}</span> using any one method
             </div>
-            <button type="button" onClick={onReset} className="text-[11px] text-text-muted hover:text-brass underline decoration-dotted cursor-pointer">
+            <button type="button" onClick={onReset} className="text-xs text-text-muted hover:text-brass underline decoration-dotted cursor-pointer">
               Use a different website
             </button>
           </div>
@@ -92,8 +92,8 @@ export function VerifyWebsiteStep({ state, domainInput, onInput, onStart, onChec
                   method === m.id ? "border-brass bg-brass-soft" : "border-line bg-surface hover:border-line-strong"
                 }`}
               >
-                <div className={`text-[11px] font-bold ${method === m.id ? "text-text" : "text-text-muted"}`}>{m.label}</div>
-                <div className="text-[10px] text-text-muted leading-snug mt-0.5 hidden sm:block">{m.hint}</div>
+                <div className={`text-xs font-semibold ${method === m.id ? "text-text" : "text-text-muted"}`}>{m.label}</div>
+                <div className="text-xs text-text-muted leading-snug mt-0.5 hidden sm:block">{m.hint}</div>
               </button>
             ))}
           </div>
@@ -101,24 +101,24 @@ export function VerifyWebsiteStep({ state, domainInput, onInput, onStart, onChec
           <div className="space-y-3" role="tabpanel">
             {method === "dns" && (
               <>
-                <p className="text-[11px] text-text-muted leading-relaxed">In your domain provider&apos;s DNS settings, add a new <strong className="text-text">TXT</strong> record:</p>
+                <p className="text-xs text-text-muted leading-relaxed">In your domain provider&apos;s DNS settings, add a new <strong className="text-text">TXT</strong> record:</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <CopyBox label="Name / Host" value={state.instructions.dns.host} />
                   <CopyBox label="Value" value={state.instructions.dns.value} />
                 </div>
-                <p className="text-[10px] text-text-muted">Some providers want only <span className="font-mono">_bizzpal</span> as the name. DNS changes can take a few minutes.</p>
+                <p className="text-xs text-text-muted">Some providers want only <span className="font-mono">_bizzpal</span> as the name. DNS changes can take a few minutes.</p>
               </>
             )}
             {method === "file" && (
               <>
-                <p className="text-[11px] text-text-muted leading-relaxed">Create a plain text file containing only the code, and make it available at this address:</p>
+                <p className="text-xs text-text-muted leading-relaxed">Create a plain text file containing only the code, and make it available at this address:</p>
                 <CopyBox label="File address" value={state.instructions.file.url} />
                 <CopyBox label="File contents" value={state.instructions.file.content} />
               </>
             )}
             {method === "meta" && (
               <>
-                <p className="text-[11px] text-text-muted leading-relaxed">Paste this tag inside the <span className="font-mono">&lt;head&gt;</span> of your home page:</p>
+                <p className="text-xs text-text-muted leading-relaxed">Paste this tag inside the <span className="font-mono">&lt;head&gt;</span> of your home page:</p>
                 <CopyBox label="Meta tag" value={state.instructions.meta.tag} />
               </>
             )}
@@ -137,9 +137,9 @@ export function VerifyWebsiteStep({ state, domainInput, onInput, onStart, onChec
               {state.checking ? "Checking your website…" : "I've added it, check now"}
             </PrimaryButton>
             {state.emailMatches ? (
-              <span className="text-[11px] text-jade flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />Your sign-in email is on this domain</span>
+              <span className="text-xs text-jade flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />Your sign-in email is on this domain</span>
             ) : (
-              <span className="text-[11px] text-text-muted flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />Your sign-in email isn&apos;t on this domain</span>
+              <span className="text-xs text-text-muted flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />Your sign-in email isn&apos;t on this domain</span>
             )}
           </div>
         </div>
@@ -154,7 +154,7 @@ export function VerifyWebsiteStep({ state, domainInput, onInput, onStart, onChec
       )}
 
       {state.phase === "working" && (
-        <p className="text-[11px] text-text-muted flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Preparing your code…</p>
+        <p className="text-xs text-text-muted flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Preparing your code…</p>
       )}
 
       <div className="pt-4 border-t border-line flex flex-wrap items-center justify-between gap-3">
@@ -167,7 +167,7 @@ export function VerifyWebsiteStep({ state, domainInput, onInput, onStart, onChec
         </div>
       </div>
       {skipped && (
-        <p className="text-[11px] text-text-muted -mt-3">You can add a website later. Your business will show as verified by GST registry only.</p>
+        <p className="text-xs text-text-muted -mt-3">You can add a website later. Your business will show as verified by GST registry only.</p>
       )}
     </div>
   );

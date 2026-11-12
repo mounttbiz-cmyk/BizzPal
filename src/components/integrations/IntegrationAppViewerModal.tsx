@@ -276,13 +276,8 @@ export function IntegrationAppViewerModal({
 
   // Trigger Live Refresh / Resync
   const handleSyncNow = () => {
-    setSyncing(true);
-    setSyncSuccessMsg(null);
-    setTimeout(() => {
-      setSyncing(false);
-      setSyncSuccessMsg(`Live telemetry synchronized with ${toolName} servers.`);
-      setTimeout(() => setSyncSuccessMsg(null), 3500);
-    }, 1100);
+    setSyncSuccessMsg("Live syncing is coming soon. The numbers shown here are the ones you entered.");
+    setTimeout(() => setSyncSuccessMsg(null), 4500);
   };
 
   // Add new meeting to Google Calendar
@@ -360,23 +355,8 @@ export function IntegrationAppViewerModal({
 
   // Dispatch live Slack alert
   const handleSendSlackPing = () => {
-    if (!newSlackPingText.trim()) return;
-    setSendingSlackPing(true);
-    setTimeout(() => {
-      const newMsg: SlackMessageItem = {
-        id: `msg_${Date.now()}`,
-        channel: slackChannelInput || "#executive-briefings",
-        sender: `${founderName} (${companyName})`,
-        text: newSlackPingText.trim(),
-        timestamp: "Just now",
-        type: "briefing",
-      };
-      setSlackMessages([newMsg, ...slackMessages]);
-      setNewSlackPingText("");
-      setSendingSlackPing(false);
-      setSyncSuccessMsg(`Live notification dispatched to ${slackChannelInput}!`);
-      setTimeout(() => setSyncSuccessMsg(null), 3500);
-    }, 600);
+    setSyncSuccessMsg("Posting to Slack is coming soon. Nothing was sent.");
+    setTimeout(() => setSyncSuccessMsg(null), 4500);
   };
 
   // Save Settings & Credentials
@@ -471,10 +451,10 @@ export function IntegrationAppViewerModal({
               onClick={handleSyncNow}
               disabled={syncing}
               className="px-2.5 py-1.5 rounded-lg bg-surface-2 border border-line text-text hover:border-line-strong text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all"
-              title="Pull latest live telemetry from integration"
+              title="Live sync is coming soon"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-brass ${syncing ? "animate-spin" : ""}`} />
-              <span>{syncing ? "Syncing…" : "Sync Now"}</span>
+              <span>Sync (coming soon)</span>
             </button>
 
             <button
@@ -891,7 +871,7 @@ export function IntegrationAppViewerModal({
                         disabled={sendingSlackPing || !newSlackPingText.trim()}
                         className="px-3.5 py-2 rounded-lg bg-brass text-white text-xs font-bold hover:brightness-110 cursor-pointer disabled:opacity-50"
                       >
-                        {sendingSlackPing ? "Posting…" : "Post to Slack"}
+                        Post to Slack (coming soon)
                       </button>
                     </div>
                   </div>

@@ -20,7 +20,11 @@ interface ReviewGenerateCardProps {
   extractStatusText: string;
   requestedCount: number;
   onRequestedCountChange: (count: number) => void;
+  includePrevious: boolean;
+  onIncludePreviousChange: (value: boolean) => void;
   remainingQuota: number;
+  /** false while the balance is still being read from the server */
+  creditsLoaded?: boolean;
   totalQuota: number;
   onOpenCreditsModal: () => void;
   onGenerate: () => void;
@@ -45,7 +49,10 @@ export function ReviewGenerateCard({
   extractStatusText,
   requestedCount,
   onRequestedCountChange,
+  includePrevious,
+  onIncludePreviousChange,
   remainingQuota,
+  creditsLoaded = true,
   totalQuota,
   onOpenCreditsModal,
   onGenerate,
@@ -93,8 +100,8 @@ export function ReviewGenerateCard({
     (countryCodes.length === 1 && !isAllCities && cityNames.length === 0 && stateCodes.length === 0);
 
   // Check if requested exceeds remaining quota
-  const exceedsQuota = requestedCount > remainingQuota && remainingQuota > 0;
-  const isOutOfCredits = remainingQuota <= 0;
+  const exceedsQuota = creditsLoaded && requestedCount > remainingQuota && remainingQuota > 0;
+  const isOutOfCredits = creditsLoaded && remainingQuota <= 0;
 
   const handleCustomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/[^0-9]/g, "");
@@ -133,7 +140,7 @@ export function ReviewGenerateCard({
 
         <div className="flex items-center gap-3 flex-wrap shrink-0">
           <span className="text-sm text-text-muted">
-            <span className={`font-semibold ${isOutOfCredits ? "text-rust" : "text-text"}`}>{remainingQuota}</span> records
+            <span className={`font-semibold ${isOutOfCredits ? "text-rust" : "text-text"}`}>{creditsLoaded ? remainingQuota : "…"}</span> records
             remaining
           </span>
           <button
@@ -152,7 +159,7 @@ export function ReviewGenerateCard({
           <div>
             <label className="text-sm font-medium text-text">How many records?</label>
             <p className="text-xs text-text-muted mt-0.5">
-              Pick an amount or enter your own. Records you have already extracted are never repeated.
+              Pick an amount or enter your own.
             </p>
           </div>
         </div>
@@ -259,6 +266,35 @@ export function ReviewGenerateCard({
           </div>
         </div>
       )}
+
+      {/* Old records or new only */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-text">Records you already have</label>
+        <div className="inline-flex p-1 rounded-xl bg-surface-2 border border-line" role="radiogroup" aria-label="Records you already have">
+          {[
+            { value: false, label: "New records only" },
+            { value: true, label: "Include old records too" },
+          ].map(opt => (
+            <button
+              key={String(opt.value)}
+              type="button"
+              role="radio"
+              aria-checked={includePrevious === opt.value}
+              onClick={() => onIncludePreviousChange(opt.value)}
+              className={`px-4 py-2 rounded-lg text-sm cursor-pointer ${
+                includePrevious === opt.value ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-text-muted">
+          {includePrevious
+            ? "You may get businesses you have extracted in earlier searches. They use credits again."
+            : "Businesses you have extracted before are left out, so every record is new to you."}
+        </p>
+      </div>
 
       {/* Bottom Action: Primary Generate Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">

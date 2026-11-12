@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib/db";
+import { getActiveBusiness, DEFAULT_BUSINESS_ID, isUserRegistered } from "@/lib/db";
+import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { searchCompanyKnowledge } from "@/lib/knowledge/retrieval";
 
 export const maxDuration = 60;
@@ -133,7 +134,31 @@ async function callCohere(apiKey: string, prompt: string): Promise<string | null
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, agentId, companyProfile, agentName, agentRole, customRoleTitle } = await req.json();
+    // Every message can cost money with the AI providers, so it needs an account and is rate limited.
+    const ipLimit = rateLimit(`chat-ip:${clientIp(req)}`, 120, 10 * 60 * 1000);
+    if (!ipLimit.ok) {
+      return NextResponse.json(
+        { success: false, error: "Too many requests. Please wait a few minutes." },
+        { status: 429, headers: { "Retry-After": String(ipLimit.retryAfterSec) } }
+      );
+    }
+
+    const { message, agentId, companyProfile, agentName, agentRole, customRoleTitle, email } = await req.json();
+
+    const accountEmail = String(email || "").trim().toLowerCase();
+    if (!accountEmail.includes("@") || !isUserRegistered(accountEmail)) {
+      return NextResponse.json({ success: false, error: "Please sign in again." }, { status: 401 });
+    }
+    const userLimit = rateLimit(`chat-user:${accountEmail}`, 20, 60 * 1000);
+    if (!userLimit.ok) {
+      return NextResponse.json(
+        { success: false, error: "You are sending messages too fast. Please wait a moment." },
+        { status: 429, headers: { "Retry-After": String(userLimit.retryAfterSec) } }
+      );
+    }
+    if (typeof message !== "string" || !message.trim() || message.length > 6000) {
+      return NextResponse.json({ success: false, error: "Please send a message of up to 6000 characters." }, { status: 400 });
+    }
 
     // Executive Agent Personas
     const agentRoles: Record<string, { title: string; focus: string; tone: string }> = {
@@ -311,8 +336,11 @@ Instructions:
     return NextResponse.json({
       success: true,
       agent: activeRole.title,
-      text: fallbackResponses[agentId] || fallbackResponses.ceo,
-      provider: "bizzpal-ai",
+      text:
+        "Sample guidance: the AI service could not be reached just now, so this is a general answer built from your numbers.\n\n" +
+        (fallbackResponses[agentId] || fallbackResponses.ceo),
+      provider: "fallback",
+      fallback: true,
     });
   } catch (error) {
     return NextResponse.json(

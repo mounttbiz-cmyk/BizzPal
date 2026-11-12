@@ -87,12 +87,12 @@ export function PaymentsStep({ email, sources, total, onUpdate, onBack, onNext }
       {total && (
         <div className="rounded-2xl border border-jade/30 bg-jade/5 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 animate-fade-in">
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Verified revenue · last 30 days</div>
-            <div className="text-2xl font-bold text-text tracking-tight">{inr(total.revenueInr)}</div>
+            <div className="text-xs font-semibold text-text-muted">Verified revenue · last 30 days</div>
+            <div className="text-2xl font-semibold text-text tracking-tight">{inr(total.revenueInr)}</div>
           </div>
           <div className="text-right">
             <Pill tone="good"><BadgeCheck className="w-3 h-3" />From your provider</Pill>
-            <div className="text-[10px] text-text-muted mt-1.5">Updated {ago(total.asOf)}</div>
+            <div className="text-xs text-text-muted mt-1.5">Updated {ago(total.asOf)}</div>
           </div>
         </div>
       )}
@@ -109,10 +109,10 @@ export function PaymentsStep({ email, sources, total, onUpdate, onBack, onNext }
                   <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center shrink-0"><CreditCard className="w-5 h-5 text-brass" /></div>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold text-text">{META[p].name}</span>
+                      <span className="text-sm font-semibold text-text">{META[p].name}</span>
                       {src && <Pill tone="good">Connected</Pill>}
                     </div>
-                    <p className="text-[11px] text-text-muted">{src ? `Key ${src.label}` : META[p].tag}</p>
+                    <p className="text-xs text-text-muted">{src ? `Key ${src.label}` : META[p].tag}</p>
                   </div>
                 </div>
                 {src ? (
@@ -125,14 +125,14 @@ export function PaymentsStep({ email, sources, total, onUpdate, onBack, onNext }
                     </button>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => { reset(); setOpen(isOpen ? null : p); }} className="h-10 px-4 rounded-xl bg-brass text-bg text-xs font-bold hover:brightness-110 btn-tactile cursor-pointer">
+                  <button type="button" onClick={() => { reset(); setOpen(isOpen ? null : p); }} className="h-10 px-4 rounded-xl bg-brass text-bg text-xs font-semibold hover:brightness-110 btn-tactile cursor-pointer">
                     {isOpen ? "Cancel" : "Connect"}
                   </button>
                 )}
               </div>
 
               {src && snap && (
-                <div className="px-4 pb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px] animate-fade-in">
+                <div className="px-4 pb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs animate-fade-in">
                   <Stat label="Net revenue" value={inr(snap.revenueInr)} strong />
                   <Stat label="Payments" value={String(snap.paymentCount)} />
                   <Stat label="Refunds" value={inr(snap.refundsInr)} />
@@ -148,7 +148,7 @@ export function PaymentsStep({ email, sources, total, onUpdate, onBack, onNext }
 
               {isOpen && !src && (
                 <div className="px-4 pb-4 space-y-3 border-t border-line pt-4 animate-fade-in">
-                  <p className="text-[11px] text-text-muted leading-relaxed">{META[p].help}</p>
+                  <p className="text-xs text-text-muted leading-relaxed">{META[p].help}</p>
                   {p === "razorpay" && (
                     <div className="space-y-1.5">
                       <label htmlFor="rzp-id" className="text-xs font-semibold text-text">Key ID</label>
@@ -175,7 +175,7 @@ export function PaymentsStep({ email, sources, total, onUpdate, onBack, onNext }
                     <PrimaryButton onClick={() => connect(p)} disabled={!canSubmit(p)} loading={busy === `connect-${p}`}>
                       {busy === `connect-${p}` ? `Checking with ${META[p].name}…` : `Verify & connect ${META[p].name}`}
                     </PrimaryButton>
-                    <span className="text-[11px] text-text-muted flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-jade" />Stored encrypted. Disconnect any time.</span>
+                    <span className="text-xs text-text-muted flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-jade" />Stored encrypted. Disconnect any time.</span>
                   </div>
                 </div>
               )}
@@ -202,8 +202,8 @@ export function PaymentsStep({ email, sources, total, onUpdate, onBack, onNext }
 function Stat({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-text-muted font-semibold">{label}</div>
-      <div className={`${strong ? "text-sm font-bold" : "text-xs font-medium"} text-text mt-0.5`}>{value}</div>
+      <div className="text-xs text-text-muted font-semibold">{label}</div>
+      <div className={`${strong ? "text-sm font-semibold" : "text-xs font-medium"} text-text mt-0.5`}>{value}</div>
     </div>
   );
 }

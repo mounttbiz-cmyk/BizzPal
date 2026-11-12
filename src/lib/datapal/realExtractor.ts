@@ -42,6 +42,14 @@ export async function extractRealBusinessLeads(
 
   let googleRequests = 0;
 
+  // The user's own rules. Applied to real results only, so nothing has to be invented to satisfy them.
+  const rules = config.filters || ({} as any);
+  const passesRules = (phone: string | null, rating: number | null): boolean => {
+    if (rules.mustHavePhone && !phone) return false;
+    if (rules.minRating && rules.minRating > 0 && (rating === null || rating < rules.minRating)) return false;
+    return true;
+  };
+
   // 1. TRY GOOGLE PLACES API (NEW) WITH GOOGLE MAPS API KEY (WITH AUTOMATIC PAGINATION)
   if (googleApiKey && googleApiKey.trim().length > 10) {
     try {
@@ -81,6 +89,10 @@ export async function extractRealBusinessLeads(
           for (const p of newData.places) {
             if (p.id && !seenIds.has(p.id)) {
               seenIds.add(p.id);
+              if (p.businessStatus === "CLOSED_PERMANENTLY") continue;
+              const ph = p.nationalPhoneNumber || p.internationalPhoneNumber || null;
+              const rt = typeof p.rating === "number" ? p.rating : null;
+              if (!passesRules(ph, rt)) continue;
               collectedPlaces.push(p);
             }
           }
@@ -98,25 +110,24 @@ export async function extractRealBusinessLeads(
           const name = place.displayName?.text || place.name || `${queryTerm} Establishment`;
           const realWebsite = place.websiteUri || null;
           const hasWebsite = Boolean(realWebsite);
-          const rating = place.rating ? parseFloat(place.rating) : 4.4;
+          const rating: number | null = typeof place.rating === "number" ? place.rating : null;
           const reviewsCount = place.userRatingCount || 0;
+          const ratingText = rating !== null ? `${reviewsCount} reviews (${rating}★)` : "no reviews yet";
 
           const isNormalExtract = config.requirement.toLowerCase().includes("normal");
           const isMissingWebsite = !isNormalExtract && (config.requirement.toLowerCase().includes("website") || !hasWebsite);
 
-          const realPhone = place.nationalPhoneNumber || place.internationalPhoneNumber || null;
-          const fallbackPhone = `${phonePrefix} ${Math.floor(Math.random() * 89999 + 10000)} ${Math.floor(Math.random() * 89999 + 10000)}`;
-          const phone = realPhone || fallbackPhone;
+          // Phone numbers come from Google only. A business without one has none listed.
+          const phone: string | null = place.nationalPhoneNumber || place.internationalPhoneNumber || null;
 
-          let emailDomain = "gmail.com";
+          // Google does not publish emails. For businesses with a website we can suggest the usual
+          // info@ address, clearly marked as unverified. Without a website we show nothing.
+          let email: string | null = null;
           if (realWebsite) {
             try {
-              const parsedUrl = new URL(realWebsite);
-              emailDomain = parsedUrl.hostname.replace(/^www\./, "");
-            } catch { }
+              email = `info@${new URL(realWebsite).hostname.replace(/^www\./, "")}`;
+            } catch {}
           }
-          const cleanPrefix = name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 15) || "contact";
-          const email = realWebsite ? `info@${emailDomain}` : `${cleanPrefix}@gmail.com`;
 
           const primaryType = (place.types && place.types[0] ? place.types[0].replace(/_/g, " ") : targetCategory) || "Commercial Establishment";
 
@@ -127,6 +138,8 @@ export async function extractRealBusinessLeads(
             website: isMissingWebsite ? null : realWebsite,
             phone,
             email,
+            emailVerified: false,
+            mapsUrl: place.googleMapsUri || null,
             address: place.formattedAddress || locationTerm,
             city: config.city || "City",
             state: config.state || "State",
@@ -137,12 +150,12 @@ export async function extractRealBusinessLeads(
             existingPresence: hasWebsite ? "Google Maps Verified, Official Website" : "Google Maps Verified, No Website",
             source: "Google Maps & Places (Live API)",
             notes: isNormalExtract
-              ? `Live Google Maps Place: ${reviewsCount} reviews (${rating}★). Verified business pin.`
+              ? `Listed on Google Maps with ${ratingText}.`
               : isMissingWebsite
-              ? `High Priority Gap: Claimed Google Maps pin with ${reviewsCount} reviews (${rating}★) but NO website domain.`
-              : `Active Google Maps business listing with ${reviewsCount} reviews. Ready for ${config.requirement} pitch.`,
+              ? `Listed on Google Maps with ${ratingText} but no website.`
+              : `Listed on Google Maps with ${ratingText}. Relevant for: ${config.requirement}.`,
             verified: true,
-            opportunityLevel: isMissingWebsite ? "Critical" : rating >= 4.5 ? "High" : "Medium",
+            opportunityLevel: isMissingWebsite ? "Critical" : rating !== null && rating >= 4.5 ? "High" : "Medium",
             extractedAt: new Date().toISOString(),
           };
         });
@@ -207,27 +220,25 @@ export async function extractRealBusinessLeads(
         const isNormalExtract = config.requirement.toLowerCase().includes("normal");
         const isMissingWebsite = !isNormalExtract && (config.requirement.toLowerCase().includes("website") || !realWebsite);
 
-        const rating = parseFloat((4.2 + (idx % 8) * 0.1).toFixed(1));
-        const reviewsCount = 15 + (idx * 17) % 240;
-
-        const phoneToUse =
-          realPhone ||
-          `${phonePrefix} ${Math.floor(Math.random() * 89999 + 10000)} ${Math.floor(Math.random() * 89999 + 10000)}`;
+        // OpenStreetMap has no ratings or reviews, and only some places list a phone or email.
+        const phoneToUse: string | null = realPhone || null;
+        const realEmail: string | null = extra.email || extra["contact:email"] || null;
 
         return {
           id: `osm_${item.osm_id || Date.now()}_${idx}`,
           name: cleanName,
           category: (item.type ? item.type.replace(/_/g, " ") : targetCategory) || "Local Business",
-          website: isMissingWebsite ? null : realWebsite || `https://www.google.com/search?q=${encodeURIComponent(cleanName + " " + city)}`,
+          website: isMissingWebsite ? null : realWebsite || null,
           phone: phoneToUse,
-          email: `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, "")}@gmail.com`,
+          email: realEmail,
+          emailVerified: Boolean(realEmail),
           address: item.display_name || `${road}, ${city}, ${state}`,
           city,
           state,
           country: addr.country || countryName,
           postalCode: postcode,
-          rating,
-          reviewsCount,
+          rating: null,
+          reviewsCount: 0,
           existingPresence: realWebsite ? "Official Website, OpenStreetMap, Maps" : "OpenStreetMap, Local Directory",
           source: "OpenStreetMap (Live Directory)",
           notes: isNormalExtract
@@ -241,7 +252,10 @@ export async function extractRealBusinessLeads(
         };
       });
 
-      return { leads: realOsmLeads, sourceMode: "openstreetmap_live", googleRequests };
+      const kept = realOsmLeads.filter(l => !(rules.mustHavePhone && !l.phone) && !(rules.minRating > 0));
+      if (kept.length > 0) {
+        return { leads: kept, sourceMode: "openstreetmap_live", googleRequests };
+      }
     }
   } catch (osmErr) {
     console.warn("OpenStreetMap free live scraper error:", osmErr);

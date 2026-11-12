@@ -50,8 +50,8 @@ export function IndustryStep({ selected, custom, error, onToggle, onCustom, onBa
             >
               <span className="w-9 h-9 rounded-lg bg-surface border border-line flex items-center justify-center shrink-0 text-brass">{ICONS[t.id]}</span>
               <span className="flex-1 min-w-0">
-                <span className="text-xs font-bold text-text block">{t.title}</span>
-                <span className="text-[11px] text-text-muted leading-relaxed block mt-0.5">{t.desc}</span>
+                <span className="text-xs font-semibold text-text block">{t.title}</span>
+                <span className="text-xs text-text-muted leading-relaxed block mt-0.5">{t.desc}</span>
               </span>
               <span className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 ${on ? "bg-brass border-brass text-bg" : "border-line-strong bg-surface"}`}>
                 {on && <Check className="w-3.5 h-3.5 stroke-[3]" />}
@@ -76,7 +76,7 @@ export function IndustryStep({ selected, custom, error, onToggle, onCustom, onBa
       )}
 
       {error && (
-        <p role="alert" className="text-[11px] text-rust font-medium flex items-center gap-1.5">
+        <p role="alert" className="text-xs text-rust font-medium flex items-center gap-1.5">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
           {error}
         </p>

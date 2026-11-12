@@ -33,11 +33,12 @@ export async function POST(req: Request) {
 
     const message = `👋 Hi ${business.founder_name || "Founder"}, this is your BizzPal Daily Check-In for ${business.name}!\n\n${questions.join("\n\n")}\n\nReply directly with your updates in 1-2 lines (or voice note).`;
 
-    // In production, dispatch via Twilio / Meta API here.
-    // For local environment, we return the outbound payload ready for inspection.
+    // Sending is not connected to a WhatsApp provider yet, so nothing is sent. The prepared message is returned
+    // so it can be checked.
     return NextResponse.json({
       success: true,
-      status: "outbound_prompt_dispatched",
+      status: "prepared_not_sent",
+      sent: false,
       recipient: business.whatsapp_number,
       message,
       questionsCount: questions.length,

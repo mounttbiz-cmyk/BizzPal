@@ -281,25 +281,25 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
   return (
     <div className="space-y-6">
       <StepHeader eyebrow="Step 5 · Your team & headcount" title="Add or sync your employee directory">
-        Large companies don&apos;t type or manually invite hundreds of employees. Connect your core HRIS/HCM, your company&apos;s CRM, upload your master Excel spreadsheet, or verify via statutory payroll/IdP.
+        Connect your HR system or CRM, upload a spreadsheet of your team, or invite people by email.
       </StepHeader>
 
       {/* Summary Stat Card */}
-      <div className="rounded-2xl border border-line bg-surface-2/40 p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="rounded-2xl border border-line bg-surface shadow-sm p-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center">
             <Users className="w-5 h-5 text-brass" />
           </div>
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Verified Active Headcount</div>
-            <div className="text-xl font-bold text-text leading-tight">
+            <div className="text-xs font-semibold text-text-muted">Verified Active Headcount</div>
+            <div className="text-2xl font-semibold text-text leading-tight">
               {totalVerifiedHeadcount}{" "}
-              <span className="text-xs font-normal text-text-muted">
+              <span className="text-sm font-normal text-text-muted">
                 {activeSync
                   ? `synced via ${catalog.find((c) => c.id === activeSync.provider)?.name || activeSync.provider}`
                   : confirmed > 0
                   ? "confirmed by Google"
-                  : "0 synced yet"}
+                  : "not connected yet"}
               </span>
             </div>
           </div>
@@ -339,22 +339,22 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
         <div className="space-y-4 animate-fade-in">
           <div className="p-4 rounded-xl border border-jade/30 bg-jade/5 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-jade/20 text-jade flex items-center justify-center font-bold">
+              <div className="w-9 h-9 rounded-lg bg-jade/20 text-jade flex items-center justify-center font-semibold">
                 <Database className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-bold text-text flex items-center gap-1.5">
+                <div className="text-xs font-semibold text-text flex items-center gap-1.5">
                   <span>{catalog.find((c) => c.id === activeSync.provider)?.name || activeSync.provider}</span>
                   <Pill tone="good">Verified Live Sync</Pill>
                 </div>
-                <div className="text-[11px] text-text-muted">
+                <div className="text-xs text-text-muted">
                   {activeSync.activeHeadcount} Active employees · {activeSync.onLeaveHeadcount} On Leave · {activeSync.contractorHeadcount} Contractors · Total records: {activeSync.totalRecords}
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-text-muted">Synced: {new Date(activeSync.syncedAt).toLocaleTimeString()}</span>
+              <span className="text-xs text-text-muted">Synced: {new Date(activeSync.syncedAt).toLocaleTimeString()}</span>
               <button
                 onClick={fetchHrisStatus}
                 className="p-1.5 rounded-lg border border-line bg-surface hover:border-brass text-text-muted hover:text-text cursor-pointer"
@@ -386,7 +386,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
           <div className="border border-line rounded-xl overflow-hidden bg-surface">
             <div className="overflow-x-auto max-h-80">
               <table className="w-full text-left text-xs">
-                <thead className="bg-surface-2 text-text-muted text-[10px] uppercase font-semibold border-b border-line sticky top-0 z-10">
+                <thead className="bg-surface-2 text-text-muted text-xs uppercase font-semibold border-b border-line sticky top-0 z-10">
                   <tr>
                     <th className="py-2.5 px-3">Emp ID</th>
                     <th className="py-2.5 px-3">Employee Name</th>
@@ -400,16 +400,16 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                 <tbody className="divide-y divide-line">
                   {filteredEmployees.map((emp) => (
                     <tr key={emp.id} className="hover:bg-surface-2/40 transition-colors">
-                      <td className="py-2.5 px-3 font-mono font-semibold text-brass text-[11px]">{emp.id}</td>
+                      <td className="py-2.5 px-3 font-mono font-semibold text-brass text-xs">{emp.id}</td>
                       <td className="py-2.5 px-3 font-medium text-text">
                         <div>{emp.name}</div>
-                        <div className="text-[10px] text-text-muted">{emp.email}</div>
+                        <div className="text-xs text-text-muted">{emp.email}</div>
                       </td>
                       <td className="py-2.5 px-3 text-text-muted">{emp.jobTitle}</td>
                       <td className="py-2.5 px-3 text-text-muted">{emp.department}</td>
-                      <td className="py-2.5 px-3 text-text-muted text-[11px]">{emp.manager || "—"}</td>
+                      <td className="py-2.5 px-3 text-text-muted text-xs">{emp.manager || "—"}</td>
                       <td className="py-2.5 px-3">
-                        <span className="capitalize text-[10px] px-2 py-0.5 rounded bg-surface-2 border border-line">
+                        <span className="capitalize text-xs px-2 py-0.5 rounded bg-surface-2 border border-line">
                           {emp.employmentType}
                         </span>
                       </td>
@@ -432,72 +432,32 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
       )}
 
       {/* Mode Navigation Tabs */}
-      <div className="flex border-b border-line gap-2 overflow-x-auto pb-0.5">
-        <button
-          type="button"
-          onClick={() => setTab("hris")}
-          className={`pb-2.5 px-3 text-xs font-bold transition-colors border-b-2 flex items-center gap-2 cursor-pointer shrink-0 ${
-            tab === "hris" ? "border-brass text-text" : "border-transparent text-text-muted hover:text-text"
-          }`}
-        >
-          <Database className="w-3.5 h-3.5 text-brass" />
-          HRIS / HCM Core Record
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brass/10 text-brass font-semibold">Enterprise</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setTab("crm")}
-          className={`pb-2.5 px-3 text-xs font-bold transition-colors border-b-2 flex items-center gap-2 cursor-pointer shrink-0 ${
-            tab === "crm" ? "border-brass text-text" : "border-transparent text-text-muted hover:text-text"
-          }`}
-        >
-          <Share2 className="w-3.5 h-3.5 text-blue-400" />
-          Connect Own CRM
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-semibold">Salesforce · HubSpot</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setTab("excel")}
-          className={`pb-2.5 px-3 text-xs font-bold transition-colors border-b-2 flex items-center gap-2 cursor-pointer shrink-0 ${
-            tab === "excel" ? "border-brass text-text" : "border-transparent text-text-muted hover:text-text"
-          }`}
-        >
-          <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-          Excel / Spreadsheet
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold">.xlsx · .csv</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setTab("alternatives")}
-          className={`pb-2.5 px-3 text-xs font-bold transition-colors border-b-2 flex items-center gap-2 cursor-pointer shrink-0 ${
-            tab === "alternatives" ? "border-brass text-text" : "border-transparent text-text-muted hover:text-text"
-          }`}
-        >
-          <ShieldCheck className="w-3.5 h-3.5 text-jade" />
-          Verified EPFO / IdP
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setTab("manual")}
-          className={`pb-2.5 px-3 text-xs font-bold transition-colors border-b-2 flex items-center gap-2 cursor-pointer shrink-0 ${
-            tab === "manual" ? "border-brass text-text" : "border-transparent text-text-muted hover:text-text"
-          }`}
-        >
-          <Mail className="w-3.5 h-3.5" />
-          Direct Invite ({invites.length})
-        </button>
+      <div className="flex border-b border-line gap-1 overflow-x-auto">
+        {([
+          { id: "hris", label: "HR system" },
+          { id: "crm", label: "CRM" },
+          { id: "excel", label: "Spreadsheet" },
+          { id: "alternatives", label: "Government records" },
+          { id: "manual", label: `Invite by email (${invites.length})` },
+        ] as const).map(t => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`pb-3 px-3.5 text-sm transition-colors border-b-2 cursor-pointer shrink-0 ${
+              tab === t.id ? "border-brass text-text font-medium" : "border-transparent text-text-muted hover:text-text"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* TAB 1: HRIS / HCM SYSTEM INTEGRATIONS */}
       {tab === "hris" && (
         <div className="space-y-5 animate-fade-in">
-          <div className="text-xs text-text-muted leading-relaxed">
-            Connect your primary Human Resources Information System (HRIS) or Human Capital Management (HCM) software. 
-            BizzPal syncs active employee rosters, managerial hierarchy, job titles, and verified headcount in one click.
+          <div className="text-sm text-text-muted leading-relaxed">
+            Connect the system where you keep your employee records. We bring in your active staff, their managers and job titles.
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -509,30 +469,16 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                   setFormInputs({});
                   setHrisError("");
                 }}
-                className="p-4 rounded-xl border border-line bg-surface-2/30 hover:border-brass/70 hover:bg-surface-2/60 transition-all cursor-pointer flex flex-col justify-between group"
+                className="p-5 rounded-2xl border border-line bg-surface shadow-sm hover:border-line-strong transition-colors cursor-pointer flex flex-col justify-between group"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-text group-hover:text-brass transition-colors">
-                      {prov.name}
-                    </span>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brass/10 text-brass">
-                      {prov.badge}
-                    </span>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-base font-medium text-text">{prov.name}</span>
+                    <span className="text-xs text-text-muted shrink-0 mt-1">{prov.badge}</span>
                   </div>
-                  <p className="text-[11px] text-text-muted leading-relaxed line-clamp-2">
-                    {prov.description}
-                  </p>
+                  <p className="text-sm text-text-muted leading-relaxed mt-1.5 line-clamp-2">{prov.description}</p>
                 </div>
-
-                <div className="mt-3 pt-3 border-t border-line flex items-center justify-between text-[11px]">
-                  <span className="text-text-muted flex items-center gap-1 font-mono text-[10px]">
-                    <Key className="w-3 h-3 text-brass" /> Direct API Sync
-                  </span>
-                  <span className="font-semibold text-brass flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                    Connect & Sync →
-                  </span>
-                </div>
+                <div className="mt-4 text-sm font-medium text-brass">Connect →</div>
               </div>
             ))}
           </div>
@@ -542,12 +488,12 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
       {/* TAB 2: INDIVIDUAL CRM CONNECTIONS */}
       {tab === "crm" && (
         <div className="space-y-5 animate-fade-in">
-          <div className="p-4 rounded-xl border border-line bg-surface-2/40">
-            <h4 className="text-xs font-bold text-text mb-1 flex items-center gap-1.5">
-              <Share2 className="w-4 h-4 text-blue-400" />
+          <div className="p-5 rounded-2xl border border-line bg-surface-2/40">
+            <h4 className="text-xs font-semibold text-text mb-1 flex items-center gap-1.5">
+              <Share2 className="w-4 h-4 text-text-muted" />
               Connect Your Company&apos;s CRM
             </h4>
-            <p className="text-[11px] text-text-muted leading-relaxed">
+            <p className="text-xs text-text-muted leading-relaxed">
               If your company manages its personnel, account executives, and operational staff through a CRM (Salesforce, HubSpot, Zoho CRM, LeadSquared, Pipedrive, or an in-house CRM database), connect below to instantly sync your active verified staff list.
             </p>
           </div>
@@ -561,30 +507,16 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                   setFormInputs({});
                   setHrisError("");
                 }}
-                className="p-4 rounded-xl border border-line bg-surface-2/30 hover:border-blue-400/70 hover:bg-surface-2/60 transition-all cursor-pointer flex flex-col justify-between group"
+                className="p-5 rounded-2xl border border-line bg-surface shadow-sm hover:border-line-strong transition-colors cursor-pointer flex flex-col justify-between group"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-text group-hover:text-blue-400 transition-colors">
-                      {crm.name}
-                    </span>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400">
-                      {crm.badge}
-                    </span>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-base font-medium text-text">{crm.name}</span>
+                    <span className="text-xs text-text-muted shrink-0 mt-1">{crm.badge}</span>
                   </div>
-                  <p className="text-[11px] text-text-muted leading-relaxed line-clamp-2">
-                    {crm.description}
-                  </p>
+                  <p className="text-sm text-text-muted leading-relaxed mt-1.5 line-clamp-2">{crm.description}</p>
                 </div>
-
-                <div className="mt-3 pt-3 border-t border-line flex items-center justify-between text-[11px]">
-                  <span className="text-text-muted flex items-center gap-1 text-[10px]">
-                    <Key className="w-3 h-3 text-blue-400" /> CRM User Sync
-                  </span>
-                  <span className="font-semibold text-blue-400 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                    Connect CRM →
-                  </span>
-                </div>
+                <div className="mt-4 text-sm font-medium text-brass">Connect →</div>
               </div>
             ))}
           </div>
@@ -594,25 +526,25 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
       {/* TAB 3: DIRECT EXCEL / SPREADSHEET UPLOAD */}
       {tab === "excel" && (
         <div className="space-y-5 animate-fade-in">
-          <div className="p-4 rounded-xl border border-line bg-surface-2/40">
-            <h4 className="text-xs font-bold text-text mb-1 flex items-center gap-1.5">
-              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+          <div className="p-5 rounded-2xl border border-line bg-surface-2/40">
+            <h4 className="text-xs font-semibold text-text mb-1 flex items-center gap-1.5">
+              <FileSpreadsheet className="w-4 h-4 text-jade" />
               Direct Excel & Spreadsheet Roster Ingestion
             </h4>
-            <p className="text-[11px] text-text-muted leading-relaxed">
+            <p className="text-xs text-text-muted leading-relaxed">
               Upload your company&apos;s master staff roster or headcount spreadsheet in <strong>.xlsx</strong>, <strong>.xls</strong>, or <strong>.csv</strong> format. 
               Our parser automatically recognizes columns like Employee ID, Name, Email, Job Title, Department, Manager, and Status.
             </p>
           </div>
 
-          <form onSubmit={handleUploadExcel} className="p-6 rounded-2xl border-2 border-dashed border-line hover:border-emerald-500/50 bg-surface-2/20 text-center space-y-4 transition-colors">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto">
+          <form onSubmit={handleUploadExcel} className="p-6 rounded-2xl border-2 border-dashed border-line hover:border-line-strong bg-surface-2/20 text-center space-y-4 transition-colors">
+            <div className="w-12 h-12 rounded-xl bg-surface-2 text-jade flex items-center justify-center mx-auto">
               <Upload className="w-6 h-6" />
             </div>
 
             <div>
-              <div className="text-xs font-bold text-text">Choose your Excel or CSV file</div>
-              <div className="text-[11px] text-text-muted mt-0.5">Supports Microsoft Excel (.xlsx, .xls) and CSV rosters</div>
+              <div className="text-xs font-semibold text-text">Choose your Excel or CSV file</div>
+              <div className="text-xs text-text-muted mt-0.5">Supports Microsoft Excel (.xlsx, .xls) and CSV rosters</div>
             </div>
 
             <div className="flex flex-col items-center gap-3">
@@ -626,12 +558,12 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                   setExcelError("");
                   setExcelSuccess("");
                 }}
-                className="text-xs text-text file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500/10 file:text-emerald-400 hover:file:bg-emerald-500/20 cursor-pointer"
+                className="text-xs text-text file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-surface-2 file:text-jade hover:file:bg-emerald-500/20 cursor-pointer"
               />
 
               {excelFile && (
                 <div className="text-xs font-semibold text-text flex items-center gap-1.5 bg-surface-2 px-3 py-1.5 rounded-lg border border-line">
-                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-jade" />
                   {excelFile.name} ({(excelFile.size / 1024).toFixed(1)} KB)
                 </div>
               )}
@@ -645,7 +577,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
             )}
 
             {excelSuccess && (
-              <p className="text-xs text-emerald-400 font-medium flex items-center justify-center gap-1.5">
+              <p className="text-xs text-jade font-medium flex items-center justify-center gap-1.5">
                 <Check className="w-3.5 h-3.5 shrink-0" />
                 {excelSuccess}
               </p>
@@ -655,7 +587,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
               <button
                 type="submit"
                 disabled={!excelFile || uploadingExcel}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer inline-flex items-center gap-2"
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer inline-flex items-center gap-2"
               >
                 {uploadingExcel ? (
                   <>
@@ -672,7 +604,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
             </div>
           </form>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px] text-text-muted">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs text-text-muted">
             <div className="p-3 rounded-lg border border-line bg-surface-2/30">
               <span className="font-semibold text-text block mb-0.5">Flexible Headers</span>
               Recognizes &apos;Emp ID&apos;, &apos;Full Name&apos;, &apos;Role&apos;, &apos;Department&apos;, &apos;Supervisor&apos; automatically.
@@ -692,12 +624,12 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
       {/* TAB 4: VERIFIED ALTERNATIVE METHODS (NO HRIS / EPFO / IDP) */}
       {tab === "alternatives" && (
         <div className="space-y-5 animate-fade-in">
-          <div className="p-4 rounded-xl border border-line bg-surface-2/40">
-            <h4 className="text-xs font-bold text-text mb-1 flex items-center gap-1.5">
+          <div className="p-5 rounded-2xl border border-line bg-surface-2/40">
+            <h4 className="text-xs font-semibold text-text mb-1 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-jade" />
               Genuine Verified Alternatives for Companies Without an HRIS
             </h4>
-            <p className="text-[11px] text-text-muted leading-relaxed">
+            <p className="text-xs text-text-muted leading-relaxed">
               Verify your team headcount through official statutory government filings (EPFO ECR) or enterprise Identity Provider (IdP) directories (Google Workspace Admin / Microsoft Entra ID). No manual invites required.
             </p>
           </div>
@@ -715,20 +647,20 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
               >
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-text group-hover:text-jade transition-colors">
+                    <span className="text-xs font-semibold text-text group-hover:text-jade transition-colors">
                       {alt.name}
                     </span>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-jade/10 text-jade">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-jade/10 text-jade">
                       {alt.badge}
                     </span>
                   </div>
-                  <p className="text-[11px] text-text-muted leading-relaxed">
+                  <p className="text-xs text-text-muted leading-relaxed">
                     {alt.description}
                   </p>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-line flex items-center justify-between text-[11px]">
-                  <span className="text-text-muted flex items-center gap-1 text-[10px]">
+                <div className="mt-3 pt-3 border-t border-line flex items-center justify-between text-xs">
+                  <span className="text-text-muted flex items-center gap-1 text-xs">
                     <Shield className="w-3 h-3 text-jade" /> Official Third-Party Proof
                   </span>
                   <span className="font-semibold text-jade flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
@@ -800,14 +732,14 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
               type="button"
               onClick={add}
               disabled={busy || !inviteEmail.trim()}
-              className="h-10 px-4 rounded-lg bg-brass text-bg text-xs font-bold hover:brightness-110 btn-tactile cursor-pointer inline-flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="h-10 px-4 rounded-lg bg-brass text-bg text-xs font-semibold hover:brightness-110 btn-tactile cursor-pointer inline-flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}Invite
             </button>
           </div>
 
           {error && (
-            <p role="alert" className="text-[11px] text-rust font-medium flex items-center gap-1.5 -mt-3">
+            <p role="alert" className="text-xs text-rust font-medium flex items-center gap-1.5 -mt-3">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
               {error}
             </p>
@@ -824,7 +756,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-bold text-text truncate">{i.name || i.email}</span>
+                      <span className="text-xs font-semibold text-text truncate">{i.name || i.email}</span>
                       <Pill tone="info">{i.role}</Pill>
                       {i.status === "verified" ? (
                         <Pill tone="good">
@@ -837,7 +769,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                       )}
                       {i.sameDomain === false && <Pill tone="info">Different domain</Pill>}
                     </div>
-                    {i.name && <div className="text-[11px] text-text-muted mt-0.5">{i.email}</div>}
+                    {i.name && <div className="text-xs text-text-muted mt-0.5">{i.email}</div>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {i.status !== "verified" && (
@@ -845,7 +777,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                         <button
                           type="button"
                           onClick={() => copy(i)}
-                          className="h-8 px-3 rounded-lg border border-line bg-surface text-[11px] font-semibold hover:border-brass cursor-pointer inline-flex items-center gap-1.5"
+                          className="h-8 px-3 rounded-lg border border-line bg-surface text-xs font-semibold hover:border-brass cursor-pointer inline-flex items-center gap-1.5"
                         >
                           {copied === i.id ? <Check className="w-3.5 h-3.5 text-jade" /> : <Copy className="w-3.5 h-3.5" />}
                           {copied === i.id ? "Copied" : "Copy link"}
@@ -854,7 +786,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
                           href={whatsapp(i)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="h-8 px-3 rounded-lg border border-line bg-surface text-[11px] font-semibold hover:border-jade cursor-pointer inline-flex items-center gap-1.5"
+                          className="h-8 px-3 rounded-lg border border-line bg-surface text-xs font-semibold hover:border-jade cursor-pointer inline-flex items-center gap-1.5"
                         >
                           <MessageCircle className="w-3.5 h-3.5 text-jade" />WhatsApp
                         </a>
@@ -886,10 +818,10 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
           <div className="w-full max-w-lg rounded-2xl border border-line bg-surface shadow-theme p-6 space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-brass">
+                <span className="text-xs font-semibold text-brass">
                   {selectedProvider.badge}
                 </span>
-                <h3 className="text-base font-bold text-text mt-0.5">{selectedProvider.name}</h3>
+                <h3 className="text-base font-semibold text-text mt-0.5">{selectedProvider.name}</h3>
               </div>
               <button
                 onClick={() => setSelectedProvider(null)}
@@ -919,7 +851,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
             </div>
 
             {selectedProvider.authType === "epfo_upload" && (
-              <div className="p-3 rounded-lg border border-line bg-surface-2/40 text-[11px] text-text-muted space-y-2">
+              <div className="p-3 rounded-lg border border-line bg-surface-2/40 text-xs text-text-muted space-y-2">
                 <div className="font-semibold text-text flex items-center gap-1.5">
                   <UploadCloud className="w-3.5 h-3.5 text-jade" /> Electronic Challan Cum Return (ECR)
                 </div>

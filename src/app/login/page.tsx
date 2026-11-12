@@ -500,70 +500,6 @@ export default function LoginPage() {
         const cleanEmail = (email || "").trim().toLowerCase();
         const cleanPass = (password || "").trim();
 
-        // Dedicated Demo / Razorpay Reviewer credentials
-        const isDemoEmail =
-          cleanEmail === "demo@bizzpal.ai" ||
-          cleanEmail === "razorpay@bizzpal.ai" ||
-          cleanEmail === "reviewer@bizzpal.ai" ||
-          cleanEmail === "demo.founder@bizzpal.ai";
-
-        if (isDemoEmail) {
-          const passLower = cleanPass.toLowerCase();
-          const validDemoPass =
-            passLower === "bizzpal@2026" ||
-            passLower === "bizzpal2026" ||
-            passLower === "razorpay2026" ||
-            passLower === "demo123" ||
-            passLower === "demo@2026" ||
-            passLower === "demo";
-
-          if (validDemoPass) {
-            // For Demo ID: Clear previous demo states so it always enters fresh into the auto-filled onboarding flow
-            localStorage.removeItem("bizzpal_business_profile");
-            localStorage.removeItem("bizzpal_onboarding_step");
-            localStorage.removeItem(`bizzpal_user_business_${cleanEmail}`);
-            localStorage.removeItem(`bizzpal_onboarding_draft_${cleanEmail}`);
-            localStorage.removeItem("bizzpal_datapal_campaigns");
-            localStorage.setItem("bizzpal_subscription_plan", "growth");
-            localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, "growth");
-
-            const userSession = {
-              id: "usr_demo_razorpay",
-              email: cleanEmail,
-              name: fullName || "Demo Founder",
-              role: "owner",
-              provider: "password",
-              isDemo: true,
-              authenticatedAt: new Date().toISOString(),
-            };
-
-            localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
-
-            fetch("/api/auth/account-status", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: cleanEmail,
-                name: fullName || "Demo Founder",
-                action: "login",
-                lastLoginAt: new Date().toISOString(),
-              }),
-            }).catch(() => {});
-
-            // Direct demo login to the auto-filled onboarding registration steps
-            handleSuccessfulAuth("/onboarding?mode=demo", "Demo credentials verified! Opening workspace...");
-            return;
-          } else {
-            setErrorInfo({
-              title: "Invalid Demo Password",
-              message: "Please enter the demo password (e.g. BizzPal@2026).",
-              type: "credentials",
-            });
-            setLoading(false);
-            return;
-          }
-        }
-
         // Work email validation (reject fake, disposable, or malformed email)
         const emailValidation = validateWorkEmail(cleanEmail);
         if (!emailValidation.isValid) {
@@ -1179,7 +1115,7 @@ export default function LoginPage() {
                     </div>
                     <h2 className="text-base font-bold text-text">Developer Authorization</h2>
                     <p className="text-xs text-text-muted leading-relaxed">
-                      Restricted to platform developers. Default developer passcode is: <code>bizzpal2026</code>
+                      Restricted to platform developers.
                     </p>
                   </div>
 
@@ -1203,7 +1139,7 @@ export default function LoginPage() {
                       <Lock className="w-3.5 h-3.5 text-text-muted absolute left-3.5" />
                       <input
                         type="password"
-                        placeholder="Enter developer passcode (bizzpal2026)"
+                        placeholder="Enter passcode"
                         value={adminPasscode}
                         onChange={e => setAdminPasscode(e.target.value)}
                         className="w-full text-xs pl-9 pr-3.5 py-2.5 rounded-xl border border-line bg-surface-2 text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-amber-500"

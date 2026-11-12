@@ -106,6 +106,14 @@ export async function POST(req: Request) {
         );
       }
     } else {
+      // Simulated checkout is for local testing only. A live server without real keys must refuse,
+      // otherwise anyone could "buy" a plan for free.
+      if (process.env.NODE_ENV === "production") {
+        return NextResponse.json(
+          { success: false, error: "Payments are not available right now. Please contact support." },
+          { status: 503 }
+        );
+      }
       isSandboxMode = true;
       orderId = `order_sim_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     }

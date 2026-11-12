@@ -42,10 +42,10 @@ export function ConnectSourcesStep({ auth, onConnect, onBack, onNext }: Props) {
                 <div className="p-2 rounded-xl bg-surface border border-line shrink-0"><ToolLogo toolId={tool.id} size={30} /></div>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-bold text-text">{tool.name}</span>
+                    <span className="text-sm font-semibold text-text">{tool.name}</span>
                     {isOn && <Pill tone="good">Connected</Pill>}
                   </div>
-                  <p className="text-[11px] text-text-muted leading-relaxed mt-0.5">
+                  <p className="text-xs text-text-muted leading-relaxed mt-0.5">
                     {isOn && auth[tool.id]?.detail ? <span className="text-jade font-medium">{auth[tool.id].detail}</span> : tool.description}
                   </p>
                 </div>
@@ -54,7 +54,7 @@ export function ConnectSourcesStep({ auth, onConnect, onBack, onNext }: Props) {
                 type="button"
                 onClick={() => onConnect(tool.id)}
                 disabled={!isLive}
-                className={`shrink-0 h-10 px-4 rounded-xl text-xs font-bold inline-flex items-center justify-center gap-2 btn-tactile transition ${
+                className={`shrink-0 h-10 px-4 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-2 btn-tactile transition ${
                   !isLive ? "cursor-not-allowed" : "cursor-pointer"
                 } ${
                   isOn
@@ -81,7 +81,7 @@ export function ConnectSourcesStep({ auth, onConnect, onBack, onNext }: Props) {
       <div className="pt-4 border-t border-line flex items-center justify-between gap-3">
         <GhostButton onClick={onBack}>Back</GhostButton>
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-text-muted hidden sm:inline">{connected === 0 ? "You can connect tools later" : `${connected} connected`}</span>
+          <span className="text-xs text-text-muted hidden sm:inline">{connected === 0 ? "You can connect tools later" : `${connected} connected`}</span>
           <PrimaryButton id="btn-sources-next" onClick={onNext}>{connected === 0 ? "Skip for now" : "Continue"}</PrimaryButton>
         </div>
       </div>

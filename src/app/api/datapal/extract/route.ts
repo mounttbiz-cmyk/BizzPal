@@ -1,23 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateSyntheticLeads } from "@/lib/datapal/storage";
 import { extractRealBusinessLeads } from "@/lib/datapal/realExtractor";
+import { makeLeadSignature } from "@/lib/datapal/signature";
 import { DataPalBusinessLead, DataPalSearchConfig } from "@/lib/datapal/types";
-import { logDataPalUsage } from "@/lib/db";
+import { logDataPalUsage, getDataPalCredits, consumeDataPalCredits, isUserRegistered } from "@/lib/db";
+import { rateLimit, clientIp } from "@/lib/rateLimit";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
+    // Every search can cost real money (Google Places), so it needs an account and is rate limited.
+    const ipLimit = rateLimit(`dp-ip:${clientIp(req)}`, 30, 10 * 60 * 1000);
+    if (!ipLimit.ok) {
+      return NextResponse.json(
+        { error: "Too many searches. Please wait a few minutes." },
+        { status: 429, headers: { "Retry-After": String(ipLimit.retryAfterSec) } }
+      );
+    }
+
     const body = await req.json();
-    const { config, apiKey, apiEndpoint, account } = body as {
-      account?: { email?: string; name?: string };
+    const { config, apiKey, apiEndpoint, account, excludeSignatures } = body as {
       config: DataPalSearchConfig;
       apiKey?: string;
       apiEndpoint?: string;
+      account?: { email?: string; name?: string };
+      excludeSignatures?: string[];
     };
 
     if (!config) {
+      return NextResponse.json({ error: "Search configuration is required" }, { status: 400 });
+    }
+
+    const email = String(account?.email || "").trim().toLowerCase();
+    if (!email.includes("@") || !isUserRegistered(email)) {
+      return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
+    }
+    const userLimit = rateLimit(`dp-user:${email}`, 8, 5 * 60 * 1000);
+    if (!userLimit.ok) {
       return NextResponse.json(
-        { error: "Search configuration is required" },
-        { status: 400 }
+        { error: "You are searching too fast. Please wait a moment." },
+        { status: 429, headers: { "Retry-After": String(userLimit.retryAfterSec) } }
+      );
+    }
+
+    // Credits are kept on the server, so they cannot be edited in the browser.
+    const credits = getDataPalCredits(email);
+    if (credits.remaining <= 0) {
+      return NextResponse.json(
+        { error: "You have used all your DataPal records. Upgrade your plan to get more.", code: "no_credits" },
+        { status: 402 }
       );
     }
 
@@ -29,7 +60,7 @@ export async function POST(req: NextRequest) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`,
+            Authorization: `Bearer ${apiKey}`,
             "X-DataPal-Key": apiKey,
           },
           body: JSON.stringify({
@@ -41,51 +72,46 @@ export async function POST(req: NextRequest) {
 
         if (upstreamResponse.ok) {
           const upstreamData = await upstreamResponse.json();
-          return NextResponse.json({
-            mode: "live",
-            data: upstreamData,
-            timestamp: new Date().toISOString(),
-          });
+          return NextResponse.json({ mode: "live", data: upstreamData, timestamp: new Date().toISOString() });
         }
       } catch (upstreamErr) {
-        console.warn("DataPal live API unreachable, attempting free real directory extractor:", upstreamErr);
+        console.warn("DataPal live API unreachable, using the built-in directory extractor:", upstreamErr);
       }
     }
 
-    // 2. LIVE FREE REAL-DATA EXTRACTION (OpenStreetMap Live + Google Places Free Tier)
+    // 2. Real businesses only (Google Places / OpenStreetMap). Nothing is invented.
     const { leads: realLeads, sourceMode, googleRequests } = await extractRealBusinessLeads(config, apiKey);
 
-    const targetCount = config.requestedCount && config.requestedCount > 0 ? config.requestedCount : 25;
-    let leads: DataPalBusinessLead[] = [];
-    if (realLeads.length >= targetCount) {
-      leads = realLeads.slice(0, targetCount);
-    } else if (realLeads.length > 0) {
-      const needed = targetCount - realLeads.length;
-      const synthetic = generateSyntheticLeads({
-        ...config,
-        requestedCount: needed,
-      });
-      leads = [...realLeads, ...synthetic];
-    } else {
-      leads = generateSyntheticLeads(config);
-    }
+    const asked = config.requestedCount && config.requestedCount > 0 ? config.requestedCount : 25;
+    const targetCount = Math.min(asked, credits.remaining);
+
+    // Leave out businesses this account already has, if asked to, before anything is charged
+    const exclude = new Set<string>(Array.isArray(excludeSignatures) ? excludeSignatures.slice(0, 50000) : []);
+    const fresh = exclude.size
+      ? realLeads.filter(l => !exclude.has(makeLeadSignature({ name: l.name, city: l.city, phone: l.phone, website: l.website })))
+      : realLeads;
+    const leads: DataPalBusinessLead[] = fresh.slice(0, targetCount);
+    const alreadyHad = realLeads.length - fresh.length;
+
     logDataPalUsage({
-      email: String(account?.email || "guest"),
+      email,
       name: account?.name,
       requested: targetCount,
       returned: leads.length,
-      realLeads: realLeads.length,
+      realLeads: leads.length,
       sourceMode,
       googleRequests,
     });
 
-    const campaignId = `camp_${Date.now()}`;
+    // Only records that were really delivered use up credits
+    const after = consumeDataPalCredits(email, leads.length);
+
     const locationString = [config.areaPincode, config.city, config.state, config.countryCode === "IN" ? "India" : config.countryCode]
       .filter(Boolean)
       .join(", ");
 
     const campaign = {
-      id: campaignId,
+      id: `camp_${Date.now()}`,
       title: config.searchQuery?.trim()
         ? `${config.searchQuery.trim()} in ${config.city || "All Regions"}`
         : `${config.requirement || "Business Leads"} in ${config.city || "All Regions"}`,
@@ -102,18 +128,29 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString(),
       status: "completed",
       results: leads,
+      duplicatesRemoved: alreadyHad,
     };
 
     return NextResponse.json({
-      mode: sourceMode === "fallback" ? "client_high_fidelity" : sourceMode,
+      mode: sourceMode === "fallback" ? "no_results" : sourceMode,
       campaign,
-      message: realLeads.length > 0 ? `Successfully extracted ${realLeads.length} real live businesses!` : "Data extraction completed successfully",
+      credits: {
+        planTier: after.planTier,
+        baseQuota: after.baseQuota,
+        usedData: after.used,
+        addonCredits: after.addon,
+        totalAllowed: after.totalAllowed,
+        remainingData: after.remaining,
+        usedLeads: after.used,
+        remainingQuota: after.remaining,
+      },
+      message:
+        leads.length > 0
+          ? `Found ${leads.length} real businesses.`
+          : "No matching businesses were found. Try a wider area or a different category. You were not charged.",
     });
   } catch (error: any) {
     console.error("DataPal extraction error:", error);
-    return NextResponse.json(
-      { error: error?.message || "Failed to process data extraction" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to process data extraction" }, { status: 500 });
   }
 }

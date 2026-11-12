@@ -16,21 +16,23 @@ try {
 const inMemoryConfigStore = new Map<string, string>();
 const inMemoryBusinessStore: any[] = [];
 
-// Detect serverless and cloud container environments (Vercel, AWS Lambda, GCP Cloud Run, Cloud Functions, Docker)
+// True serverless platforms have a read-only app folder and wipe local storage between runs.
+// A normal VM (even in production, even on GCP) keeps its disk, so it must NOT use the temp folder.
 const isServerless = Boolean(
   process.env.VERCEL ||
   process.env.AWS_LAMBDA_FUNCTION_NAME ||
   process.env.K_SERVICE ||
   process.env.FUNCTION_NAME ||
-  process.env.FUNCTION_TARGET ||
-  process.env.FIREBASE_CONFIG ||
-  process.env.GCP_PROJECT ||
-  process.env.GOOGLE_CLOUD_PROJECT ||
-  (process.env.NODE_ENV === "production" && process.platform !== "win32")
+  process.env.FUNCTION_TARGET
 );
 
-// In serverless / containers, process.cwd() is read-only. os.tmpdir() is the writable storage directory.
-let dataDir: string = isServerless
+// Where the database lives:
+//   1. BIZZPAL_DATA_DIR if set (recommended on the VM: a folder outside the app folder, so deploys never touch it)
+//   2. the temp folder on real serverless platforms
+//   3. ./data next to the app
+let dataDir: string = process.env.BIZZPAL_DATA_DIR
+  ? path.resolve(process.env.BIZZPAL_DATA_DIR)
+  : isServerless
   ? path.join(os.tmpdir(), "bizzpal-data")
   : path.join(process.cwd(), "data");
 
@@ -396,6 +398,13 @@ try {
     google_requests INTEGER DEFAULT 0,
     est_cost_usd REAL DEFAULT 0,
     created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS datapal_credits (
+    account_email TEXT PRIMARY KEY,
+    used INTEGER NOT NULL DEFAULT 0,
+    addon INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS team_members (
@@ -1868,4 +1877,54 @@ export function logDataPalUsage(entry: {
   } catch (err: any) {
     console.warn("[DataPal usage] could not log:", err?.message);
   }
+}
+
+
+// ---------------------------------------------------------------
+// DataPal credits live on the server so a user cannot edit their own balance.
+// ---------------------------------------------------------------
+import { PLAN_LIMITS as DATAPAL_PLAN_LIMITS, tierFromPlan as datapalTierFromPlan } from "@/lib/datapal/plans";
+
+export interface DataPalCreditsState {
+  planTier: "free" | "starter" | "growth" | "enterprise";
+  baseQuota: number;
+  used: number;
+  addon: number;
+  totalAllowed: number;
+  remaining: number;
+}
+
+export function getDataPalCredits(email: string): DataPalCreditsState {
+  const key = (email || "guest").trim().toLowerCase();
+  let used = 0;
+  let addon = 0;
+  try {
+    const row = db.prepare("SELECT used, addon FROM datapal_credits WHERE account_email = ?").get(key) as any;
+    if (row) {
+      used = Number(row.used) || 0;
+      addon = Number(row.addon) || 0;
+    }
+  } catch {}
+  const sub = getUserActiveSubscription(key) as any;
+  const planTier = datapalTierFromPlan(sub?.plan_name || sub?.plan_id);
+  const baseQuota = DATAPAL_PLAN_LIMITS[planTier];
+  const totalAllowed = baseQuota + addon;
+  return { planTier, baseQuota, used, addon, totalAllowed, remaining: Math.max(0, totalAllowed - used) };
+}
+
+/** Takes credits for records that were really delivered. Never goes past what the account has. */
+export function consumeDataPalCredits(email: string, count: number): DataPalCreditsState {
+  const key = (email || "guest").trim().toLowerCase();
+  const n = Math.max(0, Math.floor(count));
+  if (n > 0) {
+    try {
+      db.prepare(
+        `INSERT INTO datapal_credits (account_email, used, addon, updated_at) VALUES (?, ?, 0, ?)
+         ON CONFLICT(account_email) DO UPDATE SET used = used + excluded.used, updated_at = excluded.updated_at`
+      ).run(key, n, new Date().toISOString());
+    } catch (err: any) {
+      console.warn("[DataPal credits] could not record usage:", err?.message);
+    }
+  }
+  return getDataPalCredits(key);
 }

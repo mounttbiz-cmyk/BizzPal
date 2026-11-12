@@ -524,17 +524,17 @@ export default function OnboardingPage() {
             <div className="w-8 h-8 rounded-lg bg-surface border border-line flex items-center justify-center p-1">
               <Image src="/logo.png" alt="BizzPal" width={24} height={24} className="object-contain" />
             </div>
-            <span className="font-extrabold text-sm tracking-tight">Bizz<span className="text-brass">Pal</span></span>
-            <span className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-brass-soft text-brass font-bold uppercase">Business registration</span>
+            <span className="font-semibold text-sm tracking-tight">Bizz<span className="text-brass">Pal</span></span>
+            <span className="hidden sm:inline text-sm text-text-muted">Set up your business</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="hidden md:flex items-center gap-1.5 text-[11px] text-text-muted"><Lock className="w-3 h-3" />{email}</span>
+            <span className="hidden md:flex items-center gap-1.5 text-xs text-text-muted"><Lock className="w-3 h-3" />{email}</span>
             <div className="w-32"><ThemeSwitch compact /></div>
           </div>
         </div>
         {/* Mobile / tablet progress */}
         <div className="lg:hidden px-4 sm:px-6 pb-3 max-w-6xl mx-auto">
-          <div className="flex items-center justify-between text-[11px] text-text-muted mb-1.5">
+          <div className="flex items-center justify-between text-xs text-text-muted mb-1.5">
             <span className="font-semibold text-text">{STEPS[stepIdx].label}</span>
             <span>Step {stepIdx + 1} of {STEPS.length}</span>
           </div>
@@ -551,7 +551,7 @@ export default function OnboardingPage() {
                   aria-selected={current}
                   disabled={!reachable}
                   onClick={() => reachable && setStepIdx(i)}
-                  className={`shrink-0 px-2.5 py-1 rounded-full border text-[11px] font-semibold inline-flex items-center gap-1 transition-colors ${
+                  className={`shrink-0 px-2.5 py-1 rounded-full border text-xs font-semibold inline-flex items-center gap-1 transition-colors ${
                     current ? "bg-brass text-bg border-brass" : reachable ? "bg-surface border-line text-text hover:border-brass cursor-pointer" : "bg-transparent border-line text-text-muted/60"
                   }`}
                 >
@@ -575,7 +575,7 @@ export default function OnboardingPage() {
                 const firstOfPhase = i === 0 || STEPS[i - 1].phase !== s.phase;
                 return (
                   <li key={s.id}>
-                    {firstOfPhase && <div className={`text-[10px] font-bold uppercase tracking-wider text-text-muted px-3 ${i === 0 ? "pb-1" : "pt-3 pb-1"}`}>{s.phase}</div>}
+                    {firstOfPhase && <div className={`text-xs font-medium text-text-muted px-3 ${i === 0 ? "pb-1" : "pt-3 pb-1"}`}>{s.phase}</div>}
                     <button
                       type="button"
                       disabled={!canOpen}
@@ -586,17 +586,17 @@ export default function OnboardingPage() {
                         current ? "bg-surface-2 border border-line" : "border border-transparent"
                       } ${canOpen ? "cursor-pointer hover:bg-surface-2/70 hover:border-line" : "cursor-default"}`}
                     >
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${
                         isDone ? "bg-jade text-bg" : current ? "bg-brass text-bg" : "bg-surface-2 text-text-muted border border-line"
                       }`}>
                         {isDone ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : i + 1}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className={`block text-xs font-bold ${current || isDone ? "text-text" : "text-text-muted"}`}>{s.label}</span>
-                        <span className="block text-[10px] text-text-muted">{s.hint}</span>
+                        <span className={`block text-xs font-semibold ${current || isDone ? "text-text" : "text-text-muted"}`}>{s.label}</span>
+                        <span className="block text-xs text-text-muted">{s.hint}</span>
                       </span>
                       {canOpen && (
-                        <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-text-muted group-hover:text-brass">
+                        <span className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-text-muted group-hover:text-brass">
                           <Pencil className="w-3 h-3" />Edit
                         </span>
                       )}
@@ -608,9 +608,9 @@ export default function OnboardingPage() {
           </nav>
 
           <div className="rounded-2xl border border-line bg-surface p-4 shadow-theme space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-text"><ShieldCheck className="w-4 h-4 text-brass" />Trust summary</div>
-            {displayName && <div className="text-[13px] font-bold text-text leading-snug">{displayName}</div>}
-            <ul className="space-y-2 text-[11px]">
+            <div className="flex items-center gap-2 text-sm font-medium text-text"><ShieldCheck className="w-4 h-4 text-brass" />Trust summary</div>
+            {displayName && <div className="text-[13px] font-semibold text-text leading-snug">{displayName}</div>}
+            <ul className="space-y-2 text-xs">
               <TrustRow ok={registryOk} label="Confirmed by GST registry" />
               <TrustRow ok={siteOk} skipped={domain.phase === "skipped"} label="Controls company website" />
               <TrustRow ok={emailOk} skipped={!siteOk} label="Sign-in email on that website" />
@@ -618,7 +618,7 @@ export default function OnboardingPage() {
               <TrustRow ok={liveSources.length > 0} label={payTotal ? `Revenue ${inr(payTotal.revenueInr)} from provider` : "Revenue from payment provider"} />
               <TrustRow ok={totalTeamCount > 0} label={teamLabel} />
             </ul>
-            <p className="text-[10px] text-text-muted leading-relaxed">Each tick is checked by our server. Nothing here is self-declared.</p>
+            <p className="text-xs text-text-muted leading-relaxed">Each tick is checked by our server. Nothing here is self-declared.</p>
           </div>
         </aside>
 
@@ -629,19 +629,19 @@ export default function OnboardingPage() {
               <Check className="w-8 h-8 stroke-[3]" />
             </div>
             <div className="space-y-1.5">
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Your workspace is ready</h2>
+              <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">Your workspace is ready</h2>
               <p className="text-xs text-text-muted max-w-md mx-auto leading-relaxed">
                 {displayName || "Your business"} is set up. {registryOk ? "Your GSTIN was confirmed by the GST registry." : "Your GSTIN will show as not yet verified until the registry check succeeds."} {payTotal ? `Your last 30 days of real revenue (${inr(payTotal.revenueInr)}) came straight from your payment provider.` : "Revenue will appear as soon as you connect a payment provider."}
               </p>
             </div>
-            <ul className="inline-flex flex-col gap-2 text-left text-[11px]">
+            <ul className="inline-flex flex-col gap-2 text-left text-xs">
               <TrustRow ok={registryOk} label="Confirmed by GST registry" />
               <TrustRow ok={siteOk} skipped={!siteOk} label="Controls company website" />
               <TrustRow ok={bankOk} skipped={!bankOk} label="Bank account matches GST name" />
               <TrustRow ok={liveSources.length > 0} skipped={liveSources.length === 0} label={liveSources.length ? `Revenue from ${liveSources.map((x) => x.provider === "razorpay" ? "Razorpay" : "Stripe").join(" + ")}` : "No payment provider connected yet"} />
               <TrustRow ok={totalTeamCount > 0} skipped={totalTeamCount === 0} label={totalTeamCount > 0 ? teamLabel : "No teammates or HRIS synced yet"} />
             </ul>
-            <p className="text-[11px] text-text-muted">Taking you to choose your plan…</p>
+            <p className="text-xs text-text-muted">Taking you to choose your plan…</p>
           </section>
         ) : (
         <section key={step} className="p-5 sm:p-8 rounded-2xl border border-line bg-surface shadow-theme min-w-0 animate-fade-in">
@@ -720,7 +720,7 @@ export default function OnboardingPage() {
         )}
       </main>
 
-      <footer className="text-center text-[11px] text-text-muted py-4 flex items-center justify-center gap-1.5">
+      <footer className="text-center text-xs text-text-muted py-4 flex items-center justify-center gap-1.5">
         <BadgeCheck className="w-3.5 h-3.5 text-brass" /> BizzPal verifies businesses against official records. Your details are never sold.
       </footer>
 

@@ -147,6 +147,7 @@ export function ChatDock({
             message: question,
             agentId: "cfo",
             companyProfile: profile,
+            email: (() => { try { return JSON.parse(localStorage.getItem("bizzpal_user_session") || "{}")?.email || ""; } catch { return ""; } })(),
           }),
         });
         const data = await res.json();

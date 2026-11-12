@@ -1,10 +1,8 @@
 import { DataPalApiSettings, DataPalBusinessLead, DataPalSearchCampaign, DataPalSearchConfig } from "./types";
-import { COUNTRY_HIERARCHIES, SAMPLE_HISTORIC_CAMPAIGNS } from "./constants";
 import {
   getSeenLeadSignatures,
   makeLeadSignature,
   recordSeenLeadSignatures,
-  recordCreditUsage,
 } from "./credits";
 
 export function getCampaignsStorageKey(): string {
@@ -105,195 +103,6 @@ export function saveApiSettings(settings: Partial<DataPalApiSettings>): DataPalA
   return updated;
 }
 
-// Indian & Global realistic business name generators for high fidelity preview
-const BIZ_NAME_PREFIXES: Record<string, string[]> = {
-  default: ["Apex", "Royal", "Prime", "Heritage", "Zenith", "Horizon", "Elite", "Grand", "Urban", "Metro", "Vanguard", "Nexus", "Pinnacle"],
-  Dental: ["Dr. Mehta's", "DentCraft", "SmilePlus", "Clove Dental Care", "PearlWhite", "Dr. Rao's", "AuraDental"],
-  Medical: ["Sanjeevani", "Lifecare", "Apollo Clinic", "CareWell", "HealSpan", "AyurGram", "Aashray"],
-  Restaurant: ["The Spice Guild", "Copper Chimney", "Barbeque Nation", "Bistro 18", "Tandoor Express", "Saffron Bistro", "Coastal Feast"],
-  Cafe: ["Roast & Brew", "The Coffee Workshop", "Third Wave Bean", "Mocha Point", "Espresso Haven", "Cafe Bliss"],
-  Hotel: ["The Grand Imperial", "Lemon Tree Retreat", "Residency Suites", "Fern Heritage", "Royal Orchid"],
-  Architect: ["Morphology Studio", "Studio Praxis", "DesignGrid", "Aura Space Architects", "Atelier V", "Modus Design"],
-  Software: ["CloudScale Tech", "DataVibe Analytics", "CodeMatrix Solutions", "Synthetix Logic", "ByteWave Labs", "OmniStack"],
-  Retail: ["Vogue & Trend", "The Silk Route", "Urban Attire", "Prestige Jewelers", "Titanium Sparks", "Reliance Mart"],
-};
-
-const BIZ_LOCALITIES: Record<string, string[]> = {
-  Mumbai: ["Bandra West", "Andheri East", "Nariman Point", "Lower Parel", "Juhu", "Powai", "Colaba", "Borivali West", "Goregaon"],
-  Delhi: ["Connaught Place", "Hauz Khas", "South Extension", "Saket", "Karol Bagh", "Lajpat Nagar", "Dwarka Sector 12"],
-  Bangalore: ["Koramangala", "Indiranagar", "HSR Layout", "Whitefield", "Jayanagar", "MG Road", "Electronic City Phase 1"],
-  Pune: ["Koregaon Park", "Baner", "Kothrud", "Viman Nagar", "Hinjewadi Phase 2", "FC Road"],
-  Hyderabad: ["Jubilee Hills", "Banjara Hills", "HITEC City", "Gachibowli", "Madhapur", "Kondapur"],
-  default: ["Commercial Hub, 1st Cross", "High Street Zone", "Station Road", "Tech Park Road", "City Center Plaza"],
-};
-
-const EXPANDED_PREFIXES = [
-  "Dr. Mehta's", "Apex", "Royal", "Prime", "Heritage", "Zenith", "Horizon", "Elite", "Grand", "Urban",
-  "Metro", "Vanguard", "Nexus", "Pinnacle", "SmilePlus", "Clove Care", "PearlWhite", "Aura", "Sanjeevani",
-  "Lifecare", "CareWell", "HealSpan", "AyurGram", "Bloom", "Nova", "Starlight", "TrueNorth", "Alpha",
-  "Omni", "Paramount", "Prestige", "Silverline", "GoldenGate", "Sunrise", "Signature", "Kaveri",
-  "Ganga", "Shanti", "Venkateshwara", "Dr. Rao's", "Dr. Sharma's", "Dr. Kapoor's", "Desai & Sons",
-  "Singhania", "Godrej Colony", "Tirupati", "Sai Baba", "Mahalaxmi", "Navratna", "Krystal", "Zenith Point"
-];
-
-const EXPANDED_SUFFIXES = [
-  "Center", "Clinic", "Studio", "Care", "Hub", "Solutions", "Associates", "Enterprises", "Lounge",
-  "Point", "Parlour", "Emporium", "Agency", "Group", "Lab", "Ventures", "House", "Works", "Guild",
-  "Collective", "Partners", "Chambers", "Suites", "World", "Depot", "Station", "Boutique", "Corner"
-];
-
-/**
- * Generates realistic high-fidelity business leads tailored to location, category and requirements.
- * Enforces deduplication so the user never gets the same lead twice.
- */
-export function generateSyntheticLeads(config: DataPalSearchConfig): DataPalBusinessLead[] {
-  const matchedCountry = COUNTRY_HIERARCHIES.find(c => c.code === config.countryCode) || COUNTRY_HIERARCHIES[0];
-  const city = config.city && config.city !== "All Cities" && config.city !== "CUSTOM" ? config.city : "Capital City";
-  const state = config.state && config.state !== "All States" && config.state !== "CUSTOM" ? config.state : "Main Region";
-  const country = matchedCountry.name;
-  const phonePrefix = matchedCountry.phonePrefix || "+91";
-  const categories = config.selectedCategories.length > 0 ? config.selectedCategories : ["IT & Software Companies", "Restaurants & Fine Dining", "Dental Clinics"];
-  const localities = BIZ_LOCALITIES[city] || BIZ_LOCALITIES["default"];
-
-  // Quantity requested by user (defaults to 25 if not specified)
-  const targetCount = config.requestedCount && config.requestedCount > 0 ? config.requestedCount : 25;
-  const userQuery = config.searchQuery?.trim();
-
-  // Load deduplication registry
-  const seenSignatures = getSeenLeadSignatures(config.accountKey);
-  const newSignatures: string[] = [];
-  const results: DataPalBusinessLead[] = [];
-
-  let attempts = 0;
-  const maxAttempts = targetCount * 8 + 100;
-
-  for (let i = 0; results.length < targetCount && attempts < maxAttempts; i++) {
-    attempts++;
-    const locality = localities[(i + attempts) % localities.length];
-    let category = categories[i % categories.length];
-
-    // Determine category and business name based on custom search query or standard category
-    let bizName = "";
-    const namePrefix = EXPANDED_PREFIXES[(i * 3 + attempts) % EXPANDED_PREFIXES.length];
-    const suffix = EXPANDED_SUFFIXES[(i * 2 + attempts) % EXPANDED_SUFFIXES.length];
-
-    if (userQuery && userQuery.length > 1) {
-      category = userQuery
-        .split(" ")
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-        .join(" ");
-
-      // Natural business name variations
-      const variant = (i + attempts) % 4;
-      if (variant === 0) {
-        bizName = `${namePrefix} ${category}`;
-      } else if (variant === 1) {
-        bizName = `${category} ${suffix}`;
-      } else if (variant === 2) {
-        bizName = `${namePrefix} ${category} ${suffix}`;
-      } else {
-        bizName = `${namePrefix} & Co. (${category})`;
-      }
-    } else {
-      const cleanCat = category.split("&")[0].trim();
-      bizName = `${namePrefix} ${cleanCat} ${suffix}`;
-    }
-
-    // Generate unique phone
-    const partA = String(Math.floor(Math.random() * 89999) + 10000);
-    const partB = String(Math.floor(Math.random() * 89999) + 10000);
-    const phoneNum = `${phonePrefix} ${partA} ${partB}`;
-
-    // Deduplication check
-    const sig = makeLeadSignature({
-      name: bizName,
-      city,
-      phone: phoneNum,
-    });
-
-    if (seenSignatures.has(sig)) {
-      continue; // Skip duplicate lead already extracted in past sessions
-    }
-
-    seenSignatures.add(sig);
-    newSignatures.push(sig);
-
-    const isNormalExtract = config.requirement.toLowerCase().includes("normal");
-    const isMissingWebsite = !isNormalExtract && (config.requirement.toLowerCase().includes("website") || Math.random() < 0.35);
-    const hasPhone = config.filters.mustHavePhone ? true : Math.random() < 0.96;
-    const hasEmail = config.filters.mustHaveEmail ? true : Math.random() < 0.85;
-
-    const cleanCitySlug = city.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const cleanNameSlug = bizName.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 14);
-
-    const email = hasEmail ? `${cleanNameSlug}.${cleanCitySlug}@gmail.com` : null;
-    const website = isMissingWebsite ? null : `https://${cleanNameSlug}.${config.countryCode.toLowerCase() === "in" ? "in" : "com"}`;
-
-    const rating = parseFloat((4.1 + Math.random() * 0.8).toFixed(1));
-    const reviewsCount = Math.floor(Math.random() * 380) + 18;
-
-    let notes = "";
-    let opportunityLevel: "Critical" | "High" | "Medium" | "Low" = "Medium";
-
-    if (isNormalExtract) {
-      opportunityLevel = "High";
-      notes = `Full Business Record: Verified ${locality} establishment. Operational presence with ${reviewsCount} reviews (${rating}★). Verified phone & outreach contact.`;
-    } else if (isMissingWebsite) {
-      opportunityLevel = "Critical";
-      notes = `High Impact Opportunity: Active local business with ${reviewsCount} reviews on Google Maps (${rating}★) but NO website or landing page. Pitch website + local SEO.`;
-    } else if (config.requirement.toLowerCase().includes("ordering") || config.requirement.toLowerCase().includes("booking") || config.requirement.toLowerCase().includes("appointment")) {
-      opportunityLevel = "High";
-      notes = `Needs Digital Ordering / Booking: Operates purely manual phone consultations. High willingness for appointment scheduling SaaS.`;
-    } else if (config.requirement.toLowerCase().includes("social")) {
-      opportunityLevel = "High";
-      notes = `Social Media Gap: Zero active Instagram or LinkedIn presence despite high foot traffic. Ready for retainers.`;
-    } else if (config.requirement.toLowerCase().includes("gbp") || config.requirement.toLowerCase().includes("maps")) {
-      opportunityLevel = "High";
-      notes = `Local Maps & GBP Gap: Unclaimed listing or missing localized map citations. Ideal target for Local SEO pack ranking.`;
-    } else if (config.requirement.toLowerCase().includes("whatsapp")) {
-      opportunityLevel = "High";
-      notes = `WhatsApp Direct Messaging Gap: Missing 1-click WhatsApp customer support widget and automated business catalog.`;
-    } else if (config.requirement.toLowerCase().includes("logo") || config.requirement.toLowerCase().includes("brand")) {
-      opportunityLevel = "Medium";
-      notes = `Branding & Visual Identity Gap: Generic store typography and lacking branded identity. Prime candidate for design package.`;
-    } else {
-      opportunityLevel = rating >= 4.7 ? "High" : "Medium";
-      notes = `Established player in ${locality}. Ready for CRM expansion, customer loyalty automations, and WhatsApp business API.`;
-    }
-
-    const sources = ["Google Maps & Places", "JustDial India", "IndiaMART B2B", "LinkedIn Directory"];
-    const chosenSource = sources[(i + attempts) % sources.length];
-
-    results.push({
-      id: `lead_${Date.now()}_${results.length}_${Math.random().toString(36).substring(2, 6)}`,
-      name: bizName,
-      category,
-      website,
-      phone: hasPhone ? phoneNum : null,
-      email,
-      address: `Shop ${Math.floor(Math.random() * 60) + 1}, ${locality}, Near City Square`,
-      city,
-      state,
-      country,
-      postalCode: config.areaPincode?.trim() ? config.areaPincode.trim() : country === "India" ? `4000${10 + (results.length % 80)}` : "90210",
-      rating,
-      reviewsCount,
-      existingPresence: isMissingWebsite ? "Google Maps, JustDial" : "Website, Google Maps, Instagram",
-      source: chosenSource,
-      notes,
-      verified: true,
-      opportunityLevel,
-      tags: [isMissingWebsite ? "No Website" : "Has Website", hasPhone ? "Phone Ready" : "No Phone", locality],
-      extractedAt: new Date().toISOString(),
-    });
-  }
-
-  // Persist newly seen signatures to guarantee zero repetition in future extractions
-  recordSeenLeadSignatures(newSignatures, config.accountKey);
-
-  return results;
-}
-
 /**
  * Pushes a list of extracted leads directly into BizzPal's task / execution store
  */
@@ -320,4 +129,108 @@ export async function pushLeadsToBizzPalTasks(leads: DataPalBusinessLead[]): Pro
     console.error("Error pushing leads to tasks:", err);
     return { count: 0, success: false };
   }
+}
+
+
+/**
+ * Applies the user's choice about records they have extracted before.
+ * "New only" drops anything already seen by this account; "include old" keeps everything.
+ * Either way the records are remembered so later searches can tell them apart.
+ */
+export function applyDuplicatePolicy(
+  campaign: DataPalSearchCampaign,
+  includePrevious: boolean,
+  accountKey?: string
+): DataPalSearchCampaign {
+  const seen = getSeenLeadSignatures(accountKey);
+  const kept: DataPalBusinessLead[] = [];
+  const signatures: string[] = [];
+  let removed = 0;
+
+  for (const lead of campaign.results) {
+    const sig = makeLeadSignature({ name: lead.name, city: lead.city, phone: lead.phone, website: lead.website });
+    if (!includePrevious && seen.has(sig)) {
+      removed++;
+      continue;
+    }
+    seen.add(sig);
+    signatures.push(sig);
+    kept.push(lead);
+  }
+
+  recordSeenLeadSignatures(signatures, accountKey);
+
+  return {
+    ...campaign,
+    results: kept,
+    totalExtracted: kept.length,
+    phoneCount: kept.filter(l => l.phone).length,
+    emailCount: kept.filter(l => l.email).length,
+    websiteCount: kept.filter(l => l.website).length,
+    opportunityCount: kept.filter(l => l.opportunityLevel === "Critical" || l.opportunityLevel === "High").length,
+    includesPreviousRecords: includePrevious,
+    duplicatesRemoved: removed,
+  };
+}
+
+
+/**
+ * Older versions of DataPal filled searches with generated businesses (made-up names, phones and
+ * addresses). Real records always come from Google Maps or OpenStreetMap, whose ids start with
+ * "gplace_" or "osm_". This removes everything else from the browser's saved searches.
+ * Returns how many records were removed.
+ */
+export function purgeFakeRecords(): number {
+  if (typeof window === "undefined") return 0;
+  let removed = 0;
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith("bizzpal_datapal_campaigns")) continue;
+      let list: DataPalSearchCampaign[];
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+        if (!Array.isArray(parsed)) continue;
+        list = parsed;
+      } catch {
+        continue;
+      }
+      let changed = false;
+      const cleaned: DataPalSearchCampaign[] = [];
+      for (const camp of list) {
+        const results = Array.isArray(camp.results) ? camp.results : [];
+        const real = results.filter(l => /^(gplace_|osm_)/.test(String(l.id)));
+        if (real.length !== results.length) {
+          removed += results.length - real.length;
+          changed = true;
+        }
+        if (real.length > 0) {
+          cleaned.push(
+            real.length === results.length
+              ? camp
+              : {
+                  ...camp,
+                  results: real,
+                  totalExtracted: real.length,
+                  phoneCount: real.filter(l => l.phone).length,
+                  emailCount: real.filter(l => l.email).length,
+                  websiteCount: real.filter(l => l.website).length,
+                  opportunityCount: real.filter(l => l.opportunityLevel === "Critical" || l.opportunityLevel === "High").length,
+                }
+          );
+        } else {
+          changed = true;
+        }
+      }
+      if (changed) localStorage.setItem(key, JSON.stringify(cleaned));
+    }
+    // The "already extracted" fingerprints were built from made-up records too
+    if (removed > 0) {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("bizzpal_datapal_seen_leads_")) localStorage.removeItem(key);
+      }
+    }
+  } catch {}
+  return removed;
 }

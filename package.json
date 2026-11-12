@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "backup:db": "node scripts/backup-db.mjs",
     "firebase:login": "npx firebase login",
     "firebase:deploy": "npx firebase deploy"
   },

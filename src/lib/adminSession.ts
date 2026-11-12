@@ -11,14 +11,16 @@ export const ADMIN_SESSION_TTL_SEC = 60 * 60 * 24 * 7; // 7 days
 
 const enc = new TextEncoder();
 
-/** The admin passcode. Defaults to bizzpal2026 if not explicitly overridden in environment. */
+/** The admin passcode. There is no built-in default: it must be set on the server. */
 export function getAdminPasscode(): string {
-  return process.env.SUPERADMIN_PASSCODE || process.env.ADMIN_PASSCODE || "bizzpal2026";
+  return process.env.SUPERADMIN_PASSCODE || process.env.ADMIN_PASSCODE || "";
 }
 
 /** Secret used to sign sessions. Prefer a dedicated secret; falls back to the passcode. */
 function getSecret(): string {
-  return process.env.ADMIN_SESSION_SECRET || getAdminPasscode();
+  if (process.env.ADMIN_SESSION_SECRET) return process.env.ADMIN_SESSION_SECRET;
+  const passcode = getAdminPasscode();
+  return passcode ? `admin-session:${passcode}` : "";
 }
 
 function toB64Url(bytes: Uint8Array): string {

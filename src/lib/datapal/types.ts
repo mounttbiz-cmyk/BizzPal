@@ -46,6 +46,10 @@ export interface DataPalBusinessLead {
   postalCode?: string;
   rating?: number | null;
   reviewsCount?: number;
+  /** Link to the business on Google Maps, when known */
+  mapsUrl?: string | null;
+  /** false when the email is a pattern-based suggestion (info@domain), not one the business published */
+  emailVerified?: boolean;
   existingPresence?: string;
   source: string;
   notes?: string;
@@ -73,6 +77,8 @@ export interface DataPalSearchConfig {
   selectedCategories: string[];
   requestedCount?: number;
   accountKey?: string;
+  /** true = also return records this account has already extracted before */
+  includePrevious?: boolean;
   filters: DataPalSearchFilters;
   servicePitch?: {
     text?: string;
@@ -97,6 +103,8 @@ export interface DataPalSearchCampaign {
   createdAt: string;
   status: "completed" | "running" | "failed";
   results: DataPalBusinessLead[];
+  includesPreviousRecords?: boolean;
+  duplicatesRemoved?: number;
 }
 
 export interface DataPalApiSettings {

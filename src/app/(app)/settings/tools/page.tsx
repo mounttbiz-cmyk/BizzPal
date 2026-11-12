@@ -183,9 +183,9 @@ export default function SettingsToolsPage() {
           <section className="rounded-2xl border border-line bg-surface shadow-sm">
             <div className="p-6 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-base font-semibold text-text">WhatsApp daily check-in</h2>
+                <h2 className="text-base font-semibold text-text">WhatsApp daily check-in <span className="ml-2 text-xs font-normal text-text-muted">Coming soon</span></h2>
                 <p className="text-sm text-text-muted mt-0.5 leading-relaxed">
-                  Get a short message each morning. Reply with one line and your dashboard and briefings update.
+                  Messages are not being sent yet. You can save your number now and we will start when this goes live.
                 </p>
               </div>
               <button

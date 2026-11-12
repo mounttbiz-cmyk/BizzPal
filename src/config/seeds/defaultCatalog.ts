@@ -58,7 +58,7 @@ export const DEFAULT_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     features: [
       "All Free tier features",
       "All 3 AI Executives (CEO, CFO, CMO)",
-      "Automated Daily 8:00 AM WhatsApp Briefings",
+      "Daily WhatsApp briefings (coming soon)",
       "Connect 3 Business Tools (Stripe, Slack, Zoho)",
       "Cash Runway & Burn Alarm System",
       "Unlimited AI Strategy Consultations",
