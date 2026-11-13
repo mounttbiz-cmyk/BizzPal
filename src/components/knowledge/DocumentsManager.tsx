@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { FileText, UploadCloud, RefreshCw, Trash2, AlertCircle, Layers, Search, Copy, Check, FileType, FileSpreadsheet, FileCode, X } from "lucide-react";
+import { FileText, UploadCloud, RefreshCw, Trash2, AlertCircle, Layers, Search, Copy, Check, FileType, FileSpreadsheet, FileCode, X, Cloud } from "lucide-react";
+import {
+  CloudDrivePickerModal,
+  GoogleDriveIcon,
+  OneDriveIcon,
+  CloudDriveFileResult,
+} from "@/components/integrations/CloudDrivePickerModal";
 
 interface DocumentItem {
   id: string;
@@ -87,7 +93,21 @@ export function DocumentsManager() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [isCloudPickerOpen, setIsCloudPickerOpen] = useState(false);
+  const [cloudPickerProvider, setCloudPickerProvider] = useState<"google" | "onedrive">("google");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCloudFileSelect = (result: CloudDriveFileResult) => {
+    const blob = new Blob([result.content], {
+      type: result.fileType === "json" ? "application/json" : "text/csv",
+    });
+    const file = new File([blob], result.fileName, { type: blob.type });
+    setUploadFile(file);
+    if (!uploadTitle.trim()) {
+      setUploadTitle(result.fileName.replace(/\.[^/.]+$/, ""));
+    }
+    setUploadError(null);
+  };
 
   const fetchDocuments = async () => {
     setIsLoading(true);
@@ -535,6 +555,40 @@ export function DocumentsManager() {
                   onChange={handleFileChange}
                   className="hidden"
                 />
+
+                {/* Cloud Drive Import Shortcuts */}
+                <div className="p-3 rounded-xl bg-surface-2/40 border border-line flex items-center justify-between gap-3 mt-3">
+                  <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                    <Cloud className="w-4 h-4 text-brass" />
+                    <span>Or import from Cloud:</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCloudPickerProvider("google");
+                        setIsCloudPickerOpen(true);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                    >
+                      <GoogleDriveIcon className="w-3.5 h-3.5" />
+                      <span>Google Drive</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCloudPickerProvider("onedrive");
+                        setIsCloudPickerOpen(true);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                    >
+                      <OneDriveIcon className="w-3.5 h-3.5" />
+                      <span>OneDrive</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {uploadError && (
@@ -645,6 +699,15 @@ export function DocumentsManager() {
           </div>
         </div>
       )}
+
+      <CloudDrivePickerModal
+        isOpen={isCloudPickerOpen}
+        onClose={() => setIsCloudPickerOpen(false)}
+        onFileSelect={handleCloudFileSelect}
+        initialProvider={cloudPickerProvider}
+        title="Import Document from Cloud Storage"
+        description="Select policies, playbooks, or data spreadsheets from your Google Drive or Microsoft OneDrive to vectorize into memory."
+      />
     </div>
   );
 }

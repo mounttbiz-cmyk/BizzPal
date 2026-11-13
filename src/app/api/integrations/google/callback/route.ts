@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, DEFAULT_BUSINESS_ID, healDatabasePermissions } from "@/lib/db";
+import { safeEncrypt } from "@/lib/integrations/crypto";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -140,26 +141,40 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const expiresAt = tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null;
     const configData = {
       connectedEmail: email,
       accountName: name,
       picture,
       liveOAuth: true,
-      scopes: source === "auth" ? ["openid", "email", "profile"] : ["openid", "email", "profile", "calendar.readonly"],
+      scopes: source === "auth" ? ["openid", "email", "profile"] : ["openid", "email", "profile", "calendar.readonly", "drive.readonly"],
       accountDetail: `Connected · Live Google Account: ${email}`,
       connectedAt: now,
       hasRefreshToken: !!tokens.refresh_token,
+      accessToken: safeEncrypt(tokens.access_token || ""),
+      refreshToken: tokens.refresh_token ? safeEncrypt(tokens.refresh_token) : undefined,
+      expiresAt,
     };
 
     // 3. Persist to database
     try {
-      const toolsToUpdate = source === "auth" ? ["google"] : ["google", "google_calendar"];
+      const toolsToUpdate = source === "auth"
+        ? ["google"]
+        : source === "drive" || source === "google_drive"
+        ? ["google", "google_drive"]
+        : ["google", "google_calendar", "google_drive"];
+
       for (const toolKey of toolsToUpdate) {
         const existing = db
           .prepare("SELECT id, config FROM integrations WHERE business_id = ? AND tool_key = ?")
           .get(DEFAULT_BUSINESS_ID, toolKey) as any;
 
-        const displayName = toolKey === "google" ? "Google Account & Workspace" : "Google Calendar";
+        const displayName =
+          toolKey === "google"
+            ? "Google Account & Workspace"
+            : toolKey === "google_drive"
+            ? "Google Drive & Sheets"
+            : "Google Calendar";
 
         if (existing) {
           db.prepare(`
@@ -189,7 +204,8 @@ export async function GET(req: NextRequest) {
       if (biz) {
         const tools: string[] = biz.connected_tools ? JSON.parse(biz.connected_tools) : [];
         if (!tools.includes("google")) tools.push("google");
-        if (!tools.includes("google_calendar")) tools.push("google_calendar");
+        if (!tools.includes("google_drive")) tools.push("google_drive");
+        if (toolsToUpdate.includes("google_calendar") && !tools.includes("google_calendar")) tools.push("google_calendar");
         db.prepare(
           "UPDATE businesses SET connected_tools = ?, no_integrations = 0, updated_at = ? WHERE id = ?"
         ).run(JSON.stringify(tools), now, DEFAULT_BUSINESS_ID);

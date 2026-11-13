@@ -20,6 +20,7 @@ import {
   Table as TableIcon,
   ShieldCheck,
   RefreshCw,
+  Cloud,
 } from "lucide-react";
 import {
   parseUploadedContent,
@@ -28,6 +29,12 @@ import {
   ParsedBusinessMetrics,
 } from "@/lib/upload/dataParser";
 import { emitBusinessDataUpdated, downloadFile } from "@/lib/upload/events";
+import {
+  CloudDrivePickerModal,
+  GoogleDriveIcon,
+  OneDriveIcon,
+  CloudDriveFileResult,
+} from "@/components/integrations/CloudDrivePickerModal";
 
 interface UploadDataModalProps {
   isOpen: boolean;
@@ -36,11 +43,19 @@ interface UploadDataModalProps {
 }
 
 export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalProps) {
-  const [activeTab, setActiveTab] = useState<"file" | "manual" | "active">("file");
+  const [activeTab, setActiveTab] = useState<"file" | "cloud" | "manual" | "active">("file");
 
   // File Upload State
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [cloudSource, setCloudSource] = useState<{
+    name: string;
+    size: number;
+    provider: "google_drive" | "onedrive";
+    content: string;
+  } | null>(null);
+  const [isCloudPickerOpen, setIsCloudPickerOpen] = useState(false);
+  const [cloudPickerProvider, setCloudPickerProvider] = useState<"google" | "onedrive">("google");
   const [parseError, setParseError] = useState<string | null>(null);
   const [parsedPreview, setParsedPreview] = useState<ParsedBusinessMetrics | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,6 +127,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
 
   const processFile = async (file: File) => {
     setSelectedFile(file);
+    setCloudSource(null);
     setParseError(null);
     try {
       const text = await file.text();
@@ -119,6 +135,25 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
       setParsedPreview(parsed);
     } catch (err: any) {
       setParseError(err.message || "Failed to parse file. Please check format.");
+      setParsedPreview(null);
+    }
+  };
+
+  const handleCloudFileImport = (result: CloudDriveFileResult) => {
+    setSelectedFile(null);
+    setCloudSource({
+      name: result.fileName,
+      size: result.content.length,
+      provider: result.sourceProvider,
+      content: result.content,
+    });
+    setParseError(null);
+    try {
+      const parsed = result.metrics || parseUploadedContent(result.content, result.fileName);
+      setParsedPreview(parsed);
+      setActiveTab("file");
+    } catch (err: any) {
+      setParseError(err.message || "Failed to parse file from cloud storage.");
       setParsedPreview(null);
     }
   };
@@ -144,13 +179,16 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
     setIsSubmitting(true);
     setParseError(null);
     try {
+      const currentFileName = selectedFile?.name || cloudSource?.name || "business_data.csv";
+      const isJson = currentFileName.toLowerCase().endsWith(".json");
       const res = await fetch("/api/business/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           metrics: parsedPreview,
-          fileName: selectedFile?.name || "business_data.csv",
-          fileType: selectedFile?.name.endsWith(".json") ? "json" : "csv",
+          fileName: currentFileName,
+          fileType: isJson ? "json" : "csv",
+          rawContent: cloudSource?.content,
         }),
       });
 
@@ -275,9 +313,10 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-line px-6 bg-surface-2/20 text-xs font-semibold">
+        <div className="flex border-b border-line px-6 bg-surface-2/20 text-xs font-semibold overflow-x-auto">
           {[
             { id: "file", label: "File Upload (CSV / JSON)", icon: FileText },
+            { id: "cloud", label: "Google Drive & OneDrive", icon: Cloud },
             { id: "manual", label: "Quick Metrics Entry", icon: Sliders },
             { id: "active", label: "Active Dataset & History", icon: ShieldCheck },
           ].map(tab => {
@@ -288,7 +327,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-3 px-4 flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+                className={`py-3 px-4 flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                   isActive
                     ? "border-brass text-brass dark:text-brass font-bold"
                     : "border-transparent text-text-muted hover:text-text hover:border-line"
@@ -322,7 +361,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,.json,.txt"
+                  accept=".csv,.json,.txt,.xlsx,.xls"
                   className="hidden"
                   onChange={handleFileChange}
                 />
@@ -330,18 +369,65 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                   <UploadCloud className="w-6 h-6" />
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  {selectedFile ? selectedFile.name : "Drop your business data file here, or browse"}
+                  {selectedFile ? selectedFile.name : cloudSource ? cloudSource.name : "Drop your business data file here, or browse"}
                 </h3>
                 <p className="text-xs text-text-muted mt-1 max-w-sm">
-                  Accepts standard CSV (financials, metrics, multi-month summaries) or JSON payloads (up to 10MB).
+                  Accepts standard CSV (financials, metrics, multi-month summaries), Excel (.xlsx), or JSON payloads (up to 10MB).
                 </p>
 
-                {selectedFile && (
-                  <span className="mt-3 text-[11px] font-mono px-3 py-1 rounded-lg bg-jade/10 text-jade border border-jade/30 font-semibold inline-flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    File loaded ({Math.round(selectedFile.size / 1024)} KB)
-                  </span>
+                {(selectedFile || cloudSource) && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="text-[11px] font-mono px-3 py-1 rounded-lg bg-jade/10 text-jade border border-jade/30 font-semibold inline-flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {selectedFile
+                        ? `File loaded (${Math.round(selectedFile.size / 1024)} KB)`
+                        : `Imported via ${cloudSource?.provider === "google_drive" ? "Google Drive" : "OneDrive"}`}
+                    </span>
+                  </div>
                 )}
+              </div>
+
+              {/* Cloud Drive Quick Integration Bar */}
+              <div className="p-4 rounded-xl bg-surface-2/40 border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-surface border border-line flex items-center justify-center shrink-0">
+                    <Cloud className="w-4 h-4 text-brass" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                      Import Directly from Cloud Storage
+                    </span>
+                    <span className="text-[11px] text-text-muted">
+                      Sync live spreadsheets, Google Sheets, or Excel from your corporate cloud.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCloudPickerProvider("google");
+                      setIsCloudPickerOpen(true);
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-line hover:border-brass text-text transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <GoogleDriveIcon className="w-3.5 h-3.5" />
+                    <span>Google Drive</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCloudPickerProvider("onedrive");
+                      setIsCloudPickerOpen(true);
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-line hover:border-brass text-text transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <OneDriveIcon className="w-3.5 h-3.5" />
+                    <span>OneDrive</span>
+                  </button>
+                </div>
               </div>
 
               {/* Sample Templates Download Helpers */}
@@ -481,6 +567,75 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB: CLOUD DRIVES (GOOGLE DRIVE & ONEDRIVE) */}
+          {activeTab === "cloud" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Google Drive Card */}
+                <div className="p-5 rounded-2xl bg-surface-2/40 border border-line flex flex-col justify-between space-y-4 hover:border-brass/40 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center shrink-0 shadow-xs">
+                      <GoogleDriveIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Google Drive</h3>
+                      <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                        Connect your executive Google Workspace. Select Google Sheets, CSV models, or financial docs with 1 click.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCloudPickerProvider("google");
+                      setIsCloudPickerOpen(true);
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-brass text-white hover:bg-brass-hover text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                  >
+                    <GoogleDriveIcon className="w-4 h-4" />
+                    <span>Browse Google Drive Files</span>
+                  </button>
+                </div>
+
+                {/* Microsoft OneDrive Card */}
+                <div className="p-5 rounded-2xl bg-surface-2/40 border border-line flex flex-col justify-between space-y-4 hover:border-brass/40 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center shrink-0 shadow-xs">
+                      <OneDriveIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Microsoft OneDrive</h3>
+                      <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                        Sync enterprise Excel spreadsheets, OneDrive models, and monthly business accounting sheets.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCloudPickerProvider("onedrive");
+                      setIsCloudPickerOpen(true);
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-surface border border-line hover:border-brass text-text text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                  >
+                    <OneDriveIcon className="w-4 h-4" />
+                    <span>Browse OneDrive Files</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Supported Formats Info */}
+              <div className="p-4 rounded-xl bg-surface border border-line flex items-center gap-3 text-xs text-text-muted">
+                <CheckCircle2 className="w-4 h-4 text-jade shrink-0" />
+                <span>
+                  Supported formats: <strong>Google Sheets</strong> (auto-exported to CSV), <strong>Excel (.xlsx, .xls)</strong>, <strong>CSV</strong>, and <strong>JSON telemetry</strong>.
+                </span>
+              </div>
             </div>
           )}
 
@@ -667,6 +822,13 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
           )}
         </div>
       </div>
+
+      <CloudDrivePickerModal
+        isOpen={isCloudPickerOpen}
+        onClose={() => setIsCloudPickerOpen(false)}
+        onFileSelect={handleCloudFileImport}
+        initialProvider={cloudPickerProvider}
+      />
     </PortalModal>
   );
 }

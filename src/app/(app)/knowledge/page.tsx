@@ -1,11 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, Plus, ExternalLink, X, RefreshCw, Scale } from "lucide-react";
+import { Search, Plus, ExternalLink, X, RefreshCw, Scale, Cloud } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { DocumentsManager } from "@/components/knowledge/DocumentsManager";
 import { FactsManager } from "@/components/knowledge/FactsManager";
+import {
+  CloudDrivePickerModal,
+  GoogleDriveIcon,
+  OneDriveIcon,
+  CloudDriveFileResult,
+} from "@/components/integrations/CloudDrivePickerModal";
 
 interface KnowledgeDoc {
   id: string;
@@ -61,6 +67,21 @@ export default function KnowledgeHubPage() {
   const [newImpact, setNewImpact] = useState("");
   const [newContent, setNewContent] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isCloudPickerOpen, setIsCloudPickerOpen] = useState(false);
+  const [cloudPickerProvider, setCloudPickerProvider] = useState<"google" | "onedrive">("google");
+
+  const handleCloudImport = (result: CloudDriveFileResult) => {
+    setEntryType("playbook");
+    if (!newTitle.trim()) {
+      setNewTitle(result.fileName.replace(/\.[^/.]+$/, ""));
+    }
+    if (!newDescription.trim()) {
+      setNewDescription(`Business document imported from ${result.sourceProvider === "google_drive" ? "Google Drive" : "OneDrive"}.`);
+    }
+    setNewContent(result.content);
+    setToastMessage(`Loaded ${result.fileName} from ${result.sourceProvider === "google_drive" ? "Google Drive" : "OneDrive"}!`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   // Business News Items
   const [newsList, setNewsList] = useState<BusinessNewsItem[]>([
@@ -726,6 +747,38 @@ export default function KnowledgeHubPage() {
             </button>
           </div>
 
+          {/* Cloud Storage Quick Ingest */}
+          <div className="p-2.5 rounded-xl bg-surface-2 border border-line flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-xs text-text-muted">
+              <Cloud className="w-4 h-4 text-brass shrink-0" />
+              <span>Import from Cloud:</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCloudPickerProvider("google");
+                  setIsCloudPickerOpen(true);
+                }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs cursor-pointer shadow-2xs transition-colors"
+              >
+                <GoogleDriveIcon className="w-3.5 h-3.5" />
+                <span>Google Drive</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCloudPickerProvider("onedrive");
+                  setIsCloudPickerOpen(true);
+                }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs cursor-pointer shadow-2xs transition-colors"
+              >
+                <OneDriveIcon className="w-3.5 h-3.5" />
+                <span>OneDrive</span>
+              </button>
+            </div>
+          </div>
+
           <form onSubmit={handleAddDoc} className="space-y-3.5">
             <div>
               <label className="text-xs font-semibold text-text block mb-1">
@@ -847,6 +900,15 @@ export default function KnowledgeHubPage() {
           </form>
         </div>
       </PortalModal>
+
+      <CloudDrivePickerModal
+        isOpen={isCloudPickerOpen}
+        onClose={() => setIsCloudPickerOpen(false)}
+        onFileSelect={handleCloudImport}
+        initialProvider={cloudPickerProvider}
+        title="Import into Knowledge Hub"
+        description="Select policies, playbooks, guidelines or news docs from your Google Drive or Microsoft OneDrive."
+      />
     </div>
   );
 }

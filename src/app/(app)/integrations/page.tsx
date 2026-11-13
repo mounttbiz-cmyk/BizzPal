@@ -35,6 +35,26 @@ interface StripeEvent {
 const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
   // 1. Core Business & Cloud Tools
   {
+    id: "google_drive",
+    name: "Google Drive & Sheets",
+    category: "business",
+    tagline: "Live Google Drive and Sheets integration for importing financial models, P&L budgets, and company data.",
+    services: ["Google Drive v3 API", "Google Sheets CSV Export", "Cloud Telemetry Ingestion"],
+    permissions: ["Read authorized spreadsheets & data files in Google Drive"],
+    usedBy: ["CFO", "CEO", "Adaptive Analytics", "Data Upload Sync"],
+    configSummary: "Google Drive telemetry link active.",
+  },
+  {
+    id: "onedrive",
+    name: "Microsoft OneDrive & Excel",
+    category: "business",
+    tagline: "Direct Microsoft Graph integration for syncing Excel workbooks, OneDrive financial ledgers, and telemetry.",
+    services: ["Microsoft Graph v1.0", "OneDrive Files API", "Excel Workbook Ingestion"],
+    permissions: ["Read authorized business files in OneDrive"],
+    usedBy: ["CFO", "Operations", "Adaptive Analytics", "Data Upload Sync"],
+    configSummary: "Microsoft OneDrive telemetry link active.",
+  },
+  {
     id: "google",
     name: "Google Account & Workspace",
     category: "business",

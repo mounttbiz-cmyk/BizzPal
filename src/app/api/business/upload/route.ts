@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
 import { parseUploadedContent, ParsedBusinessMetrics } from "@/lib/upload/dataParser";
+import * as XLSX from "xlsx";
 
 export const dynamic = "force-dynamic";
 
@@ -80,8 +81,21 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: "No file provided in form data" }, { status: 400 });
       }
       fileName = file.name;
+      const isExcel = fileName.toLowerCase().endsWith(".xlsx") || fileName.toLowerCase().endsWith(".xls");
       fileType = fileName.toLowerCase().endsWith(".json") ? "json" : "csv";
-      rawContent = await file.text();
+
+      if (isExcel) {
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(Buffer.from(arrayBuffer), { type: "buffer" });
+        const firstSheet = workbook.SheetNames[0];
+        if (!firstSheet) {
+          return NextResponse.json({ success: false, error: "Excel file has no worksheets" }, { status: 400 });
+        }
+        rawContent = XLSX.utils.sheet_to_csv(workbook.Sheets[firstSheet]);
+      } else {
+        rawContent = await file.text();
+      }
+
       metrics = parseUploadedContent(rawContent, fileName);
     } else {
       const body = await req.json();

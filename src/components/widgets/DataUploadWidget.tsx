@@ -5,14 +5,23 @@ import { ContainerTile } from "../ui/ContainerTile";
 import { parseUploadedContent, generateSampleBusinessCsv, ParsedBusinessMetrics } from "@/lib/upload/dataParser";
 import { emitBusinessDataUpdated, useBusinessDataSync, downloadFile } from "@/lib/upload/events";
 import { UploadDataModal } from "../upload/UploadDataModal";
+import {
+  CloudDrivePickerModal,
+  GoogleDriveIcon,
+  OneDriveIcon,
+  CloudDriveFileResult,
+} from "@/components/integrations/CloudDrivePickerModal";
 
 export function DataUploadWidget() {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [cloudFileName, setCloudFileName] = useState<string | null>(null);
   const [parsedPreview, setParsedPreview] = useState<ParsedBusinessMetrics | null>(null);
   const [status, setStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCloudPickerOpen, setIsCloudPickerOpen] = useState(false);
+  const [cloudProvider, setCloudProvider] = useState<"google" | "onedrive">("google");
   const [activeDatasetName, setActiveDatasetName] = useState<string | null>(null);
   const [activeUploadDate, setActiveUploadDate] = useState<string | null>(null);
 
@@ -83,17 +92,33 @@ export function DataUploadWidget() {
     }
   };
 
+  const handleCloudSelect = (result: CloudDriveFileResult) => {
+    setSelectedFile(null);
+    setCloudFileName(result.fileName);
+    setErrorMessage(null);
+    try {
+      const parsed = result.metrics || parseUploadedContent(result.content, result.fileName);
+      setParsedPreview(parsed);
+      setStatus("idle");
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to parse cloud file.");
+      setParsedPreview(null);
+      setStatus("error");
+    }
+  };
+
   const handleApply = async () => {
     if (!parsedPreview) return;
     setStatus("uploading");
     try {
+      const fileNameToUse = selectedFile?.name || cloudFileName || "business_data.csv";
       const res = await fetch("/api/business/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           metrics: parsedPreview,
-          fileName: selectedFile?.name || "business_data.csv",
-          fileType: selectedFile?.name.endsWith(".json") ? "json" : "csv",
+          fileName: fileNameToUse,
+          fileType: fileNameToUse.endsWith(".json") ? "json" : "csv",
         }),
       });
 
@@ -105,6 +130,7 @@ export function DataUploadWidget() {
       setTimeout(() => {
         setStatus("idle");
         setSelectedFile(null);
+        setCloudFileName(null);
         setParsedPreview(null);
       }, 2500);
     } catch (err: any) {
@@ -172,11 +198,11 @@ export function DataUploadWidget() {
                 />
 
                 <label htmlFor="widget-file-upload" className="cursor-pointer block w-full">
-                  <span className="block text-sm text-text truncate px-2">
-                    {selectedFile ? selectedFile.name : "Choose a file or drag it here"}
+                  <span className="block text-sm text-text truncate px-2 font-medium">
+                    {selectedFile ? selectedFile.name : cloudFileName ? cloudFileName : "Choose a file or drag it here"}
                   </span>
                   <span className="block text-xs text-text-muted mt-1">
-                    We look for revenue, costs, cash, team size and margins.
+                    {cloudFileName ? "Loaded via cloud drive" : "We look for revenue, costs, cash, team size and margins."}
                   </span>
                 </label>
 
@@ -211,13 +237,43 @@ export function DataUploadWidget() {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => downloadFile(generateSampleBusinessCsv(), "bizzpal_business_data_template.csv")}
-            className="text-sm text-text-muted hover:text-text cursor-pointer"
-          >
-            Download sample CSV
-          </button>
+          <div className="flex items-center justify-between gap-2 pt-1 text-xs">
+            <button
+              type="button"
+              onClick={() => downloadFile(generateSampleBusinessCsv(), "bizzpal_business_data_template.csv")}
+              className="text-text-muted hover:text-text cursor-pointer truncate"
+            >
+              Download sample CSV
+            </button>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setCloudProvider("google");
+                  setIsCloudPickerOpen(true);
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs cursor-pointer shadow-xs transition-colors"
+                title="Import from Google Drive"
+              >
+                <GoogleDriveIcon className="w-3.5 h-3.5" />
+                <span>Drive</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCloudProvider("onedrive");
+                  setIsCloudPickerOpen(true);
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs cursor-pointer shadow-xs transition-colors"
+                title="Import from OneDrive"
+              >
+                <OneDriveIcon className="w-3.5 h-3.5" />
+                <span>OneDrive</span>
+              </button>
+            </div>
+          </div>
         </div>
       </ContainerTile>
 
@@ -227,6 +283,13 @@ export function DataUploadWidget() {
         onSuccess={() => {
           refreshActiveDataset();
         }}
+      />
+
+      <CloudDrivePickerModal
+        isOpen={isCloudPickerOpen}
+        onClose={() => setIsCloudPickerOpen(false)}
+        onFileSelect={handleCloudSelect}
+        initialProvider={cloudProvider}
       />
     </>
   );

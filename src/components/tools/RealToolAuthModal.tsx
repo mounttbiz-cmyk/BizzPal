@@ -55,6 +55,7 @@ export function RealToolAuthModal({
 }: RealToolAuthModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [isGoogleOAuthLoading, setIsGoogleOAuthLoading] = useState(false);
+  const [isOneDriveLoading, setIsOneDriveLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 1. Google (OAuth & Fallback)
@@ -239,6 +240,53 @@ export function RealToolAuthModal({
       if (!popup || popup.closed) {
         clearInterval(checkClosed);
         setIsGoogleOAuthLoading(false);
+      }
+    }, 1200);
+  };
+
+  // Microsoft OneDrive OAuth Popup Trigger
+  const handleOneDriveLiveOAuth = () => {
+    if (!toolId) return;
+    setError(null);
+    setIsOneDriveLoading(true);
+
+    const width = 540;
+    const height = 680;
+    const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+    const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+
+    const connectUrl = `/api/integrations/onedrive/connect?returnTo=${encodeURIComponent(
+      typeof window !== "undefined" ? window.location.pathname : "/integrations"
+    )}`;
+
+    const popup = window.open(
+      connectUrl,
+      "BizzPalOneDriveOAuth",
+      `width=${width},height=${height},left=${left},top=${top},status=0,toolbar=0,menubar=0`
+    );
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "BIZZPAL_ONEDRIVE_AUTH_SUCCESS") {
+        window.removeEventListener("message", handleMessage);
+        const data = event.data.data;
+        setIsOneDriveLoading(false);
+        setMsEmail(data.email);
+        const detail = data.detail || `Connected · Live Microsoft OneDrive: ${data.email}`;
+        onConnectSuccess(toolId, detail, data);
+        onClose();
+      } else if (event.data?.type === "BIZZPAL_ONEDRIVE_AUTH_ERROR") {
+        window.removeEventListener("message", handleMessage);
+        setIsOneDriveLoading(false);
+        setError(event.data.error || "Microsoft OneDrive authentication was cancelled or failed.");
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    const checkClosed = setInterval(() => {
+      if (!popup || popup.closed) {
+        clearInterval(checkClosed);
+        setIsOneDriveLoading(false);
       }
     }, 1200);
   };
@@ -451,7 +499,8 @@ export function RealToolAuthModal({
   };
 
   const isConnected = currentAuthState?.status === "connected";
-  const isGoogleTool = toolId === "google" || toolId === "google_calendar" || toolId === "google_workspace";
+  const isGoogleTool = toolId === "google" || toolId === "google_calendar" || toolId === "google_workspace" || toolId === "google_drive";
+  const isMicrosoftTool = toolId === "microsoft" || toolId === "microsoft_365" || toolId === "onedrive";
 
   return (
     <PortalModal isOpen={isOpen} onClose={onClose}>
@@ -609,12 +658,48 @@ export function RealToolAuthModal({
             </div>
           )}
 
-          {/* 2. Microsoft 365 & Teams */}
-          {(toolId === "microsoft" || toolId === "microsoft_365") && (
+          {/* 2. Microsoft 365, Teams & OneDrive */}
+          {isMicrosoftTool && (
             <div className="space-y-3.5">
+              {/* 1-Click Live OAuth Button for Microsoft */}
+              <div className="p-4 rounded-lg border border-line bg-surface-2/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-text">Sign in with Microsoft</h3>
+                    <p className="text-sm text-text-muted mt-0.5">
+                      Authorize access to sync OneDrive spreadsheets, Excel workbooks, and team telemetry.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleOneDriveLiveOAuth}
+                  disabled={isOneDriveLoading}
+                  className="w-full py-2.5 px-4 rounded-lg bg-[#0078D4] hover:bg-[#006cbd] text-white text-sm font-medium flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+                >
+                  {isOneDriveLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Connecting Microsoft…</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <rect x="1" y="1" width="10" height="10" rx="1" fill="#F25022" />
+                        <rect x="13" y="1" width="10" height="10" rx="1" fill="#7FBA00" />
+                        <rect x="1" y="13" width="10" height="10" rx="1" fill="#00A4EF" />
+                        <rect x="13" y="13" width="10" height="10" rx="1" fill="#FFB900" />
+                      </svg>
+                      <span>Authorize Microsoft Account</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               <div>
                 <label className="text-sm font-medium text-text block mb-1.5">
-                  Microsoft 365 Work Email <span className="text-rust">*</span>
+                  Microsoft 365 / OneDrive Email <span className="text-rust">*</span>
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />

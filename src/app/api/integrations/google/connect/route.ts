@@ -34,15 +34,18 @@ export async function GET(req: NextRequest) {
   googleAuthUrl.searchParams.set("redirect_uri", redirectUri);
   googleAuthUrl.searchParams.set("response_type", "code");
 
-  // When source is 'auth' (Sign in / Sign up), request ONLY standard non-sensitive identity scopes.
-  // Sensitive scopes (calendar.readonly) are only for integrations and trigger Google 500 / unverified errors during login.
-  const scope = source === "auth" || source === "invite"
-    ? "openid email profile"
-    : "openid email profile https://www.googleapis.com/auth/calendar.readonly";
+  // Sensitive scopes (calendar.readonly, drive.readonly) are only for integrations and trigger Google 500 / unverified errors during login.
+  let scope = "openid email profile https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly";
+  if (source === "auth" || source === "invite") {
+    scope = "openid email profile";
+  } else if (source === "drive" || source === "google_drive") {
+    scope = "openid email profile https://www.googleapis.com/auth/drive.readonly";
+  }
 
   googleAuthUrl.searchParams.set("scope", scope);
   googleAuthUrl.searchParams.set("access_type", "offline");
-  googleAuthUrl.searchParams.set("prompt", "select_account");
+  // Use consent prompt for integrations to ensure refresh_token is returned
+  googleAuthUrl.searchParams.set("prompt", source === "auth" || source === "invite" ? "select_account" : "consent select_account");
   googleAuthUrl.searchParams.set("state", state);
 
   return NextResponse.redirect(googleAuthUrl.toString());
