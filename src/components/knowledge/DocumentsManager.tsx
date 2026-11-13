@@ -490,12 +490,15 @@ export function DocumentsManager() {
 
       {/* Upload Document Modal */}
       <PortalModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)}>
-        <div className="w-full max-w-lg rounded-2xl bg-surface border border-line p-6 space-y-5 shadow-2xl">
+        <div className="w-full max-w-lg rounded-2xl bg-surface border border-line p-6 space-y-4 shadow-2xl backdrop-blur-2xl">
           <div className="flex items-center justify-between pb-3 border-b border-line">
             <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass shrink-0">
+                <UploadCloud className="w-4 h-4" />
+              </div>
               <div>
-                <h3 className="text-base font-semibold text-text">Add a document</h3>
-                <p className="text-sm text-text-muted mt-0.5">Your AI advisors will use it to answer questions.</p>
+                <h3 className="text-sm font-bold text-text">Ingest Enterprise Document</h3>
+                <p className="text-[10px] text-text-muted">Direct embedding to company vector database</p>
               </div>
             </div>
             <button
@@ -509,18 +512,18 @@ export function DocumentsManager() {
 
           <form onSubmit={handleUploadSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">Title</label>
+              <label className="block text-xs font-bold text-text mb-1.5">Document Title / Topic</label>
               <input
                 type="text"
                 value={uploadTitle}
                 onChange={(e) => setUploadTitle(e.target.value)}
-                placeholder="e.g. FY2026 strategy plan"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-surface border border-line text-sm text-text focus:outline-none focus:border-brass font-sans"
+                placeholder="e.g. FY2026 Strategic Master Plan & Unit Economics"
+                className="w-full px-3.5 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass/70 font-sans"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">File</label>
+              <label className="block text-xs font-bold text-text mb-1.5">File Upload</label>
               <div
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -539,19 +542,19 @@ export function DocumentsManager() {
                   <UploadCloud className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-text truncate max-w-sm mx-auto">
-                    {uploadFile ? uploadFile.name : "Click to choose a file, or drag it here"}
+                  <p className="text-xs font-bold text-text truncate max-w-sm mx-auto">
+                    {uploadFile ? uploadFile.name : "Click to select or drag & drop document"}
                   </p>
-                  <p className="text-xs text-text-muted">
+                  <p className="text-[10px] text-text-muted">
                     {uploadFile
-                      ? `${(uploadFile.size / 1024).toFixed(1)} KB · ready to add`
-                      : "PDF, TXT, CSV, JSON or Markdown, up to 15 MB"}
+                      ? `${(uploadFile.size / 1024).toFixed(1)} KB • Ready for vectorization`
+                      : "Supports PDF, TXT, CSV, JSON, Markdown (up to 15MB)"}
                   </p>
                 </div>
 
                 {uploadFile && (
                   <div className="pt-1 flex items-center justify-center gap-2">
-                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-jade/10 text-jade border border-jade/30 inline-flex items-center gap-1">
+                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-jade/15 text-jade border border-jade/30 font-semibold inline-flex items-center gap-1">
                       <Check className="w-3 h-3" />
                       {cloudSourceProvider === "google_drive"
                         ? "Google Drive Import"
@@ -586,7 +589,7 @@ export function DocumentsManager() {
               <div className="p-3 rounded-xl bg-surface-2/40 border border-line flex items-center justify-between gap-3 mt-3">
                 <div className="flex items-center gap-1.5 text-xs text-text-muted">
                   <Cloud className="w-4 h-4 text-brass" />
-                  <span>Or import from:</span>
+                  <span>Or import from Cloud:</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -628,17 +631,17 @@ export function DocumentsManager() {
               <button
                 type="button"
                 onClick={() => setIsUploadModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-line text-sm text-text hover:bg-surface-2 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text hover:bg-surface cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isUploading || !uploadFile}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 btn-tactile disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isUploading ? "animate-spin" : ""}`} />
-                <span>{isUploading ? "Adding…" : "Add document"}</span>
+                <span>{isUploading ? "Chunking & Generating Embeddings…" : "Ingest into Memory"}</span>
               </button>
             </div>
           </form>
