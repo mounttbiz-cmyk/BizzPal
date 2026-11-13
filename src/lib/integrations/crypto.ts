@@ -6,11 +6,11 @@ import { encryptSecret, decryptSecret, secretsConfigured } from "@/lib/secrets";
  */
 export function safeEncrypt(val: string): string {
   if (!val) return "";
-  try {
-    return encryptSecret(val);
-  } catch (err) {
-    return val;
+  if (!secretsConfigured()) {
+    // Never store a connection token in plain text. Set SECRETS_KEY (or ADMIN_SESSION_SECRET) on the server.
+    throw new Error("The server is missing SECRETS_KEY, so the connection cannot be stored safely.");
   }
+  return encryptSecret(val);
 }
 
 /**
@@ -24,3 +24,4 @@ export function safeDecrypt(val: string): string {
     return val;
   }
 }
+

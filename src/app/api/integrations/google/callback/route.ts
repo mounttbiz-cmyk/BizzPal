@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
       accountName: name,
       picture,
       liveOAuth: true,
-      scopes: source === "auth" ? ["openid", "email", "profile"] : ["openid", "email", "profile", "calendar.readonly", "drive.readonly"],
+      scopes: source === "auth" ? ["openid", "email", "profile"] : ["openid", "email", "profile", "calendar.readonly", "drive.file"],
       accountDetail: `Connected · Live Google Account: ${email}`,
       connectedAt: now,
       hasRefreshToken: !!tokens.refresh_token,

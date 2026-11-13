@@ -281,60 +281,42 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
 
   return (
     <PortalModal isOpen={isOpen} onClose={onClose}>
-      <div className="w-full max-w-3xl max-h-[90vh] flex flex-col bg-surface border border-line rounded-xl shadow-lg overflow-hidden backdrop-blur-2xl">
+      <div className="w-full max-w-3xl max-h-[90vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden">
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 border-b border-line flex items-center justify-between bg-surface-2/40">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brass/15 border border-brass/30 flex items-center justify-center text-brass shrink-0">
-              <UploadCloud className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                  Upload Business Data
-                </h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass/15 text-brass dark:text-brass font-mono font-bold border border-brass/30">
-                  Telemetry Sync
-                </span>
-              </div>
-              <p className="text-xs text-text-muted mt-0.5">
-                Import real company financials to dynamically calibrate the entire executive dashboard.
-              </p>
-            </div>
+        <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-text">Add business data</h2>
+            <p className="text-sm text-text-muted mt-1">Upload your financials to update the numbers across your dashboard.</p>
           </div>
-
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-text-muted hover:text-text hover:bg-surface transition-colors cursor-pointer"
+            aria-label="Close"
+            className="p-2 rounded-xl text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-line px-6 bg-surface-2/20 text-xs font-semibold overflow-x-auto">
+        <div className="flex border-b border-line px-6 gap-1 text-sm overflow-x-auto">
           {[
-            { id: "file", label: "File Upload (CSV / JSON)", icon: FileText },
-            { id: "cloud", label: "Google Drive & OneDrive", icon: Cloud },
-            { id: "manual", label: "Quick Metrics Entry", icon: Sliders },
-            { id: "active", label: "Active Dataset & History", icon: ShieldCheck },
+            { id: "file", label: "Upload a file" },
+            { id: "cloud", label: "Cloud drive" },
+            { id: "manual", label: "Enter numbers" },
+            { id: "active", label: "Current data" },
           ].map(tab => {
-            const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-3 px-4 flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                  isActive
-                    ? "border-brass text-brass dark:text-brass font-bold"
-                    : "border-transparent text-text-muted hover:text-text hover:border-line"
+                className={`py-3 px-3.5 border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
+                  isActive ? "border-brass text-text font-medium" : "border-transparent text-text-muted hover:text-text"
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
+                {tab.label}
               </button>
             );
           })}
@@ -352,10 +334,10 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-colors ${
                   dragActive
-                    ? "border-brass bg-brass/10 shadow-lg shadow-brass/10"
-                    : "border-line hover:border-brass/50 bg-surface-2/30 hover:bg-surface-2/50"
+                    ? "border-brass bg-brass/10"
+                    : "border-line hover:border-line-strong bg-surface-2/30 hover:bg-surface-2/50"
                 }`}
               >
                 <input
@@ -365,19 +347,19 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                   className="hidden"
                   onChange={handleFileChange}
                 />
-                <div className="w-12 h-12 rounded-xl bg-brass/10 border border-brass/20 flex items-center justify-center text-brass mb-3">
+                <div className="w-12 h-12 rounded-xl bg-surface border border-line flex items-center justify-center text-brass mb-3">
                   <UploadCloud className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  {selectedFile ? selectedFile.name : cloudSource ? cloudSource.name : "Drop your business data file here, or browse"}
+                <h3 className="text-base font-medium text-text">
+                  {selectedFile ? selectedFile.name : cloudSource ? cloudSource.name : "Drag a file here, or click to choose one"}
                 </h3>
-                <p className="text-xs text-text-muted mt-1 max-w-sm">
-                  Accepts standard CSV (financials, metrics, multi-month summaries), Excel (.xlsx), or JSON payloads (up to 10MB).
+                <p className="text-sm text-text-muted mt-1 max-w-sm">
+                  CSV, Excel (.xlsx) or JSON, up to 10 MB.
                 </p>
 
                 {(selectedFile || cloudSource) && (
                   <div className="mt-3 flex items-center gap-2">
-                    <span className="text-[11px] font-mono px-3 py-1 rounded-lg bg-jade/10 text-jade border border-jade/30 font-semibold inline-flex items-center gap-1.5">
+                    <span className="text-xs px-3 py-1 rounded-lg bg-jade/10 text-jade border border-jade/30 font-semibold inline-flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       {selectedFile
                         ? `File loaded (${Math.round(selectedFile.size / 1024)} KB)`
@@ -390,15 +372,13 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
               {/* Cloud Drive Quick Integration Bar */}
               <div className="p-4 rounded-xl bg-surface-2/40 border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-surface border border-line flex items-center justify-center shrink-0">
-                    <Cloud className="w-4 h-4 text-brass" />
-                  </div>
+                  
                   <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                      Import Directly from Cloud Storage
+                    <span className="text-xs font-medium text-text block">
+                      Import from the cloud
                     </span>
-                    <span className="text-[11px] text-text-muted">
-                      Sync live spreadsheets, Google Sheets, or Excel from your corporate cloud.
+                    <span className="text-xs text-text-muted">
+                      Pick a spreadsheet from Google Drive or OneDrive.
                     </span>
                   </div>
                 </div>
@@ -410,7 +390,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                       setCloudPickerProvider("google");
                       setIsCloudPickerOpen(true);
                     }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-line hover:border-brass text-text transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-3.5 py-2 rounded-xl text-sm bg-surface border border-line hover:bg-surface-2 text-text transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <GoogleDriveIcon className="w-3.5 h-3.5" />
                     <span>Google Drive</span>
@@ -422,7 +402,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                       setCloudPickerProvider("onedrive");
                       setIsCloudPickerOpen(true);
                     }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-line hover:border-brass text-text transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-3.5 py-2 rounded-xl text-sm bg-surface border border-line hover:bg-surface-2 text-text transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <OneDriveIcon className="w-3.5 h-3.5" />
                     <span>OneDrive</span>
@@ -433,13 +413,12 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
               {/* Sample Templates Download Helpers */}
               <div className="p-4 rounded-xl bg-surface-2/40 border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <Download className="w-4 h-4 text-brass shrink-0" />
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                      Download Ready-to-Use CSV Templates
+                                    <div>
+                    <span className="text-xs font-medium text-text block">
+                      Need a template?
                     </span>
-                    <span className="text-[11px] text-text-muted">
-                      Pre-formatted templates with recognized column names.
+                    <span className="text-xs text-text-muted">
+                      Download a sample file with the right columns.
                     </span>
                   </div>
                 </div>
@@ -450,10 +429,10 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     onClick={() =>
                       downloadFile(generateSampleBusinessCsv(), "bizzpal_business_data_template.csv")
                     }
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-line hover:border-brass text-text transition-all flex items-center gap-1 cursor-pointer"
+                    className="px-3.5 py-2 rounded-xl text-sm bg-surface border border-line hover:bg-surface-2 text-text transition-all flex items-center gap-1 cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5 text-brass" />
-                    <span>Standard Metrics</span>
+                    <span>Key numbers</span>
                   </button>
 
                   <button
@@ -464,10 +443,10 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                         "bizzpal_monthly_financials_template.csv"
                       )
                     }
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-line hover:border-brass text-text transition-all flex items-center gap-1 cursor-pointer"
+                    className="px-3.5 py-2 rounded-xl text-sm bg-surface border border-line hover:bg-surface-2 text-text transition-all flex items-center gap-1 cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5 text-brass" />
-                    <span>Monthly Financials</span>
+                    <span>Monthly figures</span>
                   </button>
                 </div>
               </div>
@@ -484,39 +463,39 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
               {parsedPreview && (
                 <div className="space-y-4 pt-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-sans">
+                    <span className="text-xs font-medium text-text font-sans">
                       Detected Business Telemetry ({parsedPreview.rowCount} {parsedPreview.rowCount === 1 ? "row" : "rows"})
                     </span>
-                    <span className="text-[11px] font-mono text-brass">
+                    <span className="text-xs text-brass">
                       {parsedPreview.detectedColumns.length} columns recognized
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="p-3 rounded-xl bg-surface-2/60 border border-line">
-                      <span className="text-[10px] text-text-muted uppercase font-semibold block">Company Name</span>
-                      <span className="text-sm font-bold text-text truncate block mt-0.5">
+                      <span className="text-xs text-text-muted font-semibold block">Company Name</span>
+                      <span className="text-sm font-medium text-text truncate block mt-0.5">
                         {parsedPreview.name || "Apex Analytics"}
                       </span>
                     </div>
 
                     <div className="p-3 rounded-xl bg-surface-2/60 border border-line">
-                      <span className="text-[10px] text-text-muted uppercase font-semibold block">Monthly Revenue</span>
-                      <span className="text-sm font-bold text-brass dark:text-brass font-mono block mt-0.5">
+                      <span className="text-xs text-text-muted font-semibold block">Monthly Revenue</span>
+                      <span className="text-sm font-medium text-brass block mt-0.5">
                         ₹{(parsedPreview.monthlyRevenue || 0).toLocaleString("en-IN")}
                       </span>
                     </div>
 
                     <div className="p-3 rounded-xl bg-surface-2/60 border border-line">
-                      <span className="text-[10px] text-text-muted uppercase font-semibold block">Monthly Net Burn</span>
-                      <span className="text-sm font-bold text-amber-600 dark:text-amber-400 font-mono block mt-0.5">
+                      <span className="text-xs text-text-muted font-semibold block">Monthly Net Burn</span>
+                      <span className="text-sm font-medium text-amber-600 dark:text-amber-400 block mt-0.5">
                         ₹{(parsedPreview.monthlyBurn || 0).toLocaleString("en-IN")}
                       </span>
                     </div>
 
                     <div className="p-3 rounded-xl bg-surface-2/60 border border-line">
-                      <span className="text-[10px] text-text-muted uppercase font-semibold block">Calculated Runway</span>
-                      <span className="text-sm font-bold text-jade font-mono block mt-0.5">
+                      <span className="text-xs text-text-muted font-semibold block">Calculated Runway</span>
+                      <span className="text-sm font-medium text-jade block mt-0.5">
                         {parsedPreview.runwayMonths ? `${parsedPreview.runwayMonths} mo` : "18+ mo"}
                       </span>
                     </div>
@@ -525,13 +504,13 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                   {/* Raw Rows Table Preview */}
                   {parsedPreview.rawRowsPreview && parsedPreview.rawRowsPreview.length > 0 && (
                     <div className="rounded-xl border border-line overflow-hidden">
-                      <div className="p-2.5 bg-surface-2/80 border-b border-line text-[11px] font-semibold text-text-muted flex items-center gap-1.5">
+                      <div className="p-2.5 bg-surface-2/80 border-b border-line text-xs font-semibold text-text-muted flex items-center gap-1.5">
                         <TableIcon className="w-3.5 h-3.5" />
                         <span>Data Preview (First {parsedPreview.rawRowsPreview.length} rows)</span>
                       </div>
                       <div className="overflow-x-auto max-h-40">
-                        <table className="w-full text-left text-[11px]">
-                          <thead className="bg-surface-2/40 text-text-muted font-mono uppercase">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-surface-2/40 text-text-muted">
                             <tr>
                               {parsedPreview.detectedColumns.map(col => (
                                 <th key={col} className="p-2 px-3 border-b border-line whitespace-nowrap">
@@ -540,7 +519,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                               ))}
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-line font-mono">
+                          <tbody className="divide-y divide-line">
                             {parsedPreview.rawRowsPreview.map((r, idx) => (
                               <tr key={idx} className="hover:bg-surface-2/30">
                                 {parsedPreview.detectedColumns.map(col => (
@@ -560,7 +539,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     type="button"
                     onClick={handleCommitUpload}
                     disabled={isSubmitting}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-brass to-indigo-600 text-white font-bold text-xs shadow-lg shadow-brass/25 hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 btn-tactile cursor-pointer"
+                    className="w-full py-3 rounded-xl bg-brass text-white font-medium text-xs hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 btn-tactile cursor-pointer"
                   >
                     <Sliders className="w-4 h-4" />
                     <span>{isSubmitting ? "Synchronizing Dashboard..." : "Confirm & Apply to Dashboard →"}</span>
@@ -577,11 +556,11 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                 {/* Google Drive Card */}
                 <div className="p-5 rounded-2xl bg-surface-2/40 border border-line flex flex-col justify-between space-y-4 hover:border-brass/40 transition-colors">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center shrink-0 shadow-xs">
+                    <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center shrink-0">
                       <GoogleDriveIcon className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Google Drive</h3>
+                      <h3 className="text-sm font-medium text-text">Google Drive</h3>
                       <p className="text-xs text-text-muted mt-1 leading-relaxed">
                         Connect your executive Google Workspace. Select Google Sheets, CSV models, or financial docs with 1 click.
                       </p>
@@ -594,7 +573,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                       setCloudPickerProvider("google");
                       setIsCloudPickerOpen(true);
                     }}
-                    className="w-full py-2.5 px-3 rounded-xl bg-brass text-white hover:bg-brass-hover text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                    className="w-full py-2.5 px-3 rounded-xl bg-brass text-white hover:bg-brass-hover text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <GoogleDriveIcon className="w-4 h-4" />
                     <span>Browse Google Drive Files</span>
@@ -604,11 +583,11 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                 {/* Microsoft OneDrive Card */}
                 <div className="p-5 rounded-2xl bg-surface-2/40 border border-line flex flex-col justify-between space-y-4 hover:border-brass/40 transition-colors">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center shrink-0 shadow-xs">
+                    <div className="w-10 h-10 rounded-xl bg-surface border border-line flex items-center justify-center shrink-0">
                       <OneDriveIcon className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Microsoft OneDrive</h3>
+                      <h3 className="text-sm font-medium text-text">Microsoft OneDrive</h3>
                       <p className="text-xs text-text-muted mt-1 leading-relaxed">
                         Sync enterprise Excel spreadsheets, OneDrive models, and monthly business accounting sheets.
                       </p>
@@ -621,7 +600,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                       setCloudPickerProvider("onedrive");
                       setIsCloudPickerOpen(true);
                     }}
-                    className="w-full py-2.5 px-3 rounded-xl bg-surface border border-line hover:border-brass text-text text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                    className="w-full py-2.5 px-3 rounded-xl bg-surface border border-line hover:border-brass text-text text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <OneDriveIcon className="w-4 h-4" />
                     <span>Browse OneDrive Files</span>
@@ -753,7 +732,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-brass to-indigo-600 text-white font-bold text-xs shadow-lg shadow-brass/25 hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 btn-tactile cursor-pointer"
+                  className="w-full py-3 rounded-xl bg-brass text-white font-medium text-xs hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2 btn-tactile cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   <span>{isSubmitting ? "Applying..." : "Save & Synchronize Dashboard"}</span>
@@ -771,10 +750,10 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-text block">
+                    <span className="text-xs font-medium text-text block">
                       {activeDataInfo ? `Custom Dataset: ${activeDataInfo.fileName}` : "Default Demo Dataset Active (Apex Analytics)"}
                     </span>
-                    <span className="text-[11px] text-text-muted">
+                    <span className="text-xs text-text-muted">
                       {activeDataInfo
                         ? `Synced on ${new Date(activeDataInfo.createdAt).toLocaleString("en-IN")}`
                         : "Synthetic baseline telemetry for B2B SaaS."}
@@ -797,7 +776,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
 
               {historyList.length > 0 && (
                 <div className="space-y-2 pt-2">
-                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider block font-sans">
+                  <span className="text-xs font-medium text-text-muted block font-sans">
                     Recent Upload History
                   </span>
                   <div className="divide-y divide-line border border-line rounded-xl overflow-hidden bg-surface-2/20">
@@ -806,11 +785,11 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-brass" />
                           <span className="font-semibold text-text">{item.fileName}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-surface-2 border border-line font-mono text-text-muted uppercase">
+                          <span className="text-xs px-1.5 py-0.5 rounded-md bg-surface-2 border border-line text-text-muted">
                             {item.fileType}
                           </span>
                         </div>
-                        <span className="text-[11px] text-text-muted font-mono">
+                        <span className="text-xs text-text-muted">
                           {new Date(item.createdAt).toLocaleDateString()}
                         </span>
                       </div>

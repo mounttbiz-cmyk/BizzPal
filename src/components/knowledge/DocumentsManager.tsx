@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { FileText, UploadCloud, RefreshCw, Trash2, AlertCircle, Layers, Search, Copy, Check, FileType, FileSpreadsheet, FileCode, X, Cloud } from "lucide-react";
+import { PortalModal } from "@/components/ui/PortalModal";
 import {
   CloudDrivePickerModal,
   GoogleDriveIcon,
@@ -90,6 +91,7 @@ export function DocumentsManager() {
   // Upload Form State
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [cloudSourceProvider, setCloudSourceProvider] = useState<"google_drive" | "onedrive" | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -103,6 +105,7 @@ export function DocumentsManager() {
     });
     const file = new File([blob], result.fileName, { type: blob.type });
     setUploadFile(file);
+    setCloudSourceProvider(result.sourceProvider);
     if (!uploadTitle.trim()) {
       setUploadTitle(result.fileName.replace(/\.[^/.]+$/, ""));
     }
@@ -132,6 +135,7 @@ export function DocumentsManager() {
     const file = e.target.files?.[0];
     if (file) {
       setUploadFile(file);
+      setCloudSourceProvider(null);
       if (!uploadTitle) {
         setUploadTitle(file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "));
       }
@@ -155,6 +159,7 @@ export function DocumentsManager() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       setUploadFile(file);
+      setCloudSourceProvider(null);
       if (!uploadTitle) {
         setUploadTitle(file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "));
       }
@@ -484,141 +489,161 @@ export function DocumentsManager() {
       )}
 
       {/* Upload Document Modal */}
-      {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-lg rounded-2xl bg-surface border border-line p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-line">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass">
-                  <UploadCloud className="w-4 h-4" />
+      <PortalModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)}>
+        <div className="w-full max-w-lg rounded-2xl bg-surface border border-line p-6 space-y-5 shadow-2xl">
+          <div className="flex items-center justify-between pb-3 border-b border-line">
+            <div className="flex items-center gap-2.5">
+              <div>
+                <h3 className="text-base font-semibold text-text">Add a document</h3>
+                <p className="text-sm text-text-muted mt-0.5">Your AI advisors will use it to answer questions.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsUploadModalOpen(false)}
+              className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <form onSubmit={handleUploadSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-text mb-1.5">Title</label>
+              <input
+                type="text"
+                value={uploadTitle}
+                onChange={(e) => setUploadTitle(e.target.value)}
+                placeholder="e.g. FY2026 strategy plan"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-surface border border-line text-sm text-text focus:outline-none focus:border-brass font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text mb-1.5">File</label>
+              <div
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all space-y-2.5 ${
+                  dragActive
+                    ? "border-brass bg-brass/10"
+                    : uploadFile
+                    ? "border-jade/40 bg-jade/5"
+                    : "border-line hover:border-brass/50 bg-surface-2/40 hover:bg-surface-2"
+                }`}
+              >
+                <div className="w-12 h-12 rounded-xl bg-surface border border-line mx-auto flex items-center justify-center text-brass shadow-2xs">
+                  <UploadCloud className="w-6 h-6" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-text">Ingest Enterprise Document</h3>
-                  <p className="text-[10px] text-text-muted">Direct embedding to company vector database</p>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-text truncate max-w-sm mx-auto">
+                    {uploadFile ? uploadFile.name : "Click to choose a file, or drag it here"}
+                  </p>
+                  <p className="text-xs text-text-muted">
+                    {uploadFile
+                      ? `${(uploadFile.size / 1024).toFixed(1)} KB · ready to add`
+                      : "PDF, TXT, CSV, JSON or Markdown, up to 15 MB"}
+                  </p>
+                </div>
+
+                {uploadFile && (
+                  <div className="pt-1 flex items-center justify-center gap-2">
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-jade/10 text-jade border border-jade/30 inline-flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      {cloudSourceProvider === "google_drive"
+                        ? "Google Drive Import"
+                        : cloudSourceProvider === "onedrive"
+                        ? "OneDrive Import"
+                        : "Local File"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setUploadFile(null);
+                        setCloudSourceProvider(null);
+                      }}
+                      className="text-text-muted hover:text-rust p-0.5 cursor-pointer"
+                      title="Remove file"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.txt,.csv,.json,.md,.markdown"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              {/* Cloud Drive Import Shortcuts */}
+              <div className="p-3 rounded-xl bg-surface-2/40 border border-line flex items-center justify-between gap-3 mt-3">
+                <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                  <Cloud className="w-4 h-4 text-brass" />
+                  <span>Or import from:</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCloudPickerProvider("google");
+                      setIsCloudPickerOpen(true);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                  >
+                    <GoogleDriveIcon className="w-3.5 h-3.5" />
+                    <span>Google Drive</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCloudPickerProvider("onedrive");
+                      setIsCloudPickerOpen(true);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                  >
+                    <OneDriveIcon className="w-3.5 h-3.5" />
+                    <span>OneDrive</span>
+                  </button>
                 </div>
               </div>
+            </div>
+
+            {uploadError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{uploadError}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-line">
               <button
                 type="button"
                 onClick={() => setIsUploadModalOpen(false)}
-                className="w-7 h-7 rounded-lg bg-surface-2 hover:bg-surface border border-line flex items-center justify-center text-text-muted hover:text-text cursor-pointer transition-all"
+                className="px-4 py-2.5 rounded-xl border border-line text-sm text-text hover:bg-surface-2 cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUploading || !uploadFile}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isUploading ? "animate-spin" : ""}`} />
+                <span>{isUploading ? "Adding…" : "Add document"}</span>
               </button>
             </div>
-
-            <form onSubmit={handleUploadSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-text mb-1.5">Document Title / Topic</label>
-                <input
-                  type="text"
-                  value={uploadTitle}
-                  onChange={(e) => setUploadTitle(e.target.value)}
-                  placeholder="e.g. FY2026 Strategic Master Plan & Unit Economics"
-                  className="w-full px-3.5 py-2 rounded-xl bg-surface-2 border border-line text-xs text-text focus:outline-none focus:border-brass/70 font-sans"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-text mb-1.5">File Upload</label>
-                <div
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all space-y-2.5 ${
-                    dragActive
-                      ? "border-brass bg-brass/5"
-                      : uploadFile
-                      ? "border-emerald-500/40 bg-emerald-500/5"
-                      : "border-line hover:border-brass/50 bg-surface-2/40 hover:bg-surface-2"
-                  }`}
-                >
-                  <div className="w-12 h-12 rounded-xl bg-surface border border-line mx-auto flex items-center justify-center text-brass shadow-2xs">
-                    <UploadCloud className="w-6 h-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-text">
-                      {uploadFile ? uploadFile.name : "Click to select or drag & drop document"}
-                    </p>
-                    <p className="text-[10px] text-text-muted">
-                      {uploadFile
-                        ? `${(uploadFile.size / 1024).toFixed(1)} KB • Ready for vectorization`
-                        : "Supports PDF, TXT, CSV, JSON, Markdown (up to 15MB)"}
-                    </p>
-                  </div>
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.txt,.csv,.json,.md,.markdown"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-
-                {/* Cloud Drive Import Shortcuts */}
-                <div className="p-3 rounded-xl bg-surface-2/40 border border-line flex items-center justify-between gap-3 mt-3">
-                  <div className="flex items-center gap-1.5 text-xs text-text-muted">
-                    <Cloud className="w-4 h-4 text-brass" />
-                    <span>Or import from Cloud:</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCloudPickerProvider("google");
-                        setIsCloudPickerOpen(true);
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
-                    >
-                      <GoogleDriveIcon className="w-3.5 h-3.5" />
-                      <span>Google Drive</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCloudPickerProvider("onedrive");
-                        setIsCloudPickerOpen(true);
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-surface border border-line hover:border-brass text-text text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
-                    >
-                      <OneDriveIcon className="w-3.5 h-3.5" />
-                      <span>OneDrive</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {uploadError && (
-                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{uploadError}</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-line">
-                <button
-                  type="button"
-                  onClick={() => setIsUploadModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-text hover:bg-surface cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUploading || !uploadFile}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 btn-tactile disabled:opacity-50 cursor-pointer shadow-2xs"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isUploading ? "animate-spin" : ""}`} />
-                  <span>{isUploading ? "Chunking & Generating Embeddings…" : "Ingest into Memory"}</span>
-                </button>
-              </div>
-            </form>
-          </div>
+          </form>
         </div>
-      )}
+      </PortalModal>
 
       {/* Document Chunks Inspector Modal */}
       {activeDocForPreview && (

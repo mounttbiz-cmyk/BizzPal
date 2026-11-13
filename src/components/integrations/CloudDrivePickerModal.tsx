@@ -67,7 +67,7 @@ export function CloudDrivePickerModal({
   onClose,
   onFileSelect,
   initialProvider = "google",
-  title = "Import from Cloud Storage",
+  title = "Import from the cloud",
   description = "Select live business models, spreadsheets, or financial CSVs from your Google Drive or Microsoft OneDrive.",
 }: CloudDrivePickerModalProps) {
   const [provider, setProvider] = useState<"google" | "onedrive">(initialProvider);
@@ -263,6 +263,78 @@ export function CloudDrivePickerModal({
     }
   };
 
+  // ---------- Google: open Google's own file picker ----------
+  const [pickerBusy, setPickerBusy] = useState(false);
+
+  const loadScript = (src: string) =>
+    new Promise<void>((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) return resolve();
+      const el = document.createElement("script");
+      el.src = src;
+      el.async = true;
+      el.onload = () => resolve();
+      el.onerror = () => reject(new Error("Could not load Google's file picker. Check your internet connection."));
+      document.body.appendChild(el);
+    });
+
+  const openGooglePicker = async () => {
+    setError(null);
+    setPickerBusy(true);
+    try {
+      const cfgRes = await fetch("/api/integrations/google/drive/picker-config", { cache: "no-store" });
+      const cfg = await cfgRes.json();
+      if (!cfg.success) {
+        if (cfg.connected === false) setIsConnected(false);
+        throw new Error(cfg.error || "Google Drive is not available right now.");
+      }
+
+      await loadScript("https://apis.google.com/js/api.js");
+      const w = window as any;
+      await new Promise<void>(resolve => w.gapi.load("picker", { callback: () => resolve() }));
+
+      const g = w.google.picker;
+      const view = new g.DocsView(g.ViewId.DOCS)
+        .setIncludeFolders(true)
+        .setMimeTypes(
+          [
+            "application/vnd.google-apps.spreadsheet",
+            "text/csv",
+            "application/json",
+            "text/plain",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-excel",
+          ].join(",")
+        );
+
+      const picker = new g.PickerBuilder()
+        .setOAuthToken(cfg.accessToken)
+        .setDeveloperKey(cfg.apiKey)
+        .setAppId(cfg.appId)
+        .addView(view)
+        .addView(new g.DocsView(g.ViewId.SPREADSHEETS))
+        .setTitle("Choose a file to import")
+        .setCallback((data: any) => {
+          if (data.action === g.Action.PICKED && data.docs && data.docs[0]) {
+            const d = data.docs[0];
+            handleFileSelect({
+              id: d.id,
+              name: d.name,
+              mimeType: d.mimeType,
+              isFolder: false,
+              provider: "google",
+              fileCategory: "spreadsheet",
+            } as CloudFileItem);
+          }
+        })
+        .build();
+      picker.setVisible(true);
+    } catch (err: any) {
+      setError(err.message || "Could not open Google Drive.");
+    } finally {
+      setPickerBusy(false);
+    }
+  };
+
   const getFileIcon = (item: CloudFileItem) => {
     if (item.isFolder) return <Folder className="w-4 h-4 text-amber-400 shrink-0" />;
     if (item.fileCategory === "spreadsheet")
@@ -295,41 +367,25 @@ export function CloudDrivePickerModal({
 
   return (
     <PortalModal isOpen={isOpen} onClose={onClose}>
-      <div className="w-full max-w-3xl max-h-[88vh] flex flex-col bg-surface border border-line rounded-xl shadow-2xl overflow-hidden backdrop-blur-2xl">
+      <div className="w-full max-w-3xl max-h-[88vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="p-5 border-b border-line flex items-center justify-between bg-surface-2/40">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brass/15 border border-brass/30 flex items-center justify-center text-brass shrink-0">
-              {provider === "google" ? (
-                <GoogleDriveIcon className="w-5 h-5" />
-              ) : (
-                <OneDriveIcon className="w-5 h-5" />
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                  {title}
-                </h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-brass/15 text-brass font-mono font-bold border border-brass/30">
-                  Cloud Telemetry
-                </span>
-              </div>
-              <p className="text-xs text-text-muted mt-0.5">{description}</p>
-            </div>
+        <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-text">{title}</h2>
+            <p className="text-sm text-text-muted mt-1">{description}</p>
           </div>
-
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-text-muted hover:text-text hover:bg-surface transition-colors cursor-pointer"
+            aria-label="Close"
+            className="p-2 rounded-xl text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Provider Switcher Tabs */}
-        <div className="flex items-center justify-between border-b border-line px-6 bg-surface-2/20 text-xs font-semibold">
+        <div className="flex items-center justify-between border-b border-line px-6 text-sm">
           <div className="flex">
             <button
               type="button"
@@ -337,9 +393,9 @@ export function CloudDrivePickerModal({
                 setProvider("google");
                 setFolderHistory([{ name: "My Drive" }]);
               }}
-              className={`py-3 px-4 flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+              className={`py-3 px-3.5 flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
                 provider === "google"
-                  ? "border-brass text-brass font-bold"
+                  ? "border-brass text-text font-medium"
                   : "border-transparent text-text-muted hover:text-text"
               }`}
             >
@@ -353,9 +409,9 @@ export function CloudDrivePickerModal({
                 setProvider("onedrive");
                 setFolderHistory([{ name: "OneDrive Root" }]);
               }}
-              className={`py-3 px-4 flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+              className={`py-3 px-3.5 flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
                 provider === "onedrive"
-                  ? "border-brass text-brass font-bold"
+                  ? "border-brass text-text font-medium"
                   : "border-transparent text-text-muted hover:text-text"
               }`}
             >
@@ -368,20 +424,20 @@ export function CloudDrivePickerModal({
           <div className="flex items-center gap-3">
             {isConnected ? (
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-jade/10 text-jade text-[11px] font-semibold border border-jade/30">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
+                  <CheckCircle2 className="w-4 h-4 text-jade" />
                   <span>{accountInfo?.email || "Connected"}</span>
                 </span>
                 <button
                   type="button"
                   onClick={handleDisconnect}
-                  className="text-[11px] text-text-muted hover:text-rust underline cursor-pointer"
+                  className="text-sm text-text-muted hover:text-rust underline cursor-pointer"
                 >
                   Disconnect
                 </button>
               </div>
             ) : isConnected === false ? (
-              <span className="text-[11px] text-amber-400 font-medium">Not Connected</span>
+              <span className="text-sm text-text-muted">Not connected</span>
             ) : null}
           </div>
         </div>
@@ -390,8 +446,8 @@ export function CloudDrivePickerModal({
         <div className="p-6 overflow-y-auto space-y-4 flex-1">
           {/* If NOT connected -> Connect Card */}
           {isConnected === false && (
-            <div className="border border-line rounded-xl p-8 bg-surface-2/30 text-center flex flex-col items-center justify-center space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-surface border border-line flex items-center justify-center shadow-lg">
+            <div className="border border-line rounded-2xl p-10 bg-surface text-center flex flex-col items-center justify-center space-y-5">
+              <div className="w-14 h-14 rounded-2xl bg-surface border border-line flex items-center justify-center">
                 {provider === "google" ? (
                   <GoogleDriveIcon className="w-7 h-7" />
                 ) : (
@@ -400,38 +456,67 @@ export function CloudDrivePickerModal({
               </div>
 
               <div className="max-w-md">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                <h3 className="text-sm font-medium text-text">
                   Connect {provider === "google" ? "Google Drive" : "Microsoft OneDrive"}
                 </h3>
-                <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                  Authorize read-only access to select your business financials, P&L reports,
-                  and Google Sheets directly into BizzPal.
+                <p className="text-sm text-text-muted mt-1 leading-relaxed">
+                  Give BizzPal read-only access so you can pick your financial files. We can only view them, never change them.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={handleConnect}
-                className="px-5 py-2.5 rounded-xl bg-brass text-white hover:bg-brass-hover font-semibold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-brass text-white hover:bg-brass-hover font-medium text-sm transition-all flex items-center gap-2 cursor-pointer"
               >
                 {provider === "google" ? (
                   <GoogleDriveIcon className="w-4 h-4" />
                 ) : (
                   <OneDriveIcon className="w-4 h-4" />
                 )}
-                <span>Authorize {provider === "google" ? "Google Drive" : "OneDrive"} Account</span>
+                <span>Connect {provider === "google" ? "Google Drive" : "OneDrive"}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
 
-              <div className="flex items-center gap-2 text-[11px] text-text-muted">
+              <div className="flex items-center gap-2 text-xs text-text-muted">
                 <ShieldCheck className="w-3.5 h-3.5 text-jade" />
-                <span>Read-only permissions. Your credentials are encrypted at rest with AES-256-GCM.</span>
+                <span>Your access details are stored encrypted.</span>
               </div>
             </div>
           )}
 
-          {/* If CONNECTED -> Search bar, Breadcrumbs, and File Table */}
-          {isConnected && (
+          {/* Google: connected -> choose a file with Google's picker */}
+          {isConnected && provider === "google" && (
+            <div className="border border-line rounded-2xl p-10 bg-surface text-center flex flex-col items-center justify-center space-y-5">
+              <div className="w-14 h-14 rounded-2xl bg-surface border border-line flex items-center justify-center">
+                <GoogleDriveIcon className="w-7 h-7" />
+              </div>
+              <div className="max-w-md">
+                <h3 className="text-base font-medium text-text">Choose a file from Google Drive</h3>
+                <p className="text-sm text-text-muted mt-1 leading-relaxed">
+                  Pick a Google Sheet, CSV, Excel or JSON file. BizzPal can only open the file you choose, nothing else in your Drive.
+                </p>
+              </div>
+              {error && (
+                <div className="w-full max-w-md px-4 py-3 rounded-xl bg-rust/10 text-rust text-sm text-left flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={openGooglePicker}
+                disabled={pickerBusy || isDownloading !== null}
+                className="px-5 py-2.5 rounded-xl bg-brass text-white hover:brightness-110 font-medium text-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
+              >
+                <GoogleDriveIcon className="w-4 h-4" />
+                <span>{isDownloading !== null ? "Importing…" : pickerBusy ? "Opening…" : "Choose from Google Drive"}</span>
+              </button>
+            </div>
+          )}
+
+          {/* OneDrive: connected -> search, breadcrumbs and file table */}
+          {isConnected && provider === "onedrive" && (
             <>
               {/* Search & Filter Toolbar */}
               <div className="flex flex-col sm:flex-row gap-2.5">
@@ -444,7 +529,7 @@ export function CloudDrivePickerModal({
                     onKeyDown={e => {
                       if (e.key === "Enter") loadFiles(currentFolder.id, searchQuery);
                     }}
-                    placeholder={`Search ${provider === "google" ? "Google Drive" : "OneDrive"} files...`}
+                    placeholder={"Search your OneDrive files"}
                     className="w-full pl-9 pr-8 py-2 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                   {searchQuery && (
@@ -498,7 +583,7 @@ export function CloudDrivePickerModal({
                       type="button"
                       onClick={() => handleBreadcrumbClick(index)}
                       className={`hover:text-text cursor-pointer truncate max-w-[150px] ${
-                        index === folderHistory.length - 1 ? "text-brass font-bold" : ""
+                        index === folderHistory.length - 1 ? "text-brass font-medium" : ""
                       }`}
                     >
                       {folder.name}
@@ -520,13 +605,13 @@ export function CloudDrivePickerModal({
                 {isLoading ? (
                   <div className="p-12 text-center text-xs text-text-muted flex flex-col items-center justify-center gap-3">
                     <RefreshCw className="w-6 h-6 animate-spin text-brass" />
-                    <span>Loading files from {provider === "google" ? "Google Drive" : "OneDrive"}...</span>
+                    <span>Loading files from OneDrive...</span>
                   </div>
                 ) : files.length === 0 ? (
                   <div className="p-12 text-center text-xs text-text-muted flex flex-col items-center justify-center gap-2">
                     <FileSpreadsheet className="w-8 h-8 text-text-muted/50" />
                     <p className="font-semibold text-text">No supported business files found</p>
-                    <p className="text-[11px] text-text-muted max-w-sm">
+                    <p className="text-xs text-text-muted max-w-sm">
                       We look for CSV, Google Sheets, Excel (.xlsx), or JSON data files. Try switching to "All Files" or upload a file.
                     </p>
                   </div>
@@ -547,10 +632,10 @@ export function CloudDrivePickerModal({
                               {getFileIcon(item)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <span className="text-xs font-semibold text-slate-900 dark:text-white block truncate group-hover:text-brass transition-colors">
+                              <span className="text-xs font-semibold text-text block truncate group-hover:text-brass transition-colors">
                                 {item.name}
                               </span>
-                              <div className="flex items-center gap-2 text-[10px] text-text-muted mt-0.5">
+                              <div className="flex items-center gap-2 text-xs text-text-muted mt-0.5">
                                 <span>{formatDate(item.modifiedTime)}</span>
                                 {!item.isFolder && (
                                   <>
@@ -582,7 +667,7 @@ export function CloudDrivePickerModal({
                                 type="button"
                                 onClick={() => handleFileSelect(item)}
                                 disabled={isDownloadingThis}
-                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brass hover:bg-brass-hover text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                className="px-3.5 py-2 rounded-xl text-sm font-medium bg-brass hover:brightness-110 text-white transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                               >
                                 {isDownloadingThis ? (
                                   <>
@@ -609,15 +694,15 @@ export function CloudDrivePickerModal({
         </div>
 
         {/* Footer info banner */}
-        <div className="p-4 border-t border-line bg-surface-2/40 flex items-center justify-between text-[11px] text-text-muted">
+        <div className="px-6 py-4 border-t border-line flex items-center justify-between text-xs text-text-muted">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-3.5 h-3.5 text-jade shrink-0" />
-            <span>Automatically exports Google Sheets to CSV and parses company telemetry.</span>
+            <span>Google Sheets are converted to CSV automatically.</span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg bg-surface border border-line text-xs font-semibold text-text hover:bg-surface-2 cursor-pointer"
+            className="px-4 py-2 rounded-xl border border-line text-sm text-text hover:bg-surface-2 cursor-pointer"
           >
             Close
           </button>
@@ -626,3 +711,4 @@ export function CloudDrivePickerModal({
     </PortalModal>
   );
 }
+

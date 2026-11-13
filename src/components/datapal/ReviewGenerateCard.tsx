@@ -268,12 +268,19 @@ export function ReviewGenerateCard({
       )}
 
       {/* Old records or new only */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-text">Records you already have</label>
-        <div className="inline-flex p-1 rounded-xl bg-surface-2 border border-line" role="radiogroup" aria-label="Records you already have">
+      <div className="rounded-xl border border-line bg-surface-2/40 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-text">Records you already have</p>
+          <p className="text-sm text-text-muted mt-0.5 leading-relaxed">
+            {includePrevious
+              ? "You may get businesses from your earlier searches again. They use credits again."
+              : "Businesses you have already extracted are left out, so every record is new to you."}
+          </p>
+        </div>
+        <div className="inline-flex p-1 rounded-xl bg-surface border border-line shrink-0 self-start md:self-auto" role="radiogroup" aria-label="Records you already have">
           {[
-            { value: false, label: "New records only" },
-            { value: true, label: "Include old records too" },
+            { value: false, label: "New only" },
+            { value: true, label: "Include old" },
           ].map(opt => (
             <button
               key={String(opt.value)}
@@ -281,19 +288,14 @@ export function ReviewGenerateCard({
               role="radio"
               aria-checked={includePrevious === opt.value}
               onClick={() => onIncludePreviousChange(opt.value)}
-              className={`px-4 py-2 rounded-lg text-sm cursor-pointer ${
-                includePrevious === opt.value ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
+              className={`px-5 py-2 rounded-lg text-sm cursor-pointer transition-colors ${
+                includePrevious === opt.value ? "bg-brass text-white font-medium" : "text-text-muted hover:text-text"
               }`}
             >
               {opt.label}
             </button>
           ))}
         </div>
-        <p className="text-xs text-text-muted">
-          {includePrevious
-            ? "You may get businesses you have extracted in earlier searches. They use credits again."
-            : "Businesses you have extracted before are left out, so every record is new to you."}
-        </p>
       </div>
 
       {/* Bottom Action: Primary Generate Button */}

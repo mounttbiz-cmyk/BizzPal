@@ -1928,3 +1928,37 @@ export function consumeDataPalCredits(email: string, count: number): DataPalCred
   }
   return getDataPalCredits(key);
 }
+
+
+/** Adds purchased records to an account's balance. */
+export function addDataPalAddon(email: string, count: number): DataPalCreditsState {
+  const key = (email || "guest").trim().toLowerCase();
+  const n = Math.max(0, Math.floor(count));
+  if (n > 0) {
+    db.prepare(
+      `INSERT INTO datapal_credits (account_email, used, addon, updated_at) VALUES (?, 0, ?, ?)
+       ON CONFLICT(account_email) DO UPDATE SET addon = addon + excluded.addon, updated_at = excluded.updated_at`
+    ).run(key, n, new Date().toISOString());
+  }
+  return getDataPalCredits(key);
+}
+
+/** Marks a top-up payment as paid and adds the records, but only the first time it is confirmed. */
+export function confirmDataPalPackPayment(data: {
+  orderId: string;
+  paymentId: string;
+  email: string;
+  records: number;
+  rawResponse?: any;
+}): { alreadyApplied: boolean; credits: DataPalCreditsState } {
+  const res: any = db
+    .prepare(
+      `UPDATE payment_transactions SET payment_id = ?, status = 'success', raw_response = COALESCE(?, raw_response)
+       WHERE order_id = ? AND status != 'success'`
+    )
+    .run(data.paymentId, data.rawResponse ? JSON.stringify(data.rawResponse) : null, data.orderId);
+  if (!res || !res.changes) {
+    return { alreadyApplied: true, credits: getDataPalCredits(data.email) };
+  }
+  return { alreadyApplied: false, credits: addDataPalAddon(data.email, data.records) };
+}

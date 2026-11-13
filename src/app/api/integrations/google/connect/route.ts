@@ -34,12 +34,14 @@ export async function GET(req: NextRequest) {
   googleAuthUrl.searchParams.set("redirect_uri", redirectUri);
   googleAuthUrl.searchParams.set("response_type", "code");
 
-  // Sensitive scopes (calendar.readonly, drive.readonly) are only for integrations and trigger Google 500 / unverified errors during login.
-  let scope = "openid email profile https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly";
+  // Google shows the red "Google hasn't verified this app" screen (and requires a paid security review)
+  // for sensitive / restricted scopes such as drive.readonly. drive.file is a normal scope: the app can
+  // only open the files the user picks in the Google Picker, which is also better for the user's privacy.
+  let scope = "openid email profile https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.file";
   if (source === "auth" || source === "invite") {
     scope = "openid email profile";
   } else if (source === "drive" || source === "google_drive") {
-    scope = "openid email profile https://www.googleapis.com/auth/drive.readonly";
+    scope = "openid email profile https://www.googleapis.com/auth/drive.file";
   }
 
   googleAuthUrl.searchParams.set("scope", scope);

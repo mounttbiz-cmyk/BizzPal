@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPlatformConfig, createPaymentOrderRecord } from "@/lib/db";
-import { getRazorpayCredentials } from "@/lib/payments/config";
+import { getRazorpayCredentials, simulatedPaymentsAllowed } from "@/lib/payments/config";
+import { resolvePack } from "@/lib/datapal/plans";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
 
 export const dynamic = "force-dynamic";
@@ -33,13 +34,23 @@ export async function POST(req: Request) {
       ? configuredPlans.find((p: any) => p.id === planId)
       : null;
 
-    const planName = matchedPlan?.name || rawPlanName || "BizzPal Business OS";
+    let planName = matchedPlan?.name || rawPlanName || "BizzPal Business OS";
     let amountInPaise = 0;
 
     if (matchedPlan?.price) {
       amountInPaise = parsePriceToPaise(matchedPlan.price);
     } else if (rawAmount) {
       amountInPaise = parsePriceToPaise(rawAmount);
+    }
+
+    // DataPal top-up packs: the price always comes from the server's own list
+    if (String(planId).startsWith("datapal_pack_")) {
+      const pack = resolvePack(String(planId));
+      if (!pack) {
+        return NextResponse.json({ success: false, error: "That amount is not available." }, { status: 400 });
+      }
+      planName = `${pack.records.toLocaleString("en-IN")} DataPal records`;
+      amountInPaise = pack.priceInr * 100;
     }
 
     if (amountInPaise <= 0) {
@@ -108,7 +119,7 @@ export async function POST(req: Request) {
     } else {
       // Simulated checkout is for local testing only. A live server without real keys must refuse,
       // otherwise anyone could "buy" a plan for free.
-      if (process.env.NODE_ENV === "production") {
+      if (!simulatedPaymentsAllowed()) {
         return NextResponse.json(
           { success: false, error: "Payments are not available right now. Please contact support." },
           { status: 503 }

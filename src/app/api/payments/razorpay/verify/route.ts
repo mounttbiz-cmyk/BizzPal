@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { confirmPaymentAndActivateSubscription, getPaymentTransactionByOrder, getPlatformConfig } from "@/lib/db";
-import { getRazorpayCredentials } from "@/lib/payments/config";
+import { confirmPaymentAndActivateSubscription, confirmDataPalPackPayment, getPaymentTransactionByOrder, getPlatformConfig } from "@/lib/db";
+import { resolvePack } from "@/lib/datapal/plans";
+import { getRazorpayCredentials, simulatedPaymentsAllowed } from "@/lib/payments/config";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
 
 export const dynamic = "force-dynamic";
@@ -42,11 +43,49 @@ export async function POST(req: Request) {
       if (!safeEqualHex(expected, String(razorpay_signature))) {
         return NextResponse.json({ success: false, error: "Payment signature verification failed." }, { status: 400 });
       }
-    } else if (process.env.NODE_ENV === "production") {
+    } else if (!simulatedPaymentsAllowed()) {
       // Never accept simulated payments on a live server
       return NextResponse.json({ success: false, error: "Payments are not available right now." }, { status: 503 });
     } else if (!isSimOrder) {
       return NextResponse.json({ success: false, error: "Invalid simulated order." }, { status: 400 });
+    }
+
+    // A DataPal top-up adds records instead of changing the plan
+    if (String(tx.plan_id).startsWith("datapal_pack_")) {
+      const pack = resolvePack(String(tx.plan_id));
+      if (!pack) {
+        return NextResponse.json({ success: false, error: "Unknown top-up." }, { status: 400 });
+      }
+      const packPaymentId = razorpay_payment_id || `pay_sim_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const applied = confirmDataPalPackPayment({
+        orderId: razorpay_order_id,
+        paymentId: packPaymentId,
+        email: tx.user_email,
+        records: pack.records,
+        rawResponse: {
+          order_id: razorpay_order_id,
+          payment_id: packPaymentId,
+          mode: isLive ? "live_verified" : "sandbox_verified",
+          verified_at: new Date().toISOString(),
+        },
+      });
+      return NextResponse.json({
+        success: true,
+        kind: "datapal_pack",
+        records: pack.records,
+        paymentId: packPaymentId,
+        alreadyApplied: applied.alreadyApplied,
+        credits: {
+          planTier: applied.credits.planTier,
+          baseQuota: applied.credits.baseQuota,
+          usedData: applied.credits.used,
+          addonCredits: applied.credits.addon,
+          totalAllowed: applied.credits.totalAllowed,
+          remainingData: applied.credits.remaining,
+          usedLeads: applied.credits.used,
+          remainingQuota: applied.credits.remaining,
+        },
+      });
     }
 
     const configuredPlans = getPlatformConfig("subscription_plans", DEFAULT_SUBSCRIPTION_PLANS);

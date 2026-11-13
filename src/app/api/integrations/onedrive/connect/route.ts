@@ -70,9 +70,11 @@ export async function GET(req: NextRequest) {
   authUrl.searchParams.set("response_type", "code");
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("response_mode", "query");
-  authUrl.searchParams.set("scope", "offline_access Files.Read Files.Read.All User.Read");
+  // Files.Read covers the user's own files. Files.Read.All would need an administrator's approval in many company accounts.
+  authUrl.searchParams.set("scope", "offline_access Files.Read User.Read");
   authUrl.searchParams.set("state", state);
   authUrl.searchParams.set("prompt", "select_account");
 
   return NextResponse.redirect(authUrl.toString());
 }
+
