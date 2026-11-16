@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, BadgeCheck, Building2, Info, MapPin, ShieldCheck, Upload } from "lucide-react";
 import { checkGstin, normalizeGstin } from "@/lib/verification/gstin";
 import type { GstState } from "./types";

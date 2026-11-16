@@ -3,34 +3,18 @@
 import React, { useState, useEffect } from "react";
 import {
   X,
-  CheckCircle2,
-  AlertCircle,
-  Calendar,
+  CheckCircle2, Calendar,
   Clock,
   Video,
-  Users,
-  ExternalLink,
-  Plus,
+  Users, Plus,
   RefreshCw,
   CreditCard,
-  MessageSquare,
-  FileText,
-  ShieldCheck,
-  Send,
+  MessageSquare, Send,
   Check,
   Copy,
   Trash2,
-  Sliders,
-  DollarSign,
-  Briefcase,
-  Headphones,
-  Mail,
-  Zap,
-  Globe,
-  Radio,
-  FileSpreadsheet,
-  Building2,
-  Lock
+  Sliders, Headphones, Radio,
+  FileSpreadsheet, Lock
 } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { IntegrationLogo } from "@/components/ui/IntegrationLogo";
@@ -100,7 +84,7 @@ export function IntegrationAppViewerModal({
   onUpdateStatus,
 }: IntegrationAppViewerModalProps) {
   const [activeTab, setActiveTab] = useState<"activity" | "settings">("activity");
-  const [syncing, setSyncing] = useState(false);
+  const [syncing] = useState(false);
   const [syncSuccessMsg, setSyncSuccessMsg] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
@@ -119,7 +103,7 @@ export function IntegrationAppViewerModal({
   // Slack State
   const [slackMessages, setSlackMessages] = useState<SlackMessageItem[]>([]);
   const [newSlackPingText, setNewSlackPingText] = useState("");
-  const [sendingSlackPing, setSendingSlackPing] = useState(false);
+  const [sendingSlackPing] = useState(false);
 
   // Settings State
   const [accountEmailInput, setAccountEmailInput] = useState("");

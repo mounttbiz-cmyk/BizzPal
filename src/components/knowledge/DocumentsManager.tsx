@@ -82,7 +82,7 @@ export function DocumentsManager() {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [activeDocForPreview, setActiveDocForPreview] = useState<{ doc: DocumentItem; chunks: ChunkItem[] } | null>(null);
-  const [isLoadingChunks, setIsLoadingChunks] = useState(false);
+  const [, setIsLoadingChunks] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState("");
   const [selectedFormat, setSelectedFormat] = useState<string>("all");
@@ -259,8 +259,6 @@ export function DocumentsManager() {
   const totalDocs = documents.length;
   const totalChunks = documents.reduce((sum, d) => sum + (d.chunkCount || 0), 0);
   const totalBytes = documents.reduce((sum, d) => sum + (d.fileSize || 0), 0);
-  const indexedCount = documents.filter((d) => d.status === "indexed").length;
-  const healthPct = totalDocs > 0 ? Math.round((indexedCount / totalDocs) * 100) : 100;
 
   const filteredDocs = documents.filter((d) => {
     const matchesSearch = searchFilter

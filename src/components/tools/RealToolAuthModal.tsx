@@ -2,26 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  X,
-  Check,
-  Lock,
-  ExternalLink,
-  AlertCircle,
-  KeyRound,
-  ShieldCheck,
-  Building2,
-  Mail,
+  X, KeyRound, Mail,
   Hash,
-  Globe,
-  Radio,
-  CheckCircle2,
-  Trash2,
-  RefreshCw,
-  Share2,
-  Calendar,
-  Layers,
-  ArrowRight,
-  UserCheck
+  Globe, Trash2
 } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { ToolLogo } from "@/components/tools/ToolLogo";

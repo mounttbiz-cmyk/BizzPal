@@ -18,7 +18,7 @@ interface TaskItem {
 export function TasksPreviewWidget() {
   const { ceoName, cfoName } = useCustomAdvisors();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 

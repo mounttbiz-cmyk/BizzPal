@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { AlertTriangle, Check, Plus } from "lucide-react";
 import type { Priority } from "@/lib/onboarding/data";
 import { Callout, GhostButton, Pill, PrimaryButton, StepHeader } from "./ui";

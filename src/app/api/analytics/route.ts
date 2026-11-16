@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
 import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getActiveBusiness, db, DEFAULT_BUSINESS_ID } from "@/lib/db";
+import { db } from "@/lib/db";
 
 export async function GET(req: Request) {
   const auth = requireUser(req);

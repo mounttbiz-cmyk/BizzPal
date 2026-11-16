@@ -1,8 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId, getUserBusiness } from "@/lib/db";
+import { getUserBusinessId } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { searchCompanyKnowledge } from "@/lib/knowledge/retrieval";
-import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib/db";
 
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";

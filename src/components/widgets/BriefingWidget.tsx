@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ContainerTile } from "../ui/ContainerTile";
 import Link from "next/link";
 
@@ -18,7 +18,7 @@ export function BriefingWidget({
 }: BriefingWidgetProps) {
   const { ceoName: customCeoName } = useCustomAdvisors();
   const [companyName, setCompanyName] = useState(propCompanyName);
-  const [founderName, setFounderName] = useState("Founder");
+  const [, setFounderName] = useState("Founder");
   const [industryLabel, setIndustryLabel] = useState("Technology");
   const [monthlyRev, setMonthlyRev] = useState(0);
   const [burn, setBurn] = useState(0);

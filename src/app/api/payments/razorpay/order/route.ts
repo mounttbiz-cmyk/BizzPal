@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const userEmail = auth.email;
   try {
     const body = await req.json();
-    const { planId, planName: rawPlanName, amount: rawAmount, userName } = body;
+    const { planId, planName: rawPlanName, amount: rawAmount } = body;
     const businessId = undefined as string | undefined;
 
     if (!planId) {

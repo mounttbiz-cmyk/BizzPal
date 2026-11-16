@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId, getUserBusiness } from "@/lib/db";
+import { getUserBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { db, DEFAULT_BUSINESS_ID, getPlatformConfig, getActiveBusiness } from "@/lib/db";
+import { db } from "@/lib/db";
 
 export async function GET(req: Request) {
   const auth = requireUser(req);
@@ -9,7 +9,6 @@ export async function GET(req: Request) {
   const tenantId = getUserBusinessId(auth.email);
 
   try {
-    const { searchParams } = new URL(req.url);
     const bizId = tenantId;
 
     const tasks = db
@@ -41,7 +40,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { businessId, title, owner = "Founder", gap = "General Execution", priority = "medium", status = "todo" } = body;
+    const { title, owner = "Founder", gap = "General Execution", priority = "medium", status = "todo" } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json({ error: "Task title is required" }, { status: 400 });

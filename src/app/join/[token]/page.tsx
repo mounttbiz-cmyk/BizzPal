@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { AlertTriangle, BadgeCheck, Loader2, ShieldCheck } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";

@@ -2,25 +2,13 @@
 
 import React, { useState } from "react";
 import {
-  Globe,
-  Plus,
-  Trash2,
-  Edit2,
-  Save,
-  Compass,
-  Check,
-  X,
-  Image as ImageIcon,
+  Trash2, Save, Image as ImageIcon,
   Upload,
   RotateCcw,
   ArrowUp,
   ArrowDown,
   Eye,
-  EyeOff,
-  Sparkles,
-  Link as LinkIcon,
-  BarChart3,
-  Layers,
+  EyeOff
 } from "lucide-react";
 
 interface WebsiteCmsExtraProps {

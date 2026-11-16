@@ -1,6 +1,5 @@
-import React from "react";
 import Link from "next/link";
-import { ArrowLeft, Shield, FileText, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle2 } from "lucide-react";
 
 export const metadata = {
   title: "Terms and Conditions — BizzPal",

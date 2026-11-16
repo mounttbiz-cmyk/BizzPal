@@ -1,6 +1,5 @@
-import React from "react";
 import Link from "next/link";
-import { ArrowLeft, Shield, Lock, Eye, Database, Globe } from "lucide-react";
+import { ArrowLeft, Shield, Lock, Database } from "lucide-react";
 
 export const metadata = {
   title: "Privacy Policy — BizzPal",

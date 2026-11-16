@@ -2,7 +2,7 @@ import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
 import { checkGstin } from "@/lib/verification/gstin";
 import { lookupGstin, registryConfigured } from "@/lib/verification/registry";
-import { cleanEmail, computeLevel, rateLimited, saveVerification } from "@/lib/verification/store";
+import { computeLevel, rateLimited, saveVerification } from "@/lib/verification/store";
 
 export const dynamic = "force-dynamic";
 

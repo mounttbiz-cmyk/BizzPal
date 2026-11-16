@@ -1,4 +1,3 @@
-import React from "react";
 
 export type StatusTone = "live" | "ai" | "warning" | "critical" | "neutral";
 

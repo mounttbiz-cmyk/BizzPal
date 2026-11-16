@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { cleanEmail, computeLevel, ensureVerificationSchema, listVerifications } from "@/lib/verification/store";
+import { computeLevel, ensureVerificationSchema, listVerifications } from "@/lib/verification/store";
 import { totalRevenue } from "@/lib/payments/store";
 import { listInvites, verifiedCount } from "@/lib/team/invites";
 import { getHrisConnection } from "@/lib/team/hris";

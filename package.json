@@ -2,14 +2,16 @@
   "name": "bizzpal",
   "version": "0.1.0",
   "private": true,
+  "description": "BizzPal: an AI business operating system for founders (Next.js dashboard, admin console and APIs).",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test:security": "node tests/run.mjs",
     "backup:db": "node scripts/backup-db.mjs"
   },
   "dependencies": {
@@ -17,7 +19,6 @@
     "@react-three/postprocessing": "^2.19.1",
     "@tailwindcss/container-queries": "^0.1.1",
     "@types/pg": "^8.23.1",
-    "clsx": "^2.1.1",
     "country-flag-icons": "^1.6.20",
     "country-state-city": "^3.2.1",
     "google-auth-library": "^11.1.0",
@@ -32,7 +33,6 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "rss-parser": "^3.13.0",
-    "tailwind-merge": "^2.6.0",
     "three": "^0.170.0",
     "xlsx": "^0.18.5",
     "zod": "^3.24.2"

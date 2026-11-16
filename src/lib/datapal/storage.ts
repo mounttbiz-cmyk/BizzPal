@@ -1,4 +1,4 @@
-import { DataPalApiSettings, DataPalBusinessLead, DataPalSearchCampaign, DataPalSearchConfig } from "./types";
+import { DataPalApiSettings, DataPalBusinessLead, DataPalSearchCampaign } from "./types";
 import {
   getSeenLeadSignatures,
   makeLeadSignature,

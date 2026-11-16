@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { Check, X, Loader2 } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
@@ -34,8 +33,7 @@ interface PlanTier {
 const DEFAULT_FALLBACK_PLANS = DEFAULT_SUBSCRIPTION_PLANS as unknown as PlanTier[];
 
 export default function SubscriptionPage() {
-  const router = useRouter();
-  const { plan: currentPlan, activatePlan, hasActivated } = usePlanAccess();
+  const { plan: currentPlan, activatePlan } = usePlanAccess();
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);

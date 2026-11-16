@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, Copy, MapPin, Phone, Send } from "lucide-react";
 import { DataPalBusinessLead, DataPalSearchCampaign } from "@/lib/datapal/types";

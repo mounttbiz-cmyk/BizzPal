@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
 import { lookupIfsc, matchNames, normalizeAccount, normalizeIfsc, pennyDrop, pennyDropConfigured } from "@/lib/verification/bank";
-import { cleanEmail, computeLevel, rateLimited, saveVerification } from "@/lib/verification/store";
+import { computeLevel, rateLimited, saveVerification } from "@/lib/verification/store";
 
 export const dynamic = "force-dynamic";
 

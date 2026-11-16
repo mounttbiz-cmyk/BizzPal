@@ -1,13 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import Link from "next/link";
-import { Search, Trash2, Target, ChevronDown, ChevronUp } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import {
-  DataPalBusinessLead,
   DataPalSearchCampaign,
   DataPalSearchConfig,
-  DataPalApiSettings,
+  DataPalApiSettings
 } from "@/lib/datapal/types";
 import { BUSINESS_CATEGORIES } from "@/lib/datapal/constants";
 import {
@@ -83,7 +81,7 @@ export default function DataPalPage() {
   // Hidden component: AI Smart Matcher Drawer (when flag is ON)
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
   const [serviceDescription, setServiceDescription] = useState("");
-  const [uploadedBrochure, setUploadedBrochure] = useState<{ name: string; size: string } | null>(null);
+  const [uploadedBrochure] = useState<{ name: string; size: string } | null>(null);
 
   // Hidden component: Advanced verification rules (when flag is ON)
   const [mustHavePhone, setMustHavePhone] = useState(true);
@@ -149,12 +147,6 @@ export default function DataPalPage() {
       }
     });
   }, []);
-
-  // Category selection handler
-  const handleSelectCategories = (categories: string[]) => {
-    setStep1Error(null);
-    setSelectedCategories(categories);
-  };
 
   // Location reset
   const handleResetLocation = () => {
@@ -410,8 +402,6 @@ export default function DataPalPage() {
   };
 
   // Helpers for step status
-  const isStep1Complete = Boolean(searchQuery.trim() || selectedCategories.length > 0 || selectedCategory || selectedSubcategory);
-  const isStep2Complete = Boolean(countryCodes.length > 0 || isAllCountries);
 
   // Step 1 summary text
   const step1Summary = searchQuery.trim()

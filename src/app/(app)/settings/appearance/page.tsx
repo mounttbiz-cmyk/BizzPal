@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 
 export default function AppearancePage() {

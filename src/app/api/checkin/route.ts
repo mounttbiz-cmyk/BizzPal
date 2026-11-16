@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId, getUserBusiness } from "@/lib/db";
+import { getUserBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
+import { db } from "@/lib/db";
 import { generateDynamicCheckInQuestions } from "@/lib/checkin/generateQuestions";
 
 // Helper to get today's date in YYYY-MM-DD

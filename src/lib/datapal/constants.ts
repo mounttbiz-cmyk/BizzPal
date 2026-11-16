@@ -1,4 +1,4 @@
-import { BusinessCategory, CountryHierarchy, DataPalSearchCampaign, TargetProfilePreset } from "./types";
+import { BusinessCategory, CountryHierarchy, TargetProfilePreset } from "./types";
 
 export const TARGET_PROFILE_PRESETS: TargetProfilePreset[] = [
   {

@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
 import { getUserBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { db, DEFAULT_BUSINESS_ID, healDatabasePermissions } from "@/lib/db";
+import { db, healDatabasePermissions } from "@/lib/db";
 
 // Connection tokens and keys never go back to the browser
 function stripSecrets(cfg: any): any {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { RefreshCw, Check } from "lucide-react";
 import { useCustomAdvisors } from "@/lib/advisors";
@@ -52,7 +52,6 @@ function generateSimulation(
   const cName = profile.companyName || "Enterprise Organization";
   const fName = profile.founderName || "Founder";
   const burn = profile.burn || 0;
-  const cash = profile.cash || 0;
 
   // 1. IT Guy / IT Specialist / Sysadmin query
   if (

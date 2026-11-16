@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ContainerTile } from "../ui/ContainerTile";
 import Link from "next/link";
 import { useBusinessDataSync } from "@/lib/upload/events";
 
 export function GapsPreviewWidget() {
   const [companyName, setCompanyName] = useState("Enterprise");
-  const [founderName, setFounderName] = useState("Founder");
+  const [, setFounderName] = useState("Founder");
   const [monthlyRev, setMonthlyRev] = useState(0);
   const [monthlyBurn, setMonthlyBurn] = useState(0);
   const [cashOnHand, setCashOnHand] = useState(0);
@@ -47,7 +47,6 @@ export function GapsPreviewWidget() {
   });
 
   const runwayMo = monthlyBurn > 0 ? Number((cashOnHand / monthlyBurn).toFixed(1)) : cashOnHand > 0 ? 18 : 0;
-  const isFresh = monthlyRev === 0 && monthlyBurn === 0 && cashOnHand === 0;
 
   const topGaps: any[] = [];
 

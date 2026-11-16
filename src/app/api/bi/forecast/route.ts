@@ -1,8 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId, getUserBusiness } from "@/lib/db";
+import { getUserBusinessId } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { generateMetricForecast } from "@/lib/bi/forecaster";
-import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 

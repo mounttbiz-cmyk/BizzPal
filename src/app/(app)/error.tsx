@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
-import { AlertCircle, RefreshCw, LayoutDashboard, LogIn } from "lucide-react";
+import { AlertCircle, RefreshCw, LogIn } from "lucide-react";
 
 export default function AppGroupError({
   error,

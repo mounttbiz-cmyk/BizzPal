@@ -1,15 +1,10 @@
 import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
-import { cleanEmail, rateLimited } from "@/lib/verification/store";
+import { rateLimited } from "@/lib/verification/store";
 import { recordHrisSync, type HrisEmployeeRecord } from "@/lib/team/hris";
 import * as XLSX from "xlsx";
 
 export const dynamic = "force-dynamic";
-
-const ownerOf = (v: any) => {
-  const e = cleanEmail(typeof v === "string" ? v : "");
-  return e.includes("@") ? e : "";
-};
 
 function normalizeHeader(h: string): string {
   return String(h || "").toLowerCase().replace(/[^a-z0-9]/g, "");

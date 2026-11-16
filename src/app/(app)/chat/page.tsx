@@ -18,7 +18,6 @@ import { MobileAdvisorStrip } from "@/components/chat/MobileAdvisorStrip";
 import { ChatThread } from "@/components/chat/ChatThread";
 import { Composer } from "@/components/chat/Composer";
 import { ChatHistoryDrawer, ChatHistoryPanel } from "@/components/chat/ChatHistoryDrawer";
-import { BrainCircuit, Building2, MessageSquare } from "lucide-react";
 
 const EXECUTIVE_AGENTS: AgentMeta[] = [
   {
@@ -574,18 +573,6 @@ export default function ChatWorkspacePage() {
     }
   };
 
-  const runwayMonths =
-    companyProfile?.burn && companyProfile?.cash
-      ? (Number(companyProfile.cash) / Number(companyProfile.burn)).toFixed(1)
-      : companyProfile?.cash
-      ? "18+"
-      : "8.0";
-
-  const monthlyRevFormatted = companyProfile?.revenue
-    ? `₹${Number(companyProfile.revenue).toLocaleString("en-IN")}/mo`
-    : "₹8,50,824/mo";
-
-  const enterpriseName = companyProfile?.name || "MOUNTT GROUP";
 
   return (
     <div className="h-[calc(100dvh-5.5rem)] md:h-[calc(100vh-5.5rem)] flex flex-col space-y-3 sm:space-y-4 relative overflow-x-hidden">

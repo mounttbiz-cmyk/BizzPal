@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Globe, Loader2, Mail } from "lucide-react";
 import type { DomainState } from "./types";
 import { Callout, CopyBox, GhostButton, PrimaryButton, StepHeader } from "./ui";

@@ -18,32 +18,21 @@ import {
   Edit2,
   Trash2,
   Save,
-  RotateCcw,
-  ExternalLink,
-  Check,
-  X,
+  RotateCcw, X,
   Film,
   Type,
-  Eye,
-  EyeOff,
-  ShieldCheck,
-  MessageSquare,
-  Search,
-  DollarSign,
-  ChevronRight,
-  Menu,
+  Eye, MessageSquare, Menu,
   ArrowLeft,
   LogOut,
   Building2,
   Users,
   CreditCard,
-  Megaphone,
+  Megaphone
 } from "lucide-react";
 import { NavItem } from "@/config/schemas/nav";
 import { WidgetDef } from "@/config/schemas/widget";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
-import { StatusBadge } from "@/components/ui/Badge";
 import { DataPalFeatureFlagsSection } from "@/components/admin/DataPalFeatureFlagsSection";
 import { TenantsManager } from "./components/TenantsManager";
 import { UsersManager } from "./components/UsersManager";

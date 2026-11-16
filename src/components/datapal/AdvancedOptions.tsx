@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react";
-import { Sliders, Phone, Mail, Star, Database } from "lucide-react";
+import { Sliders, Phone, Mail, Star } from "lucide-react";
 import { DIRECTORY_SOURCES } from "@/lib/datapal/constants";
 
 interface AdvancedOptionsProps {

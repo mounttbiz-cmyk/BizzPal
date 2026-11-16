@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { message, agentId, companyProfile, agentName, agentRole, customRoleTitle, email } = await req.json();
+    const { message, agentId, companyProfile, agentName, agentRole, customRoleTitle } = await req.json();
 
     const auth = requireUser(req);
     if (auth instanceof NextResponse) return auth;

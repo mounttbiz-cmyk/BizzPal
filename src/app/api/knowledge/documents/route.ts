@@ -1,8 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId, getUserBusiness } from "@/lib/db";
+import { getUserBusinessId } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getCompanyDocuments, ingestCompanyDocument } from "@/lib/knowledge/ingest";
-import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib/db";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -13,7 +12,6 @@ export async function GET(req: NextRequest) {
   const tenantId = getUserBusinessId(auth.email);
 
   try {
-    const { searchParams } = new URL(req.url);
     const bizId =
       tenantId;
 

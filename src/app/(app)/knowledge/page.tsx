@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, Plus, ExternalLink, X, RefreshCw, Scale, Cloud } from "lucide-react";
+import { Plus, ExternalLink, X, RefreshCw, Cloud } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { DocumentsManager } from "@/components/knowledge/DocumentsManager";

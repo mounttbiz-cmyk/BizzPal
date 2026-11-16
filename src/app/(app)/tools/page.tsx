@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Target, Calculator, Bot, ArrowRight, Lock, Search, Activity, X } from "lucide-react";
+import { Bot, ArrowRight, Lock, Activity, X } from "lucide-react";
 import { Suspense } from "react";
 import { createPortal } from "react-dom";
 import { useCustomAdvisors } from "@/lib/advisors";
@@ -434,7 +434,7 @@ function ToolsContent() {
   const [marketingSpend, setMarketingSpend] = useState(200000);
   const [acquiredCustomers, setAcquiredCustomers] = useState(20);
   const [avgRevenuePerAccount, setAvgRevenuePerAccount] = useState(60000);
-  const [avgRetentionMonths, setAvgRetentionMonths] = useState(18);
+  const [avgRetentionMonths] = useState(18);
 
   // Cash Flow State
   const [cashReserve, setCashReserve] = useState(5000000);

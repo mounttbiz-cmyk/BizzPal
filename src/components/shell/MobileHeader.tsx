@@ -1,11 +1,9 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Sun, Moon, BrainCircuit, Globe, Search } from "lucide-react";
+import { Sun, Moon, BrainCircuit, Search } from "lucide-react";
 import { useTheme } from "@/lib/theme/ThemeProvider";
-import { WEBSITE_URL } from "@/config/urls";
 
 interface MobileHeaderProps {
   companyName?: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, Trash2, CheckCircle2, Filter, RefreshCw, Tag, Scale, Landmark, Building2, Zap, Target, Bookmark, X, Search } from "lucide-react";
+import { ShieldCheck, Trash2, CheckCircle2, RefreshCw, Tag, Scale, Landmark, Building2, Zap, Target, Bookmark, X, Search } from "lucide-react";
 
 interface BusinessFact {
   id: string;

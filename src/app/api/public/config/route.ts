@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import {
-  getPlatformConfig,
-  setPlatformConfig,
-  DEFAULT_WEBSITE_CONFIG,
+  getPlatformConfig, DEFAULT_WEBSITE_CONFIG,
   DEFAULT_DASHBOARD_FEATURES,
   DEFAULT_TOOLS_CATALOG,
-  DEFAULT_SUBSCRIPTION_PLANS,
+  DEFAULT_SUBSCRIPTION_PLANS
 } from "@/lib/db";
 import { defaultNavItems } from "@/config/seeds/defaultNav";
 import { defaultWidgets } from "@/config/seeds/defaultWidgets";

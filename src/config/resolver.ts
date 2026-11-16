@@ -41,7 +41,6 @@ export function resolveTenantConfig(tenant?: Partial<TenantContext>): ResolvedPl
 
   const industry = tenant?.industry || "saas";
   const model = tenant?.businessModel || "subscription";
-  const plan = tenant?.plan || "growth";
 
   // Filter and sort navigation based on enabled state
   const nav = allNav

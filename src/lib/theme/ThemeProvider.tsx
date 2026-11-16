@@ -17,7 +17,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>("light");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
-  const [mounted, setMounted] = useState(false);
+  const [, setMounted] = useState(false);
 
   // Apply resolved theme to DOM
   const applyTheme = (mode: ThemeMode) => {

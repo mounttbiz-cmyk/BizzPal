@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ToolLogo } from "@/components/tools/ToolLogo";
 import { PhoneCountryInput } from "@/components/ui/PhoneCountryInput";
 

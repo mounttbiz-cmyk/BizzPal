@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Bot, Target, X, Upload, CheckCircle2, ArrowRight } from "lucide-react";
+import { Bot, Target, X, CheckCircle2, ArrowRight } from "lucide-react";
 
 interface AiMatcherDrawerProps {
   isOpen: boolean;

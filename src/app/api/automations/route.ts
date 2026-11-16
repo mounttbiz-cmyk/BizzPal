@@ -1,12 +1,11 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId, getUserBusiness } from "@/lib/db";
+import { getUserBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
 import {
   getBusinessAutomations,
   toggleBusinessAutomation,
   createBusinessAutomation,
-  db,
-  DEFAULT_BUSINESS_ID
+  db
 } from "@/lib/db";
 
 export async function GET(req: Request) {
@@ -15,7 +14,7 @@ export async function GET(req: Request) {
   const tenantId = getUserBusinessId(auth.email);
 
   try {
-    const automations = getBusinessAutomations();
+    const automations = getBusinessAutomations(tenantId);
     const integrations = db
       .prepare("SELECT tool_key, name, status FROM integrations WHERE business_id = ?")
       .all(tenantId) as any[];
@@ -43,7 +42,8 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Automation ID is required" }, { status: 400 });
     }
 
-    toggleBusinessAutomation(id, enabled);
+    const changed = toggleBusinessAutomation(id, enabled, tenantId);
+    if (!changed) return NextResponse.json({ success: false, error: "Automation not found." }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -64,6 +64,7 @@ export async function POST(req: Request) {
     }
 
     const created = createBusinessAutomation({
+      businessId: tenantId,
       title: title.trim(),
       description: description || "Autonomous workflow",
       trigger: trigger.trim(),

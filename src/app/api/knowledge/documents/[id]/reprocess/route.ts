@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId, getUserBusiness } from "@/lib/db";
+import { getUserBusinessId } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { db, DEFAULT_BUSINESS_ID, getPlatformConfig, getActiveBusiness } from "@/lib/db";
+import { db } from "@/lib/db";
 import { ingestCompanyDocument, deleteCompanyDocument } from "@/lib/knowledge/ingest";
 
 export const maxDuration = 60;

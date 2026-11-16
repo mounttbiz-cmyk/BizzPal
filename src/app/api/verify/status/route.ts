@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
-import { cleanEmail, computeLevel, listVerifications } from "@/lib/verification/store";
+import { computeLevel, listVerifications } from "@/lib/verification/store";
 
 export const dynamic = "force-dynamic";
 

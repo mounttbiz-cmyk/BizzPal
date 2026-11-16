@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { MultiSelectCombobox } from "./MultiSelectCombobox";
 import { PostalCodeField } from "./PostalCodeField";
 import { locationService, LocationItem } from "@/lib/datapal/locationService";
@@ -47,7 +47,7 @@ export function LocationStep({
   className = "",
 }: LocationStepProps) {
   // Load countries from locationService
-  const { popular, all: allCountries } = useMemo(() => {
+  const { all: allCountries } = useMemo(() => {
     return locationService.getCountries();
   }, []);
 

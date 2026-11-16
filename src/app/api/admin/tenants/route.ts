@@ -334,7 +334,6 @@ export async function DELETE(request: Request) {
     if (userEmail) {
       const cleanEmail = userEmail.trim().toLowerCase();
       const bizId = `biz_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}`;
-      const row = db.prepare("SELECT id FROM registered_users WHERE LOWER(email) = ?").get(cleanEmail) as any;
 
       db.prepare("DELETE FROM registered_users WHERE LOWER(email) = ?").run(cleanEmail);
       // The user's enterprise and everything hanging off it

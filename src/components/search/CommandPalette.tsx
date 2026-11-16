@@ -22,12 +22,8 @@ import {
   Settings,
   Users,
   CreditCard,
-  Bot,
-  ArrowRight,
-  CornerDownLeft,
-  X,
-  Clock,
-  ChevronRight,
+  Bot, CornerDownLeft,
+  X, ChevronRight,
   Database
 } from "lucide-react";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ContainerTile } from "../ui/ContainerTile";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
 import { useBusinessDataSync } from "@/lib/upload/events";

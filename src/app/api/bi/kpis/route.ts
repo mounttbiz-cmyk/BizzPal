@@ -1,8 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId, getUserBusiness } from "@/lib/db";
+import { getUserBusinessId } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { getKpiDefinitions, upsertKpiDefinition, evaluateBusinessKpis } from "@/lib/bi/kpiMonitor";
-import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib/db";
+import { getKpiDefinitions, upsertKpiDefinition } from "@/lib/bi/kpiMonitor";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +11,6 @@ export async function GET(req: NextRequest) {
   const tenantId = getUserBusinessId(auth.email);
 
   try {
-    const { searchParams } = new URL(req.url);
     const bizId =
       tenantId;
 

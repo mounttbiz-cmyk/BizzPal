@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { getCountryPostalConfig, validatePostalCode } from "@/lib/datapal/countryConfig";
 import { locationService } from "@/lib/datapal/locationService";

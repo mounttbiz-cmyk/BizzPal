@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { PortalModal } from "@/components/ui/PortalModal";
 import {
   Search,
@@ -8,16 +8,11 @@ import {
   Folder,
   FileSpreadsheet,
   FileText,
-  FileCode,
-  File,
-  X,
+  FileCode, X,
   CheckCircle2,
-  AlertCircle,
-  ExternalLink,
-  Download,
+  AlertCircle, Download,
   ArrowRight,
-  ShieldCheck,
-  Check,
+  ShieldCheck
 } from "lucide-react";
 import { parseUploadedContent, ParsedBusinessMetrics } from "@/lib/upload/dataParser";
 import { CloudFileItem } from "@/lib/integrations/googleDrive";

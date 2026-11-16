@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
 import { getUserBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
+import { db } from "@/lib/db";
 import { parseUploadedContent, ParsedBusinessMetrics } from "@/lib/upload/dataParser";
 import * as XLSX from "xlsx";
 

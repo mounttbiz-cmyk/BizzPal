@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { CheckCircle2, Lock, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { TOOLS_OPTIONS } from "@/lib/onboarding/data";
 import { ToolLogo } from "@/components/tools/ToolLogo";

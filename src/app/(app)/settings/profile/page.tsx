@@ -10,7 +10,7 @@ import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 export default function BusinessProfileSettingsPage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
 
   // Profile fields state
   const [businessName, setBusinessName] = useState("");

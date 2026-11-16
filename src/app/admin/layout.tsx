@@ -1,11 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { ShieldAlert, ArrowLeft, LogOut } from "lucide-react";
-import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 
 export default function AdminLayout({
   children,

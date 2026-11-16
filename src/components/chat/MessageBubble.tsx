@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { ChatMessage, AgentMeta, CompanyProfile } from "./types";
 import { ChatMarkdown } from "@/components/shell/ChatMarkdown";
 import { PlaybookActions } from "./PlaybookActions";

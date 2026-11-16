@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { secretsConfigured } from "@/lib/secrets";
 import { ProviderError, syncRazorpay, syncStripe, type Provider } from "@/lib/payments/providers";
 import { deletePaymentSource, getPaymentSecret, listPaymentSources, savePaymentSource, totalRevenue, updateSnapshot } from "@/lib/payments/store";
-import { cleanEmail, rateLimited } from "@/lib/verification/store";
+import { rateLimited } from "@/lib/verification/store";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +18,6 @@ function errorResponse(e: unknown) {
   }
   return NextResponse.json({ ok: false, code: "unavailable", error: "Something went wrong. Please try again." }, { status: 500 });
 }
-
-const emailOf = (v: any) => { const e = cleanEmail(typeof v === "string" ? v : ""); return e.includes("@") ? e : ""; };
 
 /** GET ?email= : connected sources and the combined real revenue. Never returns credentials. */
 export async function GET(req: Request) {

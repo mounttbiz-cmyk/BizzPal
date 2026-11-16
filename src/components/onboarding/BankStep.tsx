@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { AlertTriangle, BadgeCheck, Banknote, Building, Info, Loader2, ShieldCheck } from "lucide-react";
 import type { BankState, IfscLookup } from "./types";
 import { Callout, Fact, GhostButton, Pill, PrimaryButton, StepHeader } from "./ui";

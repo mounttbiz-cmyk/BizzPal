@@ -1,4 +1,3 @@
-import React from "react";
 
 export function IntegrationLogo({ id, className = "w-7 h-7" }: { id: string; className?: string }) {
   switch (id) {

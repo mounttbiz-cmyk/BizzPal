@@ -3,25 +3,17 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
-  Building2,
-  Users,
-  DollarSign,
+  Building2, DollarSign,
   TrendingUp,
   Search,
   Plus,
   Edit2,
   Trash2,
-  ExternalLink,
-  CheckCircle2,
-  AlertTriangle,
-  Zap,
-  Clock,
-  ShieldCheck,
+  ExternalLink, Zap, ShieldCheck,
   X,
   Save,
-  RotateCcw,
+  RotateCcw
 } from "lucide-react";
-import { StatusBadge } from "@/components/ui/Badge";
 
 interface Tenant {
   id: string;

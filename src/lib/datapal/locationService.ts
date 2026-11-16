@@ -1,4 +1,4 @@
-import { Country, State, City, ICountry, IState, ICity } from "country-state-city";
+import { Country, State, City, ICity } from "country-state-city";
 
 export interface LocationItem {
   code: string;

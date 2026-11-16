@@ -15,15 +15,7 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
-  Star,
-  Mail,
-  ExternalLink,
-  Zap,
-  CheckCircle2,
-  RefreshCw,
-  AlertTriangle,
-  ShieldCheck,
-  ArrowUpRight,
+  Star, RefreshCw, ShieldCheck
 } from "lucide-react";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
 
@@ -540,7 +532,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
               <p className="text-xs text-text-muted leading-relaxed">
                 {gatewayStatus?.isLive
                   ? "Live Razorpay keys detected. Processing real UPI & card payments."
-                  : "Running in Sandbox Test mode. To switch to live, paste your Key & Secret in .env.local."}
+                  : "Running in Sandbox Test mode. To switch to live, paste your Key & Secret in .env."}
               </p>
             </div>
 

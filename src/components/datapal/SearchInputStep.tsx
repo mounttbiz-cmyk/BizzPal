@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, ChevronDown, ChevronUp, X, Layers, Briefcase, Store, Stethoscope, Utensils, Building2, Laptop, ShoppingBag, Dumbbell, GraduationCap, Truck, Check, ArrowRight } from "lucide-react";
 import { BUSINESS_CATEGORIES } from "@/lib/datapal/constants";
 

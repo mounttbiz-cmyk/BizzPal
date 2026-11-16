@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavItem } from "@/config/schemas/nav";
@@ -18,7 +18,7 @@ interface MobileBottomBarProps {
 export function MobileBottomBar({ navItems }: MobileBottomBarProps) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { hasPlanLevel } = usePlanAccess();
   const [lockedItem, setLockedItem] = useState<NavItem | null>(null);
 

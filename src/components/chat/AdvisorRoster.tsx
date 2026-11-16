@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { AgentMeta } from "./types";
 import { AgentAvatarIcon } from "./CustomizeAdvisorModal";
 import { Pencil, RotateCcw, PanelLeftClose, PanelLeftOpen } from "lucide-react";

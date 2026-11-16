@@ -42,7 +42,6 @@ export function generateMetricForecast(
     sum += dataPoints[i] * w;
     weights += w;
   }
-  const weightedBase = weights > 0 ? sum / weights : dataPoints[dataPoints.length - 1];
 
   // Calculate recent month-over-month trend
   const first = dataPoints[0];

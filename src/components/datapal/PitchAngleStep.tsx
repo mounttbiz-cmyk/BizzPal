@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { TARGET_PROFILE_PRESETS } from "@/lib/datapal/constants";
 import { Check, Target } from "lucide-react";
 

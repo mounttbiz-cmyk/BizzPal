@@ -39,9 +39,9 @@ export async function GET(req: NextRequest) {
 <body>
   <div class="card">
     <h2>OneDrive OAuth Credentials Setup</h2>
-    <p>To connect live Microsoft OneDrive, add your Microsoft Entra / Azure Client ID to your <code>.env.local</code> file:</p>
+    <p>To connect live Microsoft OneDrive, add your Microsoft Entra / Azure Client ID to your <code>.env</code> file:</p>
     <div class="box">
-      <strong>Add to <code>.env.local</code>:</strong><br /><br />
+      <strong>Add to <code>.env</code>:</strong><br /><br />
       <code>MICROSOFT_CLIENT_ID=your_azure_client_id</code><br />
       <code>MICROSOFT_CLIENT_SECRET=your_azure_secret</code>
     </div>

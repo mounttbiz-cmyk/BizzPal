@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Users, Search, Trash2, ShieldCheck, Mail, Key, Calendar, RotateCcw, Clock } from "lucide-react";
+import { useState } from "react";
+import { Search, Trash2, RotateCcw } from "lucide-react";
 
 interface UserItem {
   id: string;

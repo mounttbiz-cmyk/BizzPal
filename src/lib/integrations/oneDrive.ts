@@ -1,4 +1,4 @@
-import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
+import { db } from "@/lib/db";
 import { safeEncrypt, safeDecrypt } from "./crypto";
 import { CloudFileItem, categorizeFile } from "./googleDrive";
 import * as XLSX from "xlsx";

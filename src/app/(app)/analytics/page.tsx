@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Download } from "lucide-react";
 import Link from "next/link";
 import { useBusinessDataSync } from "@/lib/upload/events";

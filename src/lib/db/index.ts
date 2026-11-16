@@ -1,6 +1,11 @@
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import {
+  DEFAULT_SUBSCRIPTION_PLANS,
+  DEFAULT_DASHBOARD_FEATURES,
+  DEFAULT_TOOLS_CATALOG,
+} from "@/config/seeds/defaultCatalog";
 
 // Safe dynamic resolution of node:sqlite (supported natively in Node 22.5+)
 let DatabaseSyncClass: any = null;
@@ -1284,11 +1289,6 @@ export {
   DEFAULT_DASHBOARD_FEATURES,
   DEFAULT_TOOLS_CATALOG,
 } from "@/config/seeds/defaultCatalog";
-import {
-  DEFAULT_SUBSCRIPTION_PLANS,
-  DEFAULT_DASHBOARD_FEATURES,
-  DEFAULT_TOOLS_CATALOG,
-} from "@/config/seeds/defaultCatalog";
 
 
 export const memoryConfigCache = new Map<string, any>();
@@ -1419,30 +1419,6 @@ try {
   }
 } catch (err) {
   console.warn("[SQLite] Database seed caught error (handled safely):", err);
-}
-
-export function getActiveBusiness() {
-  try {
-    const row = db.prepare("SELECT * FROM businesses ORDER BY updated_at DESC LIMIT 1").get() as any;
-    if (row) {
-      return {
-        id: row.id,
-        name: row.name || "BizzPal Enterprise",
-        industry: (row.industry as any) || "saas",
-        industryLabel: row.industry_label || "Enterprise",
-        founderName: row.founder_name || "Founder",
-        annualRevenue: Number(row.annual_revenue || 0),
-        monthlyRevenue: Number(row.monthly_revenue || 0),
-        monthlyBurn: Number(row.monthly_burn || 0),
-        cashOnHand: Number(row.cash_on_hand || 0),
-        teamSize: Number(row.team_size || 5),
-        website: row.website || "",
-      };
-    }
-  } catch (e) {
-    console.error("Error fetching active business:", e);
-  }
-  return null;
 }
 
 export function getTeamMembers(businessId = DEFAULT_BUSINESS_ID) {
@@ -1580,13 +1556,13 @@ export function getBusinessAutomations(businessId = DEFAULT_BUSINESS_ID) {
   }
 }
 
-export function toggleBusinessAutomation(id: string, enabled?: boolean) {
-  if (enabled !== undefined) {
-    db.prepare("UPDATE business_automations SET enabled = ? WHERE id = ?").run(enabled ? 1 : 0, id);
-  } else {
-    db.prepare("UPDATE business_automations SET enabled = CASE WHEN enabled = 1 THEN 0 ELSE 1 END WHERE id = ?").run(id);
-  }
-  return true;
+export function toggleBusinessAutomation(id: string, enabled: boolean | undefined, businessId: string) {
+  // Only the owning business can change its own automation
+  const res: any =
+    enabled !== undefined
+      ? db.prepare("UPDATE business_automations SET enabled = ? WHERE id = ? AND business_id = ?").run(enabled ? 1 : 0, id, businessId)
+      : db.prepare("UPDATE business_automations SET enabled = CASE WHEN enabled = 1 THEN 0 ELSE 1 END WHERE id = ? AND business_id = ?").run(id, businessId);
+  return Boolean(res?.changes);
 }
 
 export function createBusinessAutomation(data: {
@@ -1604,25 +1580,6 @@ export function createBusinessAutomation(data: {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 'Ready', ?)
   `).run(id, data.businessId || DEFAULT_BUSINESS_ID, data.title, data.description, data.trigger, data.action, data.toolKey, data.category, new Date().toISOString());
   return { id, ...data, enabled: true, executions: 0, lastRun: "Ready" };
-}
-
-export function getLiveBusinessContext(businessId = DEFAULT_BUSINESS_ID) {
-  const biz = getActiveBusiness();
-  const tasks = db.prepare("SELECT * FROM tasks WHERE business_id = ?").all(businessId) as any[];
-  const tools = db.prepare("SELECT * FROM integrations WHERE business_id = ?").all(businessId) as any[];
-  const uploads = db.prepare("SELECT * FROM business_data_uploads WHERE business_id = ? AND active = 1").all(businessId) as any[];
-
-  return {
-    business: biz,
-    taskStats: {
-      total: tasks.length,
-      todo: tasks.filter(t => t.status === "todo").length,
-      inProgress: tasks.filter(t => t.status === "in_progress").length,
-      done: tasks.filter(t => t.status === "done").length,
-    },
-    integrations: tools.map(t => ({ toolKey: t.tool_key, name: t.name, status: t.status })),
-    uploads: uploads.map(u => ({ id: u.id, fileName: u.file_name, metricsSummary: u.metrics_summary }))
-  };
 }
 
 export function createPaymentOrderRecord(data: {

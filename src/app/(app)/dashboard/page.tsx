@@ -39,7 +39,7 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const planName = usePlanName();
   const [selectedIndustry, setSelectedIndustry] = useState<TenantContext["industry"]>("saas");
-  const [selectedModel, setSelectedModel] = useState<TenantContext["businessModel"]>("subscription");
+  const [selectedModel] = useState<TenantContext["businessModel"]>("subscription");
   const [companyName, setCompanyName] = useState<string>(() => {
     if (typeof window !== "undefined") {
       try {
@@ -257,7 +257,6 @@ function DashboardContent() {
     const cash = Number(saved.cash || saved.cashOnHand || 0);
     const burn = Number(saved.burn || saved.monthlyBurn || saved.monthlyNetBurn || 0);
     const rev = Number(saved.revenue || saved.monthlyRevenue || 0);
-    const hasData = cash > 0 || burn > 0 || rev > 0;
 
     let rMonths = 0;
     let rMoStr = "0.0";

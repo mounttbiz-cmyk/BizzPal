@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/requireUser";
 import { createInvite, getInviteByToken, inviterBusinessName, listInvites, revokeInvite, ROLES, type Role } from "@/lib/team/invites";
 import { maskEmail } from "@/lib/team/decide";
-import { cleanEmail, rateLimited } from "@/lib/verification/store";
+import { rateLimited } from "@/lib/verification/store";
 
 export const dynamic = "force-dynamic";
-
-const ownerOf = (v: any) => { const e = cleanEmail(typeof v === "string" ? v : ""); return e.includes("@") ? e : ""; };
 
 /**
  * GET ?email=<owner>  : the owner's invites with live status

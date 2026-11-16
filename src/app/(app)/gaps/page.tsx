@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { defaultGapRules } from "@/config/seeds/defaultRules";
 import { Check, ChevronDown, RefreshCw } from "lucide-react";
 import Link from "next/link";
@@ -219,7 +219,6 @@ export default function GapsPage() {
 
   const open = gaps.filter(g => g.status !== "resolved").length;
   const critical = gaps.filter(g => g.severity === "critical" && g.status !== "resolved").length;
-  const inProgress = gaps.filter(g => g.status === "in_progress").length;
   const resolved = gaps.filter(g => g.status === "resolved").length;
 
   const severityTone = (s: ExtendedGapItem["severity"]) =>

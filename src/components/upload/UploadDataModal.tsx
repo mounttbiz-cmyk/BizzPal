@@ -9,18 +9,10 @@ import {
   AlertCircle,
   Download,
   RotateCcw,
-  Sliders,
-  DollarSign,
-  Users,
-  Building2,
-  TrendingUp,
-  Percent,
-  X,
+  Sliders, X,
   Save,
   Table as TableIcon,
-  ShieldCheck,
-  RefreshCw,
-  Cloud,
+  ShieldCheck
 } from "lucide-react";
 import {
   parseUploadedContent,
@@ -77,7 +69,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
   // Active / History State
   const [activeDataInfo, setActiveDataInfo] = useState<any>(null);
   const [historyList, setHistoryList] = useState<any[]>([]);
-  const [isLoadingActive, setIsLoadingActive] = useState(false);
+  const [, setIsLoadingActive] = useState(false);
 
   // Load current values on open
   useEffect(() => {

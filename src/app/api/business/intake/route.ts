@@ -83,7 +83,6 @@ export async function POST(req: Request) {
       whatsappNumber = "",
       logoUrl,
       dynamicAnswers = {},
-      rawText,
       structured,
     } = body;
 

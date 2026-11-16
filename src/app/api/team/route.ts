@@ -6,8 +6,7 @@ import {
   addTeamMember,
   updateTeamMember,
   deleteTeamMember,
-  getTeamAuditLogs,
-  getActiveBusiness
+  getTeamAuditLogs
 } from "@/lib/db";
 
 export async function GET(req: Request) {

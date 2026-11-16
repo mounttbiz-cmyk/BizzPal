@@ -9,10 +9,10 @@ import { defaultScenarioTemplates } from "./seeds/defaultScenarios";
 import { ThemeTokens, ThemeTokensSchema } from "./schemas/theme";
 import { NavItem, NavItemSchema } from "./schemas/nav";
 import { WidgetDef, WidgetDefSchema } from "./schemas/widget";
-import { MetricDef, MetricDefSchema } from "./schemas/metric";
-import { AgentDef, AgentDefSchema } from "./schemas/agent";
-import { GapRule, GapRuleSchema } from "./schemas/rule";
-import { ScenarioTemplate, ScenarioTemplateSchema } from "./schemas/simulator";
+import { MetricDef } from "./schemas/metric";
+import { AgentDef } from "./schemas/agent";
+import { GapRule } from "./schemas/rule";
+import { ScenarioTemplate } from "./schemas/simulator";
 
 export interface AuditLogEntry {
   id: string;

@@ -23,7 +23,6 @@ export async function extractRealBusinessLeads(
     COUNTRY_HIERARCHIES[0];
 
   const countryName = matchedCountry.name;
-  const phonePrefix = matchedCountry.phonePrefix || "+91";
 
   // Build target search terms
   const targetCategory =

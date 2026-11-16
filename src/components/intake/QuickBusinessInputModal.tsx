@@ -8,22 +8,12 @@ import {
   Mic,
   MicOff,
   Send,
-  CheckCircle2,
-  AlertCircle,
-  X,
+  CheckCircle2, X,
   FileText,
-  Activity,
-  Layers,
-  ArrowRight,
-  TrendingUp,
-  CreditCard,
+  Activity, CreditCard,
   ShoppingBag,
   Zap,
-  RefreshCw,
-  Clock,
-  Check,
-  Users,
-  DollarSign
+  RefreshCw, Check
 } from "lucide-react";
 import { parseNaturalBusinessInput, ExtractedBusinessRecord } from "@/lib/intake/nlpParser";
 import { emitBusinessDataUpdated } from "@/lib/upload/events";

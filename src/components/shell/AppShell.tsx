@@ -14,7 +14,6 @@ import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { defaultNavItems } from "@/config/seeds/defaultNav";
 
 interface AppShellProps {
   children: React.ReactNode;

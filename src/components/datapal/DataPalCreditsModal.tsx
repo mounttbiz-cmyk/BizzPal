@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { DataPalCreditStatus, getAccountKey } from "@/lib/datapal/credits";
 import { DATAPAL_PACKS, CUSTOM_PACK_MIN, CUSTOM_PACK_MAX, customPackPrice } from "@/lib/datapal/plans";

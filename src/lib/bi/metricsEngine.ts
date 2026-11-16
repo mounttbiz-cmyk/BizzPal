@@ -1,4 +1,4 @@
-import { db, DEFAULT_BUSINESS_ID, getActiveBusiness } from "@/lib/db";
+import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
 
 export interface BusinessMetricSnapshot {
   monthlyRevenue: number;
@@ -31,7 +31,7 @@ export interface BusinessMetricSnapshot {
  * Calculate reproducible, SQL-aggregated metrics for a business
  */
 export function calculateBusinessMetrics(businessId = DEFAULT_BUSINESS_ID): BusinessMetricSnapshot {
-  const biz = getActiveBusiness() || (db.prepare("SELECT * FROM businesses WHERE id = ?").get(businessId) as any);
+  const biz = db.prepare("SELECT * FROM businesses WHERE id = ?").get(businessId) as any;
 
   // Retrieve latest active uploaded business data
   const uploads = db

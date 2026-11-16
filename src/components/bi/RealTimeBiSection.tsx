@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { RefreshCw, Check } from "lucide-react";
 
 interface KpiItem {
@@ -88,8 +88,8 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
   const [forecast, setForecast] = useState<ForecastReport | null>(null);
   const [forecastMetric, setForecastMetric] = useState<"revenue" | "burn">("revenue");
 
-  const [isLoadingKpis, setIsLoadingKpis] = useState(false);
-  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+  const [, setIsLoadingKpis] = useState(false);
+  const [, setIsLoadingInsights] = useState(false);
   const [isLoadingForecast, setIsLoadingForecast] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evalResultBanner, setEvalResultBanner] = useState<string | null>(null);

@@ -4,12 +4,8 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-  ShieldCheck,
-  ArrowRight,
-  Lock,
-  KeyRound,
-  Building2,
-  ExternalLink,
+  ShieldCheck, Lock,
+  KeyRound, ExternalLink,
   Check,
   Copy,
   AlertTriangle,
@@ -19,9 +15,7 @@ import {
   Zap,
   TrendingUp,
   Cpu,
-  RefreshCw,
-  HelpCircle,
-  Upload,
+  RefreshCw
 } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { useAuth } from "@/lib/auth/authContext";
@@ -46,11 +40,10 @@ export default function LoginPage() {
   // Close modals on Escape
   useEscapeKey(() => setShowRedirectGuide(false), showRedirectGuide);
 
-  const [copiedEnv, setCopiedEnv] = useState(false);
   const [copiedUri, setCopiedUri] = useState(false);
   const [fullName, setFullName] = useState("");
-  const [businessName, setBusinessName] = useState("");
-  const [businessLogo, setBusinessLogo] = useState<string | null>(null);
+  const [businessName] = useState("");
+  const [businessLogo] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [adminPasscode, setAdminPasscode] = useState("");
@@ -349,7 +342,6 @@ export default function LoginPage() {
 
         // Email & Password flow
         const cleanEmail = (email || "").trim().toLowerCase();
-        const cleanPass = (password || "").trim();
 
         // Work email validation (reject fake, disposable, or malformed email)
         const emailValidation = validateWorkEmail(cleanEmail);

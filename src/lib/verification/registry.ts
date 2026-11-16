@@ -4,7 +4,7 @@ import { checkGstin } from "./gstin";
  * GST registry lookup.
  *
  * The GST registry is only reachable through a licensed data provider (the government has no
- * open public API). Configure one in .env.local:
+ * open public API). Configure one in .env:
  *
  *   GST_API_KEY=<bearer token from your provider>
  *   GST_API_PROVIDER=surepass            (default)

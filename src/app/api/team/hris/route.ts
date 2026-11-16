@@ -1,21 +1,15 @@
 import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
-import { cleanEmail, rateLimited } from "@/lib/verification/store";
+import { rateLimited } from "@/lib/verification/store";
 import {
   getHrisConnection,
   recordHrisSync,
   disconnectHris,
   HRIS_CATALOG,
-  type HrisProvider,
-  type HrisEmployeeRecord,
+  type HrisProvider
 } from "@/lib/team/hris";
 
 export const dynamic = "force-dynamic";
-
-const ownerOf = (v: any) => {
-  const e = cleanEmail(typeof v === "string" ? v : "");
-  return e.includes("@") ? e : "";
-};
 
 /**
  * GET: returns the current HRIS connection, employee roster, headcount metrics, and available providers catalog
@@ -24,7 +18,6 @@ export async function GET(req: Request) {
   const auth = requireUser(req);
   if (auth instanceof NextResponse) return auth;
 
-  const u = new URL(req.url);
   const owner = auth.email;
   if (!owner) {
     return NextResponse.json({ error: "Please sign in again." }, { status: 401 });

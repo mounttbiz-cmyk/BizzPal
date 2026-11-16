@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Send, BrainCircuit, Tag, ChevronDown, CheckCircle2, ArrowRight, Maximize2, Minimize2, MessageSquare } from "lucide-react";
+import { X, Send, BrainCircuit, Tag, CheckCircle2, Maximize2, Minimize2, MessageSquare } from "lucide-react";
 import { AgentAvatarIcon } from "@/components/chat/CustomizeAdvisorModal";
 
 export interface ContextChip {

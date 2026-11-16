@@ -9,12 +9,7 @@ import {
   Copy,
   Database,
   FileSpreadsheet,
-  Info,
-  Key,
-  Layers,
-  Loader2,
-  Mail,
-  MessageCircle,
+  Info, Loader2, MessageCircle,
   Plus,
   RefreshCw,
   Search,
@@ -24,7 +19,7 @@ import {
   Upload,
   UploadCloud,
   Users,
-  X,
+  X
 } from "lucide-react";
 import type { HrisSyncData, InviteRow } from "./types";
 import { Callout, GhostButton, Pill, PrimaryButton, StepHeader } from "./ui";
@@ -58,7 +53,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
   // HRIS State
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [activeSync, setActiveSync] = useState<HrisSyncData | null>(null);
-  const [loadingHris, setLoadingHris] = useState(true);
+  const [, setLoadingHris] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState<CatalogItem | null>(null);
   const [formInputs, setFormInputs] = useState<Record<string, string>>({});
   const [connecting, setConnecting] = useState(false);

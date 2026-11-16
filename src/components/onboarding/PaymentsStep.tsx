@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { AlertTriangle, BadgeCheck, CreditCard, Eye, EyeOff, Info, Loader2, Lock, RefreshCw, ShieldCheck, Unplug } from "lucide-react";
 import { inr, type PaySource, type PayTotal } from "./types";
 import { Callout, GhostButton, Pill, PrimaryButton, StepHeader } from "./ui";

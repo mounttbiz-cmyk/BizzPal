@@ -6,9 +6,8 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { NavItem } from "@/config/schemas/nav";
 import { DynamicIcon } from "./DynamicIcon";
-import { Sun, Moon, Globe, Search, Lock } from "lucide-react";
+import { Sun, Moon, Search, Lock } from "lucide-react";
 import { useTheme } from "@/lib/theme/ThemeProvider";
-import { WEBSITE_URL } from "@/config/urls";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 import { UpgradeModal } from "./UpgradeModal";
 

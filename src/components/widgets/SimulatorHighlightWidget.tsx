@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { ContainerTile } from "../ui/ContainerTile";
 import Link from "next/link";
 
