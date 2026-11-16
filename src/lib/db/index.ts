@@ -764,13 +764,41 @@ export function saveUserBusinessProfile(email: string, profile: any): boolean {
 /**
  * Delete a registered user from SQLite
  */
+// Kept after an account is deleted because tax and accounting law requires payment records.
+const KEPT_AFTER_DELETE = new Set(["payment_transactions", "subscriptions", "datapal_usage_log"]);
+// Tables keyed by the person's email instead of by business: [table, column]
+const EMAIL_KEYED: Array<[string, string]> = [
+  ["password_resets", "email"],
+  ["payment_sources", "email"],
+  ["business_verifications", "email"],
+  ["team_invites", "owner_email"],
+  ["team_invites", "invite_email"],
+];
+
+/** Deletes the account and everything stored for its business (tasks, documents, connections, team, settings). */
 export function deleteRegisteredUser(email: string): boolean {
   if (!email) return false;
   try {
     const cleanEmail = email.trim().toLowerCase();
+    const bizId = businessIdFor(cleanEmail);
     const result = db.prepare("DELETE FROM registered_users WHERE LOWER(email) = ?").run(cleanEmail);
-    const bizId = `biz_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    db.prepare("DELETE FROM businesses WHERE id = ?").run(bizId);
+
+    // Everything saved for the business
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as any[];
+    for (const { name } of tables) {
+      if (KEPT_AFTER_DELETE.has(name)) continue;
+      try {
+        const cols = (db.prepare(`PRAGMA table_info("${name}")`).all() as any[]).map(c => c.name);
+        if (cols.includes("business_id")) db.prepare(`DELETE FROM "${name}" WHERE business_id = ?`).run(bizId);
+      } catch {}
+    }
+    try { db.prepare("DELETE FROM businesses WHERE id = ?").run(bizId); } catch {}
+    // Settings stored per business (permissions, daily briefing)
+    try { db.prepare("DELETE FROM platform_config WHERE config_key LIKE ?").run(`%:${bizId}`); } catch {}
+    // Records keyed by the person's email
+    for (const [table, col] of EMAIL_KEYED) {
+      try { db.prepare(`DELETE FROM "${table}" WHERE LOWER(${col}) = ?`).run(cleanEmail); } catch {}
+    }
     return result.changes > 0;
   } catch (err) {
     console.warn("deleteRegisteredUser error:", err);
