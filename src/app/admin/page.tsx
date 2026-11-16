@@ -2459,8 +2459,8 @@ export default function AdminPage() {
               },
               {
                 key: "enableWhatsApp",
-                title: "WhatsApp Executive Assistant",
-                desc: "Direct integration sending morning check-in links and telemetry prompts via WhatsApp API.",
+                title: "Daily email briefing",
+                desc: "Lets customers turn on a short daily email with their numbers and open tasks.",
               },
               {
                 key: "enableToolsCatalog",

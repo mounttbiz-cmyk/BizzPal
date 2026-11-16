@@ -14,6 +14,8 @@ interface Props {
   onUpdate: (sources: PaySource[], total: PayTotal | null) => void;
   onBack: () => void;
   onNext: () => void;
+  /** Shown on the Integrations page: no step label, and one Done button instead of Back / Continue */
+  standalone?: boolean;
 }
 
 const META: Record<Provider, { name: string; tag: string; help: string }> = {
@@ -29,7 +31,7 @@ const ago = (iso: string | null) => {
   return `${Math.floor(s / 3600)} h ago`;
 };
 
-export function PaymentsStep({ email, sources, total, onUpdate, onBack, onNext }: Props) {
+export function PaymentsStep({ email, sources, total, onUpdate, onBack, onNext, standalone = false }: Props) {
   const [open, setOpen] = useState<Provider | null>(null);
   const [keyId, setKeyId] = useState("");
   const [secret, setSecret] = useState("");
@@ -80,7 +82,7 @@ export function PaymentsStep({ email, sources, total, onUpdate, onBack, onNext }
 
   return (
     <div className="space-y-6">
-      <StepHeader eyebrow="Step 4 · Payments" title="Connect your payment provider">
+      <StepHeader eyebrow={standalone ? "Payments" : "Step 4 · Payments"} title="Connect your payment provider">
         We read your real payments straight from Razorpay or Stripe, so your revenue is never typed in by anyone. We only ever read; we can&apos;t move money.
       </StepHeader>
 
@@ -192,8 +194,8 @@ export function PaymentsStep({ email, sources, total, onUpdate, onBack, onNext }
       </Callout>
 
       <div className="pt-4 border-t border-line flex flex-wrap items-center justify-between gap-3">
-        <GhostButton onClick={onBack}>Back</GhostButton>
-        <PrimaryButton id="btn-payments-next" onClick={onNext}>{live.length ? "Continue" : "I'll connect later"}</PrimaryButton>
+        {standalone ? <span /> : <GhostButton onClick={onBack}>Back</GhostButton>}
+        <PrimaryButton id="btn-payments-next" onClick={onNext}>{standalone ? "Done" : live.length ? "Continue" : "I'll connect later"}</PrimaryButton>
       </div>
     </div>
   );

@@ -28,6 +28,7 @@ function cleanup() {
   del("DELETE FROM registered_users WHERE email IN (?, ?)", email, teammate);
   del("DELETE FROM password_resets WHERE email IN (?, ?)", email, teammate);
   del("DELETE FROM team_invites WHERE owner_email = ?", email);
+  del("DELETE FROM platform_config WHERE config_key = ?", `daily_briefing:${businessIdOf(email)}`);
 }
 cleanup();
 
@@ -70,7 +71,28 @@ try {
   t.check("invite created and emailed", inv.status === 200 && inv.json?.emailed === true, JSON.stringify(inv.json?.emailed));
   await wait(800);
   const mail2 = sink();
-  t.check("invite email went to the teammate with a join link", mail2.includes(teammate) && /\/join\/[A-Za-z0-9_-]{20,}/.test(mail2.replace(/=\r?\n/g, "")));
+  t.check("invite email went to the teammate with a join link", mail2.includes(teammate) && /\/join\/[A-Za-z0-9_-]{20,}/.test(mail2));
+
+  // daily briefing by email
+  const before = sink().length;
+  const sendNow = await call("/api/briefing", { method: "POST", cookie });
+  t.check("briefing: 'send me one now' succeeds", sendNow.status === 200 && sendNow.json?.success === true);
+  await wait(800);
+  const added = sink().slice(before);
+  t.check("briefing: the email reached the owner with the right subject", added.includes(email) && added.includes("Your BizzPal briefing"));
+  t.check("briefing can be turned on", (await call("/api/briefing", { method: "PUT", cookie, body: { enabled: true } })).json?.enabled === true);
+
+  // the scheduled job
+  const cronToken = process.env.CRON_TOKEN;
+  if (cronToken) {
+    const bad = await fetch(BASE + "/api/cron/daily-briefing", { method: "POST", headers: { Authorization: "Bearer wrong-token-wrong-token" } });
+    t.check("scheduled job refuses a wrong secret", bad.status === 401);
+    const good = await fetch(BASE + "/api/cron/daily-briefing", { method: "POST", headers: { Authorization: `Bearer ${cronToken}` } });
+    const gj = await good.json().catch(() => ({}));
+    t.check("scheduled job sends the briefings", good.status === 200 && gj.sent >= 1, JSON.stringify(gj));
+  } else {
+    console.log("SKIP scheduled-job checks (set CRON_TOKEN for the app and the test)");
+  }
 } finally {
   cleanup();
 }

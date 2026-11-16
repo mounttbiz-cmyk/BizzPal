@@ -11,6 +11,7 @@ BizzPal runs on one Compute Engine VM with PM2. The database is a single SQLite 
    - `APP_URL` and `NEXT_PUBLIC_APP_URL`
    - `BIZZPAL_DATA_DIR=/home/it/bizzpal-data`
    - the Google sign-in settings, and the Razorpay keys for real payments
+   - the email settings (`SMTP_*`, `MAIL_FROM`) and `CRON_TOKEN`
    - **not** `ALLOW_SIMULATED_PAYMENTS`
 4. Start the app under PM2 the first time, then make it start on reboot:
 
@@ -26,6 +27,14 @@ BizzPal runs on one Compute Engine VM with PM2. The database is a single SQLite 
    ```bash
    (crontab -l 2>/dev/null; echo "0 2 * * * cd /home/it/bizzpal && BIZZPAL_DATA_DIR=/home/it/bizzpal-data node scripts/backup-db.mjs >> /home/it/backup.log 2>&1") | crontab -
    ```
+
+6. Add the daily briefing job (7:30 every morning, India time). Use the same value as `CRON_TOKEN` in `.env`:
+
+   ```bash
+   (crontab -l 2>/dev/null; echo '30 7 * * * curl -s -X POST -H "Authorization: Bearer YOUR_CRON_TOKEN" http://localhost:3000/api/cron/daily-briefing >> /home/it/briefing.log 2>&1') | crontab -
+   ```
+
+   The VM's clock may be UTC. For 7:30 India time use `0 2 * * *`.
 
 ## Every deploy
 
@@ -61,5 +70,6 @@ Keep the previous `bizzpal_update.tar.gz` and repeat the deploy steps with it. T
 
 - Customers have to sign in again after a deploy that changes how sign-in works.
 - Plan and credit purchases need real Razorpay keys on the live server.
+- Email needs an SMTP account. Gmail works with an app password; Resend and Zoho Mail are good for a company address.
 - Google Drive needs `GOOGLE_PICKER_API_KEY` and `GOOGLE_PROJECT_NUMBER`; OneDrive needs the Microsoft settings.
 - Back up `.env` somewhere safe. It is not in git and not in the deploy archive.

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { ToolLogo } from "@/components/tools/ToolLogo";
-import { PhoneCountryInput } from "@/components/ui/PhoneCountryInput";
 
 const TOOLS_OPTIONS = [
   {
@@ -58,8 +57,11 @@ const TOOLS_OPTIONS = [
 export default function SettingsToolsPage() {
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [noIntegrations, setNoIntegrations] = useState<boolean>(false);
-  const [whatsappOptIn, setWhatsappOptIn] = useState<boolean>(false);
-  const [whatsappNumber, setWhatsappNumber] = useState<string>("");
+  const [briefingOn, setBriefingOn] = useState<boolean>(false);
+  const [briefingEmail, setBriefingEmail] = useState<string>("");
+  const [mailReady, setMailReady] = useState<boolean>(true);
+  const [briefingMsg, setBriefingMsg] = useState<string>("");
+  const [briefingBusy, setBriefingBusy] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
@@ -73,8 +75,6 @@ export default function SettingsToolsPage() {
         if (data.business) {
           setSelectedTools(data.business.connectedTools || []);
           setNoIntegrations(Boolean(data.business.noIntegrations));
-          setWhatsappOptIn(Boolean(data.business.whatsappOptIn));
-          setWhatsappNumber(data.business.whatsappNumber || "");
         }
       } catch (err) {
         console.error("Failed to load business intake settings", err);
@@ -83,7 +83,46 @@ export default function SettingsToolsPage() {
       }
     }
     loadSettings();
+    fetch("/api/briefing", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => {
+        if (d?.success) {
+          setBriefingOn(Boolean(d.enabled));
+          setBriefingEmail(d.email || "");
+          setMailReady(Boolean(d.emailConfigured));
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const toggleBriefing = async () => {
+    setBriefingBusy(true);
+    setBriefingMsg("");
+    try {
+      const res = await fetch("/api/briefing", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled: !briefingOn }) });
+      const d = await res.json();
+      if (res.ok && d.success) setBriefingOn(Boolean(d.enabled));
+      else setBriefingMsg(d.error || "Could not change this. Please try again.");
+    } catch {
+      setBriefingMsg("Could not reach the server. Please try again.");
+    } finally {
+      setBriefingBusy(false);
+    }
+  };
+
+  const sendBriefingNow = async () => {
+    setBriefingBusy(true);
+    setBriefingMsg("");
+    try {
+      const res = await fetch("/api/briefing", { method: "POST" });
+      const d = await res.json();
+      setBriefingMsg(res.ok && d.success ? `Sent to ${d.sentTo}. Check your inbox.` : d.error || "Could not send. Please try again.");
+    } catch {
+      setBriefingMsg("Could not reach the server. Please try again.");
+    } finally {
+      setBriefingBusy(false);
+    }
+  };
 
   const toggleTool = (toolId: string) => {
     if (toolId === "none") {
@@ -109,8 +148,6 @@ export default function SettingsToolsPage() {
         body: JSON.stringify({
           connectedTools: noIntegrations ? [] : selectedTools,
           noIntegrations,
-          whatsappOptIn,
-          whatsappNumber: whatsappNumber.trim(),
         }),
       });
 
@@ -123,8 +160,6 @@ export default function SettingsToolsPage() {
             const parsed = JSON.parse(raw);
             parsed.connectedTools = noIntegrations ? [] : selectedTools;
             parsed.noIntegrations = noIntegrations;
-            parsed.whatsappOptIn = whatsappOptIn;
-            parsed.whatsappNumber = whatsappNumber.trim();
             localStorage.setItem("bizzpal_business_profile", JSON.stringify(parsed));
           }
         } catch {}
@@ -183,35 +218,41 @@ export default function SettingsToolsPage() {
           <section className="rounded-2xl border border-line bg-surface shadow-sm">
             <div className="p-6 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-base font-semibold text-text">WhatsApp daily check-in <span className="ml-2 text-xs font-normal text-text-muted">Coming soon</span></h2>
+                <h2 className="text-base font-semibold text-text">Daily briefing by email</h2>
                 <p className="text-sm text-text-muted mt-0.5 leading-relaxed">
-                  Messages are not being sent yet. You can save your number now and we will start when this goes live.
+                  A short email each morning with your numbers and open tasks{briefingEmail ? `, sent to ${briefingEmail}` : ""}.
                 </p>
               </div>
               <button
                 type="button"
                 role="switch"
-                aria-checked={whatsappOptIn}
-                aria-label="WhatsApp daily check-in"
-                onClick={() => setWhatsappOptIn(v => !v)}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-1 ${
-                  whatsappOptIn ? "bg-brass" : "bg-line-strong"
+                aria-checked={briefingOn}
+                aria-label="Daily briefing by email"
+                disabled={briefingBusy || (!mailReady && !briefingOn)}
+                onClick={toggleBriefing}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-1 disabled:opacity-50 ${
+                  briefingOn ? "bg-brass" : "bg-line-strong"
                 }`}
               >
                 <span
                   className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition ${
-                    whatsappOptIn ? "translate-x-4" : "translate-x-0"
+                    briefingOn ? "translate-x-4" : "translate-x-0"
                   }`}
                 />
               </button>
             </div>
-
-            {whatsappOptIn && (
-              <div className="px-6 pb-6 space-y-1.5">
-                <label className="text-sm font-medium text-text block">WhatsApp number</label>
-                <PhoneCountryInput value={whatsappNumber} onChange={setWhatsappNumber} />
-              </div>
-            )}
+            <div className="px-6 pb-6 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={sendBriefingNow}
+                disabled={briefingBusy || !mailReady}
+                className="px-3.5 py-2 rounded-xl border border-line bg-surface text-sm text-text hover:bg-surface-2 cursor-pointer disabled:opacity-50"
+              >
+                Send me one now
+              </button>
+              {!mailReady && <p className="text-sm text-text-muted">Email isn&apos;t set up on this server yet.</p>}
+              {briefingMsg && <p className="text-sm text-text-muted">{briefingMsg}</p>}
+            </div>
           </section>
 
           <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 p-4 rounded-2xl border border-line bg-surface shadow-lg">

@@ -250,7 +250,7 @@ const STATIC_SEARCH_ITEMS: SearchItem[] = [
     id: "nav_settings_tools",
     title: "Settings: Connected Tools & Daily Intake",
     category: "Pages & Navigation",
-    description: "Modify connected business tools, manual data preferences, and WhatsApp daily check-in bot.",
+    description: "Modify connected business tools, manual data preferences, and your daily email briefing.",
     badge: "Settings",
     href: "/settings/tools",
     icon: <Settings className="w-4 h-4 text-text-muted" />,

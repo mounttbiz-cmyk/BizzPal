@@ -84,6 +84,10 @@ export async function POST(req: Request) {
     if (!toolKey) {
       return NextResponse.json({ error: "toolKey is required" }, { status: 400 });
     }
+    // These two are only "connected" after the connection has really been tested, through their own routes.
+    if (toolKey === "slack" || toolKey === "stripe") {
+      return NextResponse.json({ error: "Connect this tool from the Integrations page." }, { status: 400 });
+    }
 
     const now = new Date().toISOString();
 

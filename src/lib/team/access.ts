@@ -22,7 +22,7 @@ const AREA_BY_PREFIX: Array<[string, string]> = [
 // Only the owner may use these at all.
 const OWNER_ONLY_PREFIXES = ["/api/team/invites", "/api/team/hris", "/api/payments", "/api/verify", "/api/business/register"];
 // Owner-only when changing something; teammates may read.
-const OWNER_ONLY_WRITES = ["/api/team", "/api/business"];
+const OWNER_ONLY_WRITES = ["/api/team", "/api/business", "/api/briefing"];
 
 // These use POST only to carry a question; they do not change data, so "Read only" still allows them.
 const READ_ONLY_POSTS = ["/api/ai/chat", "/api/knowledge/query", "/api/knowledge/search", "/api/bi/evaluate", "/api/bi/forecast"];

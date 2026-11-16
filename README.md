@@ -47,6 +47,16 @@ All settings live in a private `.env` file next to `package.json`. It is never c
 | `APP_URL`, `NEXT_PUBLIC_APP_URL` | The public address of the site, for example `https://app.example.com` |
 | `GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google sign-in and Google Drive connection |
 
+**Email (needed for invites, password reset and the daily briefing)**
+
+| Setting | Purpose |
+| --- | --- |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Any SMTP service: Gmail (`smtp.gmail.com`, port 587, an app password), Resend, SendGrid, Zoho Mail, Amazon SES |
+| `MAIL_FROM` | The sender, for example `BizzPal <hello@bizzpal.ai>` |
+| `CRON_TOKEN` | A secret of 16+ characters that lets the server's scheduler send the daily briefings |
+
+Without these, the app still works. Password reset by email, invite emails and the briefing then say plainly that email isn't set up.
+
 **Strongly recommended on the live server**
 
 | Setting | Purpose |
@@ -67,7 +77,6 @@ All settings live in a private `.env` file next to `package.json`. It is never c
 | `RAZORPAY_KEY_ID`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Real payments. Without them payments are unavailable on a live server |
 | `ALLOW_SIMULATED_PAYMENTS=true` | **Local test machine only.** Lets the fake "Complete test payment" checkout run. Never set it on the live server |
 | `GST_API_PROVIDER`, `GST_API_KEY`, `GST_API_BASE_URL`, `KYC_API_KEY`, `KYC_API_BASE_URL`, `IFSC_API_BASE` | Business verification services |
-| `WHATSAPP_WEBHOOK_TOKEN`, `WHATSAPP_APP_SECRET`, `STRIPE_WEBHOOK_SECRET` | Webhook signature checks |
 | `POSTGRES_URL`, `DATABASE_URL` | Optional PostgreSQL for the knowledge search (SQLite is used otherwise) |
 
 ## Project layout
@@ -98,7 +107,8 @@ public/           Static files
 - Customers sign in with email and password or with Google. The server then sets a signed, HTTP-only session cookie.
 - Every customer API calls `requireUser(req)`, which reads that cookie. The customer's email comes from the cookie only, never from the request body or URL.
 - Each customer has their own business (`biz_<email>`). Queries are always filtered by it, so one customer cannot read or change another's data.
-- Passwords are stored as salted scrypt hashes. Repeated wrong passwords lock the account for 15 minutes.
+- Passwords are stored as salted scrypt hashes. Repeated wrong passwords lock the account for 15 minutes. Forgotten passwords are reset by a one-hour, one-time email link.
+- Teammates join through an emailed invite and confirm their work email with Google. They then work inside the owner's business. What each role can open is set by the owner on the Team page and enforced on the server for every request.
 - The admin console uses a separate passcode and cookie (`/admin/login`).
 
 ## Tests

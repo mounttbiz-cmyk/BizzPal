@@ -63,7 +63,7 @@ export function ConnectSourcesStep({ auth, onConnect, onBack, onNext }: Props) {
                     : "bg-surface border border-line text-text-muted"
                 }`}
               >
-                {isOn ? <><SlidersHorizontal className="w-3.5 h-3.5 text-brass" />Manage</> : isLive ? "Connect" : "Coming soon"}
+                {isOn ? <><SlidersHorizontal className="w-3.5 h-3.5 text-brass" />Manage</> : "Connect"}
               </button>
             </div>
           );

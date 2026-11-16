@@ -1956,16 +1956,16 @@ export function getUserBusiness(email: string) {
   }
 }
 
-// One-time clean-up: saved plans that still promise the daily WhatsApp briefing say it is coming soon,
-// because messages are not being sent yet.
+// Saved plans used to promise a WhatsApp briefing. The daily briefing now goes by email, so the plan text says that.
 try {
   const row = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'subscription_plans'").get() as any;
-  const old = "Automated Daily 8:00 AM WhatsApp Briefings";
-  if (row && typeof row.config_value === "string" && row.config_value.includes(old)) {
-    db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'subscription_plans'").run(
-      row.config_value.split(old).join("Daily WhatsApp briefings (coming soon)"),
-      new Date().toISOString()
-    );
+  if (row && typeof row.config_value === "string") {
+    let text: string = row.config_value;
+    for (const old of ["Automated Daily 8:00 AM WhatsApp Briefings", "Daily WhatsApp briefings (coming soon)"]) text = text.split(old).join("Daily email briefing");
+    text = text.split("Email & WhatsApp Support").join("Email Support");
+    if (text !== row.config_value) {
+      db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'subscription_plans'").run(text, new Date().toISOString());
+    }
   }
 } catch {}
 
