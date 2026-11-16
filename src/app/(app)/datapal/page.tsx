@@ -50,7 +50,7 @@ export default function DataPalPage() {
   // Step 1: What data do you need?
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("");
+  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
   const [audienceRefine, setAudienceRefine] = useState<{
@@ -163,28 +163,23 @@ export default function DataPalPage() {
   const handleCategoryChange = (catId: string) => {
     setSelectedCategory(catId);
     if (!catId) {
-      setSelectedSubcategory("");
+      setSelectedSubcategories([]);
       setSelectedCategories([]);
       return;
     }
     const found = BUSINESS_CATEGORIES.find(c => c.id === catId);
     if (found) {
-      if (selectedSubcategory && !found.subcategories.includes(selectedSubcategory)) {
-        setSelectedSubcategory("");
-        setSelectedCategories([found.name]);
-      } else if (selectedSubcategory) {
-        setSelectedCategories([selectedSubcategory]);
-      } else {
-        setSelectedCategories([found.name]);
-      }
+      const keep = selectedSubcategories.filter(sub => found.subcategories.includes(sub));
+      if (keep.length !== selectedSubcategories.length) setSelectedSubcategories(keep);
+      setSelectedCategories(keep.length > 0 ? keep : [found.name]);
     }
     if (step1Error) setStep1Error(null);
   };
 
-  const handleSubcategoryChange = (sub: string) => {
-    setSelectedSubcategory(sub);
-    if (sub) {
-      setSelectedCategories([sub]);
+  const handleSubcategoriesChange = (subs: string[]) => {
+    setSelectedSubcategories(subs);
+    if (subs.length > 0) {
+      setSelectedCategories(subs);
     } else if (selectedCategory) {
       const found = BUSINESS_CATEGORIES.find(c => c.id === selectedCategory);
       setSelectedCategories(found ? [found.name] : []);
@@ -203,15 +198,11 @@ export default function DataPalPage() {
       );
       if (parentCategory) {
         setSelectedCategory(parentCategory.id);
-        if (parentCategory.subcategories.includes(singleCat)) {
-          setSelectedSubcategory(singleCat);
-        } else {
-          setSelectedSubcategory("");
-        }
+        setSelectedSubcategories(parentCategory.subcategories.includes(singleCat) ? [singleCat] : []);
       }
     } else if (cats.length === 0) {
       setSelectedCategory("");
-      setSelectedSubcategory("");
+      setSelectedSubcategories([]);
     }
     if (step1Error) setStep1Error(null);
   };
@@ -219,7 +210,7 @@ export default function DataPalPage() {
   // Main Extraction Trigger (lives ONLY in Step 3)
   const handleStartExtraction = async () => {
     const trimmedQuery = searchQuery.trim();
-    const hasCategorySelected = selectedCategories.length > 0 || Boolean(selectedCategory) || Boolean(selectedSubcategory);
+    const hasCategorySelected = selectedCategories.length > 0 || Boolean(selectedCategory) || selectedSubcategories.length > 0;
 
     // Validate Step 1 requirement
     if (!trimmedQuery && !hasCategorySelected) {
@@ -242,15 +233,18 @@ export default function DataPalPage() {
       ? (BUSINESS_CATEGORIES.find(c => c.id === selectedCategory)?.name || selectedCategory)
       : "";
 
-    const effectiveCategories = selectedSubcategory
-      ? [selectedSubcategory]
+    const effectiveCategories = selectedSubcategories.length > 0
+      ? selectedSubcategories
       : chosenCategoryName
       ? [chosenCategoryName]
       : selectedCategories.length > 0
       ? selectedCategories
       : [trimmedQuery || "General Businesses"];
 
-    const queryTerm = trimmedQuery || selectedSubcategory || chosenCategoryName || effectiveCategories[0];
+    // With several sub-categories and no typed search, send none: each one is searched on its own.
+    const queryTerm =
+      trimmedQuery ||
+      (selectedSubcategories.length === 1 ? selectedSubcategories[0] : selectedSubcategories.length > 1 ? "" : chosenCategoryName || effectiveCategories[0]);
 
     // Check quota before extracting
     if (creditsLoaded && creditStatus.remainingQuota <= 0) {
@@ -305,7 +299,7 @@ export default function DataPalPage() {
     setExtractProgress(15);
     setExtractStatusText(`Connecting to DataPal Directory Engine for ${primaryCity}...`);
 
-    const displayTarget = trimmedQuery || selectedSubcategory || chosenCategoryName || (selectedCategories.length > 0 ? selectedCategories[0] : "businesses");
+    const displayTarget = trimmedQuery || selectedSubcategories.join(", ") || chosenCategoryName || (selectedCategories.length > 0 ? selectedCategories[0] : "businesses");
 
     const interval = setInterval(() => {
       setExtractProgress(prev => {
@@ -406,8 +400,8 @@ export default function DataPalPage() {
   // Step 1 summary text
   const step1Summary = searchQuery.trim()
     ? searchQuery.trim()
-    : selectedSubcategory
-    ? `${BUSINESS_CATEGORIES.find(c => c.id === selectedCategory)?.name || "Category"} → ${selectedSubcategory}`
+    : selectedSubcategories.length > 0
+    ? `${BUSINESS_CATEGORIES.find(c => c.id === selectedCategory)?.name || "Category"} → ${selectedSubcategories.join(", ")}`
     : selectedCategory
     ? BUSINESS_CATEGORIES.find(c => c.id === selectedCategory)?.name || selectedCategory
     : selectedCategories.length === 1
@@ -517,8 +511,8 @@ export default function DataPalPage() {
                   }}
                   selectedCategory={selectedCategory}
                   onSelectCategory={handleCategoryChange}
-                  selectedSubcategory={selectedSubcategory}
-                  onSelectSubcategory={handleSubcategoryChange}
+                  selectedSubcategories={selectedSubcategories}
+                  onSelectSubcategories={handleSubcategoriesChange}
                   selectedCategories={selectedCategories}
                   onOpenCategoryPicker={() => setIsCategorySheetOpen(true)}
                   audienceRefine={audienceRefine}

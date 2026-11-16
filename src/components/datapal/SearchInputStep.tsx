@@ -13,8 +13,8 @@ interface SearchInputStepProps {
   onOpenCategoryPicker: () => void;
   selectedCategory?: string;
   onSelectCategory?: (categoryId: string) => void;
-  selectedSubcategory?: string;
-  onSelectSubcategory?: (subcategory: string) => void;
+  selectedSubcategories?: string[];
+  onSelectSubcategories?: (subcategories: string[]) => void;
   audienceRefine: {
     ageRange?: string;
     gender?: string;
@@ -309,8 +309,8 @@ export function SearchInputStep({
   onOpenCategoryPicker,
   selectedCategory = "",
   onSelectCategory,
-  selectedSubcategory = "",
-  onSelectSubcategory,
+  selectedSubcategories = [],
+  onSelectSubcategories,
   audienceRefine,
   onAudienceRefineChange,
   error,
@@ -370,11 +370,11 @@ export function SearchInputStep({
       if (match && selectedCategory !== match.categoryId) {
         onSelectCategory?.(match.categoryId);
         if (match.matchedSubcategory) {
-          onSelectSubcategory?.(match.matchedSubcategory);
+          onSelectSubcategories?.([match.matchedSubcategory]);
         }
       }
     }
-  }, [searchQuery, selectedCategory, onSelectCategory, onSelectSubcategory]);
+  }, [searchQuery, selectedCategory, onSelectCategory, onSelectSubcategories]);
 
   // Find active category item
   const selectedCategoryData = useMemo(() => {
@@ -453,22 +453,31 @@ export function SearchInputStep({
   const handleSelectCategory = (catId: string) => {
     onSelectCategory?.(catId);
     if (!catId) {
-      onSelectSubcategory?.("");
+      onSelectSubcategories?.([]);
     } else {
       const cat = BUSINESS_CATEGORIES.find(c => c.id === catId);
-      if (selectedSubcategory && cat && !cat.subcategories.includes(selectedSubcategory)) {
-        onSelectSubcategory?.("");
+      if (cat && selectedSubcategories.some(sub => !cat.subcategories.includes(sub))) {
+        onSelectSubcategories?.(selectedSubcategories.filter(sub => cat.subcategories.includes(sub)));
       }
     }
     setIsCategoryOpen(false);
     setCategorySearchText("");
   };
 
+  // Several sub-categories can be ticked at once; an empty value clears them all.
   const handleSelectSubcategory = (sub: string) => {
-    onSelectSubcategory?.(sub);
-    setIsSubcategoryOpen(false);
-    setSubcategorySearchText("");
+    if (!sub) {
+      onSelectSubcategories?.([]);
+      setIsSubcategoryOpen(false);
+      setSubcategorySearchText("");
+      return;
+    }
+    onSelectSubcategories?.(
+      selectedSubcategories.includes(sub) ? selectedSubcategories.filter(x => x !== sub) : [...selectedSubcategories, sub]
+    );
   };
+  const hasSubs = selectedSubcategories.length > 0;
+  const subLabel = selectedSubcategories.length > 1 ? `${selectedSubcategories[0]} +${selectedSubcategories.length - 1} more` : selectedSubcategories[0] || "";
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -681,7 +690,7 @@ export function SearchInputStep({
             <label className="text-sm font-medium text-text">
               Sub-category <span className="text-text-muted font-normal">(optional)</span>
             </label>
-            {selectedSubcategory && (
+            {hasSubs && (
               <button
                 type="button"
                 onClick={() => handleSelectSubcategory("")}
@@ -707,7 +716,7 @@ export function SearchInputStep({
                 ? "bg-surface/50 border-line text-text-muted opacity-60 cursor-not-allowed"
                 : isSubcategoryOpen
                 ? "border-brass ring-1 ring-brass bg-surface cursor-pointer"
-                : selectedSubcategory
+                : hasSubs
                 ? "border-brass/70 bg-brass/5 cursor-pointer"
                 : "border-line hover:border-line-strong bg-surface cursor-pointer"
             }`}
@@ -717,11 +726,11 @@ export function SearchInputStep({
                 <span className="text-sm text-text-muted">
                   Select a category first
                 </span>
-              ) : selectedSubcategory ? (
+              ) : hasSubs ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-brass shrink-0" />
                   <span className="text-sm font-semibold text-text truncate">
-                    {selectedSubcategory}
+                    {subLabel}
                   </span>
                 </>
               ) : (
@@ -731,7 +740,7 @@ export function SearchInputStep({
               )}
             </div>
             <div className="flex items-center gap-1.5 shrink-0 text-text-muted">
-              {selectedSubcategory && (
+              {hasSubs && (
                 <span
                   role="button"
                   onClick={e => {
@@ -771,7 +780,7 @@ export function SearchInputStep({
                   type="button"
                   onClick={() => handleSelectSubcategory("")}
                   className={`w-full px-2.5 py-2 rounded-lg text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
-                    !selectedSubcategory
+                    !hasSubs
                       ? "bg-brass/15 text-brass font-semibold"
                       : "hover:bg-surface-2 text-text"
                   }`}
@@ -780,7 +789,7 @@ export function SearchInputStep({
                     <span className="w-2 h-2 rounded-full border border-current" />
                     <span className="font-medium">All {selectedCategoryData.name} (Broad Search)</span>
                   </div>
-                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ml-3 transition-colors ${!selectedSubcategory ? "bg-brass border-brass text-white" : "border-line-strong bg-surface"}`}>{!selectedSubcategory && <Check className="w-3 h-3" strokeWidth={3} />}</span>
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ml-3 transition-colors ${!hasSubs ? "bg-brass border-brass text-white" : "border-line-strong bg-surface"}`}>{!hasSubs && <Check className="w-3 h-3" strokeWidth={3} />}</span>
                 </button>
 
                 <div className="h-px bg-line my-1" />
@@ -792,7 +801,7 @@ export function SearchInputStep({
                   </p>
                 ) : (
                   filteredSubcategories.map(sub => {
-                    const isSelected = selectedSubcategory === sub;
+                    const isSelected = selectedSubcategories.includes(sub);
                     return (
                       <button
                         key={sub}
@@ -813,6 +822,21 @@ export function SearchInputStep({
                     );
                   })
                 )}
+              </div>
+              <div className="px-3 py-2 border-t border-line bg-surface-2/40 flex items-center justify-between">
+                <span className="text-xs text-text-muted">
+                  {selectedSubcategories.length === 0 ? "Tick one or more" : `${selectedSubcategories.length} selected`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSubcategoryOpen(false);
+                    setSubcategorySearchText("");
+                  }}
+                  className="px-3 py-1 rounded-lg bg-brass text-white text-xs font-medium hover:brightness-110 cursor-pointer"
+                >
+                  Done
+                </button>
               </div>
             </div>
           )}

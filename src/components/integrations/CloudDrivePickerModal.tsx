@@ -293,6 +293,7 @@ export function CloudDrivePickerModal({
         .setIncludeFolders(true)
         .setMimeTypes(
           [
+            "application/vnd.google-apps.folder",
             "application/vnd.google-apps.spreadsheet",
             "text/csv",
             "application/json",
@@ -305,13 +306,13 @@ export function CloudDrivePickerModal({
       const origin = typeof window !== "undefined" ? window.location.protocol + "//" + window.location.host : "";
 
       // Ensure Google Picker displays on top of high z-index modal backdrops
-      const styleId = "google-picker-zindex-fix";
+      const styleId = "google-picker-zindex-fix-v2";
       if (typeof document !== "undefined" && !document.getElementById(styleId)) {
         const styleEl = document.createElement("style");
         styleEl.id = styleId;
         styleEl.textContent = `
-          .picker-dialog { z-index: 200000 !important; }
-          .picker-dialog-bg { z-index: 199999 !important; }
+          .picker-dialog-bg { position: fixed !important; inset: 0 !important; width: auto !important; height: auto !important; background: rgba(0,0,0,0.5) !important; opacity: 1 !important; z-index: 2147483000 !important; }
+          .picker-dialog { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; max-width: 94vw !important; max-height: 92vh !important; border-radius: 16px !important; overflow: hidden !important; box-shadow: 0 24px 60px rgba(0,0,0,0.35) !important; z-index: 2147483001 !important; }
         `;
         document.head.appendChild(styleEl);
       }

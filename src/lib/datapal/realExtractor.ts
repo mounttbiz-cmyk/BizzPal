@@ -52,14 +52,24 @@ export async function extractRealBusinessLeads(
   // 1. TRY GOOGLE PLACES API (NEW) WITH GOOGLE MAPS API KEY (WITH AUTOMATIC PAGINATION)
   if (googleApiKey && googleApiKey.trim().length > 10) {
     try {
-      const googleQuery = `${queryTerm} in ${locationTerm}`.trim();
 
       // Modern Google Places API (New) - v1/places:searchText with multi-page token traversal
       let collectedPlaces: any[] = [];
-      let pageToken: string | undefined = undefined;
       const seenIds = new Set<string>();
 
-      // Loop up to 3 pages (fetching up to 60 live businesses)
+      // One search per ticked sub-category (up to 5), sharing the requested number of records between them
+      const searchTerms =
+        !config.searchQuery?.trim() && config.selectedCategories && config.selectedCategories.length > 1
+          ? config.selectedCategories.slice(0, 5)
+          : [queryTerm];
+      const wanted = config.requestedCount && config.requestedCount > 0 ? config.requestedCount : 25;
+      const perTerm = Math.ceil(wanted / searchTerms.length);
+
+      for (const term of searchTerms) {
+      const googleQuery = `${term} in ${locationTerm}`.trim();
+      const startCount = collectedPlaces.length;
+      let pageToken: string | undefined = undefined;
+      // Loop up to 3 pages per search
       for (let page = 1; page <= 3; page++) {
         const reqBody: any = {
           textQuery: googleQuery,
@@ -100,8 +110,8 @@ export async function extractRealBusinessLeads(
         pageToken = newData.nextPageToken;
         if (!pageToken) break;
         // Each page is a billed Google request: stop once we have enough results
-        const wanted = config.requestedCount && config.requestedCount > 0 ? config.requestedCount : 25;
-        if (collectedPlaces.length >= wanted) break;
+        if (collectedPlaces.length - startCount >= perTerm) break;
+      }
       }
 
       if (collectedPlaces.length > 0) {
