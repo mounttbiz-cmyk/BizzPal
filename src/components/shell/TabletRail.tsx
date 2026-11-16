@@ -64,11 +64,14 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
 
           const isDataPal = rawItem.id === "nav_datapal" || rawItem.href === "/datapal" || rawItem.label.toLowerCase().includes("datapal");
 
+          const upperBadge = (rawItem.badge || "").trim().toUpperCase();
+          const isRedundant = upperBadge === "NEW" || upperBadge === "PRO" || upperBadge === "LIVE" || isDataPal;
+
           const item = {
             ...rawItem,
             label: isDataPal ? "DataPal" : rawItem.label,
             icon: isWorkspace ? "BrainCircuit" : isStrategy ? "Target" : isPlaybooks ? "BookOpen" : isAnalytics ? "BarChart3" : rawItem.icon,
-            badge: (rawItem.badge?.toUpperCase() === "NEW" || rawItem.badge?.toUpperCase() === "PRO" || isDataPal) ? undefined : rawItem.badge,
+            badge: isRedundant ? undefined : rawItem.badge,
           };
 
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
@@ -94,11 +97,10 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
               key={item.id}
               href={item.href}
               title={item.label}
-              className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all btn-tactile group ${
-                isActive
-                  ? "bg-gold/10 text-gold border border-gold/25 shadow-xs font-bold"
-                  : "text-text-muted hover:text-text hover:bg-surface-2"
-              }`}
+              className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-colors ${isActive
+                ? "bg-surface-2 text-text border border-line font-semibold"
+                : "text-text-muted hover:text-text hover:bg-surface-2/60"
+                }`}
             >
               <DynamicIcon name={item.icon} className="w-5 h-5" />
             </Link>
