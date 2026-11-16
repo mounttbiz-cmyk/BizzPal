@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       if (!safeEqualHex(expected, String(razorpay_signature))) {
         return NextResponse.json({ success: false, error: "Payment signature verification failed." }, { status: 400 });
       }
-    } else if (!simulatedPaymentsAllowed()) {
+    } else if (!simulatedPaymentsAllowed(auth.email)) {
       // Never accept simulated payments on a live server
       return NextResponse.json({ success: false, error: "Payments are not available right now." }, { status: 503 });
     } else if (!isSimOrder) {

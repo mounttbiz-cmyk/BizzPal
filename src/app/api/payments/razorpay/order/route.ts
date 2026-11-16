@@ -124,7 +124,7 @@ export async function POST(req: Request) {
     } else {
       // Simulated checkout is for local testing only. A live server without real keys must refuse,
       // otherwise anyone could "buy" a plan for free.
-      if (!simulatedPaymentsAllowed()) {
+      if (!simulatedPaymentsAllowed(userEmail)) {
         return NextResponse.json(
           { success: false, error: "Payments are not available right now. Please contact support." },
           { status: 503 }
