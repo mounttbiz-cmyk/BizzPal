@@ -663,86 +663,75 @@ function ToolsContent() {
       {/* Interactive Tool Pop-Up Modal */}
       {mounted && activeTool && typeof document !== "undefined" && createPortal(
         <div
-          className="fixed inset-0 m-0 z-[9999] bg-slate-950/75 dark:bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 m-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
           style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
           onClick={() => setActiveToolId(null)}
         >
           <div
-            className="max-w-2xl w-full bg-white dark:bg-[#0C1222] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh] animate-scale-in"
+            className="max-w-3xl w-full bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scale-in"
             onClick={e => e.stopPropagation()}
           >
             {/* Pop-Up Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50/80 dark:bg-white/[0.02] shrink-0">
+            <div className="px-6 pt-6 pb-4 border-b border-line flex items-start justify-between gap-4 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
+                    <h2 className="text-xl font-semibold text-text">
                       {activeTool.name}
                     </h2>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                  <p className="text-sm text-text-muted mt-1">
                     {activeTool.description}
                   </p>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveToolId(null)}
-                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer shrink-0 ml-2"
-                title="Close calculator (Esc)"
-              >
-                <span className="hidden sm:inline">Close</span>
-                <kbd className="hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded bg-white dark:bg-white/[0.08] border border-slate-200 dark:border-white/10 font-mono text-slate-500 dark:text-slate-400">
-                  ESC
-                </kbd>
-                <X className="w-4 h-4" />
-              </button>
+              <button type="button" onClick={() => setActiveToolId(null)} aria-label="Close" title="Close (Esc)" className="p-2 rounded-xl text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer shrink-0"><X className="w-5 h-5" /></button>
             </div>
             {/* Scrollable Pop-Up Body */}
-            <div className="p-4 sm:p-6 overflow-y-auto space-y-5 bg-white dark:bg-[#0C1222]">
+            <div className="p-6 overflow-y-auto space-y-5">
               {!activeTool.hasInteractiveCalculator ? (
-                <div className="p-6 sm:p-8 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 text-center space-y-4">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 mx-auto">
-                    <Lock className="w-6 h-6" />
+                <div className="p-6 sm:p-8 rounded-2xl bg-surface-2/50 border border-line text-center space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass mx-auto">
+                    <Bot className="w-6 h-6" />
                   </div>
                   <div className="space-y-1.5 max-w-md mx-auto">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                      Pop-Up Calculator Disabled
+                    <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-text-muted border border-line">
+                      Calculator not available
                     </div>
-                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                      Interactive Calculator Mode Disabled
+                    <h3 className="text-sm sm:text-base font-bold text-text">
+                      Use the AI advisor for this one
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                      The interactive calculator engine for <strong className="text-slate-800 dark:text-slate-200">{activeTool.name}</strong> has been toggled off by the platform administrator in Super Admin.
+                    <p className="text-xs text-text-muted leading-relaxed">
+                      There is no quick calculator for <strong className="text-text">{activeTool.name}</strong> yet. Your AI advisor can work it through with your business details.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 text-left text-xs space-y-2 max-w-lg mx-auto">
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                      <span>Tool Specifications</span>
-                      <span className="font-mono text-cyan-600 dark:text-cyan-400">{activeTool.badge}</span>
+                  <div className="p-4 rounded-xl bg-surface border border-line text-left text-xs space-y-2 max-w-lg mx-auto">
+                    <div className="flex items-center justify-between text-xs font-semibold text-text">
+                      <span>About this tool</span>
+                      <span className="tabular-nums text-brass">{activeTool.badge}</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-text-muted">
                       {activeTool.description}
                     </p>
-                    <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                      <span>Category: <strong className="uppercase text-slate-600 dark:text-slate-300">{activeTool.category}</strong></span>
-                      <span>Required Plan: <strong className="text-slate-600 dark:text-slate-300">{activeTool.requiredPlan.charAt(0).toUpperCase() + activeTool.requiredPlan.slice(1)}+</strong></span>
+                    <div className="pt-2 border-t border-line flex items-center justify-between text-xs text-text-muted">
+                      <span>Category: <strong className="uppercase text-text">{activeTool.category}</strong></span>
+                      <span>Required Plan: <strong className="text-text">{activeTool.requiredPlan.charAt(0).toUpperCase() + activeTool.requiredPlan.slice(1)}+</strong></span>
                     </div>
                   </div>
 
                   <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
                     <Link
                       href={`/chat?message=${encodeURIComponent(`Run comprehensive diagnostic simulation on ${activeTool.name} with current enterprise benchmarks.`)}`}
-                      className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs btn-tactile inline-flex items-center gap-2 shadow-xs transition-colors"
+                      className="px-4 py-2.5 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm inline-flex items-center gap-2 transition-colors"
                     >
                       <Bot className="w-4 h-4" />
-                      <span>Execute in AI Workspace</span>
+                      <span>Ask your advisor</span>
                     </Link>
                     <Link
                       href="/simulator"
-                      className="px-4 py-2.5 rounded-xl bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 hover:border-slate-300 text-slate-800 dark:text-white font-bold text-xs btn-tactile inline-flex items-center gap-2 transition-colors shadow-xs"
+                      className="px-4 py-2.5 rounded-xl bg-surface border border-line hover:border-line-strong text-text font-medium text-sm inline-flex items-center gap-2 transition-colors"
                     >
                       <span>Decision Simulator</span>
                       <ArrowRight className="w-4 h-4" />
@@ -756,7 +745,7 @@ function ToolsContent() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       <div className="md:col-span-6 space-y-3 text-xs">
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Monthly Gross Revenue (₹)
                           </label>
                           <input
@@ -765,11 +754,11 @@ function ToolsContent() {
                             value={calcRevenue ? formatINR(calcRevenue) : ""}
                             onChange={e => setCalcRevenue(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 12,00,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Cost of Goods Sold / Delivery (COGS) (₹)
                           </label>
                           <input
@@ -778,11 +767,11 @@ function ToolsContent() {
                             value={calcCogs ? formatINR(calcCogs) : ""}
                             onChange={e => setCalcCogs(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 3,00,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Operating Expenses (Payroll + Rent + Cloud) (₹)
                           </label>
                           <input
@@ -791,46 +780,46 @@ function ToolsContent() {
                             value={calcOpex ? formatINR(calcOpex) : ""}
                             onChange={e => setCalcOpex(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 4,50,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 flex flex-col justify-between space-y-4">
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
                         <div className="space-y-3">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
-                            Real-Time Profitability Output
+                          <span className="text-xs font-medium text-text-muted block">
+                            Result
                           </span>
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Gross Margin</div>
-                              <div className="text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Gross Margin</div>
+                              <div className="text-base font-semibold text-brass tabular-nums">
                                 {grossMargin}%
                               </div>
-                              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              <div className="text-xs text-text-muted tabular-nums mt-0.5">
                                 ₹{grossProfit.toLocaleString("en-IN")}
                               </div>
                             </div>
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Net Margin</div>
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Net Margin</div>
                               <div
-                                className={`text-base font-extrabold font-mono ${
-                                  netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                                className={`text-base font-semibold tabular-nums ${
+                                  netProfit >= 0 ? "text-jade" : "text-negative"
                                 }`}
                               >
                                 {netMargin}%
                               </div>
-                              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              <div className="text-xs text-text-muted tabular-nums mt-0.5">
                                 ₹{netProfit.toLocaleString("en-IN")}
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="pt-3 border-t border-slate-200 dark:border-white/10">
+                        <div className="pt-3 border-t border-line">
                           <Link
                             href={`/chat?message=${encodeURIComponent(`${cfoName}, analyze our current net margin of ${netMargin}% on ₹${calcRevenue.toLocaleString("en-IN")} monthly revenue. What are the best cost levers to improve operating cash?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
                           >
                             Consult {cfoName} →
                           </Link>
@@ -844,7 +833,7 @@ function ToolsContent() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       <div className="md:col-span-6 space-y-3 text-xs">
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Monthly Total Fixed Overheads (₹)
                           </label>
                           <input
@@ -853,11 +842,11 @@ function ToolsContent() {
                             value={fixedCosts ? formatINR(fixedCosts) : ""}
                             onChange={e => setFixedCosts(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 2,50,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Average Selling Price Per Contract (₹)
                           </label>
                           <input
@@ -866,11 +855,11 @@ function ToolsContent() {
                             value={pricePerUnit ? formatINR(pricePerUnit) : ""}
                             onChange={e => setPricePerUnit(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 25,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Direct Variable Cost Per Contract (₹)
                           </label>
                           <input
@@ -879,38 +868,38 @@ function ToolsContent() {
                             value={variableCostPerUnit ? formatINR(variableCostPerUnit) : ""}
                             onChange={e => setVariableCostPerUnit(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 5,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 flex flex-col justify-between space-y-4">
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
                         <div className="space-y-3">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                          <span className="text-xs font-medium text-text-muted block">
                             Break-Even Solvency Requirement
                           </span>
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Target Deals / Units</div>
-                              <div className="text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Target Deals / Units</div>
+                              <div className="text-base font-semibold text-brass tabular-nums">
                                 {breakevenUnits} contracts
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">per month</div>
+                              <div className="text-xs text-text-muted mt-0.5">per month</div>
                             </div>
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Required Revenue</div>
-                              <div className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Required Revenue</div>
+                              <div className="text-base font-semibold text-jade tabular-nums">
                                 ₹{breakevenRevenue.toLocaleString("en-IN")}
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">at break-even</div>
+                              <div className="text-xs text-text-muted mt-0.5">at break-even</div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="pt-3 border-t border-slate-200 dark:border-white/10">
+                        <div className="pt-3 border-t border-line">
                           <Link
                             href={`/chat?message=${encodeURIComponent(`${cfoName}, our break-even target is ₹${breakevenRevenue.toLocaleString("en-IN")} across ${breakevenUnits} contracts/mo. What's our quickest path to achieving this?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
                           >
                             Analyze with {cfoName} →
                           </Link>
@@ -924,7 +913,7 @@ function ToolsContent() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       <div className="md:col-span-6 space-y-3 text-xs">
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Total Monthly Sales & Marketing Outlay (₹)
                           </label>
                           <input
@@ -933,22 +922,22 @@ function ToolsContent() {
                             value={marketingSpend ? formatINR(marketingSpend) : ""}
                             onChange={e => setMarketingSpend(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 2,00,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             New Customers Signed This Month
                           </label>
                           <input
                             type="number"
                             value={acquiredCustomers}
                             onChange={e => setAcquiredCustomers(Number(e.target.value))}
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Annual Revenue Per Customer (ACV) (₹)
                           </label>
                           <input
@@ -957,42 +946,42 @@ function ToolsContent() {
                             value={avgRevenuePerAccount ? formatINR(avgRevenuePerAccount) : ""}
                             onChange={e => setAvgRevenuePerAccount(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 60,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 flex flex-col justify-between space-y-4">
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
                         <div className="space-y-3">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                          <span className="text-xs font-medium text-text-muted block">
                             Unit Acquisition & Lifetime Value
                           </span>
                           <div className="grid grid-cols-3 gap-2">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Blended CAC</div>
-                              <div className="text-xs sm:text-sm font-extrabold text-rose-600 dark:text-rose-400 font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Blended CAC</div>
+                              <div className="text-xs sm:text-sm font-semibold text-negative tabular-nums">
                                 ₹{calculatedCAC.toLocaleString("en-IN")}
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Customer LTV</div>
-                              <div className="text-xs sm:text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Customer LTV</div>
+                              <div className="text-xs sm:text-sm font-semibold text-jade tabular-nums">
                                 ₹{calculatedLTV.toLocaleString("en-IN")}
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">LTV / CAC</div>
-                              <div className="text-xs sm:text-sm font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">LTV / CAC</div>
+                              <div className="text-xs sm:text-sm font-semibold text-brass tabular-nums">
                                 {ltvToCacRatio}x
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="pt-3 border-t border-slate-200 dark:border-white/10">
+                        <div className="pt-3 border-t border-line">
                           <Link
                             href={`/chat?message=${encodeURIComponent(`${marketingName}, evaluate our LTV to CAC ratio of ${ltvToCacRatio}x (CAC: ₹${calculatedCAC.toLocaleString("en-IN")}, LTV: ₹${calculatedLTV.toLocaleString("en-IN")}). How should we optimize our demand funnel?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
                           >
                             Consult {marketingName} on CAC →
                           </Link>
@@ -1006,7 +995,7 @@ function ToolsContent() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       <div className="md:col-span-6 space-y-3 text-xs">
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Current Bank Balance / Cash Reserve (₹)
                           </label>
                           <input
@@ -1015,11 +1004,11 @@ function ToolsContent() {
                             value={cashReserve ? formatINR(cashReserve) : ""}
                             onChange={e => setCashReserve(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 50,00,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Monthly Inflow / Collections (₹)
                           </label>
                           <input
@@ -1028,11 +1017,11 @@ function ToolsContent() {
                             value={monthlyInflow ? formatINR(monthlyInflow) : ""}
                             onChange={e => setMonthlyInflow(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 15,00,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Monthly Outflow / Net Burn (₹)
                           </label>
                           <input
@@ -1041,38 +1030,38 @@ function ToolsContent() {
                             value={monthlyBurn ? formatINR(monthlyBurn) : ""}
                             onChange={e => setMonthlyBurn(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 20,00,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 flex flex-col justify-between space-y-4">
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
                         <div className="space-y-3">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                          <span className="text-xs font-medium text-text-muted block">
                             Runway & Liquidity Telemetry
                           </span>
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Net Monthly Cash Flow</div>
-                              <div className={`text-base font-extrabold font-mono ${netCashFlow >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Net Monthly Cash Flow</div>
+                              <div className={`text-base font-semibold tabular-nums ${netCashFlow >= 0 ? "text-jade" : "text-negative"}`}>
                                 {netCashFlow >= 0 ? `+₹${netCashFlow.toLocaleString("en-IN")}` : `-₹${Math.abs(netCashFlow).toLocaleString("en-IN")}`}
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">per month</div>
+                              <div className="text-xs text-text-muted mt-0.5">per month</div>
                             </div>
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Projected Runway</div>
-                              <div className="text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Projected Runway</div>
+                              <div className="text-base font-semibold text-brass tabular-nums">
                                 {runwayMonths === "Profitable" ? "Infinite" : `${runwayMonths} Mo`}
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">at current burn</div>
+                              <div className="text-xs text-text-muted mt-0.5">at current burn</div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="pt-3 border-t border-slate-200 dark:border-white/10">
+                        <div className="pt-3 border-t border-line">
                           <Link
                             href={`/chat?message=${encodeURIComponent(`${cfoName}, our cash runway is ${runwayMonths} months with net monthly outflow of ₹${Math.abs(netCashFlow).toLocaleString("en-IN")}. What cash stabilization steps do you advise?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
                           >
                             Plan Cash Runway with {cfoName} →
                           </Link>
@@ -1086,7 +1075,7 @@ function ToolsContent() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       <div className="md:col-span-6 space-y-3 text-xs">
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Total Investment / Capital Outlay (₹)
                           </label>
                           <input
@@ -1095,11 +1084,11 @@ function ToolsContent() {
                             value={roiCost ? formatINR(roiCost) : ""}
                             onChange={e => setRoiCost(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 6,00,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Expected Annual Returns / Cost Savings (₹)
                           </label>
                           <input
@@ -1108,40 +1097,40 @@ function ToolsContent() {
                             value={roiBenefit ? formatINR(roiBenefit) : ""}
                             onChange={e => setRoiBenefit(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 18,00,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 flex flex-col justify-between space-y-4">
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
                         <div className="space-y-3">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                          <span className="text-xs font-medium text-text-muted block">
                             Return on Investment Dynamics
                           </span>
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Net Annual ROI</div>
-                              <div className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Net Annual ROI</div>
+                              <div className="text-base font-semibold text-jade tabular-nums">
                                 {roiPercentage}%
                               </div>
-                              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              <div className="text-xs text-text-muted tabular-nums mt-0.5">
                                 +₹{netBenefit.toLocaleString("en-IN")}
                               </div>
                             </div>
-                            <div className="p-3 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Payback Period</div>
-                              <div className="text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Payback Period</div>
+                              <div className="text-base font-semibold text-brass tabular-nums">
                                 {paybackMonths} Mo
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">to break-even</div>
+                              <div className="text-xs text-text-muted mt-0.5">to break-even</div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="pt-3 border-t border-slate-200 dark:border-white/10">
+                        <div className="pt-3 border-t border-line">
                           <Link
                             href={`/chat?message=${encodeURIComponent(`Evaluate capital allocation for ${activeTool.name} with expected ${roiPercentage}% ROI and ${paybackMonths} months payback.`)}`}
-                            className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
                           >
                             Verify Payback with CFO AI →
                           </Link>
@@ -1155,7 +1144,7 @@ function ToolsContent() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       <div className="md:col-span-6 space-y-3 text-xs">
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Loan / Equipment Financing Amount (₹)
                           </label>
                           <input
@@ -1164,12 +1153,12 @@ function ToolsContent() {
                             value={emiPrincipal ? formatINR(emiPrincipal) : ""}
                             onChange={e => setEmiPrincipal(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 25,00,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               Annual Interest Rate (%)
                             </label>
                             <input
@@ -1178,11 +1167,11 @@ function ToolsContent() {
                               value={emiRateAnnual}
                               onChange={e => setEmiRateAnnual(Number(e.target.value) || 0)}
                               placeholder="e.g. 11.5"
-                              className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                             />
                           </div>
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               Tenure (Months)
                             </label>
                             <input
@@ -1190,47 +1179,47 @@ function ToolsContent() {
                               value={emiTenureMonths}
                               onChange={e => setEmiTenureMonths(Number(e.target.value) || 0)}
                               placeholder="e.g. 36"
-                              className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                             />
                           </div>
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 flex flex-col justify-between space-y-4">
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
                         <div className="space-y-3">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                          <span className="text-xs font-medium text-text-muted block">
                             Amortization & Debt Service Telemetry
                           </span>
                           <div className="grid grid-cols-2 gap-2.5">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Monthly EMI</div>
-                              <div className="text-sm sm:text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Monthly EMI</div>
+                              <div className="text-sm sm:text-base font-semibold text-brass tabular-nums">
                                 ₹{emiMonthlyAmount.toLocaleString("en-IN")}
                               </div>
-                              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              <div className="text-xs text-text-muted tabular-nums mt-0.5">
                                 {emiTenureMonths} installments
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Total Interest</div>
-                              <div className="text-sm sm:text-base font-extrabold text-rose-600 dark:text-rose-400 font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Total Interest</div>
+                              <div className="text-sm sm:text-base font-semibold text-negative tabular-nums">
                                 ₹{emiTotalInterest.toLocaleString("en-IN")}
                               </div>
-                              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              <div className="text-xs text-text-muted tabular-nums mt-0.5">
                                 Total: ₹{emiTotalPayment.toLocaleString("en-IN")}
                               </div>
                             </div>
                           </div>
-                          <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 text-xs flex items-center justify-between">
-                            <span className="text-slate-500 dark:text-slate-400 text-[11px]">Monthly Burn Impact:</span>
-                            <span className="font-bold text-amber-500 font-mono text-[11px]">{emiBurnImpact}% of OPEX</span>
+                          <div className="p-2.5 rounded-xl bg-surface border border-line text-xs flex items-center justify-between">
+                            <span className="text-text-muted text-xs">Monthly Burn Impact:</span>
+                            <span className="font-bold text-caution tabular-nums text-xs">{emiBurnImpact}% of OPEX</span>
                           </div>
                         </div>
 
-                        <div className="pt-3 border-t border-slate-200 dark:border-white/10">
+                        <div className="pt-3 border-t border-line">
                           <Link
                             href={`/chat?message=${encodeURIComponent(`${cfoName}, evaluate a business loan EMI of ₹${emiMonthlyAmount.toLocaleString("en-IN")}/mo on ₹${emiPrincipal.toLocaleString("en-IN")} borrowing. What is our optimal debt-to-cash strategy?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
                           >
                             Consult {cfoName} on Loan Amortization →
                           </Link>
@@ -1244,7 +1233,7 @@ function ToolsContent() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       <div className="md:col-span-6 space-y-3 text-xs">
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Base Transaction Value / Invoice Amount (₹)
                           </label>
                           <input
@@ -1253,11 +1242,11 @@ function ToolsContent() {
                             value={gstAmount ? formatINR(gstAmount) : ""}
                             onChange={e => setGstAmount(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 1,00,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             GST Slab Rate
                           </label>
                           <div className="grid grid-cols-4 gap-1.5">
@@ -1266,10 +1255,10 @@ function ToolsContent() {
                                 key={r}
                                 type="button"
                                 onClick={() => setGstRate(r)}
-                                className={`py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                                className={`py-1.5 rounded-xl border text-xs font-bold transition-all ${
                                   gstRate === r
-                                    ? "bg-cyan-600 text-white border-cyan-600 shadow-xs"
-                                    : "bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                    ? "bg-brass text-white border-brass"
+                                    : "bg-surface-2 border-line text-text hover:border-line-strong"
                                 }`}
                               >
                                 {r}%
@@ -1281,10 +1270,10 @@ function ToolsContent() {
                           <button
                             type="button"
                             onClick={() => setGstIsInterState(false)}
-                            className={`py-1.5 px-2 rounded-lg border text-[11px] font-bold transition-all ${
+                            className={`py-1.5 px-2 rounded-xl border text-xs font-bold transition-all ${
                               !gstIsInterState
-                                ? "bg-cyan-600 text-white border-cyan-600"
-                                : "bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400"
+                                ? "bg-brass text-white border-brass"
+                                : "bg-surface-2 border-line text-text-muted dark:text-text-muted"
                             }`}
                           >
                             Intra-State (CGST+SGST)
@@ -1292,17 +1281,17 @@ function ToolsContent() {
                           <button
                             type="button"
                             onClick={() => setGstIsInterState(true)}
-                            className={`py-1.5 px-2 rounded-lg border text-[11px] font-bold transition-all ${
+                            className={`py-1.5 px-2 rounded-xl border text-xs font-bold transition-all ${
                               gstIsInterState
-                                ? "bg-cyan-600 text-white border-cyan-600"
-                                : "bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400"
+                                ? "bg-brass text-white border-brass"
+                                : "bg-surface-2 border-line text-text-muted dark:text-text-muted"
                             }`}
                           >
                             Inter-State (IGST)
                           </button>
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Eligible Input Tax Credit (ITC) Available (₹)
                           </label>
                           <input
@@ -1311,42 +1300,42 @@ function ToolsContent() {
                             value={gstItc ? formatINR(gstItc) : ""}
                             onChange={e => setGstItc(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 8,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 flex flex-col justify-between space-y-4">
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
                         <div className="space-y-3">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                          <span className="text-xs font-medium text-text-muted block">
                             Tax Assessment & Compliance
                           </span>
                           <div className="grid grid-cols-2 gap-2.5">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Total GST</div>
-                              <div className="text-sm sm:text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Total GST</div>
+                              <div className="text-sm sm:text-base font-semibold text-brass tabular-nums">
                                 ₹{calculatedGST.toLocaleString("en-IN")}
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">
+                              <div className="text-xs text-text-muted mt-0.5">
                                 {!gstIsInterState ? `CGST ₹${gstCgst.toLocaleString("en-IN")} + SGST ₹${gstSgst.toLocaleString("en-IN")}` : `IGST ₹${gstIgst.toLocaleString("en-IN")}`}
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-500 dark:text-slate-400">Net Tax Payable (after ITC)</div>
-                              <div className="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Net Tax Payable (after ITC)</div>
+                              <div className="text-sm sm:text-base font-semibold text-jade tabular-nums">
                                 ₹{gstNetPayable.toLocaleString("en-IN")}
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                              <div className="text-xs text-text-muted mt-0.5 tabular-nums">
                                 Invoice Gross: ₹{gstGrossTotal.toLocaleString("en-IN")}
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="pt-3 border-t border-slate-200 dark:border-white/10">
+                        <div className="pt-3 border-t border-line">
                           <Link
                             href={`/chat?message=${encodeURIComponent(`${cfoName}, analyze our GST cash outflow of ₹${gstNetPayable.toLocaleString("en-IN")} after ₹${gstItc.toLocaleString("en-IN")} ITC offset. How should we optimize working capital around GST filing deadlines?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
                           >
                             Verify GST Filing with {cfoName} →
                           </Link>
@@ -1361,7 +1350,7 @@ function ToolsContent() {
                       <div className="md:col-span-6 space-y-2.5 text-xs">
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               Annual Revenue (₹)
                             </label>
                             <input
@@ -1369,11 +1358,11 @@ function ToolsContent() {
                               inputMode="numeric"
                               value={wcRevenue ? formatINR(wcRevenue) : ""}
                               onChange={e => setWcRevenue(Number(parseINR(e.target.value)) || 0)}
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs"
+                              className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm"
                             />
                           </div>
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               Accounts Receivable (₹)
                             </label>
                             <input
@@ -1381,14 +1370,14 @@ function ToolsContent() {
                               inputMode="numeric"
                               value={wcReceivables ? formatINR(wcReceivables) : ""}
                               onChange={e => setWcReceivables(Number(parseINR(e.target.value)) || 0)}
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs"
+                              className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm"
                             />
                           </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               Annual COGS / Direct (₹)
                             </label>
                             <input
@@ -1396,11 +1385,11 @@ function ToolsContent() {
                               inputMode="numeric"
                               value={wcCogs ? formatINR(wcCogs) : ""}
                               onChange={e => setWcCogs(Number(parseINR(e.target.value)) || 0)}
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs"
+                              className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm"
                             />
                           </div>
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               Inventory Value (₹)
                             </label>
                             <input
@@ -1408,13 +1397,13 @@ function ToolsContent() {
                               inputMode="numeric"
                               value={wcInventory ? formatINR(wcInventory) : ""}
                               onChange={e => setWcInventory(Number(parseINR(e.target.value)) || 0)}
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs"
+                              className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Accounts Payable to Vendors (₹)
                           </label>
                           <input
@@ -1422,44 +1411,44 @@ function ToolsContent() {
                             inputMode="numeric"
                             value={wcPayables ? formatINR(wcPayables) : ""}
                             onChange={e => setWcPayables(Number(parseINR(e.target.value)) || 0)}
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs"
+                            className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm"
                           />
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 flex flex-col justify-between space-y-3">
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3">
                         <div className="space-y-2.5">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                          <span className="text-xs font-medium text-text-muted block">
                             Working Capital & Cash Velocity
                           </span>
                           <div className="grid grid-cols-3 gap-2">
-                            <div className="p-2 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 text-center">
-                              <div className="text-[9px] text-slate-400">DSO (Receivables)</div>
-                              <div className="text-xs sm:text-sm font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">{wcDso} d</div>
+                            <div className="p-2 rounded-xl bg-surface border border-line text-center">
+                              <div className="text-[9px] text-text-muted">DSO (Receivables)</div>
+                              <div className="text-xs sm:text-sm font-semibold text-brass tabular-nums">{wcDso} d</div>
                             </div>
-                            <div className="p-2 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 text-center">
-                              <div className="text-[9px] text-slate-400">DIO (Inventory)</div>
-                              <div className="text-xs sm:text-sm font-extrabold text-amber-500 font-mono">{wcDio} d</div>
+                            <div className="p-2 rounded-xl bg-surface border border-line text-center">
+                              <div className="text-[9px] text-text-muted">DIO (Inventory)</div>
+                              <div className="text-xs sm:text-sm font-semibold text-caution tabular-nums">{wcDio} d</div>
                             </div>
-                            <div className="p-2 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 text-center">
-                              <div className="text-[9px] text-slate-400">DPO (Payables)</div>
-                              <div className="text-xs sm:text-sm font-extrabold text-emerald-500 font-mono">{wcDpo} d</div>
+                            <div className="p-2 rounded-xl bg-surface border border-line text-center">
+                              <div className="text-[9px] text-text-muted">DPO (Payables)</div>
+                              <div className="text-xs sm:text-sm font-semibold text-jade tabular-nums">{wcDpo} d</div>
                             </div>
                           </div>
-                          <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
-                            <span className="text-slate-500 text-[11px]">Cash Conversion Cycle (CCC):</span>
-                            <span className="font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">{wcCcc} Days</span>
+                          <div className="p-2.5 rounded-xl bg-surface border border-line flex items-center justify-between text-xs">
+                            <span className="text-text-muted text-xs">Cash Conversion Cycle (CCC):</span>
+                            <span className="font-semibold text-brass tabular-nums">{wcCcc} Days</span>
                           </div>
-                          <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
-                            <span className="text-slate-500 text-[11px]">Trapped Working Capital:</span>
-                            <span className="font-extrabold text-slate-900 dark:text-white font-mono">₹{wcTrappedCash.toLocaleString("en-IN")}</span>
+                          <div className="p-2.5 rounded-xl bg-surface border border-line flex items-center justify-between text-xs">
+                            <span className="text-text-muted text-xs">Trapped Working Capital:</span>
+                            <span className="font-semibold text-text tabular-nums">₹{wcTrappedCash.toLocaleString("en-IN")}</span>
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-200 dark:border-white/10">
+                        <div className="pt-2 border-t border-line">
                           <Link
                             href={`/chat?message=${encodeURIComponent(`${cfoName}, our cash conversion cycle is ${wcCcc} days with ₹${wcTrappedCash.toLocaleString("en-IN")} trapped in working capital. How do we compress DSO from ${wcDso} days?`)}`}
-                            className="w-full block py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
+                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
                           >
                             Optimize Cash Conversion with {cfoName} →
                           </Link>
@@ -1473,7 +1462,7 @@ function ToolsContent() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       <div className="md:col-span-6 space-y-3 text-xs">
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Standard Deal / Contract Price (₹)
                           </label>
                           <input
@@ -1482,66 +1471,66 @@ function ToolsContent() {
                             value={discDealPrice ? formatINR(discDealPrice) : ""}
                             onChange={e => setDiscDealPrice(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 5,00,000"
-                            className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-cyan-500"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               Standard Gross Margin (%)
                             </label>
                             <input
                               type="number"
                               value={discBaseMargin}
                               onChange={e => setDiscBaseMargin(Number(e.target.value) || 0)}
-                              className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs"
+                              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm"
                             />
                           </div>
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               Proposed Discount (%)
                             </label>
                             <input
                               type="number"
                               value={discPercent}
                               onChange={e => setDiscPercent(Number(e.target.value) || 0)}
-                              className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-xs"
+                              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm"
                             />
                           </div>
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 flex flex-col justify-between space-y-3">
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3">
                         <div className="space-y-2.5">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                          <span className="text-xs font-medium text-text-muted block">
                             Margin Erosion Diagnostics
                           </span>
                           <div className="grid grid-cols-2 gap-2.5">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-400">Discounted Price</div>
-                              <div className="text-sm font-extrabold text-slate-900 dark:text-white font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Discounted Price</div>
+                              <div className="text-sm font-semibold text-text tabular-nums">
                                 ₹{discDiscountedPrice.toLocaleString("en-IN")}
                               </div>
-                              <div className="text-[10px] text-rose-500 mt-0.5">
+                              <div className="text-xs text-negative mt-0.5">
                                 Margin: {discNewMargin}% (was {discBaseMargin}%)
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-400">Extra Volume Needed</div>
-                              <div className="text-sm font-extrabold text-amber-500 font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Extra Volume Needed</div>
+                              <div className="text-sm font-semibold text-caution tabular-nums">
                                 +{discExtraVolumeNeeded}%
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">
+                              <div className="text-xs text-text-muted mt-0.5">
                                 to match base profit
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-200 dark:border-white/10">
+                        <div className="pt-2 border-t border-line">
                           <Link
                             href={`/chat?message=${encodeURIComponent(`${cfoName}, our sales rep wants to offer a ${discPercent}% discount on a ₹${discDealPrice.toLocaleString("en-IN")} deal. This drops our gross margin from ${discBaseMargin}% to ${discNewMargin}% and requires ${discExtraVolumeNeeded}% more volume. Should we approve this discount?`)}`}
-                            className="w-full block py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
+                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
                           >
                             Analyze Discount Risk with {cfoName} →
                           </Link>
@@ -1555,7 +1544,7 @@ function ToolsContent() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       <div className="md:col-span-6 space-y-2.5 text-xs">
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Starting Month MRR (₹)
                           </label>
                           <input
@@ -1563,12 +1552,12 @@ function ToolsContent() {
                             inputMode="numeric"
                             value={nrrStartingMrr ? formatINR(nrrStartingMrr) : ""}
                             onChange={e => setNrrStartingMrr(Number(parseINR(e.target.value)) || 0)}
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 font-mono text-xs"
+                            className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line tabular-nums text-xs"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               Churned / Lost MRR (₹)
                             </label>
                             <input
@@ -1576,11 +1565,11 @@ function ToolsContent() {
                               inputMode="numeric"
                               value={nrrChurnMrr ? formatINR(nrrChurnMrr) : ""}
                               onChange={e => setNrrChurnMrr(Number(parseINR(e.target.value)) || 0)}
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 font-mono text-xs text-rose-500"
+                              className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line tabular-nums text-xs text-negative"
                             />
                           </div>
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               Expansion / Upsell MRR (₹)
                             </label>
                             <input
@@ -1588,12 +1577,12 @@ function ToolsContent() {
                               inputMode="numeric"
                               value={nrrExpansionMrr ? formatINR(nrrExpansionMrr) : ""}
                               onChange={e => setNrrExpansionMrr(Number(parseINR(e.target.value)) || 0)}
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 font-mono text-xs text-emerald-500"
+                              className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line tabular-nums text-xs text-jade"
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             New Signups / Inbound MRR (₹)
                           </label>
                           <input
@@ -1601,40 +1590,40 @@ function ToolsContent() {
                             inputMode="numeric"
                             value={nrrNewMrr ? formatINR(nrrNewMrr) : ""}
                             onChange={e => setNrrNewMrr(Number(parseINR(e.target.value)) || 0)}
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 font-mono text-xs"
+                            className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line tabular-nums text-xs"
                           />
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 flex flex-col justify-between space-y-3">
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3">
                         <div className="space-y-2.5">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                          <span className="text-xs font-medium text-text-muted block">
                             Retention & Expansion Benchmarks
                           </span>
                           <div className="grid grid-cols-2 gap-2.5">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-400">Net Revenue Retention</div>
-                              <div className={`text-base font-extrabold font-mono ${Number(nrrPercentage) >= 100 ? "text-emerald-500" : "text-amber-500"}`}>
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Net Revenue Retention</div>
+                              <div className={`text-base font-semibold tabular-nums ${Number(nrrPercentage) >= 100 ? "text-jade" : "text-caution"}`}>
                                 {nrrPercentage}%
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">GRR: {nrrGrr}%</div>
+                              <div className="text-xs text-text-muted mt-0.5">GRR: {nrrGrr}%</div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-400">Ending MRR</div>
-                              <div className="text-base font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Ending MRR</div>
+                              <div className="text-base font-semibold text-brass tabular-nums">
                                 ₹{nrrEndingMrr.toLocaleString("en-IN")}
                               </div>
-                              <div className="text-[10px] text-emerald-500 mt-0.5 font-mono">
+                              <div className="text-xs text-jade mt-0.5 tabular-nums">
                                 +₹{nrrNetGain.toLocaleString("en-IN")}/mo
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-200 dark:border-white/10">
+                        <div className="pt-2 border-t border-line">
                           <Link
                             href={`/chat?message=${encodeURIComponent(`${ceoName} & ${cfoName}, our current Net Revenue Retention is ${nrrPercentage}% with ₹${nrrChurnMrr.toLocaleString("en-IN")} monthly churn. What accounts are at risk and how do we drive account expansion?`)}`}
-                            className="w-full block py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
+                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
                           >
                             Review Retention Playbook with {ceoName} →
                           </Link>
@@ -1648,7 +1637,7 @@ function ToolsContent() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       <div className="md:col-span-6 space-y-2.5 text-xs">
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Annual Base CTC / Salary (₹)
                           </label>
                           <input
@@ -1657,12 +1646,12 @@ function ToolsContent() {
                             value={empBaseCtc ? formatINR(empBaseCtc) : ""}
                             onChange={e => setEmpBaseCtc(Number(parseINR(e.target.value)) || 0)}
                             placeholder="e.g. 12,00,000"
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 font-mono text-xs"
+                            className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line tabular-nums text-xs"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               Statutory & Benefits (%)
                             </label>
                             <input
@@ -1670,11 +1659,11 @@ function ToolsContent() {
                               value={empBenefitsPct}
                               onChange={e => setEmpBenefitsPct(Number(e.target.value) || 0)}
                               placeholder="e.g. 18 (PF, Health)"
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 font-mono text-xs"
+                              className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line tabular-nums text-xs"
                             />
                           </div>
                           <div>
-                            <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                            <label className="font-medium text-text block mb-1.5 text-sm">
                               SaaS Tools & Hardware / yr (₹)
                             </label>
                             <input
@@ -1682,12 +1671,12 @@ function ToolsContent() {
                               inputMode="numeric"
                               value={empToolsAnnual ? formatINR(empToolsAnnual) : ""}
                               onChange={e => setEmpToolsAnnual(Number(parseINR(e.target.value)) || 0)}
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 font-mono text-xs"
+                              className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line tabular-nums text-xs"
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="font-semibold text-slate-700 dark:text-slate-200 block mb-1">
+                          <label className="font-medium text-text block mb-1.5 text-sm">
                             Target Billable Hours / Year
                           </label>
                           <input
@@ -1695,42 +1684,42 @@ function ToolsContent() {
                             value={empBillableHours}
                             onChange={e => setEmpBillableHours(Number(e.target.value) || 0)}
                             placeholder="e.g. 1,500 hrs"
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 font-mono text-xs"
+                            className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line tabular-nums text-xs"
                           />
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 flex flex-col justify-between space-y-3">
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3">
                         <div className="space-y-2.5">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                          <span className="text-xs font-medium text-text-muted block">
                             True Headcount Economics
                           </span>
                           <div className="grid grid-cols-2 gap-2.5">
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-400">Total Loaded Annual Cost</div>
-                              <div className="text-sm font-extrabold text-slate-900 dark:text-white font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Total Loaded Annual Cost</div>
+                              <div className="text-sm font-semibold text-text tabular-nums">
                                 ₹{empLoadedAnnual.toLocaleString("en-IN")}
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">
+                              <div className="text-xs text-text-muted mt-0.5">
                                 ₹{empLoadedMonthly.toLocaleString("en-IN")}/mo burn
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-white dark:bg-[#131B2C] border border-slate-200 dark:border-white/10 shadow-xs">
-                              <div className="text-[10px] text-slate-400">Min Client Billing Rate</div>
-                              <div className="text-sm font-extrabold text-emerald-500 font-mono">
+                            <div className="p-2.5 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Min Client Billing Rate</div>
+                              <div className="text-sm font-semibold text-jade tabular-nums">
                                 ₹{empBillingRate}/hr
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">
+                              <div className="text-xs text-text-muted mt-0.5">
                                 (Cost: ₹{empHourlyCost}/hr @ 40% margin)
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-200 dark:border-white/10">
+                        <div className="pt-2 border-t border-line">
                           <Link
                             href={`/chat?message=${encodeURIComponent(`${cfoName}, an employee with ₹${empBaseCtc.toLocaleString("en-IN")} base CTC costs us ₹${empLoadedAnnual.toLocaleString("en-IN")} fully loaded. How should we price their services to maintain 40% gross margins?`)}`}
-                            className="w-full block py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs text-center btn-tactile transition-colors shadow-xs"
+                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
                           >
                             Evaluate Hiring Economics with {cfoName} →
                           </Link>
@@ -1741,29 +1730,29 @@ function ToolsContent() {
 
                   {/* Fallback interactive sandbox for any other tool with calculator enabled */}
                   {!["profit", "breakeven", "cac", "ltv", "cashflow", "roi", "emi", "gst", "working_capital", "discount_margin", "nrr", "loaded_cost"].includes(activeTool.id) && (
-                    <div className="p-6 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 text-center space-y-4">
-                      <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400 mx-auto">
+                    <div className="p-6 rounded-xl bg-surface-2/50 border border-line text-center space-y-4">
+                      <div className="w-12 h-12 rounded-2xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass mx-auto">
                         <Activity className="w-6 h-6" />
                       </div>
                       <div className="space-y-1">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                          {activeTool.name} Interactive Engine
+                        <h3 className="text-sm font-bold text-text">
+                          {activeTool.name}
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                          Configured with active ledger parameters for {activeTool.name}. You can calibrate assumptions or execute a full simulation in AI Workspace.
+                        <p className="text-xs text-text-muted max-w-md mx-auto">
+                          Work this through with your advisor, or test a scenario in the Decision Simulator.
                         </p>
                       </div>
                       <div className="pt-3 flex items-center justify-center gap-3">
                         <Link
                           href={`/chat?message=${encodeURIComponent(`Open ${activeTool.name} analysis with relevant operational telemetry.`)}`}
-                          className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold text-xs btn-tactile inline-flex items-center gap-2 shadow-xs transition-colors"
+                          className="px-4 py-2.5 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm inline-flex items-center gap-2 transition-colors"
                         >
                           <Bot className="w-4 h-4" />
-                          <span>Open in AI Workspace</span>
+                          <span>Ask your advisor</span>
                         </Link>
                         <Link
                           href="/simulator"
-                          className="px-4 py-2.5 rounded-xl bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 hover:border-slate-300 text-slate-800 dark:text-white font-bold text-xs btn-tactile inline-flex items-center gap-2 transition-colors shadow-xs"
+                          className="px-4 py-2.5 rounded-xl bg-surface border border-line hover:border-line-strong text-text font-medium text-sm inline-flex items-center gap-2 transition-colors"
                         >
                           <span>Decision Simulator</span>
                           <ArrowRight className="w-4 h-4" />
