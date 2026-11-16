@@ -73,7 +73,8 @@ Without these, the app still works. Password reset by email, invite emails and t
 | `GCP_BILLING_EXPORT_TABLE`, `GCP_BILLING_SERVICE_ACCOUNT`, `GCP_CREDITS_TOTAL` | Real Google Cloud spend on the admin DataPal Usage page (needs the BigQuery billing export) |
 | `GOOGLE_PICKER_API_KEY`, `GOOGLE_PROJECT_NUMBER` | Google Drive file picker |
 | `MICROSOFT_CLIENT_ID`, `NEXT_PUBLIC_MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | OneDrive connection |
-| `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `COHERE_API_KEY` | AI advisors (tried in turn until one answers) |
+| `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `COHERE_API_KEY` | AI advisors. Gemini answers first (a lighter model for Free users, a stronger one for paid plans); the others are fallbacks, tried in turn |
+| `GEMINI_MODELS_FREE`, `GEMINI_MODELS_PAID` | Optional. Comma-separated Gemini model names for each tier, tried in order. Defaults are built in |
 | `RAZORPAY_KEY_ID`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Real payments. Without them payments are unavailable on a live server |
 | `ALLOW_SIMULATED_PAYMENTS=true` | **Local test machine only.** Lets the fake "Complete test payment" checkout run. Never set it on the live server |
 | `GST_API_PROVIDER`, `GST_API_KEY`, `GST_API_BASE_URL`, `KYC_API_KEY`, `KYC_API_BASE_URL`, `IFSC_API_BASE` | Business verification services |

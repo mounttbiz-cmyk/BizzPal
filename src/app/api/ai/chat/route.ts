@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserBusiness, getUserBusinessId } from "@/lib/db";
+import { getTeamMembership, getUserActiveSubscription, getUserBusiness, getUserBusinessId } from "@/lib/db";
 import { requireUser } from "@/lib/auth/requireUser";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { searchCompanyKnowledge } from "@/lib/knowledge/retrieval";
@@ -11,15 +11,32 @@ interface ProviderAttempt {
   call: (prompt: string) => Promise<string | null>;
 }
 
-async function callGemini(apiKey: string, prompt: string): Promise<string | null> {
-  const models = ["gemini-1.5-flash", "gemini-flash-latest", "gemini-1.5-pro"];
+// Which Gemini models answer, by plan. Each list is tried in order, so a retired model name falls through to the next one.
+// Change them without a deploy by setting GEMINI_MODELS_FREE / GEMINI_MODELS_PAID (comma separated) on the server.
+const listFromEnv = (value: string | undefined, fallback: string[]) => {
+  const items = (value || "").split(",").map(x => x.trim()).filter(Boolean);
+  return items.length > 0 ? items : fallback;
+};
+const GEMINI_MODELS = {
+  free: () => listFromEnv(process.env.GEMINI_MODELS_FREE, ["gemini-2.5-flash-lite", "gemini-flash-lite-latest", "gemini-flash-latest"]),
+  paid: () => listFromEnv(process.env.GEMINI_MODELS_PAID, ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-flash-latest"]),
+};
+
+/** A paid plan is active for this person, or for the business they work in as a teammate. */
+function hasPaidPlan(email: string): boolean {
+  const owner = getTeamMembership(email)?.ownerEmail || email;
+  const sub: any = getUserActiveSubscription(owner);
+  return Boolean(sub && sub.plan_id && sub.plan_id !== "free");
+}
+
+async function callGemini(apiKey: string, prompt: string, models: string[]): Promise<string | null> {
   for (const model of models) {
     try {
       const resp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: { temperature: 0.7, maxOutputTokens: 3500 },
@@ -261,12 +278,14 @@ Instructions:
 
     const fullPrompt = `${systemPrompt}\n\nExecutive Request from User: ${message}`;
 
+    const paid = hasPaidPlan(accountEmail);
+
     const providerChain: ProviderAttempt[] = [
       {
         name: "Google Gemini",
         call: (prompt) => {
           const key = process.env.GEMINI_API_KEY;
-          return key ? callGemini(key, prompt) : Promise.resolve(null);
+          return key ? callGemini(key, prompt, paid ? GEMINI_MODELS.paid() : GEMINI_MODELS.free()) : Promise.resolve(null);
         },
       },
       {
