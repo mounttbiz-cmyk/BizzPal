@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getPlatformConfig, createPaymentOrderRecord } from "@/lib/db";
 import { getRazorpayCredentials, simulatedPaymentsAllowed } from "@/lib/payments/config";
 import { resolvePack } from "@/lib/datapal/plans";
+import { requireUser } from "@/lib/auth/requireUser";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
 
 export const dynamic = "force-dynamic";
@@ -20,9 +21,13 @@ function parsePriceToPaise(priceVal: string | number): number {
 }
 
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const userEmail = auth.email;
   try {
     const body = await req.json();
-    const { planId, planName: rawPlanName, amount: rawAmount, userEmail, userName, businessId } = body;
+    const { planId, planName: rawPlanName, amount: rawAmount, userName } = body;
+    const businessId = undefined as string | undefined;
 
     if (!planId) {
       return NextResponse.json({ success: false, error: "planId is required" }, { status: 400 });
@@ -92,7 +97,7 @@ export async function POST(req: Request) {
             notes: {
               planId,
               planName,
-              userEmail: userEmail || "guest@bizzpal.ai",
+              userEmail,
               businessId: businessId || "default"
             }
           }),
@@ -132,7 +137,7 @@ export async function POST(req: Request) {
     // 3. Persist order record in SQLite payment_transactions
     createPaymentOrderRecord({
       orderId,
-      userEmail: userEmail || "guest@bizzpal.ai",
+      userEmail,
       planId,
       amount: amountInPaise,
       currency: "INR",

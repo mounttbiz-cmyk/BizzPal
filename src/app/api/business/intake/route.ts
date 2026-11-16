@@ -1,42 +1,20 @@
 import { NextResponse } from "next/server";
-import { db, DEFAULT_BUSINESS_ID, getPlatformConfig, saveUserBusinessProfile } from "@/lib/db";
+import { db, getUserBusinessId, saveUserBusinessProfile } from "@/lib/db";
+import { requireUser } from "@/lib/auth/requireUser";
 
 export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
   try {
-    const { searchParams } = new URL(req.url);
-    const businessId = searchParams.get("businessId");
-    const email = searchParams.get("email");
-
-    let business: any = null;
-
-    if (businessId) {
-      business = db.prepare("SELECT * FROM businesses WHERE id = ?").get(businessId) as any;
-    } else if (email) {
-      const emailBizId = `biz_${email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_')}`;
-      business = db.prepare("SELECT * FROM businesses WHERE id = ?").get(emailBizId) as any;
-      if (!business) {
-        const user = db.prepare("SELECT business_profile FROM registered_users WHERE LOWER(email) = ?").get(email.trim().toLowerCase()) as any;
-        if (user?.business_profile) {
-          try {
-            business = typeof user.business_profile === "string" ? JSON.parse(user.business_profile) : user.business_profile;
-          } catch {}
-        }
+    const email = auth.email;
+    let business: any = db.prepare("SELECT * FROM businesses WHERE id = ?").get(getUserBusinessId(email)) as any;
+    if (!business) {
+      const user = db.prepare("SELECT business_profile FROM registered_users WHERE LOWER(email) = ?").get(email) as any;
+      if (user?.business_profile) {
+        try {
+          business = typeof user.business_profile === "string" ? JSON.parse(user.business_profile) : user.business_profile;
+        } catch {}
       }
-    }
-
-    if (!business) {
-      const activeTenantId = getPlatformConfig("active_tenant_id", null);
-      if (activeTenantId) {
-        business = db.prepare("SELECT * FROM businesses WHERE id = ?").get(activeTenantId) as any;
-      }
-    }
-
-    if (!business) {
-      business = db.prepare("SELECT * FROM businesses ORDER BY updated_at DESC LIMIT 1").get() as any;
-    }
-
-    if (!business) {
-      business = db.prepare("SELECT * FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID) as any;
     }
 
     if (!business) {
@@ -81,11 +59,13 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
   try {
     const body = await req.json();
+    // Who this belongs to comes from the sign-in, never from the request body
+    const userEmail = auth.email;
     const {
-      businessId,
-      userEmail,
       name,
       industry,
       industryLabel,
@@ -109,7 +89,7 @@ export async function POST(req: Request) {
 
     const now = new Date().toISOString();
 
-    const targetBizId = businessId || (userEmail ? `biz_${userEmail.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_')}` : DEFAULT_BUSINESS_ID);
+    const targetBizId = getUserBusinessId(userEmail);
 
     // If structured daily input was received, calculate updated revenue / burn / cash
     let finalAnnualRevenue = annualRevenue;

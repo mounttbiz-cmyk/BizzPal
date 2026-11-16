@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
 import { checkDomainProof, emailMatchesDomain, newChallengeToken, normalizeDomain } from "@/lib/verification/domain";
 import { cleanEmail, computeLevel, getVerification, rateLimited, saveVerification } from "@/lib/verification/store";
@@ -20,10 +21,13 @@ function instructions(domain: string, token: string) {
  *  check     -> looks for that token on the domain; marks the domain verified only if found
  */
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
 
-  const email = cleanEmail(body?.email);
+  const email = auth.email;
   if (!email || !email.includes("@")) {
     return NextResponse.json({ error: "Please sign in again, then retry." }, { status: 401 });
   }

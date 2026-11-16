@@ -133,6 +133,7 @@ export function CloudDrivePickerModal({
   // Listen for OAuth completion messages from popups
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       if (
         event.data?.type === "BIZZPAL_GOOGLE_AUTH_SUCCESS" ||
         event.data?.type === "BIZZPAL_ONEDRIVE_AUTH_SUCCESS"

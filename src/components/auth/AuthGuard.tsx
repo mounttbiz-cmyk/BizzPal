@@ -2,44 +2,53 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ensureServerSession } from "@/lib/firebase/serverSession";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    try {
-      const session = localStorage.getItem("bizzpal_user_session");
-      if (session) {
-        const parsed = JSON.parse(session);
-        if (parsed && (parsed.email || parsed.uid || parsed.id)) {
-          setChecked(true);
-          const email = parsed.email;
-          if (email && typeof window !== "undefined") {
-            const sessionRecordedKey = `bizzpal_session_recorded_${email}`;
-            const lastRec = sessionStorage.getItem(sessionRecordedKey);
-            if (!lastRec) {
-              sessionStorage.setItem(sessionRecordedKey, new Date().toISOString());
-              fetch("/api/auth/account-status", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  email,
-                  action: "login",
-                  lastLoginAt: new Date().toISOString(),
-                }),
-              }).catch(() => {});
-            }
-          }
+    let cancelled = false;
+    (async () => {
+      try {
+        const session = localStorage.getItem("bizzpal_user_session");
+        const parsed = session ? JSON.parse(session) : null;
+        if (!parsed || !(parsed.email || parsed.uid || parsed.id)) {
+          router.replace("/login");
           return;
         }
-      }
 
-      // No active authenticated user session -> redirect immediately to /login
-      router.replace("/login");
-    } catch {
-      router.replace("/login");
-    }
+        // The server has to agree that this browser is signed in. The copy in local storage proves nothing.
+        const ok = await ensureServerSession();
+        if (cancelled) return;
+        if (!ok) {
+          localStorage.removeItem("bizzpal_user_session");
+          router.replace("/login");
+          return;
+        }
+
+        setChecked(true);
+        const email = parsed.email;
+        if (email) {
+          const sessionRecordedKey = `bizzpal_session_recorded_${email}`;
+          const lastRec = sessionStorage.getItem(sessionRecordedKey);
+          if (!lastRec) {
+            sessionStorage.setItem(sessionRecordedKey, new Date().toISOString());
+            fetch("/api/auth/account-status", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, action: "login", lastLoginAt: new Date().toISOString() }),
+            }).catch(() => {});
+          }
+        }
+      } catch {
+        router.replace("/login");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   if (!checked) {

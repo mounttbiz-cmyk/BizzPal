@@ -1,3 +1,5 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
 import { parseUploadedContent, ParsedBusinessMetrics } from "@/lib/upload/dataParser";
@@ -5,17 +7,21 @@ import * as XLSX from "xlsx";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     // 1. Get current business record
-    const business = db.prepare("SELECT * FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID) as any;
+    const business = db.prepare("SELECT * FROM businesses WHERE id = ?").get(tenantId) as any;
 
     // 2. Get active upload record
     let activeUpload: any = null;
     try {
       activeUpload = db
         .prepare("SELECT * FROM business_data_uploads WHERE business_id = ? AND active = 1 ORDER BY created_at DESC LIMIT 1")
-        .get(DEFAULT_BUSINESS_ID);
+        .get(tenantId);
     } catch {}
 
     // 3. Get recent history
@@ -23,7 +29,7 @@ export async function GET() {
     try {
       history = db
         .prepare("SELECT id, file_name, file_type, created_at, metrics_summary FROM business_data_uploads WHERE business_id = ? ORDER BY created_at DESC LIMIT 5")
-        .all(DEFAULT_BUSINESS_ID);
+        .all(tenantId);
     } catch {}
 
     return NextResponse.json({
@@ -67,6 +73,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const contentType = req.headers.get("content-type") || "";
     let metrics: ParsedBusinessMetrics;
@@ -118,7 +128,7 @@ export async function POST(req: Request) {
 
     // Mark previous uploads inactive
     try {
-      db.prepare("UPDATE business_data_uploads SET active = 0 WHERE business_id = ?").run(DEFAULT_BUSINESS_ID);
+      db.prepare("UPDATE business_data_uploads SET active = 0 WHERE business_id = ?").run(tenantId);
     } catch {}
 
     // Insert new upload record
@@ -129,7 +139,7 @@ export async function POST(req: Request) {
         ) VALUES (?, ?, ?, ?, ?, ?, 1, ?)
       `).run(
         uploadId,
-        DEFAULT_BUSINESS_ID,
+        tenantId,
         fileName,
         fileType,
         JSON.stringify(metrics),
@@ -141,7 +151,7 @@ export async function POST(req: Request) {
     }
 
     // Update main business record with uploaded metrics
-    const currentBiz = db.prepare("SELECT * FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID) as any;
+    const currentBiz = db.prepare("SELECT * FROM businesses WHERE id = ?").get(tenantId) as any;
     const finalName = metrics.name || currentBiz?.name || "My Enterprise";
     const finalIndustry = metrics.industry || currentBiz?.industry || "saas";
     const finalIndustryLabel = metrics.industryLabel || currentBiz?.industry_label || "B2B SaaS & Cloud Platforms";
@@ -176,7 +186,7 @@ export async function POST(req: Request) {
       finalBurn,
       finalCash,
       now,
-      DEFAULT_BUSINESS_ID
+      tenantId
     );
 
     return NextResponse.json({
@@ -205,13 +215,17 @@ export async function POST(req: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const now = new Date().toISOString();
 
     // Deactivate all uploads
     try {
-      db.prepare("UPDATE business_data_uploads SET active = 0 WHERE business_id = ?").run(DEFAULT_BUSINESS_ID);
+      db.prepare("UPDATE business_data_uploads SET active = 0 WHERE business_id = ?").run(tenantId);
     } catch {}
 
     // Reset default business values
@@ -228,7 +242,7 @@ export async function DELETE() {
         cash_on_hand = 0,
         updated_at = ?
       WHERE id = ?
-    `).run(now, DEFAULT_BUSINESS_ID);
+    `).run(now, tenantId);
 
     return NextResponse.json({
       success: true,

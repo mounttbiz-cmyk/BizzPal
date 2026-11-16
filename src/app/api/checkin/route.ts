@@ -1,3 +1,5 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
 import { generateDynamicCheckInQuestions } from "@/lib/checkin/generateQuestions";
@@ -8,22 +10,26 @@ function getTodayDateString(): string {
   return d.toISOString().split("T")[0];
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const today = getTodayDateString();
 
     // Check if check-in exists for today
     const checkin = db
       .prepare("SELECT * FROM daily_checkins WHERE business_id = ? AND date = ?")
-      .get(DEFAULT_BUSINESS_ID, today) as any;
+      .get(tenantId, today) as any;
 
     // Dynamically generate context-aware questions based on recent problems, past check-ins, tasks, and industry
-    const { questions, contextSummary } = generateDynamicCheckInQuestions(DEFAULT_BUSINESS_ID);
+    const { questions, contextSummary } = generateDynamicCheckInQuestions(tenantId);
 
     // Get recent check-ins
     const recentCheckins = db
       .prepare("SELECT * FROM daily_checkins WHERE business_id = ? ORDER BY date DESC LIMIT 7")
-      .all(DEFAULT_BUSINESS_ID) as any[];
+      .all(tenantId) as any[];
 
     return NextResponse.json({
       success: true,
@@ -59,6 +65,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const body = await req.json();
     const { answers = {}, rawText = "", source = "manual_web" } = body;
@@ -69,7 +79,7 @@ export async function POST(req: Request) {
     // Upsert check-in for today
     const existing = db
       .prepare("SELECT id FROM daily_checkins WHERE business_id = ? AND date = ?")
-      .get(DEFAULT_BUSINESS_ID, today) as any;
+      .get(tenantId, today) as any;
 
     if (existing) {
       db.prepare(`
@@ -92,7 +102,7 @@ export async function POST(req: Request) {
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(
         checkinId,
-        DEFAULT_BUSINESS_ID,
+        tenantId,
         today,
         source,
         JSON.stringify(answers),

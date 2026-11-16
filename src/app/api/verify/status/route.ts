@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
 import { cleanEmail, computeLevel, listVerifications } from "@/lib/verification/store";
 
@@ -5,7 +6,10 @@ export const dynamic = "force-dynamic";
 
 /** GET ?email= : what this account has verified so far (lets onboarding resume after a refresh). */
 export async function GET(req: Request) {
-  const email = cleanEmail(new URL(req.url).searchParams.get("email") || "");
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
+  const email = auth.email;
   if (!email) return NextResponse.json({ error: "email required" }, { status: 400 });
 
   const { level, gstin, domain, bank } = computeLevel(email);

@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
 import { cleanEmail, rateLimited } from "@/lib/verification/store";
 import {
@@ -20,8 +21,11 @@ const ownerOf = (v: any) => {
  * GET: returns the current HRIS connection, employee roster, headcount metrics, and available providers catalog
  */
 export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   const u = new URL(req.url);
-  const owner = ownerOf(u.searchParams.get("email"));
+  const owner = auth.email;
   if (!owner) {
     return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
   }
@@ -40,6 +44,9 @@ export async function GET(req: Request) {
  * body: { email: string, provider: HrisProvider, config: Record<string, string>, employees?: HrisEmployeeRecord[] }
  */
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   let b: any;
   try {
     b = await req.json();
@@ -47,7 +54,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
   }
 
-  const owner = ownerOf(b?.email);
+  const owner = auth.email;
   if (!owner) {
     return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
   }
@@ -85,6 +92,9 @@ export async function POST(req: Request) {
  * DELETE: disconnect and clear synced HRIS records
  */
 export async function DELETE(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   let b: any;
   try {
     b = await req.json();
@@ -92,7 +102,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
   }
 
-  const owner = ownerOf(b?.email);
+  const owner = auth.email;
   if (!owner) {
     return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
   }

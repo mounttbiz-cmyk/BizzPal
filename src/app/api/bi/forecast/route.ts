@@ -1,3 +1,5 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { generateMetricForecast } from "@/lib/bi/forecaster";
 import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib/db";
@@ -5,16 +7,17 @@ import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const { searchParams } = new URL(req.url);
     const metric = (searchParams.get("metric") as "revenue" | "burn") || "revenue";
     const months = Number(searchParams.get("months") || 4);
 
     const bizId =
-      searchParams.get("businessId") ||
-      getPlatformConfig("active_tenant_id", null) ||
-      getActiveBusiness()?.id ||
-      DEFAULT_BUSINESS_ID;
+      tenantId;
 
     const forecast = generateMetricForecast(metric, bizId, months);
 

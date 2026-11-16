@@ -1,19 +1,36 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { db, DEFAULT_BUSINESS_ID, healDatabasePermissions } from "@/lib/db";
+
+// Connection tokens and keys never go back to the browser
+function stripSecrets(cfg: any): any {
+  if (!cfg || typeof cfg !== "object") return cfg;
+  const clean: any = {};
+  for (const [k, v] of Object.entries(cfg)) {
+    if (/token|secret|password|apikey|api_key|privatekey/i.test(k)) continue;
+    clean[k] = v;
+  }
+  return clean;
+}
 
 // Fallback in-memory store for high availability during filesystem sync events
 const memoryIntegrations = new Map<string, any>();
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const integrations = db
       .prepare("SELECT * FROM integrations WHERE business_id = ? ORDER BY tool_key ASC")
-      .all(DEFAULT_BUSINESS_ID) as any[];
+      .all(tenantId) as any[];
 
     // Fetch recent Stripe events if Stripe is connected
     const stripeEvents = db
       .prepare("SELECT * FROM stripe_events WHERE business_id = ? ORDER BY created_at DESC LIMIT 5")
-      .all(DEFAULT_BUSINESS_ID) as any[];
+      .all(tenantId) as any[];
 
     const formatted = integrations.map(int => {
       let configObj = {};
@@ -34,7 +51,7 @@ export async function GET() {
         status: int.status, // 'not_connected' | 'pending_connection' | 'connected' | 'error'
         apiKey: int.api_key ? "sk_live_••••••••" + int.api_key.slice(-4) : null,
         updatedAt: int.updated_at,
-        config: configObj,
+        config: stripSecrets(configObj),
       };
     });
 
@@ -56,6 +73,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const body = await req.json();
     const { toolKey, status, apiKey, config } = body;
@@ -80,7 +101,7 @@ export async function POST(req: Request) {
       try {
         const existing = db
           .prepare("SELECT id, config FROM integrations WHERE business_id = ? AND tool_key = ?")
-          .get(DEFAULT_BUSINESS_ID, toolKey) as any;
+          .get(tenantId, toolKey) as any;
 
         let mergedConfig = config;
         if (existing && existing.config && config) {
@@ -103,7 +124,7 @@ export async function POST(req: Request) {
             apiKey !== undefined ? apiKey : null,
             mergedConfig ? JSON.stringify(mergedConfig) : null,
             now,
-            DEFAULT_BUSINESS_ID,
+            tenantId,
             toolKey
           );
         } else {
@@ -130,7 +151,7 @@ export async function POST(req: Request) {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             `int_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-            DEFAULT_BUSINESS_ID,
+            tenantId,
             toolKey,
             def.name,
             def.category,
@@ -142,7 +163,7 @@ export async function POST(req: Request) {
         }
 
         // If connecting or disconnecting tool, update connected_tools in business record
-        const biz = db.prepare("SELECT connected_tools FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID) as any;
+        const biz = db.prepare("SELECT connected_tools FROM businesses WHERE id = ?").get(tenantId) as any;
         if (biz) {
           let tools: string[] = biz.connected_tools ? JSON.parse(biz.connected_tools) : [];
           if (status === "connected") {
@@ -151,7 +172,7 @@ export async function POST(req: Request) {
               db.prepare("UPDATE businesses SET connected_tools = ?, no_integrations = 0, updated_at = ? WHERE id = ?").run(
                 JSON.stringify(tools),
                 now,
-                DEFAULT_BUSINESS_ID
+                tenantId
               );
             }
           } else if (status === "not_connected") {
@@ -159,7 +180,7 @@ export async function POST(req: Request) {
             db.prepare("UPDATE businesses SET connected_tools = ?, updated_at = ? WHERE id = ?").run(
               JSON.stringify(tools),
               now,
-              DEFAULT_BUSINESS_ID
+              tenantId
             );
           }
         }

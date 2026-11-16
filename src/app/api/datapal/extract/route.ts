@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractRealBusinessLeads } from "@/lib/datapal/realExtractor";
 import { makeLeadSignature } from "@/lib/datapal/signature";
 import { DataPalBusinessLead, DataPalSearchConfig } from "@/lib/datapal/types";
-import { logDataPalUsage, getDataPalCredits, consumeDataPalCredits, isUserRegistered } from "@/lib/db";
+import { logDataPalUsage, getDataPalCredits, consumeDataPalCredits } from "@/lib/db";
+import { requireUser } from "@/lib/auth/requireUser";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
@@ -31,10 +32,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Search configuration is required" }, { status: 400 });
     }
 
-    const email = String(account?.email || "").trim().toLowerCase();
-    if (!email.includes("@") || !isUserRegistered(email)) {
-      return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
-    }
+    // Who is searching comes from the signed-in session, never from the request body
+    const auth = requireUser(req);
+    if (auth instanceof NextResponse) return auth;
+    const email = auth.email;
     const userLimit = rateLimit(`dp-user:${email}`, 8, 5 * 60 * 1000);
     if (!userLimit.ok) {
       return NextResponse.json(

@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
 import { checkGstin } from "@/lib/verification/gstin";
 import { lookupGstin, registryConfigured } from "@/lib/verification/registry";
@@ -8,7 +9,10 @@ export const dynamic = "force-dynamic";
 const clientIp = (req: Request) => (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "local";
 
 /** GET: is the registry check wired up on this server? (lets the UI explain itself honestly) */
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   return NextResponse.json({ registryConfigured: registryConfigured() });
 }
 
@@ -19,10 +23,13 @@ export async function GET() {
  * "verified" is only ever written when the registry itself confirms an ACTIVE registration.
  */
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
 
-  const email = cleanEmail(body?.email);
+  const email = auth.email;
   if (!email || !email.includes("@")) {
     return NextResponse.json({ error: "Please sign in again, then retry." }, { status: 401 });
   }

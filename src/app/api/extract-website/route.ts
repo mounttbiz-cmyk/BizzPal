@@ -1,6 +1,10 @@
+import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { url } = await req.json();
     

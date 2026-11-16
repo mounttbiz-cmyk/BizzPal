@@ -1,3 +1,5 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextResponse } from "next/server";
 import {
   getBusinessAutomations,
@@ -7,12 +9,16 @@ import {
   DEFAULT_BUSINESS_ID
 } from "@/lib/db";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const automations = getBusinessAutomations();
     const integrations = db
       .prepare("SELECT tool_key, name, status FROM integrations WHERE business_id = ?")
-      .all(DEFAULT_BUSINESS_ID) as any[];
+      .all(tenantId) as any[];
 
     return NextResponse.json({
       success: true,
@@ -25,6 +31,10 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const body = await req.json();
     const { id, enabled } = body;
@@ -41,6 +51,10 @@ export async function PUT(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const body = await req.json();
     const { title, description, trigger, action, toolKey, category } = body;

@@ -1515,7 +1515,7 @@ export function addTeamMember(member: {
   return { id, ...member, status: "active", lastActive: "Invited today" };
 }
 
-export function updateTeamMember(id: string, updates: any) {
+export function updateTeamMember(id: string, updates: any, businessId?: string) {
   const sets: string[] = [];
   const vals: any[] = [];
   if (updates.name !== undefined) { sets.push("name = ?"); vals.push(updates.name); }
@@ -1527,7 +1527,12 @@ export function updateTeamMember(id: string, updates: any) {
 
   if (sets.length === 0) return false;
   vals.push(id);
-  db.prepare(`UPDATE team_members SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
+  if (businessId) {
+    vals.push(businessId);
+    db.prepare(`UPDATE team_members SET ${sets.join(", ")} WHERE id = ? AND business_id = ?`).run(...vals);
+  } else {
+    db.prepare(`UPDATE team_members SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
+  }
 
   addTeamAuditLog({
     businessId: updates.businessId || DEFAULT_BUSINESS_ID,
@@ -1539,8 +1544,8 @@ export function updateTeamMember(id: string, updates: any) {
 }
 
 export function deleteTeamMember(id: string, businessId = DEFAULT_BUSINESS_ID) {
-  const member = db.prepare("SELECT name FROM team_members WHERE id = ?").get(id) as any;
-  const res = db.prepare("DELETE FROM team_members WHERE id = ?").run(id);
+  const member = db.prepare("SELECT name FROM team_members WHERE id = ? AND business_id = ?").get(id, businessId) as any;
+  const res = db.prepare("DELETE FROM team_members WHERE id = ? AND business_id = ?").run(id, businessId);
   if (member?.name) {
     addTeamAuditLog({
       businessId,
@@ -1962,3 +1967,46 @@ export function confirmDataPalPackPayment(data: {
   }
   return { alreadyApplied: false, credits: addDataPalAddon(data.email, data.records) };
 }
+
+// ---------------------------------------------------------------
+// Each customer's own business. Every customer API looks up data with this id,
+// which comes from the signed-in email and never from anything the browser sends.
+// ---------------------------------------------------------------
+export function getUserBusinessId(email: string): string {
+  return `biz_${String(email || "").trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "_")}`;
+}
+
+export function getUserBusiness(email: string) {
+  try {
+    const row = db.prepare("SELECT * FROM businesses WHERE id = ?").get(getUserBusinessId(email)) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      name: row.name || "BizzPal Enterprise",
+      industry: (row.industry as any) || "saas",
+      industryLabel: row.industry_label || "Enterprise",
+      founderName: row.founder_name || "Founder",
+      annualRevenue: Number(row.annual_revenue || 0),
+      monthlyRevenue: Number(row.monthly_revenue || 0),
+      monthlyBurn: Number(row.monthly_burn || 0),
+      cashOnHand: Number(row.cash_on_hand || 0),
+      teamSize: Number(row.team_size || 5),
+      website: row.website || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+// One-time clean-up: saved plans that still promise the daily WhatsApp briefing say it is coming soon,
+// because messages are not being sent yet.
+try {
+  const row = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'subscription_plans'").get() as any;
+  const old = "Automated Daily 8:00 AM WhatsApp Briefings";
+  if (row && typeof row.config_value === "string" && row.config_value.includes(old)) {
+    db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'subscription_plans'").run(
+      row.config_value.split(old).join("Daily WhatsApp briefings (coming soon)"),
+      new Date().toISOString()
+    );
+  }
+} catch {}

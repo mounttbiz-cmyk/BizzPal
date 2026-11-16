@@ -1,3 +1,5 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { evaluateBusinessKpis } from "@/lib/bi/kpiMonitor";
 import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib/db";
@@ -6,18 +8,12 @@ export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  try {
-    let bizId: string | null = null;
-    try {
-      const body = await req.json();
-      bizId = body.businessId;
-    } catch {}
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
 
-    const targetBizId =
-      bizId ||
-      getPlatformConfig("active_tenant_id", null) ||
-      getActiveBusiness()?.id ||
-      DEFAULT_BUSINESS_ID;
+  try {
+    const targetBizId = tenantId;
 
     const evaluationResults = await evaluateBusinessKpis(targetBizId);
 

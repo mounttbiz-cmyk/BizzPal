@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
 import { secretsConfigured } from "@/lib/secrets";
 import { ProviderError, syncRazorpay, syncStripe, type Provider } from "@/lib/payments/providers";
@@ -22,16 +23,22 @@ const emailOf = (v: any) => { const e = cleanEmail(typeof v === "string" ? v : "
 
 /** GET ?email= : connected sources and the combined real revenue. Never returns credentials. */
 export async function GET(req: Request) {
-  const email = emailOf(new URL(req.url).searchParams.get("email"));
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
+  const email = auth.email;
   if (!email) return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
   return NextResponse.json({ sources: listPaymentSources(email), total: totalRevenue(email), secretsConfigured: secretsConfigured() });
 }
 
 /** POST { email, provider, keyId?, keySecret?, apiKey? } : verify the key against the provider, pull real revenue, store the key encrypted. */
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   let b: any;
   try { b = await req.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
-  const email = emailOf(b?.email);
+  const email = auth.email;
   if (!email) return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
   if (!isProvider(b?.provider)) return NextResponse.json({ error: "Unknown payment provider." }, { status: 400 });
   if (rateLimited(`pay-ip:${clientIp(req)}`, 30, 3_600_000) || rateLimited(`pay-em:${email}`, 12, 3_600_000)) {
@@ -70,9 +77,12 @@ export async function POST(req: Request) {
 
 /** PATCH { email, provider } : re-pull revenue with the stored key. */
 export async function PATCH(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   let b: any;
   try { b = await req.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
-  const email = emailOf(b?.email);
+  const email = auth.email;
   if (!email) return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
   if (!isProvider(b?.provider)) return NextResponse.json({ error: "Unknown payment provider." }, { status: 400 });
   if (rateLimited(`pay-sync:${email}`, 30, 3_600_000)) return NextResponse.json({ error: "Syncing too often. Try again later." }, { status: 429 });
@@ -92,9 +102,12 @@ export async function PATCH(req: Request) {
 
 /** DELETE { email, provider } : remove the source and its stored key. */
 export async function DELETE(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   let b: any;
   try { b = await req.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
-  const email = emailOf(b?.email);
+  const email = auth.email;
   if (!email) return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
   if (!isProvider(b?.provider)) return NextResponse.json({ error: "Unknown payment provider." }, { status: 400 });
   deletePaymentSource(email, b.provider);

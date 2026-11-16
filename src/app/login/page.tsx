@@ -390,6 +390,8 @@ export default function LoginPage() {
           );
 
           const handleGoogleMessage = async (event: MessageEvent) => {
+            // Only our own sign-in window may tell us someone signed in
+            if (event.origin !== window.location.origin) return;
             if (event.data?.type === "BIZZPAL_GOOGLE_AUTH_SUCCESS") {
               window.removeEventListener("message", handleGoogleMessage);
 

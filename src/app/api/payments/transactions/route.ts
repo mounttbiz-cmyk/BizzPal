@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
 import { getAllPaymentTransactions, getUserPaymentHistory, getUserActiveSubscription } from "@/lib/db";
+import { getSessionEmail } from "@/lib/userSession";
+import { ADMIN_COOKIE, verifyAdminSession } from "@/lib/adminSession";
+import { readCookie } from "@/lib/userSession";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const email = searchParams.get("email");
-    const isSuperadmin = searchParams.get("admin") === "true";
+    // The customer is whoever is signed in. The full ledger is for the admin only.
+    const email = getSessionEmail(req);
+    const wantsAll = searchParams.get("admin") === "true";
+    const isSuperadmin = wantsAll && (await verifyAdminSession(readCookie(req, ADMIN_COOKIE)));
+    if (wantsAll && !isSuperadmin) {
+      return NextResponse.json({ success: false, error: "Not allowed." }, { status: 403 });
+    }
 
     const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "";
     const keySecret = process.env.RAZORPAY_KEY_SECRET || "";

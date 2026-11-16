@@ -1,12 +1,18 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getActiveBusiness, db, DEFAULT_BUSINESS_ID } from "@/lib/db";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
-    const biz = getActiveBusiness();
+    const biz = getUserBusiness(auth.email);
     const uploads = db
       .prepare("SELECT * FROM business_data_uploads WHERE business_id = ? AND active = 1 ORDER BY created_at DESC")
-      .all(DEFAULT_BUSINESS_ID) as any[];
+      .all(tenantId) as any[];
 
     // Extract uploaded financial signals if present
     let uploadedMonthlyRev = 0;

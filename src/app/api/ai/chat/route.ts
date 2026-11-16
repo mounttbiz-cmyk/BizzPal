@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getActiveBusiness, DEFAULT_BUSINESS_ID, isUserRegistered } from "@/lib/db";
+import { getUserBusiness, getUserBusinessId } from "@/lib/db";
+import { requireUser } from "@/lib/auth/requireUser";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { searchCompanyKnowledge } from "@/lib/knowledge/retrieval";
 
@@ -145,10 +146,9 @@ export async function POST(req: NextRequest) {
 
     const { message, agentId, companyProfile, agentName, agentRole, customRoleTitle, email } = await req.json();
 
-    const accountEmail = String(email || "").trim().toLowerCase();
-    if (!accountEmail.includes("@") || !isUserRegistered(accountEmail)) {
-      return NextResponse.json({ success: false, error: "Please sign in again." }, { status: 401 });
-    }
+    const auth = requireUser(req);
+    if (auth instanceof NextResponse) return auth;
+    const accountEmail = auth.email;
     const userLimit = rateLimit(`chat-user:${accountEmail}`, 20, 60 * 1000);
     if (!userLimit.ok) {
       return NextResponse.json(
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
       title: resolvedRoleTitle,
     };
 
-    const activeBiz = getActiveBusiness();
+    const activeBiz = getUserBusiness(accountEmail);
     const resolvedProfile = companyProfile || activeBiz || {};
     const companyName = resolvedProfile.name || "Enterprise";
     const founderName = resolvedProfile.founderName || resolvedProfile.founder_name || "Founder";
@@ -240,7 +240,7 @@ Company Context:
     // Retrieve relevant company memory chunks if available
     let memoryEvidence = "";
     try {
-      const bizId = resolvedProfile.id || activeBiz?.id || DEFAULT_BUSINESS_ID;
+      const bizId = getUserBusinessId(accountEmail);
       const chunks = await searchCompanyKnowledge(message, bizId, { limit: 2, minSimilarity: 0.55 });
       if (chunks.length > 0) {
         memoryEvidence = `\nRelevant Company Memory & Documents:\n` + chunks.map(c => `- [${c.documentTitle} / ${c.sectionTitle || "General"}]: ${c.content.slice(0, 300)}`).join("\n") + "\n";

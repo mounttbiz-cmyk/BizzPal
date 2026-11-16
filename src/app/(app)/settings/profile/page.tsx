@@ -247,7 +247,7 @@ export default function BusinessProfileSettingsPage() {
     try {
       await logout();
     } catch (e) {}
-    localStorage.removeItem("bizzpal_user_session");
+    fetch("/api/auth/session", { method: "DELETE" }).catch(() => {}); localStorage.removeItem("bizzpal_user_session");
     router.push("/login?signin=true");
   };
 
@@ -285,7 +285,7 @@ export default function BusinessProfileSettingsPage() {
       }
 
       // 3. Clear local storage
-      localStorage.removeItem("bizzpal_user_session");
+      fetch("/api/auth/session", { method: "DELETE" }).catch(() => {}); localStorage.removeItem("bizzpal_user_session");
       localStorage.removeItem("bizzpal_business_profile");
       if (cleanEmail) {
         localStorage.removeItem(`bizzpal_user_business_${cleanEmail}`);

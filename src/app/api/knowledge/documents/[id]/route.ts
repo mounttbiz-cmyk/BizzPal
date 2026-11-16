@@ -1,3 +1,5 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { db, DEFAULT_BUSINESS_ID, getPlatformConfig, getActiveBusiness } from "@/lib/db";
 import { deleteCompanyDocument } from "@/lib/knowledge/ingest";
@@ -8,14 +10,15 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const documentId = params.id;
     const { searchParams } = new URL(req.url);
     const bizId =
-      searchParams.get("businessId") ||
-      getPlatformConfig("active_tenant_id", null) ||
-      getActiveBusiness()?.id ||
-      DEFAULT_BUSINESS_ID;
+      tenantId;
 
     const doc = db
       .prepare("SELECT * FROM company_documents WHERE id = ? AND business_id = ?")
@@ -57,14 +60,15 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const documentId = params.id;
     const { searchParams } = new URL(req.url);
     const bizId =
-      searchParams.get("businessId") ||
-      getPlatformConfig("active_tenant_id", null) ||
-      getActiveBusiness()?.id ||
-      DEFAULT_BUSINESS_ID;
+      tenantId;
 
     await deleteCompanyDocument(documentId, bizId);
     return NextResponse.json({ success: true, message: "Document removed successfully" });

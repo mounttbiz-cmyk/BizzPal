@@ -1,3 +1,5 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getCompanyDocuments, ingestCompanyDocument } from "@/lib/knowledge/ingest";
 import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib/db";
@@ -6,13 +8,14 @@ export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const { searchParams } = new URL(req.url);
     const bizId =
-      searchParams.get("businessId") ||
-      getPlatformConfig("active_tenant_id", null) ||
-      getActiveBusiness()?.id ||
-      DEFAULT_BUSINESS_ID;
+      tenantId;
 
     const docs = getCompanyDocuments(bizId);
     return NextResponse.json({ success: true, documents: docs, businessId: bizId });
@@ -22,13 +25,15 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const contentType = req.headers.get("content-type") || "";
     const bizId =
       req.headers.get("x-business-id") ||
-      getPlatformConfig("active_tenant_id", null) ||
-      getActiveBusiness()?.id ||
-      DEFAULT_BUSINESS_ID;
+      tenantId;
 
     let fileName = "company_document.txt";
     let fileBuffer: Buffer | string = "";

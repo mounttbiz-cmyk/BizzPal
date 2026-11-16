@@ -1,3 +1,5 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getKpiDefinitions, upsertKpiDefinition, evaluateBusinessKpis } from "@/lib/bi/kpiMonitor";
 import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib/db";
@@ -5,13 +7,14 @@ import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const { searchParams } = new URL(req.url);
     const bizId =
-      searchParams.get("businessId") ||
-      getPlatformConfig("active_tenant_id", null) ||
-      getActiveBusiness()?.id ||
-      DEFAULT_BUSINESS_ID;
+      tenantId;
 
     const kpis = getKpiDefinitions(bizId);
     return NextResponse.json({ success: true, kpis });
@@ -21,13 +24,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const body = await req.json();
     const bizId =
-      body.businessId ||
-      getPlatformConfig("active_tenant_id", null) ||
-      getActiveBusiness()?.id ||
-      DEFAULT_BUSINESS_ID;
+      tenantId;
 
     if (!body.metricKey || !body.name) {
       return NextResponse.json({ success: false, error: "metricKey and name are required" }, { status: 400 });

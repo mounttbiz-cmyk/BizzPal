@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { getDataPalCredits, isUserRegistered } from "@/lib/db";
+import { getDataPalCredits } from "@/lib/db";
+import { requireUser } from "@/lib/auth/requireUser";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const email = (new URL(req.url).searchParams.get("email") || "").trim().toLowerCase();
-  if (!email.includes("@") || !isUserRegistered(email)) {
-    return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
-  }
-  const c = getDataPalCredits(email);
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const c = getDataPalCredits(auth.email);
   return NextResponse.json({
     status: {
       planTier: c.planTier,

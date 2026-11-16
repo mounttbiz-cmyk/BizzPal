@@ -291,7 +291,7 @@ function DashboardContent() {
           const parsed = JSON.parse(savedProfileStr);
           if (parsed.name && parsed.name.includes("Acme")) {
             localStorage.removeItem("bizzpal_business_profile");
-            localStorage.removeItem("bizzpal_user_session");
+            fetch("/api/auth/session", { method: "DELETE" }).catch(() => {}); localStorage.removeItem("bizzpal_user_session");
             fetch("/api/business/intake")
               .then(r => r.json())
               .then(d => {
@@ -448,8 +448,8 @@ function DashboardContent() {
     setOverallHealthScore(calibratedHealth);
 
     try {
-      window.dispatchEvent(new CustomEvent("bizzpal_timeframe_changed", { 
-        detail: { timeframe: "Custom", days, startDate: customStartDate, endDate: customEndDate } 
+      window.dispatchEvent(new CustomEvent("bizzpal_timeframe_changed", {
+        detail: { timeframe: "Custom", days, startDate: customStartDate, endDate: customEndDate }
       }));
     } catch {}
     notify(`Applied custom range: ${days} days`);

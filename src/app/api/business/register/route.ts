@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cleanEmail, computeLevel, ensureVerificationSchema, listVerifications } from "@/lib/verification/store";
@@ -36,10 +37,13 @@ function domainLabel(domain: string): string {
  * they will be filled from connected sources, so they start empty (0) and are labelled as such.
  */
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
 
-  const email = cleanEmail(body?.email);
+  const email = auth.email;
   if (!email || !email.includes("@")) {
     return NextResponse.json({ error: "Please sign in again, then retry." }, { status: 401 });
   }

@@ -1,11 +1,17 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getOneDriveToken, fetchOneDriveFile } from "@/lib/integrations/oneDrive";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
-    const tokenInfo = await getOneDriveToken();
+    const tokenInfo = await getOneDriveToken(tenantId);
 
     if (!tokenInfo.connected || !tokenInfo.accessToken) {
       return NextResponse.json(

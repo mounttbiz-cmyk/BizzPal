@@ -1,3 +1,5 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getGoogleDriveToken } from "@/lib/integrations/googleDrive";
 
@@ -7,11 +9,15 @@ export const dynamic = "force-dynamic";
  * Everything the browser needs to open the Google file picker: a short-lived access token for the
  * connected account, plus the browser API key and the Google Cloud project number.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   const apiKey = process.env.GOOGLE_PICKER_API_KEY || "";
   const appId = process.env.GOOGLE_PROJECT_NUMBER || "";
 
-  const tokenInfo = await getGoogleDriveToken();
+  const tokenInfo = await getGoogleDriveToken(tenantId);
   if (!tokenInfo.connected || !tokenInfo.accessToken) {
     return NextResponse.json({ success: false, connected: false, error: tokenInfo.error || "Google Drive is not connected yet." });
   }

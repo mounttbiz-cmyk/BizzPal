@@ -1,3 +1,5 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextResponse } from "next/server";
 import {
   getTeamMembers,
@@ -8,11 +10,15 @@ import {
   getActiveBusiness
 } from "@/lib/db";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
-    const activeBiz = getActiveBusiness();
-    const members = getTeamMembers();
-    const auditLogs = getTeamAuditLogs();
+    const activeBiz = getUserBusiness(auth.email);
+    const members = getTeamMembers(tenantId);
+    const auditLogs = getTeamAuditLogs(tenantId);
 
     return NextResponse.json({
       success: true,
@@ -26,6 +32,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const body = await req.json();
     const { name, email, role, department, twoFactor } = body;
@@ -35,6 +45,7 @@ export async function POST(req: Request) {
     }
 
     const newMember = addTeamMember({
+      businessId: tenantId,
       name: name.trim(),
       email: email.trim().toLowerCase(),
       role: role || "Operator",
@@ -52,6 +63,10 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const body = await req.json();
     const { id, ...updates } = body;
@@ -60,7 +75,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Member ID is required" }, { status: 400 });
     }
 
-    const updated = updateTeamMember(id, updates);
+    const updated = updateTeamMember(id, updates, tenantId);
     return NextResponse.json({ success: updated });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -68,6 +83,10 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -76,7 +95,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Member ID is required" }, { status: 400 });
     }
 
-    const deleted = deleteTeamMember(id);
+    const deleted = deleteTeamMember(id, tenantId);
     return NextResponse.json({ success: deleted });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

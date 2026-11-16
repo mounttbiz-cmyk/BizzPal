@@ -61,7 +61,7 @@ export function categorizeFile(mimeType: string, fileName: string): CloudFileIte
  * Retrieve active Google Drive access token from SQLite.
  * Auto-refreshes if expired and a refresh token is present.
  */
-export async function getGoogleDriveToken(): Promise<{
+export async function getGoogleDriveToken(businessId: string): Promise<{
   connected: boolean;
   accessToken?: string;
   email?: string;
@@ -72,12 +72,12 @@ export async function getGoogleDriveToken(): Promise<{
     // Check google_drive first, then fallback to google integration
     let record = db
       .prepare("SELECT * FROM integrations WHERE business_id = ? AND tool_key = ?")
-      .get(DEFAULT_BUSINESS_ID, "google_drive") as any;
+      .get(businessId, "google_drive") as any;
 
     if (!record || record.status !== "connected") {
       record = db
         .prepare("SELECT * FROM integrations WHERE business_id = ? AND tool_key = ?")
-        .get(DEFAULT_BUSINESS_ID, "google") as any;
+        .get(businessId, "google") as any;
     }
 
     if (!record || record.status !== "connected" || !record.config) {
@@ -130,7 +130,7 @@ export async function getGoogleDriveToken(): Promise<{
             db.prepare(`
               UPDATE integrations SET config = ?, updated_at = ?
               WHERE business_id = ? AND tool_key = ?
-            `).run(JSON.stringify(config), now, DEFAULT_BUSINESS_ID, key);
+            `).run(JSON.stringify(config), now, businessId, key);
           }
         }
       }

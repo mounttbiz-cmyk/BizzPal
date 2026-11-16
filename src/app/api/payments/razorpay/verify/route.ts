@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { confirmPaymentAndActivateSubscription, confirmDataPalPackPayment, getPaymentTransactionByOrder, getPlatformConfig } from "@/lib/db";
 import { resolvePack } from "@/lib/datapal/plans";
+import { requireUser } from "@/lib/auth/requireUser";
 import { getRazorpayCredentials, simulatedPaymentsAllowed } from "@/lib/payments/config";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
 
@@ -14,6 +15,8 @@ function safeEqualHex(a: string, b: string) {
 }
 
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
   try {
     const body = await req.json();
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userName } = body;
@@ -26,6 +29,10 @@ export async function POST(req: Request) {
     const tx = getPaymentTransactionByOrder(razorpay_order_id);
     if (!tx) {
       return NextResponse.json({ success: false, error: "Unknown order." }, { status: 404 });
+    }
+
+    if (String(tx.user_email).trim().toLowerCase() !== auth.email) {
+      return NextResponse.json({ success: false, error: "This order belongs to a different account." }, { status: 403 });
     }
 
     const { keySecret, isLive } = getRazorpayCredentials();

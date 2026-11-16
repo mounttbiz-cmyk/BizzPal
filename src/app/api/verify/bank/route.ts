@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
 import { lookupIfsc, matchNames, normalizeAccount, normalizeIfsc, pennyDrop, pennyDropConfigured } from "@/lib/verification/bank";
 import { cleanEmail, computeLevel, rateLimited, saveVerification } from "@/lib/verification/store";
@@ -8,6 +9,9 @@ const clientIp = (req: Request) => (req.headers.get("x-forwarded-for") || "").sp
 
 /** GET ?ifsc= : instant bank + branch lookup while the user types (real, free directory). */
 export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   if (rateLimited(`ifsc-ip:${clientIp(req)}`, 120, 3_600_000)) {
     return NextResponse.json({ status: "unavailable", reason: "Too many lookups. Please wait a moment." }, { status: 429 });
   }
@@ -22,9 +26,12 @@ export async function GET(req: Request) {
  * The full account number is never stored: only the last 4 digits.
  */
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   let b: any;
   try { b = await req.json(); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
-  const email = cleanEmail(b?.email);
+  const email = auth.email;
   if (!email || !email.includes("@")) return NextResponse.json({ error: "Please sign in again, then retry." }, { status: 401 });
   if (rateLimited(`bank-ip:${clientIp(req)}`, 20, 3_600_000) || rateLimited(`bank-em:${email}`, 8, 3_600_000)) {
     return NextResponse.json({ error: "Too many verification attempts. Please try again in a while." }, { status: 429 });

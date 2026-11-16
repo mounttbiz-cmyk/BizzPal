@@ -1,14 +1,16 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { db, DEFAULT_BUSINESS_ID, getPlatformConfig, getActiveBusiness } from "@/lib/db";
 
 export async function GET(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const { searchParams } = new URL(req.url);
-    let bizId = searchParams.get("businessId");
-
-    if (!bizId) {
-      bizId = getPlatformConfig("active_tenant_id", null) || getActiveBusiness()?.id || DEFAULT_BUSINESS_ID;
-    }
+    const bizId = tenantId;
 
     const tasks = db
       .prepare("SELECT * FROM tasks WHERE business_id = ? ORDER BY created_at DESC")
@@ -33,6 +35,10 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const body = await req.json();
     const { businessId, title, owner = "Founder", gap = "General Execution", priority = "medium", status = "todo" } = body;
@@ -41,7 +47,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Task title is required" }, { status: 400 });
     }
 
-    const targetBizId = businessId || getPlatformConfig("active_tenant_id", null) || getActiveBusiness()?.id || DEFAULT_BUSINESS_ID;
+    const targetBizId = tenantId;
     const taskId = `task_${Date.now()}`;
     const now = new Date().toISOString();
 
@@ -77,6 +83,10 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const body = await req.json();
     const { id, status } = body;
@@ -92,7 +102,7 @@ export async function PATCH(req: Request) {
     db.prepare("UPDATE tasks SET status = ? WHERE id = ? AND business_id = ?").run(
       status,
       id,
-      DEFAULT_BUSINESS_ID
+      tenantId
     );
 
     return NextResponse.json({
@@ -107,13 +117,17 @@ export async function PATCH(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
-    db.prepare("DELETE FROM tasks WHERE id = ? AND business_id = ?").run(id, DEFAULT_BUSINESS_ID);
+    db.prepare("DELETE FROM tasks WHERE id = ? AND business_id = ?").run(id, tenantId);
     return NextResponse.json({ success: true, message: "Task deleted", id });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

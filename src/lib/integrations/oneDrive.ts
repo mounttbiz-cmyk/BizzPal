@@ -7,7 +7,7 @@ import * as XLSX from "xlsx";
  * Retrieve active Microsoft OneDrive access token from SQLite.
  * Auto-refreshes if expired and a refresh token is present.
  */
-export async function getOneDriveToken(): Promise<{
+export async function getOneDriveToken(businessId: string): Promise<{
   connected: boolean;
   accessToken?: string;
   email?: string;
@@ -17,7 +17,7 @@ export async function getOneDriveToken(): Promise<{
   try {
     const record = db
       .prepare("SELECT * FROM integrations WHERE business_id = ? AND tool_key = ?")
-      .get(DEFAULT_BUSINESS_ID, "onedrive") as any;
+      .get(businessId, "onedrive") as any;
 
     if (!record || record.status !== "connected" || !record.config) {
       return { connected: false };
@@ -73,7 +73,7 @@ export async function getOneDriveToken(): Promise<{
           db.prepare(`
             UPDATE integrations SET config = ?, updated_at = ?
             WHERE business_id = ? AND tool_key = ?
-          `).run(JSON.stringify(config), now, DEFAULT_BUSINESS_ID, "onedrive");
+          `).run(JSON.stringify(config), now, businessId, "onedrive");
         }
       }
     }

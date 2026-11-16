@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, DEFAULT_BUSINESS_ID, healDatabasePermissions } from "@/lib/db";
+import { db, getUserBusinessId, healDatabasePermissions } from "@/lib/db";
+import { getSessionEmail } from "@/lib/userSession";
 import { safeEncrypt } from "@/lib/integrations/crypto";
 
 export const dynamic = "force-dynamic";
@@ -127,11 +128,18 @@ export async function GET(req: NextRequest) {
       expiresAt,
     };
 
+    // The connection is stored for the customer who is signed in, nobody else.
+    const signedInEmail = getSessionEmail(req);
+    const connectionBiz = signedInEmail ? getUserBusinessId(signedInEmail) : "";
+    if (!connectionBiz) {
+      throw new Error("Please sign in to BizzPal first, then connect again.");
+    }
+
     // 3. Persist to database
     try {
       const existing = db
         .prepare("SELECT id, config FROM integrations WHERE business_id = ? AND tool_key = ?")
-        .get(DEFAULT_BUSINESS_ID, "onedrive") as any;
+        .get(connectionBiz, "onedrive") as any;
 
       if (existing) {
         db.prepare(`
@@ -140,22 +148,22 @@ export async function GET(req: NextRequest) {
             config = ?,
             updated_at = ?
           WHERE business_id = ? AND tool_key = 'onedrive'
-        `).run(JSON.stringify(configData), now, DEFAULT_BUSINESS_ID);
+        `).run(JSON.stringify(configData), now, connectionBiz);
       } else {
         db.prepare(`
           INSERT INTO integrations (id, business_id, tool_key, name, category, status, config, updated_at)
           VALUES (?, ?, 'onedrive', 'Microsoft OneDrive', 'business', 'connected', ?, ?)
-        `).run(`int_${Date.now()}_onedrive`, DEFAULT_BUSINESS_ID, JSON.stringify(configData), now);
+        `).run(`int_${Date.now()}_onedrive`, connectionBiz, JSON.stringify(configData), now);
       }
 
       // Update business connected_tools list
-      const biz = db.prepare("SELECT connected_tools FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID) as any;
+      const biz = db.prepare("SELECT connected_tools FROM businesses WHERE id = ?").get(connectionBiz) as any;
       if (biz) {
         const tools: string[] = biz.connected_tools ? JSON.parse(biz.connected_tools) : [];
         if (!tools.includes("onedrive")) tools.push("onedrive");
         db.prepare(
           "UPDATE businesses SET connected_tools = ?, no_integrations = 0, updated_at = ? WHERE id = ?"
-        ).run(JSON.stringify(tools), now, DEFAULT_BUSINESS_ID);
+        ).run(JSON.stringify(tools), now, connectionBiz);
       }
     } catch (dbErr: any) {
       console.warn("[OneDrive Callback] SQLite write error:", dbErr.message);

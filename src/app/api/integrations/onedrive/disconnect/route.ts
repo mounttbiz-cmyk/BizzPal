@@ -1,24 +1,30 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const now = new Date().toISOString();
     db.prepare(`
       UPDATE integrations SET status = 'not_connected', config = NULL, updated_at = ?
       WHERE business_id = ? AND tool_key = 'onedrive'
-    `).run(now, DEFAULT_BUSINESS_ID);
+    `).run(now, tenantId);
 
     // Also remove onedrive from connected_tools
-    const biz = db.prepare("SELECT connected_tools FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID) as any;
+    const biz = db.prepare("SELECT connected_tools FROM businesses WHERE id = ?").get(tenantId) as any;
     if (biz && biz.connected_tools) {
       try {
         const tools: string[] = JSON.parse(biz.connected_tools);
         const filtered = tools.filter(t => t !== "onedrive");
         db.prepare("UPDATE businesses SET connected_tools = ?, updated_at = ? WHERE id = ?")
-          .run(JSON.stringify(filtered), now, DEFAULT_BUSINESS_ID);
+          .run(JSON.stringify(filtered), now, tenantId);
       } catch {}
     }
 

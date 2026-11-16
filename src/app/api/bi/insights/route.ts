@@ -1,3 +1,5 @@
+import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId, getUserBusiness } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getBusinessInsights } from "@/lib/bi/investigator";
 import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib/db";
@@ -5,13 +7,14 @@ import { getPlatformConfig, getActiveBusiness, DEFAULT_BUSINESS_ID } from "@/lib
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+  const tenantId = getUserBusinessId(auth.email);
+
   try {
     const { searchParams } = new URL(req.url);
     const bizId =
-      searchParams.get("businessId") ||
-      getPlatformConfig("active_tenant_id", null) ||
-      getActiveBusiness()?.id ||
-      DEFAULT_BUSINESS_ID;
+      tenantId;
 
     const status = searchParams.get("status") || undefined;
     const severity = searchParams.get("severity") || undefined;

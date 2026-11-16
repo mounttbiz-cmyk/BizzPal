@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth/requireUser";
 import { NextResponse } from "next/server";
 import { cleanEmail, rateLimited } from "@/lib/verification/store";
 import { recordHrisSync, type HrisEmployeeRecord } from "@/lib/team/hris";
@@ -19,6 +20,9 @@ function normalizeHeader(h: string): string {
  * Handles Multipart / Form-Data upload of Excel (.xlsx, .xls) and CSV files
  */
 export async function POST(req: Request) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
+
   let formData: FormData;
   try {
     formData = await req.formData();
@@ -26,7 +30,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Failed to parse form data." }, { status: 400 });
   }
 
-  const owner = ownerOf(formData.get("email"));
+  const owner = auth.email;
   if (!owner) {
     return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
   }

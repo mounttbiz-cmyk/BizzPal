@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, DEFAULT_BUSINESS_ID, healDatabasePermissions } from "@/lib/db";
+import { db, getUserBusinessId, healDatabasePermissions } from "@/lib/db";
+import { getSessionEmail, createUserSession, sessionSetCookie } from "@/lib/userSession";
 import { safeEncrypt } from "@/lib/integrations/crypto";
 
 export async function GET(req: NextRequest) {
@@ -156,10 +157,20 @@ export async function GET(req: NextRequest) {
       expiresAt,
     };
 
+    // Signing in: Google has just proven who this is, so give the browser a server-signed session.
+    const sessionCookie = source === "auth" ? (() => { const t = createUserSession(email); return t ? sessionSetCookie(t, req) : null; })() : null;
+
+    // Connecting a drive or calendar stores the access for the customer who is signed in, nobody else.
+    const signedInEmail = getSessionEmail(req);
+    const connectionBiz = signedInEmail ? getUserBusinessId(signedInEmail) : "";
+    if (source !== "auth" && !connectionBiz) {
+      throw new Error("Please sign in to BizzPal first, then connect again.");
+    }
+
     // 3. Persist to database
     try {
       const toolsToUpdate = source === "auth"
-        ? ["google"]
+        ? []
         : source === "drive" || source === "google_drive"
         ? ["google", "google_drive"]
         : ["google", "google_calendar", "google_drive"];
@@ -167,7 +178,7 @@ export async function GET(req: NextRequest) {
       for (const toolKey of toolsToUpdate) {
         const existing = db
           .prepare("SELECT id, config FROM integrations WHERE business_id = ? AND tool_key = ?")
-          .get(DEFAULT_BUSINESS_ID, toolKey) as any;
+          .get(connectionBiz, toolKey) as any;
 
         const displayName =
           toolKey === "google"
@@ -183,14 +194,14 @@ export async function GET(req: NextRequest) {
               config = ?,
               updated_at = ?
             WHERE business_id = ? AND tool_key = ?
-          `).run(JSON.stringify(configData), now, DEFAULT_BUSINESS_ID, toolKey);
+          `).run(JSON.stringify(configData), now, connectionBiz, toolKey);
         } else {
           db.prepare(`
             INSERT INTO integrations (id, business_id, tool_key, name, category, status, config, updated_at)
             VALUES (?, ?, ?, ?, 'business', 'connected', ?, ?)
           `).run(
             `int_${Date.now()}_${toolKey}`,
-            DEFAULT_BUSINESS_ID,
+            connectionBiz,
             toolKey,
             displayName,
             JSON.stringify(configData),
@@ -200,7 +211,7 @@ export async function GET(req: NextRequest) {
       }
 
       // Update business connected_tools list
-      const biz = db.prepare("SELECT connected_tools FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID) as any;
+      const biz = db.prepare("SELECT connected_tools FROM businesses WHERE id = ?").get(connectionBiz) as any;
       if (biz) {
         const tools: string[] = biz.connected_tools ? JSON.parse(biz.connected_tools) : [];
         if (!tools.includes("google")) tools.push("google");
@@ -208,7 +219,7 @@ export async function GET(req: NextRequest) {
         if (toolsToUpdate.includes("google_calendar") && !tools.includes("google_calendar")) tools.push("google_calendar");
         db.prepare(
           "UPDATE businesses SET connected_tools = ?, no_integrations = 0, updated_at = ? WHERE id = ?"
-        ).run(JSON.stringify(tools), now, DEFAULT_BUSINESS_ID);
+        ).run(JSON.stringify(tools), now, connectionBiz);
       }
     } catch (dbErr: any) {
       console.warn("[Google Callback] SQLite write error, attempting repair:", dbErr.message);
@@ -329,7 +340,7 @@ export async function GET(req: NextRequest) {
   </script>
 </body>
 </html>`,
-      { headers: { "Content-Type": "text/html; charset=utf-8" } }
+      { headers: sessionCookie ? { "Content-Type": "text/html; charset=utf-8", "Set-Cookie": sessionCookie } : { "Content-Type": "text/html; charset=utf-8" } }
     );
   } catch (err: any) {
     console.error("[Google OAuth Callback Error]:", err);
