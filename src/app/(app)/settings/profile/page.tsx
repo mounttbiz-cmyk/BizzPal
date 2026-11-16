@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { useAuth } from "@/lib/auth/authContext";
 import { BUSINESS_DATA_UPDATED_EVENT } from "@/lib/upload/events";
+import { BUSINESS_TYPES } from "@/lib/onboarding/data";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 export default function BusinessProfileSettingsPage() {
@@ -18,8 +19,8 @@ export default function BusinessProfileSettingsPage() {
   const [founderName, setFounderName] = useState("");
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
-  const [industry, setIndustry] = useState("saas");
-  const [industryLabel, setIndustryLabel] = useState("B2B SaaS & Cloud Platforms");
+  const [industry, setIndustry] = useState("");
+  const [industryLabel, setIndustryLabel] = useState("");
   const [teamSize, setTeamSize] = useState<number | string>(1);
   const [monthlyRevenue, setMonthlyRevenue] = useState<number | string>(0);
   const [monthlyBurn, setMonthlyBurn] = useState<number | string>(0);
@@ -62,8 +63,10 @@ export default function BusinessProfileSettingsPage() {
         if (p.name) setBusinessName(p.name);
         if (p.founderName) setFounderName(p.founderName);
         if (p.website) setWebsite(p.website);
-        if (p.industry) setIndustry(p.industry);
-        if (p.industryLabel) setIndustryLabel(p.industryLabel);
+        // The profile keeps the industry key (e.g. "it") next to its display name; older profiles may only have the name.
+        const key = BUSINESS_TYPES.find(b => b.id === p.industryKey || b.id === p.industry || b.title === p.industry || b.title === p.industryLabel)?.id;
+        if (key) setIndustry(key);
+        if (p.industryLabel || p.industry) setIndustryLabel(p.industryLabel || p.industry);
         if (p.teamSize !== undefined) setTeamSize(p.teamSize);
         if (p.revenue !== undefined) setMonthlyRevenue(p.revenue);
         if (p.monthlyRevenue !== undefined) setMonthlyRevenue(p.monthlyRevenue);
@@ -71,7 +74,7 @@ export default function BusinessProfileSettingsPage() {
         if (p.cash !== undefined) setCashOnHand(p.cash);
       } else {
         // Fallback default
-        setBusinessName("Apex Analytics");
+        setBusinessName("");
       }
 
       // 3. Backend fallback check
@@ -93,10 +96,6 @@ export default function BusinessProfileSettingsPage() {
     }
   }, []);
 
-  // Calculate live runway preview
-  const burnNum = Number(monthlyBurn) || 0;
-  const cashNum = Number(cashOnHand) || 0;
-  const runwayMonths = burnNum > 0 ? (cashNum / burnNum).toFixed(1) : "18+";
 
   // Handle Save Business Profile
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -124,7 +123,8 @@ export default function BusinessProfileSettingsPage() {
         name: cleanBusinessName,
         founderName: cleanFounderName,
         website: cleanWebsite,
-        industry,
+        industry: industryLabel,
+        industryKey: industry,
         industryLabel,
         logoUrl: businessLogo || null,
         teamSize: numTeam,
@@ -280,33 +280,6 @@ export default function BusinessProfileSettingsPage() {
       .slice(0, 2)
       .toUpperCase() || "BP";
 
-  const MoneyField = ({
-    label,
-    value,
-    onChange,
-    note,
-  }: {
-    label: string;
-    value: number | string;
-    onChange: (v: string) => void;
-    note: string;
-  }) => (
-    <div>
-      <label className="block text-sm font-medium text-text mb-1.5">{label}</label>
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">₹</span>
-        <input
-          type="number"
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder="0"
-          className={`${inputClass} pl-7`}
-        />
-      </div>
-      <p className="text-xs text-text-muted mt-1.5">{note}</p>
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       {saveError && (
@@ -331,7 +304,7 @@ export default function BusinessProfileSettingsPage() {
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-semibold text-text truncate">{businessName || "Your business"}</h2>
             <p className="text-sm text-text-muted mt-0.5 truncate">
-              {industryLabel} · {Number(teamSize) || 1} {Number(teamSize) === 1 ? "person" : "people"}
+              {industryLabel ? `${industryLabel} · ` : ""}{Number(teamSize) || 1} {Number(teamSize) === 1 ? "person" : "people"}
             </p>
             <p className="text-sm text-text-muted truncate">{email || "No email set"}</p>
           </div>
@@ -432,30 +405,15 @@ export default function BusinessProfileSettingsPage() {
                 value={industry}
                 onChange={e => {
                   setIndustry(e.target.value);
-                  const labels: Record<string, string> = {
-                    saas: "B2B SaaS & Cloud Platforms",
-                    it: "IT & Technology Services",
-                    d2c: "E-Commerce & Retail",
-                    real_estate: "Real Estate & Property",
-                    agency: "Agency & Professional Services",
-                    mfg: "Manufacturing & Industrial",
-                    healthcare: "Healthcare & MedTech",
-                    finance: "Fintech & Financial Advisory",
-                    other: "Specialist Enterprise",
-                  };
-                  setIndustryLabel(labels[e.target.value] || "Custom Enterprise");
+                  const t = BUSINESS_TYPES.find(b => b.id === e.target.value);
+                  setIndustryLabel(t ? t.title : "");
                 }}
                 className={inputClass}
               >
-                <option value="saas">B2B SaaS & Cloud Platforms</option>
-                <option value="it">IT & Technology Services</option>
-                <option value="d2c">E-Commerce & Retail</option>
-                <option value="real_estate">Real Estate & Property</option>
-                <option value="agency">Agency & Professional Services</option>
-                <option value="mfg">Manufacturing & Industrial</option>
-                <option value="healthcare">Healthcare & MedTech</option>
-                <option value="finance">Fintech & Financial Advisory</option>
-                <option value="other">Other</option>
+                {!industry && <option value="">Select your industry</option>}
+                {BUSINESS_TYPES.map(b => (
+                  <option key={b.id} value={b.id}>{b.title}</option>
+                ))}
               </select>
             </div>
 
@@ -471,41 +429,6 @@ export default function BusinessProfileSettingsPage() {
                 className={inputClass}
               />
             </div>
-          </div>
-        </section>
-
-        {/* Finances */}
-        <section className="rounded-2xl border border-line bg-surface shadow-sm">
-          <div className="px-6 py-5 border-b border-line flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-base font-semibold text-text">Finances</h2>
-              <p className="text-sm text-text-muted mt-0.5">Starting numbers used for runway and forecasts.</p>
-            </div>
-            <div className="px-4 py-2 rounded-xl bg-surface-2 border border-line text-right shrink-0">
-              <p className="text-xs text-text-muted">Estimated runway</p>
-              <p className="text-base text-text">{runwayMonths} months</p>
-            </div>
-          </div>
-
-          <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-5">
-            <MoneyField
-              label="Monthly revenue"
-              value={monthlyRevenue}
-              onChange={setMonthlyRevenue}
-              note={`₹${Number(monthlyRevenue || 0).toLocaleString("en-IN")} per month`}
-            />
-            <MoneyField
-              label="Monthly net burn"
-              value={monthlyBurn}
-              onChange={setMonthlyBurn}
-              note={`₹${Number(monthlyBurn || 0).toLocaleString("en-IN")} per month`}
-            />
-            <MoneyField
-              label="Cash in bank"
-              value={cashOnHand}
-              onChange={setCashOnHand}
-              note={`₹${Number(cashOnHand || 0).toLocaleString("en-IN")} available`}
-            />
           </div>
         </section>
 

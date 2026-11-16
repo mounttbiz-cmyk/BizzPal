@@ -26,15 +26,15 @@ interface SearchInputStepProps {
 }
 
 const ROTATING_EXAMPLES = [
-  "Lawyers in Mumbai",
-  "Pan shops",
-  "Gen Z fitness enthusiasts",
-  "Dental & cosmetic clinics",
-  "Chartered Accountants",
-  "Specialty coffee roasters",
-  "Working women aged 25-40",
-  "Interior design studios",
-  "First-time tech founders",
+  "Chartered accountants in Mumbai",
+  "IT services companies in Bengaluru",
+  "Dental and cosmetic clinics in Pune",
+  "Corporate law firms in Delhi NCR",
+  "Commercial real estate brokers",
+  "Digital marketing agencies",
+  "Manufacturing exporters in Gujarat",
+  "Independent financial advisors",
+  "Diagnostic centres and hospitals",
 ];
 
 export function detectCategoryFromQuery(query: string): {
@@ -666,7 +666,7 @@ export function SearchInputStep({
                           ({cat.subcategories.length})
                         </span>
                       </div>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-brass shrink-0 ml-2" />}
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ml-3 transition-colors ${isSelected ? "bg-brass border-brass text-white" : "border-line-strong bg-surface"}`}>{isSelected && <Check className="w-3 h-3" strokeWidth={3} />}</span>
                     </button>
                   );
                 })}
@@ -780,7 +780,7 @@ export function SearchInputStep({
                     <span className="w-2 h-2 rounded-full border border-current" />
                     <span className="font-medium">All {selectedCategoryData.name} (Broad Search)</span>
                   </div>
-                  {!selectedSubcategory && <Check className="w-3.5 h-3.5 text-brass shrink-0 ml-2" />}
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ml-3 transition-colors ${!selectedSubcategory ? "bg-brass border-brass text-white" : "border-line-strong bg-surface"}`}>{!selectedSubcategory && <Check className="w-3 h-3" strokeWidth={3} />}</span>
                 </button>
 
                 <div className="h-px bg-line my-1" />
