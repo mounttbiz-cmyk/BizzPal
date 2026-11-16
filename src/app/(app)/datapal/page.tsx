@@ -33,7 +33,7 @@ import { useFeatureFlag } from "@/lib/datapal/featureFlags";
 // Redesigned DataPal Components
 import { DataPalHeader } from "@/components/datapal/DataPalHeader";
 import { SearchTabs, DataPalTab } from "@/components/datapal/SearchTabs";
-import { SearchInputStep } from "@/components/datapal/SearchInputStep";
+import { SearchInputStep, detectSearchType } from "@/components/datapal/SearchInputStep";
 import { CategoryPickerSheet } from "@/components/datapal/CategoryPickerSheet";
 import { LocationStep } from "@/components/datapal/LocationStep";
 import { ReviewGenerateCard } from "@/components/datapal/ReviewGenerateCard";
@@ -279,21 +279,11 @@ export default function DataPalPage() {
       },
     };
 
-    // Fold audience refinements into query if backend doesn't support them
-    if (audienceRefine.ageRange || audienceRefine.gender || audienceRefine.interests) {
-      const extraRefines = [
-        audienceRefine.ageRange ? `Age ${audienceRefine.ageRange}` : null,
-        audienceRefine.gender ? `${audienceRefine.gender}` : null,
-        audienceRefine.interests ? `Interests: ${audienceRefine.interests}` : null,
-      ]
-        .filter(Boolean)
-        .join(", ");
-
-      const currentQuery = config.searchQuery || "";
-      if (extraRefines && !currentQuery.includes(extraRefines)) {
-        config.searchQuery = currentQuery ? `${currentQuery} (${extraRefines})`.trim() : extraRefines;
-      }
-    }
+    // Audience searches (influencers, Gen Z, founders...). The refine boxes only supply a clean search word: Google
+    // Maps cannot filter by age or gender, so adding "Age 18-25" to the text would only return nothing.
+    const interests = (audienceRefine.interests || "").trim();
+    config.audienceSearch = Boolean(interests || audienceRefine.ageRange || (audienceRefine.gender && audienceRefine.gender !== "All") || detectSearchType(trimmedQuery) === "Audience");
+    if (config.audienceSearch && !config.searchQuery && interests) config.searchQuery = interests;
 
     setIsExtracting(true);
     setExtractProgress(15);

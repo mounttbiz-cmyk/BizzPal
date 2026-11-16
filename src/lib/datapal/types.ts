@@ -68,6 +68,8 @@ export interface DataPalSearchFilters {
 
 export interface DataPalSearchConfig {
   searchQuery?: string;
+  /** The person typed an audience (for example influencers or Gen Z), not a type of business */
+  audienceSearch?: boolean;
   requirement: string;
   requirementId?: string;
   countryCode: string;

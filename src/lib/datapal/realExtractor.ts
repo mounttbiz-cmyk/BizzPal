@@ -58,8 +58,13 @@ export async function extractRealBusinessLeads(
       const seenIds = new Set<string>();
 
       // One search per ticked sub-category (up to 5), sharing the requested number of records between them
+      // An audience search (influencers, Gen Z, founders...) cannot be found on a map as people. So we look for the
+      // professionals and companies that serve or are that audience first, then the broader matches.
+      const audienceBase = config.searchQuery?.trim() || categoriesText || "";
       const searchTerms =
-        !config.searchQuery?.trim() && config.selectedCategories && config.selectedCategories.length > 1
+        config.audienceSearch && audienceBase
+          ? [`${audienceBase} professionals`, `${audienceBase} agencies and companies`, audienceBase]
+          : !config.searchQuery?.trim() && config.selectedCategories && config.selectedCategories.length > 1
           ? config.selectedCategories.slice(0, 5)
           : [queryTerm];
       const wanted = config.requestedCount && config.requestedCount > 0 ? config.requestedCount : 25;

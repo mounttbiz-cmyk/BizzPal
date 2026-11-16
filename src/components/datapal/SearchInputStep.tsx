@@ -37,6 +37,51 @@ const ROTATING_EXAMPLES = [
   "Diagnostic centres and hospitals",
 ];
 
+/** Guesses whether a search is for a business, a professional or an audience. */
+export function detectSearchType(query: string): DetectedSearchType {
+  const q = String(query || "").toLowerCase().trim();
+  if (!q) return "Business";
+
+  if (
+    q.includes("gen z") ||
+    q.includes("student") ||
+    q.includes("women") ||
+    q.includes("enthusiast") ||
+    q.includes("audience") ||
+    q.includes("aged") ||
+    q.includes("people") ||
+    q.includes("founder") ||
+    q.includes("buyer") ||
+    q.includes("investor") ||
+    q.includes("influencer") ||
+    q.includes("creator") ||
+    q.includes("youtuber") ||
+    q.includes("blogger") ||
+    /\bmen\b/.test(q)
+  ) {
+    return "Audience";
+  }
+
+  if (
+    q.includes("lawyer") ||
+    q.includes("advocate") ||
+    q.includes("doctor") ||
+    q.includes("physician") ||
+    q.includes("dentist") ||
+    q.includes("accountant") ||
+    /\bca\b/.test(q) ||
+    q.includes("consultant") ||
+    q.includes("architect") ||
+    q.includes("designer") ||
+    q.includes("therapist") ||
+    q.includes("engineer")
+  ) {
+    return "Professional";
+  }
+
+  return "Business";
+}
+
 export function detectCategoryFromQuery(query: string): {
   categoryId: string;
   matchedSubcategory?: string;
@@ -401,46 +446,7 @@ export function SearchInputStep({
   }, [selectedCategoryData, subcategorySearchText]);
 
   // Auto-detect type based on search text keywords
-  const detectedType: DetectedSearchType = useMemo(() => {
-    if (userSelectedType) return userSelectedType;
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return "Business";
-
-    if (
-      q.includes("gen z") ||
-      q.includes("students") ||
-      q.includes("women") ||
-      q.includes("men") ||
-      q.includes("enthusiasts") ||
-      q.includes("audience") ||
-      q.includes("aged") ||
-      q.includes("people") ||
-      q.includes("founders") ||
-      q.includes("buyers") ||
-      q.includes("investors")
-    ) {
-      return "Audience";
-    }
-
-    if (
-      q.includes("lawyer") ||
-      q.includes("advocate") ||
-      q.includes("doctor") ||
-      q.includes("physician") ||
-      q.includes("dentist") ||
-      q.includes("accountant") ||
-      q.includes("ca") ||
-      q.includes("consultant") ||
-      q.includes("architect") ||
-      q.includes("designer") ||
-      q.includes("therapist") ||
-      q.includes("engineer")
-    ) {
-      return "Professional";
-    }
-
-    return "Business";
-  }, [searchQuery, userSelectedType]);
+  const detectedType: DetectedSearchType = useMemo(() => userSelectedType || detectSearchType(searchQuery), [searchQuery, userSelectedType]);
 
   // Cycle type tag on click
   const handleCycleType = () => {
