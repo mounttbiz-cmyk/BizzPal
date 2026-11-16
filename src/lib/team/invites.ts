@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { db } from "@/lib/db";
+import { db, registerUser } from "@/lib/db";
 import { cleanEmail, computeLevel, ensureVerificationSchema } from "@/lib/verification/store";
 import { emailMatchesDomain } from "@/lib/verification/domain";
 import { decideAcceptance, type AcceptDecision } from "./decide";
@@ -70,14 +70,26 @@ export function getInviteByToken(token: string): any | null {
 }
 
 /** Called ONLY with an email that Google has confirmed for the signed-in person. */
-export function acceptInvite(token: string, googleEmail: string, googleEmailVerified: boolean): { decision: AcceptDecision; invite: any | null } {
+export function acceptInvite(token: string, googleEmail: string, googleEmailVerified: boolean, name?: string): { decision: AcceptDecision; invite: any | null } {
   const invite = getInviteByToken(token);
   const decision = decideAcceptance(invite, googleEmail, googleEmailVerified);
   if (decision === "ok") {
+    // Join, and make sure this person has an account. Google has just proven they own the email, so any password set on
+    // that address earlier (by someone who may not own it) is removed. They sign in with Google, or set a password by email.
     db.prepare("UPDATE team_invites SET status = 'verified', verified_at = ?, verified_via = 'google' WHERE id = ?")
       .run(new Date().toISOString(), invite.id);
+    registerUser(googleEmail, name || googleEmail.split("@")[0], "google");
+    db.prepare("UPDATE registered_users SET password_hash = NULL WHERE LOWER(email) = ?").run(googleEmail.trim().toLowerCase());
+  } else if (decision === "already") {
+    registerUser(googleEmail, name || googleEmail.split("@")[0], "google");
   }
   return { decision, invite };
+}
+
+export function setInviteRole(owner: string, id: string, role: Role): boolean {
+  ensureVerificationSchema();
+  const r = db.prepare("UPDATE team_invites SET role = ? WHERE id = ? AND owner_email = ? AND status <> 'revoked'").run(role, id, cleanEmail(owner));
+  return Number(r.changes) === 1;
 }
 
 export function verifiedCount(owner: string): number {

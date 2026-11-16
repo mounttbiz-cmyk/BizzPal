@@ -143,22 +143,39 @@ export default function LoginPage() {
     }
 
     if (!businessProfile) {
-      const fallbackName = displayName || fullName || "Founder";
-      businessProfile = {
-        name: `${fallbackName}'s Enterprise`,
-        founderName: fallbackName,
-        industry: "it_tech",
-        industryLabel: "IT & Technology Services",
-        revenue: 0,
-        monthlyRevenue: 0,
-        annualRevenue: 0,
-        burn: 0,
-        monthlyBurn: 0,
-        cash: 0,
-        cashOnHand: 0,
-        teamSize: 1,
-        completedAt: new Date().toISOString(),
+      // Nothing saved in this browser (a new device, for example): use the business saved on the account.
+      try {
+        const r = await fetch("/api/business/intake", { cache: "no-store" });
+        if (r.ok) {
+          const d = await r.json();
+          if (d?.success && d.business?.name) {
+            const biz = d.business;
+            businessProfile = {
+              ...biz,
+              revenue: biz.monthlyRevenue,
+              burn: biz.monthlyBurn,
+              cash: biz.cashOnHand,
+              completedAt: new Date().toISOString(),
+            };
+          }
+        }
+      } catch (e) { }
+    }
+
+    // No business saved on this account yet: finish the setup instead of showing made-up details.
+    if (!businessProfile) {
+      const pendingSession = {
+        id: uid || `usr_${Date.now()}`,
+        email: cleanEmail,
+        name: displayName || fullName || "Founder",
+        role: "owner",
+        provider: "email",
+        authenticatedAt: new Date().toISOString(),
       };
+      localStorage.setItem("bizzpal_user_session", JSON.stringify(pendingSession));
+      localStorage.removeItem("bizzpal_business_profile");
+      handleSuccessfulAuth("/onboarding?mode=new_signup", "Welcome back! Let's finish setting up your business...");
+      return;
     }
 
     const userSession = {
@@ -883,9 +900,14 @@ export default function LoginPage() {
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-text block mb-1">
-                        Password *
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-semibold text-text block">
+                          Password *
+                        </label>
+                        {authMode === "signin" && (
+                          <a href="/forgot-password" className="text-xs text-brass hover:underline">Forgot password?</a>
+                        )}
+                      </div>
                       <div className="relative flex items-center">
                         <Lock className="w-3.5 h-3.5 text-text-muted absolute left-3.5" />
                         <input

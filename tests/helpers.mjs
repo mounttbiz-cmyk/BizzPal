@@ -31,10 +31,10 @@ export function openDatabase() {
 }
 
 /** Makes a session cookie value exactly like the server does, so tests can act as a signed-in customer. */
-export function sessionToken(email, ttlSeconds = 3600) {
+export function sessionToken(email, ttlSeconds = 3600, issuedAt = Math.floor(Date.now() / 1000)) {
   const key = env.SECRETS_KEY || env.ADMIN_SESSION_SECRET || env.SUPERADMIN_PASSCODE;
   if (!key) throw new Error("Set ADMIN_SESSION_SECRET (or SECRETS_KEY) in .env so the tests can sign sessions.");
-  const payload = Buffer.from(JSON.stringify({ sub: email, exp: Math.floor(Date.now() / 1000) + ttlSeconds })).toString("base64url");
+  const payload = Buffer.from(JSON.stringify({ sub: email, iat: issuedAt, exp: Math.floor(Date.now() / 1000) + ttlSeconds })).toString("base64url");
   return payload + "." + createHmac("sha256", "user-session-v1:" + key).update(payload).digest("base64url");
 }
 

@@ -123,9 +123,11 @@ export async function GET(req: NextRequest) {
     // This returns before anything below touches the integrations tables.
     if (source === "invite") {
       const { acceptInvite } = await import("@/lib/team/invites");
-      const result = acceptInvite(inviteToken, email, profile.verified_email === true);
+      const result = acceptInvite(inviteToken, email, profile.verified_email === true, name);
+      const joined = result.decision === "ok" || result.decision === "already";
+      const joinCookie = joined ? (() => { const t = createUserSession(email); return t ? sessionSetCookie(t, req) : null; })() : null;
       const safeToken = /^[A-Za-z0-9_-]{20,64}$/.test(inviteToken) ? inviteToken : "";
-      const payload = JSON.stringify({ type: "BIZZPAL_INVITE_RESULT", decision: result.decision, email })
+      const payload = JSON.stringify({ type: "BIZZPAL_INVITE_RESULT", decision: result.decision, email, name, role: result.invite?.role || "" })
         .replace(/</g, "\\u003c");
       const target = JSON.stringify(currentOrigin).replace(/</g, "\\u003c");
       const fallback = `/join/${safeToken}`;
@@ -138,7 +140,7 @@ export async function GET(req: NextRequest) {
   if (window.opener) { try { window.opener.postMessage(msg, ${target}); } catch (e) {} setTimeout(function () { window.close(); }, 150); }
   else { window.location.href = ${JSON.stringify(fallback)}; }
 </script></body></html>`,
-        { headers: { "Content-Type": "text/html; charset=utf-8" } }
+        { headers: (() => { const h = new Headers({ "Content-Type": "text/html; charset=utf-8" }); if (joinCookie) h.append("Set-Cookie", joinCookie); return h; })() }
       );
     }
 

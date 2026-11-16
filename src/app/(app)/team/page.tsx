@@ -7,15 +7,15 @@ import { UserPlus, Trash2, RotateCw } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
 
-interface TeamMember {
+interface Teammate {
   id: string;
   name: string;
   email: string;
-  role: "Owner" | "Executive" | "Manager" | "Operator";
-  department: string;
-  twoFactor: boolean;
-  status: "active" | "invited" | "suspended";
-  lastActive: string;
+  role: string;
+  status: "invited" | "verified";
+  link: string;
+  createdAt: string;
+  verifiedAt: string | null;
 }
 
 interface AuditLog {
@@ -26,18 +26,25 @@ interface AuditLog {
   ip: string;
 }
 
+const when = (iso: string | null) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+};
+
 export default function TeamPage() {
-  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [teammates, setTeammates] = useState<Teammate[]>([]);
+  const [owner, setOwner] = useState<{ name: string; email: string } | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<"members" | "roles" | "audit" | "sso">("members");
+  const [selectedTab, setSelectedTab] = useState<"members" | "roles" | "audit">("members");
   const [searchQuery, setSearchQuery] = useState("");
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<TeamMember["role"]>("Manager");
-  const [inviteDept, setInviteDept] = useState("Operations & Delivery");
-  const [invite2FA, setInvite2FA] = useState(true);
+  const [inviteRole, setInviteRole] = useState("Manager");
+  const [inviteError, setInviteError] = useState("");
+  const [notice, setNotice] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Close invite modal on Escape
@@ -46,16 +53,14 @@ export default function TeamPage() {
   const fetchTeamData = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/team");
-      const data = await res.json();
-      if (data.success) {
-        if (Array.isArray(data.members) && data.members.length > 0) {
-          setMembers(data.members);
-        }
-        if (Array.isArray(data.auditLogs)) {
-          setAuditLogs(data.auditLogs);
-        }
-      }
+      const [inv, team, me] = await Promise.all([
+        fetch("/api/team/invites", { cache: "no-store" }).then(r => r.json()).catch(() => null),
+        fetch("/api/team", { cache: "no-store" }).then(r => r.json()).catch(() => null),
+        fetch("/api/auth/session", { cache: "no-store" }).then(r => r.json()).catch(() => null),
+      ]);
+      if (inv?.invites) setTeammates(inv.invites);
+      if (team?.success && Array.isArray(team.auditLogs)) setAuditLogs(team.auditLogs);
+      if (me?.authenticated) setOwner({ name: me.name, email: me.email });
     } catch (e) {
       console.error("Failed to fetch team data:", e);
     } finally {
@@ -71,94 +76,77 @@ export default function TeamPage() {
     e.preventDefault();
     if (!inviteEmail.trim() || submitting) return;
     setSubmitting(true);
+    setInviteError("");
     try {
-      const res = await fetch("/api/team", {
+      const res = await fetch("/api/team/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: inviteName.trim() || inviteEmail.split("@")[0],
-          email: inviteEmail.trim(),
-          role: inviteRole,
-          department: inviteDept,
-          twoFactor: invite2FA,
-        }),
+        body: JSON.stringify({ inviteEmail: inviteEmail.trim(), name: inviteName.trim(), role: inviteRole }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.ok) {
+        setNotice(
+          data.emailed
+            ? `Invite emailed to ${inviteEmail.trim()}.`
+            : "The invite was created, but email isn't available on this server. Use the copy-link button to send it yourself."
+        );
         setInviteName("");
         setInviteEmail("");
         setIsInviteOpen(false);
         await fetchTeamData();
+      } else {
+        setInviteError(data.error || "Couldn't create the invite.");
       }
-    } catch (err) {
-      console.error("Failed to invite member:", err);
+    } catch {
+      setInviteError("Couldn't reach the server. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleToggle2FA = async (member: TeamMember) => {
+  const handleChangeRole = async (id: string, role: string) => {
+    await fetch("/api/team/invites", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, role }),
+    }).catch(() => {});
+    await fetchTeamData();
+  };
+
+  const handleRemove = async (t: Teammate) => {
+    if (!confirm(`Remove ${t.name || t.email} from your team? They will lose access straight away.`)) return;
+    await fetch("/api/team/invites", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: t.id }),
+    }).catch(() => {});
+    await fetchTeamData();
+  };
+
+  const handleResend = async (t: Teammate) => {
+    const res = await fetch("/api/team/invites", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: t.id, resend: true }),
+    }).catch(() => null);
+    const data = await res?.json().catch(() => null);
+    setNotice(data?.emailed ? `Invite sent again to ${t.email}.` : "Email isn't available on this server. Use the copy-link button to send it yourself.");
+  };
+
+  const copyLink = async (t: Teammate) => {
     try {
-      await fetch("/api/team", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: member.id,
-          twoFactor: !member.twoFactor,
-        }),
-      });
-      await fetchTeamData();
-    } catch (err) {
-      console.error("Failed to toggle 2FA:", err);
+      await navigator.clipboard.writeText(`${window.location.origin}${t.link}`);
+      setNotice(`Invite link for ${t.email} copied.`);
+    } catch {
+      setNotice("Couldn't copy the link. Please copy it from your browser.");
     }
   };
 
-  const handleChangeRole = async (memberId: string, newRole: string) => {
-    try {
-      await fetch("/api/team", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: memberId,
-          role: newRole,
-        }),
-      });
-      await fetchTeamData();
-    } catch (err) {
-      console.error("Failed to update role:", err);
-    }
-  };
-
-  const handleDeleteMember = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to revoke access and remove ${name}?`)) return;
-    try {
-      await fetch(`/api/team?id=${id}`, { method: "DELETE" });
-      await fetchTeamData();
-    } catch (err) {
-      console.error("Failed to remove member:", err);
-    }
-  };
-
-  const filteredMembers = members.filter(
-    m =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.department.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const q = searchQuery.toLowerCase();
+  const filteredTeammates = teammates.filter(t => t.name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q));
 
   const inputClass =
     "w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
-
-  const statusDot: Record<TeamMember["status"], string> = {
-    active: "bg-jade",
-    invited: "bg-amber-500",
-    suspended: "bg-rust",
-  };
-  const statusText: Record<TeamMember["status"], string> = {
-    active: "Active",
-    invited: "Invited",
-    suspended: "Suspended",
-  };
 
   const perms = usePermissions();
   const [draft, setDraft] = useState<Matrix>(DEFAULT_MATRIX);
@@ -207,7 +195,7 @@ export default function TeamPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-4 border-b border-line">
         <div>
           <h1 className="text-xl font-bold text-text">Team</h1>
-          <p className="text-sm text-text-muted mt-1">Invite colleagues, confirm their work email, and set what each role will be able to open.</p>
+          <p className="text-sm text-text-muted mt-1">Invite colleagues and choose what each role can open. Your rules are enforced on the server.</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -236,9 +224,8 @@ export default function TeamPage() {
         aria-label="Team sections"
       >
         {[
-          { id: "members", label: "Members", count: members.length },
+          { id: "members", label: "Members", count: teammates.length + 1 },
           { id: "roles", label: "Permissions", count: undefined },
-          { id: "sso", label: "Single sign-on", count: undefined },
           { id: "audit", label: "Activity log", count: auditLogs.length },
         ].map(tab => {
           const active = selectedTab === tab.id;
@@ -259,9 +246,10 @@ export default function TeamPage() {
 
       {selectedTab === "members" && (
         <div className="space-y-4">
+          {notice && <p className="text-sm text-text-muted">{notice}</p>}
           <input
             type="text"
-            placeholder="Search by name, email or department"
+            placeholder="Search by name or email"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full sm:w-80 px-3.5 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
@@ -274,95 +262,94 @@ export default function TeamPage() {
                   <tr className="border-b border-line text-xs font-medium text-text-muted">
                     <th className="py-3 pl-5 pr-3">Member</th>
                     <th className="py-3 px-3">Role</th>
-                    <th className="py-3 px-3">Department</th>
-                    <th className="py-3 px-3">2FA</th>
                     <th className="py-3 px-3">Status</th>
-                    <th className="py-3 px-3">Last active</th>
-                    <th className="py-3 pl-3 pr-5 w-12"></th>
+                    <th className="py-3 px-3">Date</th>
+                    <th className="py-3 pl-3 pr-5"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
-                  {loading && members.length === 0 ? (
+                  {owner && !q && (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-sm text-text-muted">
-                        Loading team…
+                      <td className="py-4 pl-5 pr-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-surface-2 border border-line flex items-center justify-center text-sm text-text shrink-0">
+                            {(owner.name || owner.email).charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-text">{owner.name} <span className="ml-1 text-xs font-normal text-text-muted">You</span></p>
+                            <p className="text-xs text-text-muted">{owner.email}</p>
+                          </div>
+                        </div>
                       </td>
+                      <td className="py-4 px-3 text-sm text-text">Owner</td>
+                      <td className="py-4 px-3">
+                        <span className="inline-flex items-center gap-1.5 text-sm text-text-muted"><span className="w-1.5 h-1.5 rounded-full bg-jade" />Active</span>
+                      </td>
+                      <td className="py-4 px-3 text-sm text-text-muted">—</td>
+                      <td className="py-4 pl-3 pr-5" />
                     </tr>
-                  ) : filteredMembers.length === 0 ? (
+                  )}
+                  {loading && teammates.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-sm text-text-muted">
-                        No members match your search.
+                      <td colSpan={5} className="py-12 text-center text-sm text-text-muted">Loading team…</td>
+                    </tr>
+                  ) : filteredTeammates.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-sm text-text-muted">
+                        {teammates.length === 0 ? "No teammates yet. Use Invite member to add your first one." : "No members match your search."}
                       </td>
                     </tr>
                   ) : (
-                    filteredMembers.map(m => (
-                      <tr key={m.id} className="hover:bg-surface-2/40">
+                    filteredTeammates.map(t => (
+                      <tr key={t.id} className="hover:bg-surface-2/40">
                         <td className="py-4 pl-5 pr-3">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-surface-2 border border-line flex items-center justify-center text-sm text-text shrink-0">
-                              {m.name.charAt(0).toUpperCase()}
+                              {(t.name || t.email).charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-text">
-                                {m.name}
-                                {m.role === "Owner" && <span className="ml-2 text-xs font-normal text-text-muted">Founder</span>}
-                                {m.email.includes(".ai@") && (
-                                  <span className="ml-2 text-xs font-normal text-text-muted">AI advisor</span>
-                                )}
-                              </p>
-                              <p className="text-xs text-text-muted">{m.email}</p>
+                              <p className="text-sm font-medium text-text">{t.name || t.email.split("@")[0]}</p>
+                              <p className="text-xs text-text-muted">{t.email}</p>
                             </div>
                           </div>
                         </td>
-
                         <td className="py-4 px-3">
                           <select
-                            value={m.role}
-                            disabled={m.role === "Owner"}
-                            onChange={e => handleChangeRole(m.id, e.target.value)}
-                            className="px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text focus:outline-none focus:border-brass cursor-pointer disabled:opacity-60 disabled:cursor-default"
+                            value={t.role}
+                            onChange={e => handleChangeRole(t.id, e.target.value)}
+                            aria-label={`Role for ${t.email}`}
+                            className="px-2.5 py-1.5 rounded-lg bg-surface border border-line text-sm text-text focus:outline-none focus:border-brass cursor-pointer"
                           >
-                            <option value="Owner">Owner</option>
                             <option value="Executive">Executive</option>
                             <option value="Manager">Manager</option>
                             <option value="Operator">Operator</option>
                           </select>
                         </td>
-
-                        <td className="py-4 px-3 text-sm text-text-muted">{m.department}</td>
-
-                        <td className="py-4 px-3">
-                          <button
-                            type="button"
-                            onClick={() => handleToggle2FA(m)}
-                            className={`text-sm cursor-pointer hover:underline ${m.twoFactor ? "text-text" : "text-rust"}`}
-                            title="Click to change"
-                          >
-                            {m.twoFactor ? "Required" : "Optional"}
-                          </button>
-                        </td>
-
                         <td className="py-4 px-3">
                           <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
-                            <span className={`w-1.5 h-1.5 rounded-full ${statusDot[m.status]}`} />
-                            {statusText[m.status]}
+                            <span className={`w-1.5 h-1.5 rounded-full ${t.status === "verified" ? "bg-jade" : "bg-amber-500"}`} />
+                            {t.status === "verified" ? "Joined" : "Invited"}
                           </span>
                         </td>
-
-                        <td className="py-4 px-3 text-sm text-text-muted whitespace-nowrap">{m.lastActive}</td>
-
-                        <td className="py-4 pl-3 pr-5 text-right">
-                          {m.role !== "Owner" && !m.email.includes(".ai@") && (
+                        <td className="py-4 px-3 text-sm text-text-muted whitespace-nowrap">{when(t.status === "verified" ? t.verifiedAt : t.createdAt)}</td>
+                        <td className="py-4 pl-3 pr-5">
+                          <div className="flex items-center justify-end gap-3 text-sm">
+                            {t.status === "invited" && (
+                              <>
+                                <button type="button" onClick={() => handleResend(t)} className="text-brass hover:underline cursor-pointer">Resend</button>
+                                <button type="button" onClick={() => copyLink(t)} className="text-brass hover:underline cursor-pointer">Copy link</button>
+                              </>
+                            )}
                             <button
                               type="button"
-                              onClick={() => handleDeleteMember(m.id, m.name)}
+                              onClick={() => handleRemove(t)}
                               className="p-1.5 rounded text-text-muted hover:text-rust cursor-pointer"
                               title="Remove access"
-                              aria-label={`Remove ${m.name}`}
+                              aria-label={`Remove ${t.email}`}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-                          )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -381,7 +368,7 @@ export default function TeamPage() {
               <h2 className="text-base font-semibold text-text">What each role can access</h2>
               <p className="text-sm text-text-muted mt-0.5 max-w-xl">
                 Choose &ldquo;None&rdquo; to hide a section from a role. Owners always have full access, and only
-                owners can open this Team page. Teammates signing in to your workspace with these roles is coming soon.
+                owners can open this Team page. “Read only” lets a role view a section but not change it.
               </p>
             </div>
             <button
@@ -443,28 +430,6 @@ export default function TeamPage() {
         </div>
       )}
 
-      {selectedTab === "sso" && (
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-base font-semibold text-text">Single sign-on</h2>
-            <p className="text-sm text-text-muted mt-0.5">Let your team sign in with the accounts they already use.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { name: "Google Workspace", note: "Sign in with company Google accounts.", status: "Available" },
-              { name: "Okta (SAML 2.0)", note: "User provisioning and group sync.", status: "Enterprise plan" },
-              { name: "Microsoft Entra ID", note: "Active Directory sign-in.", status: "Enterprise plan" },
-            ].map(p => (
-              <div key={p.name} className="p-5 rounded-xl border border-line bg-surface">
-                <h3 className="text-sm font-medium text-text">{p.name}</h3>
-                <p className="text-sm text-text-muted mt-1">{p.note}</p>
-                <p className="text-xs text-text-muted mt-3">{p.status}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {selectedTab === "audit" && (
         <div className="rounded-xl border border-line bg-surface overflow-hidden">
@@ -500,7 +465,7 @@ export default function TeamPage() {
           <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
             <div>
               <h3 className="text-lg font-semibold text-text">Invite a colleague</h3>
-              <p className="text-sm text-text-muted mt-1">Share the invite link with them. They confirm their work email with Google.</p>
+              <p className="text-sm text-text-muted mt-1">We email them an invite. They confirm their work email with Google and join your workspace.</p>
             </div>
             <button
               type="button"
@@ -536,30 +501,16 @@ export default function TeamPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-medium text-text mb-1.5">Role</label>
-                <select value={inviteRole} onChange={e => setInviteRole(e.target.value as any)} className={inputClass}>
-                  <option value="Executive">Executive</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Operator">Operator</option>
-                </select>
-              </div>
-              <div>
-                <label className="block font-medium text-text mb-1.5">Department</label>
-                <input type="text" value={inviteDept} onChange={e => setInviteDept(e.target.value)} className={inputClass} />
-              </div>
+            <div>
+              <label className="block font-medium text-text mb-1.5">Role</label>
+              <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} className={inputClass}>
+                <option value="Executive">Executive</option>
+                <option value="Manager">Manager</option>
+                <option value="Operator">Operator</option>
+              </select>
+              <p className="text-xs text-text-muted mt-1.5">What each role can open is set under Permissions.</p>
             </div>
-
-            <label className="flex items-center gap-2 cursor-pointer text-text">
-              <input
-                type="checkbox"
-                checked={invite2FA}
-                onChange={e => setInvite2FA(e.target.checked)}
-                className="w-4 h-4 accent-[#8a6414]"
-              />
-              Require two-factor authentication
-            </label>
+            {inviteError && <p className="text-sm text-rust">{inviteError}</p>}
           </div>
 
           <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-end gap-2">

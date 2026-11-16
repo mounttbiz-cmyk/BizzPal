@@ -17,6 +17,13 @@ export function usePermissions() {
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) setMatrix(sanitizeMatrix(JSON.parse(cached)));
     } catch {}
+    // The role is decided by the server from the invite. The copy in the browser is only used until this answers.
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => {
+        if (d?.authenticated && d.role) setRole(roleFromSession(d.role));
+      })
+      .catch(() => {});
     fetch("/api/team/permissions", { cache: "no-store" })
       .then(r => r.json())
       .then(d => {

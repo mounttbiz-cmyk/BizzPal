@@ -31,13 +31,18 @@ export function createUserSession(email: string): string | null {
   const clean = String(email || "").trim().toLowerCase();
   if (!key || !clean.includes("@")) return null;
   const payload = Buffer.from(
-    JSON.stringify({ sub: clean, exp: Math.floor(Date.now() / 1000) + USER_SESSION_TTL_SEC })
+    JSON.stringify({ sub: clean, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + USER_SESSION_TTL_SEC })
   ).toString("base64url");
   return `${payload}.${sign(payload).toString("base64url")}`;
 }
 
 /** Returns the email in a valid, unexpired token, otherwise null. */
 export function verifyUserSession(token: string | undefined | null): string | null {
+  return verifyUserSessionInfo(token)?.email ?? null;
+}
+
+/** Like verifyUserSession, and also says when the session was issued (seconds). Older tokens without it are dated from their expiry. */
+export function verifyUserSessionInfo(token: string | undefined | null): { email: string; issuedAt: number } | null {
   try {
     if (!secret() || !token) return null;
     const [payload, sig] = token.split(".");
@@ -47,7 +52,8 @@ export function verifyUserSession(token: string | undefined | null): string | nu
     if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (typeof data?.sub !== "string" || typeof data.exp !== "number" || data.exp <= Date.now() / 1000) return null;
-    return data.sub;
+    const issuedAt = typeof data.iat === "number" ? data.iat : data.exp - USER_SESSION_TTL_SEC;
+    return { email: data.sub, issuedAt };
   } catch {
     return null;
   }
@@ -61,6 +67,11 @@ export function readCookie(req: Request, name: string): string | null {
     if (part.slice(0, i).trim() === name) return decodeURIComponent(part.slice(i + 1).trim());
   }
   return null;
+}
+
+/** The signed-in customer's email and when their session started, or null. */
+export function getSessionInfo(req: Request): { email: string; issuedAt: number } | null {
+  return verifyUserSessionInfo(readCookie(req, USER_COOKIE));
 }
 
 /** The signed-in customer's email, or null. */

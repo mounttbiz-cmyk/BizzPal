@@ -7,10 +7,10 @@ import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { Callout } from "@/components/onboarding/ui";
 
 type Info = { ok: true; business: string; role: string; email: string; status: "invited" | "verified" } | { ok: false; error: string };
-type Outcome = { decision: string; email: string } | null;
+type Outcome = { decision: string; email: string; name?: string; role?: string } | null;
 
 const MESSAGES: Record<string, { tone: "good" | "warn" | "bad"; title: string; body: (email: string, invited: string) => string }> = {
-  ok: { tone: "good", title: "You're confirmed", body: () => "Your work email has been verified. You can close this page." },
+  ok: { tone: "good", title: "You're in", body: () => "Your work email is confirmed and you have been added to the team." },
   already: { tone: "good", title: "Already confirmed", body: () => "You've already confirmed this invite. You're all set." },
   wrong_email: { tone: "warn", title: "That's a different email", body: (email, invited) => `You signed in as ${email}, but this invite was sent to ${invited}. Please sign in with that Google account instead.` },
   email_not_verified: { tone: "bad", title: "Google hasn't verified that email", body: () => "We can only confirm emails that Google has verified. Please use a verified Google account." },
@@ -39,7 +39,7 @@ export default function JoinPage({ params }: { params: { token: string } }) {
     const onMsg = (ev: MessageEvent) => {
       if (ev.origin !== window.location.origin || ev.data?.type !== "BIZZPAL_INVITE_RESULT") return;
       setBusy(false);
-      setOutcome({ decision: String(ev.data.decision), email: String(ev.data.email || "") });
+      setOutcome({ decision: String(ev.data.decision), email: String(ev.data.email || ""), name: String(ev.data.name || ""), role: String(ev.data.role || "") });
       load();
     };
     window.addEventListener("message", onMsg);
@@ -58,6 +58,25 @@ export default function JoinPage({ params }: { params: { token: string } }) {
       `width=${w},height=${h},left=${left},top=${top}`
     );
     const timer = setInterval(() => { if (!popup || popup.closed) { clearInterval(timer); setBusy(false); } }, 800);
+  };
+
+  const joinedNow = outcome?.decision === "ok" || outcome?.decision === "already";
+
+  // The server has already signed this person in. Point the app at the team's workspace and open it.
+  const openWorkspace = () => {
+    try {
+      localStorage.setItem("bizzpal_user_session", JSON.stringify({
+        id: `usr_join_${Date.now()}`,
+        email: outcome?.email || "",
+        name: outcome?.name || (outcome?.email || "").split("@")[0],
+        role: String(outcome?.role || "operator").toLowerCase(),
+        provider: "google.com",
+        authenticatedAt: new Date().toISOString(),
+      }));
+      localStorage.removeItem("bizzpal_business_profile");
+      localStorage.removeItem("bizzpal_onboarding_step");
+    } catch {}
+    window.location.href = "/dashboard";
   };
 
   const invited = info && info.ok ? info.email : "";
@@ -96,13 +115,26 @@ export default function JoinPage({ params }: { params: { token: string } }) {
               </div>
 
               {info.status === "verified" && !msg && (
-                <Callout tone="good" icon={<BadgeCheck className="w-5 h-5" />} title="Already confirmed">This invite has been confirmed. You&apos;re all set.</Callout>
+                <>
+                  <Callout tone="good" icon={<BadgeCheck className="w-5 h-5" />} title="Already confirmed">This invite has been confirmed. Sign in to open the workspace.</Callout>
+                  <a href="/login" className="w-full h-11 rounded-xl bg-brass text-bg font-bold text-xs hover:brightness-110 inline-flex items-center justify-center">Sign in</a>
+                </>
               )}
 
               {msg && (
                 <Callout tone={msg.tone} icon={msg.tone === "good" ? <BadgeCheck className="w-5 h-5" /> : <AlertTriangle className="w-4 h-4" />} title={msg.title}>
                   {msg.body(outcome!.email, invited)}
                 </Callout>
+              )}
+
+              {joinedNow && (
+                <button
+                  type="button"
+                  onClick={openWorkspace}
+                  className="w-full h-11 rounded-xl bg-brass text-bg font-bold text-xs hover:brightness-110 inline-flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Open the workspace
+                </button>
               )}
 
               {info.status !== "verified" && outcome?.decision !== "ok" && (

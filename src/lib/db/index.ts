@@ -1905,8 +1905,33 @@ export function confirmDataPalPackPayment(data: {
 // Each customer's own business. Every customer API looks up data with this id,
 // which comes from the signed-in email and never from anything the browser sends.
 // ---------------------------------------------------------------
+const businessIdFor = (email: string) => `biz_${String(email || "").trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "_")}`;
+
+export interface TeamMembership {
+  ownerEmail: string;
+  role: string;
+  /** When the person confirmed the invite (seconds). Sessions older than this are not allowed into the owner's workspace. */
+  verifiedAtSec: number;
+}
+
+/** Set when this person accepted an invite (confirmed their email with Google) and the owner has not removed them. */
+export function getTeamMembership(email: string): TeamMembership | null {
+  const e = String(email || "").trim().toLowerCase();
+  try {
+    const row = db
+      .prepare("SELECT owner_email, role, verified_at FROM team_invites WHERE invite_email = ? AND status = 'verified' ORDER BY verified_at DESC LIMIT 1")
+      .get(e) as any;
+    if (!row || row.owner_email === e || !isUserRegistered(row.owner_email)) return null;
+    return { ownerEmail: row.owner_email, role: row.role, verifiedAtSec: Math.floor(new Date(row.verified_at).getTime() / 1000) || 0 };
+  } catch {
+    return null; // the invites table does not exist until the first invite
+  }
+}
+
+/** The business a person works in: their own, or the owner's when they have joined a team. */
 export function getUserBusinessId(email: string): string {
-  return `biz_${String(email || "").trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "_")}`;
+  const membership = getTeamMembership(email);
+  return businessIdFor(membership ? membership.ownerEmail : email);
 }
 
 export function getUserBusiness(email: string) {

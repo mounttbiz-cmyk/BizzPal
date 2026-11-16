@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId } from "@/lib/db";
+import { addTeamAuditLog, getUserBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getPlatformConfig, setPlatformConfig, clearMemoryConfigCache } from "@/lib/db";
 import { DEFAULT_MATRIX, sanitizeMatrix } from "@/lib/permissions";
@@ -34,6 +34,7 @@ export async function PUT(req: Request) {
     const matrix = sanitizeMatrix(body.matrix);
     clearMemoryConfigCache(keyFor(tenantId));
     setPlatformConfig(keyFor(tenantId), matrix);
+    addTeamAuditLog({ businessId: tenantId, action: "Updated what each role can access", userName: auth.email });
     return NextResponse.json({ success: true, matrix });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || "Could not save permissions." }, { status: 500 });

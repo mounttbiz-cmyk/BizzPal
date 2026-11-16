@@ -73,6 +73,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
   const [role, setRole] = useState("Operator");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [copied, setCopied] = useState("");
   const [justConfirmed, setJustConfirmed] = useState<string | null>(null);
   const prev = useRef<Record<string, string>>({});
@@ -210,6 +211,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
   const add = async () => {
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const res = await fetch("/api/team/invites", {
         method: "POST",
@@ -219,6 +221,13 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
       const d = await res.json();
       if (res.ok && d.ok) {
         onUpdate(d.invites);
+        setNotice(
+          d.emailed
+            ? `Invite emailed to ${inviteEmail}.`
+            : d.emailConfigured
+            ? "The invite was created but the email could not be sent. Copy the link below and send it yourself."
+            : "Email isn't set up on this server, so copy the invite link below and send it yourself."
+        );
         setInviteEmail("");
         setName("");
       } else setError(d.error || "Couldn't create the invite.");
@@ -733,6 +742,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
             </button>
           </div>
 
+          {notice && !error && <p className="text-xs text-text-muted -mt-3">{notice}</p>}
           {error && (
             <p role="alert" className="text-xs text-rust font-medium flex items-center gap-1.5 -mt-3">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
