@@ -4,9 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
-import { useAuth } from "@/lib/firebase/authContext";
-import { isFirebaseConfigured } from "@/lib/firebase/config";
-import { saveUserProfileToFirestore } from "@/lib/firebase/firestore";
+import { useAuth } from "@/lib/auth/authContext";
 import { BUSINESS_DATA_UPDATED_EVENT } from "@/lib/upload/events";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
@@ -156,14 +154,14 @@ export default function BusinessProfileSettingsPage() {
         })
       );
 
-      // Helper: execute remote async tasks with a strict safety timeout so slow networks/Firebase never stall the UI
+      // Helper: execute remote async tasks with a strict safety timeout so slow networks never stall the UI
       const withTimeout = (p: Promise<any>, ms = 1500) =>
         Promise.race([
           p,
           new Promise((resolve) => setTimeout(() => resolve(null), ms)),
         ]);
 
-      // 3. Persist concurrently to SQLite intake, account-status, and Firebase in the background
+      // 3. Persist concurrently to SQLite intake, account-status, in the background
       const remoteTasks: Promise<any>[] = [];
 
       // 3a. SQLite intake endpoint
@@ -202,27 +200,6 @@ export default function BusinessProfileSettingsPage() {
                 businessProfile: updatedProfile,
               }),
             }).catch(() => {})
-          )
-        );
-      }
-
-      // 3c. Cloud Firestore & Realtime Database
-      let currentUserId = user?.uid;
-      if (!currentUserId) {
-        const sessStr = localStorage.getItem("bizzpal_user_session");
-        if (sessStr) currentUserId = JSON.parse(sessStr).id;
-      }
-      if (currentUserId && isFirebaseConfigured) {
-        remoteTasks.push(
-          withTimeout(
-            saveUserProfileToFirestore(currentUserId, {
-              email: email.trim().toLowerCase(),
-              displayName: cleanFounderName,
-              role: "owner",
-              businessProfile: updatedProfile,
-            }).catch((fbErr) => {
-              console.warn("Failed to sync profile to Firebase", fbErr);
-            })
           )
         );
       }
@@ -272,15 +249,6 @@ export default function BusinessProfileSettingsPage() {
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
           throw new Error(errData.error || "Failed to delete server record.");
-        }
-      }
-
-      // 2. Delete from Firebase Auth if current user is active
-      if (isFirebaseConfigured && user) {
-        try {
-          await user.delete();
-        } catch (fbErr: any) {
-          console.warn("Notice during Firebase user deletion:", fbErr);
         }
       }
 

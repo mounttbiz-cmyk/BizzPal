@@ -24,9 +24,7 @@ import {
   Upload,
 } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
-import { useAuth } from "@/lib/firebase/authContext";
-import { auth, isFirebaseConfigured, firebaseConfig } from "@/lib/firebase/config";
-import { saveUserProfileToFirestore, getUserProfileFromFirestore } from "@/lib/firebase/firestore";
+import { useAuth } from "@/lib/auth/authContext";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { validateWorkEmail } from "@/lib/validation/emailValidator";
 
@@ -40,17 +38,13 @@ interface AuthErrorInfo {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail, logout } = useAuth();
+  const { signInWithEmail, signUpWithEmail } = useAuth();
   const [authMode, setAuthMode] = useState<"register" | "signin">("register");
   const [isSuperadminMode, setIsSuperadminMode] = useState(false);
-  const [showFirebaseModal, setShowFirebaseModal] = useState(false);
   const [showRedirectGuide, setShowRedirectGuide] = useState(false);
 
   // Close modals on Escape
-  useEscapeKey(() => {
-    setShowFirebaseModal(false);
-    setShowRedirectGuide(false);
-  }, showFirebaseModal || showRedirectGuide);
+  useEscapeKey(() => setShowRedirectGuide(false), showRedirectGuide);
 
   const [copiedEnv, setCopiedEnv] = useState(false);
   const [copiedUri, setCopiedUri] = useState(false);
@@ -113,168 +107,32 @@ export default function LoginPage() {
   }, []);
 
   /**
-   * Parse any error into a rich, helpful, human-readable AuthErrorInfo
+   * Turn an error from the sign-in or sign-up request into a clear message
    */
   const parseAuthError = (err: any): AuthErrorInfo => {
     const code = err?.code || "";
-    const rawMsg = err?.message || "";
+    const msg = String(err?.message || "").trim();
 
-    // 1. Google OAuth 400 redirect_uri_mismatch detection
-    if (
-      code === "auth/invalid-oauth-provider-response" ||
-      rawMsg.includes("redirect_uri_mismatch") ||
-      rawMsg.includes("Error 400") ||
-      rawMsg.includes("redirect_uri")
-    ) {
-      return {
-        title: "Google OAuth Setup Required (Error 400: redirect_uri_mismatch)",
-        message: `Your Google Cloud Web Client ID requires "${activeRedirectUri}" added to its Authorized redirect URIs.`,
-        code: "redirect_uri_mismatch",
-        type: "redirect",
-        redirectUri: activeRedirectUri,
-      };
+    switch (code) {
+      case "account_exists":
+        return { title: "Account Already Exists", message: "An account with this email address already exists. Please switch to 'Log In' to open your dashboard.", code, type: "credentials" };
+      case "invalid_credentials":
+        return { title: "Incorrect Email or Password", message: "Please check your email and password. If you have not created an account yet, switch to 'Create Account'.", code, type: "credentials" };
+      case "weak_password":
+        return { title: "Password Too Short", message: msg || "Password must be at least 8 characters long.", code, type: "credentials" };
+      case "bad_email":
+        return { title: "Valid Work Email Required", message: msg || "Please enter a valid work email address.", code, type: "credentials" };
+      case "google_account":
+        return { title: "This Account Uses Google", message: msg || "Please use the Google button to sign in.", code, type: "credentials" };
+      case "needs_password_reset":
+        return { title: "Password Needs To Be Reset", message: msg || "Please contact support to set a new password.", code, type: "credentials" };
+      case "too_many_attempts":
+        return { title: "Too Many Attempts", message: msg || "Please wait a few minutes and try again.", code, type: "general" };
+      case "network":
+        return { title: "Connection Problem", message: msg || "Could not reach the server. Please check your connection.", code, type: "general" };
+      default:
+        return { title: "Could Not Sign In", message: msg || "Something went wrong. Please try again.", code, type: "general" };
     }
-
-    // 2. Google popup closed (often happens when user sees Error 400 in the Google popup)
-    if (code === "auth/popup-closed-by-user") {
-      return {
-        title: "Google Sign-In Cancelled or Blocked",
-        message: `The Google sign-in window was closed. If Google displayed "Error 400: redirect_uri_mismatch", please add the authorized redirect URI in Google Cloud Console, or use Work Email & Password below.`,
-        code,
-        type: "redirect",
-        redirectUri: activeRedirectUri,
-      };
-    }
-
-    if (code === "auth/popup-blocked") {
-      return {
-        title: "Popup Blocked",
-        message: "The Google Sign-In popup was blocked by your browser. Please allow popups for this site, or sign in using Work Email & Password below.",
-        code,
-        type: "general",
-      };
-    }
-
-    // 3. Provider not allowed
-    if (code === "auth/operation-not-allowed") {
-      return {
-        title: "Sign-In Method Not Enabled",
-        message: "This sign-in method is not enabled in your Firebase Console. Please go to Firebase Console → Authentication → Sign-in method and enable 'Email/Password' and 'Google'. Alternatively, click 'Instant Demo Mode' to access immediately.",
-        code,
-        type: "config",
-      };
-    }
-
-    // 4. Domain not authorized
-    if (code === "auth/unauthorized-domain") {
-      return {
-        title: "Domain Authorization Required",
-        message: "Your current domain is not yet authorized in Firebase. In Firebase Console → Authentication → Settings → Authorized domains, click 'Add domain' and add your current host.",
-        code,
-        type: "domain",
-      };
-    }
-
-    // 5. Email already in use
-    if (code === "auth/email-already-in-use") {
-      return {
-        title: "Account Already Exists",
-        message: "An account with this email address already exists. Please switch to 'Log In' to access your business dashboard.",
-        code,
-        type: "credentials",
-      };
-    }
-
-    // 6. Invalid credentials / wrong password
-    if (code === "auth/invalid-credential" || code === "auth/wrong-password") {
-      return {
-        title: "Invalid Credentials",
-        message: "Incorrect email or password. If you have not created an account yet, switch to 'Create Account'.",
-        code,
-        type: "credentials",
-      };
-    }
-
-    // 7. User not found
-    if (code === "auth/user-not-found") {
-      return {
-        title: "Account Not Found",
-        message: "No registered account found with this email. Please switch to 'Create Account' to register your business.",
-        code,
-        type: "credentials",
-      };
-    }
-
-    // 8. Weak password
-    if (code === "auth/weak-password") {
-      return {
-        title: "Weak Password",
-        message: "Password must be at least 6 characters long.",
-        code,
-        type: "credentials",
-      };
-    }
-
-    // 9. Network error
-    if (code === "auth/network-request-failed") {
-      return {
-        title: "Network Connection Error",
-        message: "Unable to reach Firebase servers. Please verify your internet connection or use Instant Demo Mode.",
-        code,
-        type: "general",
-      };
-    }
-
-    // 10. Extract any embedded (auth/code)
-    const authMatch = rawMsg.match(/\(auth\/([a-z0-9-]+)\)/i);
-    if (authMatch) {
-      const parsed = authMatch[1];
-      if (parsed === "operation-not-allowed") {
-        return {
-          title: "Provider Not Enabled",
-          message: "Please enable Email/Password or Google in Firebase Console → Authentication → Sign-in method.",
-          code: parsed,
-          type: "config",
-        };
-      }
-      if (parsed === "invalid-credential") {
-        return {
-          title: "Invalid Credentials",
-          message: "Incorrect credentials. Please verify your email and password or create a new account.",
-          code: parsed,
-          type: "credentials",
-        };
-      }
-      return {
-        title: "Authentication Error",
-        message: `Firebase returned (${parsed}). You can explore the platform right now using Instant Demo Mode.`,
-        code: parsed,
-        type: "general",
-      };
-    }
-
-    // 11. Clean message without reducing to bare "Error"
-    const cleaned = rawMsg
-      .replace(/^Firebase:\s*/i, "")
-      .replace(/^Error:\s*/i, "")
-      .replace(/FirebaseError:\s*/i, "")
-      .trim();
-
-    if (cleaned && cleaned.toLowerCase() !== "error") {
-      return {
-        title: "Authentication Notice",
-        message: cleaned,
-        code,
-        type: "general",
-      };
-    }
-
-    return {
-      title: "Authentication Notice",
-      message: "Unable to complete authentication with the cloud service. You can immediately access the AI Business OS with Instant Demo Mode.",
-      code,
-      type: "general",
-    };
   };
 
   /**
@@ -354,15 +212,6 @@ export default function LoginPage() {
         }
       } catch (e) { }
 
-      if (uid && isFirebaseConfigured) {
-        try {
-          const firestoreData = await getUserProfileFromFirestore(uid);
-          if (firestoreData?.businessProfile) {
-            localStorage.setItem("bizzpal_business_profile", JSON.stringify(firestoreData.businessProfile));
-            localStorage.setItem(`bizzpal_user_business_${cleanEmail}`, JSON.stringify(firestoreData.businessProfile));
-          }
-        } catch (e) { }
-      }
     })().catch(() => { });
   };
 
@@ -374,10 +223,10 @@ export default function LoginPage() {
     setLoading(true);
     setErrorInfo(null);
 
-    if (isFirebaseConfigured) {
+    {
       try {
         if (provider === "google") {
-          // Direct Google OAuth flow using real Google Client ID (never routes through nuralix-firebase)
+          // Google sign-in through our own server (the server checks Google's answer and sets the session)
           const width = 540;
           const height = 680;
           const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
@@ -537,10 +386,10 @@ export default function LoginPage() {
             return;
           }
 
-          if (!password || password.length < 6) {
+          if (!password || password.length < 8) {
             setErrorInfo({
               title: "Password Too Short",
-              message: "Password must be at least 6 characters long.",
+              message: "Password must be at least 8 characters long.",
               type: "credentials",
             });
             setLoading(false);
@@ -599,12 +448,6 @@ export default function LoginPage() {
 
             handleSuccessfulAuth("/onboarding?mode=new_signup", "Account created successfully! Preparing workspace...");
 
-            saveUserProfileToFirestore(authUser.uid, {
-              email: cleanEmail,
-              displayName: fullName || "Founder",
-              role: "owner",
-              createdAt: new Date().toISOString(),
-            }).catch(() => { });
             return;
           }
         } else {
@@ -660,12 +503,6 @@ export default function LoginPage() {
         setErrorInfo(parsed);
         return;
       }
-    } else {
-      setLoading(false);
-      setErrorInfo({
-        message: "Authentication service is not configured. Please ensure your environment credentials are set.",
-        type: "config"
-      });
     }
   };
 
@@ -1062,7 +899,7 @@ export default function LoginPage() {
                         <input
                           type="password"
                           required
-                          placeholder="•••••••• (min 6 characters)"
+                          placeholder="•••••••• (min 8 characters)"
                           value={password}
                           onChange={e => setPassword(e.target.value)}
                           className="w-full text-xs pl-9 pr-3.5 py-2.5 rounded-xl border border-line bg-surface-2 text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all"
@@ -1229,8 +1066,8 @@ export default function LoginPage() {
 
             <div className="space-y-3 text-xs text-text-muted">
               <p className="leading-relaxed">
-                Google blocks sign-in with <b>Error 400: redirect_uri_mismatch</b> when the Firebase OAuth handler is not
-                listed under Authorized redirect URIs in Google Cloud Console.
+                Google blocks sign-in with <b>Error 400: redirect_uri_mismatch</b> when this address is not listed under
+                Authorized redirect URIs for your OAuth client in Google Cloud Console.
               </p>
 
               <div className="p-3.5 rounded-xl bg-surface-2 border border-line space-y-2">

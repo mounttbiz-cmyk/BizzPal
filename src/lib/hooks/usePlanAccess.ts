@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useAuth } from "@/lib/firebase/authContext";
-import { getUserPlanFromFirestore, saveUserPlanToFirestore } from "@/lib/firebase/firestore";
+import { useAuth } from "@/lib/auth/authContext";
 
 export const PLAN_ORDER = ["free", "starter", "growth", "enterprise"] as const;
 export type PlanId = string;
@@ -58,7 +57,7 @@ function getCurrentUserEmail(userObj: any): string | null {
 }
 
 /**
- * Resolves the current user's active subscription plan (Firestore when signed in,
+ * Resolves the current user's active subscription plan (from the server when signed in,
  * falling back to the isolated user-specific local cache, defaulting strictly to "free")
  * and exposes plan-gating helpers.
  */
@@ -77,15 +76,21 @@ export function usePlanAccess() {
 
       try {
         if (user) {
-          const remotePlan = await getUserPlanFromFirestore(user.uid);
-          if (!cancelled) {
-            if (remotePlan) {
-              setPlan(remotePlan);
-              setHasActivated(true);
-              if (email) localStorage.setItem(`bizzpal_subscription_plan_${email}`, remotePlan);
-              localStorage.setItem("bizzpal_subscription_plan", remotePlan);
-              return;
+          // The server knows what this customer has really paid for
+          let remotePlan: string | null = null;
+          try {
+            const res = await fetch("/api/payments/transactions", { cache: "no-store" });
+            if (res.ok) {
+              const d = await res.json();
+              remotePlan = d?.activeSubscription?.plan_id || "free";
             }
+          } catch {}
+          if (!cancelled && remotePlan) {
+            setPlan(remotePlan);
+            setHasActivated(remotePlan !== "free");
+            if (email) localStorage.setItem(`bizzpal_subscription_plan_${email}`, remotePlan);
+            localStorage.setItem("bizzpal_subscription_plan", remotePlan);
+            return;
           }
         }
 
@@ -150,13 +155,6 @@ export function usePlanAccess() {
         }
       } catch {
         // ignore
-      }
-      if (user) {
-        try {
-          await saveUserPlanToFirestore(user.uid, planId);
-        } catch {
-          // ignore — local cache already updated
-        }
       }
     },
     [user]

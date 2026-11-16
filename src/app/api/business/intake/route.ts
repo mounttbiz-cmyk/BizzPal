@@ -209,26 +209,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // 1c. Mirror to Firestore so data remains persistent on Vercel
-    try {
-      const { saveFirestoreBusinessRecord } = require("@/lib/firebase/firestoreService");
-      saveFirestoreBusinessRecord(targetBizId, {
-        name,
-        industry,
-        industryLabel,
-        founderName,
-        website,
-        teamSize,
-        annualRevenue: finalAnnualRevenue,
-        monthlyRevenue: finalMonthlyRevenue,
-        monthlyBurn: finalMonthlyBurn,
-        cashOnHand: finalCashOnHand,
-        connectedTools,
-        ownerEmail: userEmail || null,
-        updatedAt: now,
-      }).catch(() => {});
-    } catch {}
-
     // 2. Update integrations according to intake branching logic
     const allTools = ["stripe", "slack", "zoho_books", "google_calendar", "help_desk"];
     for (const toolKey of allTools) {

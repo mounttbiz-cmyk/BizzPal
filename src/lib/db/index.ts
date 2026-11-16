@@ -677,8 +677,8 @@ export function saveUserBusinessProfile(email: string, profile: any): boolean {
     const cleanEmail = email.trim().toLowerCase();
     const profileJson = typeof profile === "string" ? profile : JSON.stringify(profile);
     const result = db.prepare(`
-      UPDATE registered_users 
-      SET business_profile = ? 
+      UPDATE registered_users
+      SET business_profile = ?
       WHERE LOWER(email) = ?
     `).run(profileJson, cleanEmail);
 
@@ -749,13 +749,6 @@ export function saveUserBusinessProfile(email: string, profile: any): boolean {
       );
     }
 
-    // Mirror to Firestore
-    try {
-      const { saveFirestoreBusinessRecord, saveFirestoreUserProfile } = require("@/lib/firebase/firestoreService");
-      saveFirestoreUserProfile(cleanEmail, { email: cleanEmail, businessProfile: p });
-      saveFirestoreBusinessRecord(bizId, { ...p, ownerEmail: cleanEmail, updatedAt: now });
-    } catch {}
-
     return result.changes > 0;
   } catch (err) {
     console.warn("saveUserBusinessProfile error:", err);
@@ -810,8 +803,8 @@ export function registerUser(email: string, name?: string, provider?: string, ui
 
     if (existing) {
       db.prepare(`
-        UPDATE registered_users SET 
-          name = COALESCE(?, name), 
+        UPDATE registered_users SET
+          name = COALESCE(?, name),
           provider = COALESCE(?, provider),
           business_profile = COALESCE(?, business_profile),
           last_login_at = ?
@@ -869,23 +862,6 @@ export function registerUser(email: string, name?: string, provider?: string, ui
       );
     }
 
-    // Mirror user profile to Firestore
-    try {
-      const { saveFirestoreUserProfile, saveFirestoreBusinessRecord } = require("@/lib/firebase/firestoreService");
-      saveFirestoreUserProfile(cleanEmail, {
-        email: cleanEmail,
-        name: name || "",
-        provider: provider || "email",
-        businessProfile: p,
-      });
-      saveFirestoreBusinessRecord(bizId, {
-        id: bizId,
-        name: bizName,
-        founderName: founder,
-        ownerEmail: cleanEmail,
-        updatedAt: now,
-      });
-    } catch {}
 
     return true;
   } catch (err) {
@@ -903,14 +879,14 @@ if (!existingBiz) {
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO businesses (
-      id, name, industry, industry_label, founder_name, website, team_size, 
-      annual_revenue, monthly_revenue, monthly_burn, cash_on_hand, 
-      connected_tools, no_integrations, whatsapp_opt_in, whatsapp_number, 
+      id, name, industry, industry_label, founder_name, website, team_size,
+      annual_revenue, monthly_revenue, monthly_burn, cash_on_hand,
+      connected_tools, no_integrations, whatsapp_opt_in, whatsapp_number,
       dynamic_intake_answers, created_at, updated_at
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, 
-      ?, ?, ?, ?, 
-      ?, ?, ?, ?, 
+      ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?,
+      ?, ?, ?, ?,
       ?, ?, ?
     )
   `).run(
@@ -1395,7 +1371,7 @@ export function setPlatformConfig<T>(key: string, value: T): void {
   memoryConfigCache.set(key, value);
 
   const now = new Date().toISOString();
-  
+
   // Try writing to SQLite with retry and permission healing
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -1409,7 +1385,7 @@ export function setPlatformConfig<T>(key: string, value: T): void {
       return;
     } catch (err: any) {
       console.warn(`Attempt ${attempt} to write config ${key} to SQLite failed:`, err.message);
-      
+
       // On Windows / OneDrive, clear read-only attribute if it got reapplied
       if (process.platform === "win32") {
         try {
@@ -2010,3 +1986,30 @@ try {
     );
   }
 } catch {}
+
+// ---------------------------------------------------------------
+// Passwords (email sign-in). Only a salted hash is stored.
+// ---------------------------------------------------------------
+try {
+  db.exec(`ALTER TABLE registered_users ADD COLUMN password_hash TEXT`);
+} catch {
+  // column already exists
+}
+
+export function getUserPasswordHash(email: string): string | null {
+  try {
+    const row = db.prepare("SELECT password_hash FROM registered_users WHERE LOWER(email) = ?").get(String(email || "").trim().toLowerCase()) as any;
+    return row?.password_hash || null;
+  } catch {
+    return null;
+  }
+}
+
+export function setUserPasswordHash(email: string, hash: string): boolean {
+  try {
+    const res: any = db.prepare("UPDATE registered_users SET password_hash = ? WHERE LOWER(email) = ?").run(hash, String(email || "").trim().toLowerCase());
+    return Boolean(res?.changes);
+  } catch {
+    return false;
+  }
+}

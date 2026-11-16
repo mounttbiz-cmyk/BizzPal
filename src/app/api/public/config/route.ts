@@ -9,20 +9,10 @@ import {
 } from "@/lib/db";
 import { defaultNavItems } from "@/config/seeds/defaultNav";
 import { defaultWidgets } from "@/config/seeds/defaultWidgets";
-import { getFirestoreConfig } from "@/lib/firebase/firestoreService";
 
 export const dynamic = "force-dynamic";
 
 async function fetchPublicConfigWithCloudFirst<T>(key: string, localFallback: T): Promise<T> {
-  try {
-    const cloudVal = await getFirestoreConfig<T | null>(key, null);
-    if (cloudVal !== null && cloudVal !== undefined) {
-      try { setPlatformConfig(key, cloudVal); } catch { }
-      return cloudVal;
-    }
-  } catch (e) {
-    console.warn(`[Public GCP Config] Failed reading ${key} from Firestore:`, e);
-  }
   return getPlatformConfig<T>(key, localFallback);
 }
 

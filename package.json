@@ -10,9 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "backup:db": "node scripts/backup-db.mjs",
-    "firebase:login": "npx firebase login",
-    "firebase:deploy": "npx firebase deploy"
+    "backup:db": "node scripts/backup-db.mjs"
   },
   "dependencies": {
     "@react-three/fiber": "^8.18.0",
@@ -22,8 +20,6 @@
     "clsx": "^2.1.1",
     "country-flag-icons": "^1.6.20",
     "country-state-city": "^3.2.1",
-    "firebase": "^12.18.0",
-    "firebase-admin": "^14.5.0",
     "google-auth-library": "^11.1.0",
     "framer-motion": "^13.4.0",
     "lenis": "^1.3.26",

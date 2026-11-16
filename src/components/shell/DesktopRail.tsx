@@ -9,8 +9,6 @@ import { DynamicIcon } from "./DynamicIcon";
 import { ThemeSwitch } from "./ThemeSwitch";
 import { LogOut, Search, Lock } from "lucide-react";
 import { WEBSITE_URL } from "@/config/urls";
-import { auth } from "@/lib/firebase/config";
-import { signOut } from "firebase/auth";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 import { usePlanName } from "@/lib/hooks/usePlanName";
 import { UpgradeModal } from "./UpgradeModal";
@@ -77,9 +75,6 @@ export function DesktopRail({
 
   const handleLogout = async () => {
     try {
-      if (auth) {
-        await signOut(auth);
-      }
     } catch (e) {
       // ignore
     }

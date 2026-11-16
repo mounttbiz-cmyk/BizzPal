@@ -69,6 +69,22 @@ export function UsersManager({ users, onRefresh, notify }: UsersManagerProps) {
     }
   };
 
+  const handleResetPassword = async (u: UserItem) => {
+    const next = window.prompt(`Set a new password for ${u.email} (at least 8 characters). Tell them the new password, and ask them to change it after signing in.`);
+    if (!next) return;
+    try {
+      const res = await fetch("/api/admin/users/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: u.email, newPassword: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      notify(data.success ? data.message || "Password updated." : data.error || "Could not set the password.");
+    } catch {
+      notify("Could not set the password.");
+    }
+  };
+
   const filtered = users.filter(
     (u) =>
       u.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -126,6 +142,14 @@ export function UsersManager({ users, onRefresh, notify }: UsersManagerProps) {
                   {u.createdAt ? ` · Joined ${formatDateTime(u.createdAt)}` : ""}
                 </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => handleResetPassword(u)}
+                className="ml-auto px-3 py-2 rounded-xl border border-line text-sm text-text hover:bg-surface-2 cursor-pointer shrink-0"
+              >
+                Reset password
+              </button>
 
               <button
                 type="button"

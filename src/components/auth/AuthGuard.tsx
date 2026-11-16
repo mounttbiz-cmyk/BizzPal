@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ensureServerSession } from "@/lib/firebase/serverSession";
+import { hasServerSession } from "@/lib/auth/authContext";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -20,7 +20,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
 
         // The server has to agree that this browser is signed in. The copy in local storage proves nothing.
-        const ok = await ensureServerSession();
+        const ok = await hasServerSession();
         if (cancelled) return;
         if (!ok) {
           localStorage.removeItem("bizzpal_user_session");

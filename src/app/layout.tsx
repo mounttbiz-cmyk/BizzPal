@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { themeInitScript } from "@/lib/theme/themeScript";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
-import { AuthProvider } from "@/lib/firebase/authContext";
+import { AuthProvider } from "@/lib/auth/authContext";
 import { ScrollLockObserver } from "@/components/ui/ScrollLockObserver";
 
 export const metadata: Metadata = {

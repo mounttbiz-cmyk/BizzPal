@@ -303,24 +303,6 @@ export function IntegrationLogo({ id, className = "w-7 h-7" }: { id: string; cla
         </svg>
       );
 
-    case "firebase":
-      return (
-        <svg className={className} viewBox="0 0 24 24" fill="none">
-          <path
-            d="M4.5 18.5L6.8 4.2c.1-.6.8-.9 1.2-.5l3.2 5.9-6.7 8.9z"
-            fill="#FFA000"
-          />
-          <path
-            d="M13.2 12.3l-2-3.7c-.3-.5-1-.5-1.3 0L3.5 19.5l7.9 4.4c.5.3 1.1.3 1.6 0l7.5-4.4-7.3-7.2z"
-            fill="#F57C00"
-          />
-          <path
-            d="M19.5 7.8c.4-.6 1.3-.4 1.4.3l1.6 10.4-9.3-6.2 6.3-4.5z"
-            fill="#FFCA28"
-          />
-        </svg>
-      );
-
     default:
       return (
         <div className={`rounded-lg bg-surface-2 border border-line flex items-center justify-center font-bold text-xs ${className}`}>
