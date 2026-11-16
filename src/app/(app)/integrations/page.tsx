@@ -22,14 +22,6 @@ interface IntegrationItem {
   configSummary?: string;
 }
 
-interface StripeEvent {
-  id: string;
-  eventType: string;
-  amount: number;
-  currency: string;
-  createdAt: string;
-}
-
 const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
   // 1. Core Business & Cloud Tools
   {
@@ -100,7 +92,7 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
     services: ["Charges & Payments API", "Subscriptions Telemetry", "Inbound Webhook Engine"],
     permissions: ["Read customer charges & invoices", "Listen for live payment webhook events"],
     usedBy: ["CFO", "Adaptive Analytics", "Decision Simulator", "Daily Check-In Filter"],
-    configSummary: "End-to-end verified with live webhook endpoint and persistent event logging.",
+    configSummary: "Stripe revenue sync is coming soon. Nothing is connected or collected yet.",
   },
   {
     id: "slack",
@@ -224,7 +216,6 @@ const CATALOG_DEFINITIONS: Omit<IntegrationItem, "status">[] = [
 
 export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<IntegrationItem[]>([]);
-  const [stripeEvents, setStripeEvents] = useState<StripeEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -232,7 +223,6 @@ export default function IntegrationsPage() {
   // Modals
   const [viewerItem, setViewerItem] = useState<IntegrationItem | null>(null);
   const [inspectItem, setInspectItem] = useState<IntegrationItem | null>(null);
-  const [stripeModalOpen, setStripeModalOpen] = useState<boolean>(false);
   const [genericModalItem, setGenericModalItem] = useState<IntegrationItem | null>(null);
 
   // Business Profile Context
@@ -240,11 +230,6 @@ export default function IntegrationsPage() {
   const [founderName, setFounderName] = useState<string>("Founder");
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("owner@yourcompany.com");
 
-  // Stripe Modal State
-  const [stripeApiKey, setStripeApiKey] = useState<string>("");
-  const [stripeConnecting, setStripeConnecting] = useState<boolean>(false);
-  const [stripeTestingWebhook, setStripeTestingWebhook] = useState<boolean>(false);
-  const [stripeSuccessMsg, setStripeSuccessMsg] = useState<string>("");
 
   // Real Tool Credentials Modal State (Google Live OAuth, Microsoft, LinkedIn, Meta, etc.)
   const [authModalTool, setAuthModalTool] = useState<IntegrationItem | null>(null);
@@ -256,11 +241,10 @@ export default function IntegrationsPage() {
   // Close any active modal when Escape key is pressed
   useEscapeKey(() => {
     if (viewerItem) setViewerItem(null);
-    if (stripeModalOpen) setStripeModalOpen(false);
     if (genericModalItem) setGenericModalItem(null);
     if (inspectItem) setInspectItem(null);
     if (authModalTool) setAuthModalTool(null);
-  }, Boolean(viewerItem || stripeModalOpen || genericModalItem || inspectItem || authModalTool));
+  }, Boolean(viewerItem || genericModalItem || inspectItem || authModalTool));
 
   // Load real state from backend database
   const loadIntegrations = async () => {
@@ -296,7 +280,6 @@ export default function IntegrationsPage() {
         });
 
         setIntegrations(merged);
-        setStripeEvents(data.stripeEvents || []);
       }
     } catch (err) {
       console.error("Failed to load integrations", err);
@@ -308,74 +291,6 @@ export default function IntegrationsPage() {
   useEffect(() => {
     loadIntegrations();
   }, []);
-
-  // Connect Stripe handler
-  const handleConnectStripe = async (testKeyOverride?: string) => {
-    setStripeConnecting(true);
-    setStripeSuccessMsg("");
-    const keyToUse = testKeyOverride || stripeApiKey || "sk_test_bizzpal_live_auth_token_99";
-
-    try {
-      const res = await fetch("/api/integrations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          toolKey: "stripe",
-          status: "connected",
-          apiKey: keyToUse,
-          config: { liveMode: false, webhookConfigured: true },
-        }),
-      });
-
-      if (res.ok) {
-        setStripeSuccessMsg("Stripe connected successfully! Live webhook endpoint enabled.");
-        await loadIntegrations();
-        setTimeout(() => {
-          setStripeModalOpen(false);
-          setStripeSuccessMsg("");
-        }, 1200);
-      }
-    } catch (err) {
-      console.error("Failed to connect Stripe", err);
-    } finally {
-      setStripeConnecting(false);
-    }
-  };
-
-  // Trigger test webhook
-  const handleTriggerTestWebhook = async () => {
-    setStripeTestingWebhook(true);
-    try {
-      const testEvent = {
-        id: `evt_test_${Date.now()}`,
-        type: "payment_intent.succeeded",
-        data: {
-          object: {
-            id: `pi_test_${Date.now()}`,
-            amount: 2500000, // ₹25,000
-            currency: "inr",
-            status: "succeeded",
-          },
-        },
-      };
-
-      const res = await fetch("/api/integrations/stripe/webhook", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(testEvent),
-      });
-
-      if (res.ok) {
-        setStripeSuccessMsg("Test webhook received and stored in SQLite ledger (+₹25,000)!");
-        await loadIntegrations();
-        setTimeout(() => setStripeSuccessMsg(""), 3500);
-      }
-    } catch (err) {
-      console.error("Failed to send test webhook", err);
-    } finally {
-      setStripeTestingWebhook(false);
-    }
-  };
 
   // Generic connect handler (saves credentials and marks pending_connection honestly)
   const handleSaveGenericIntegration = async (targetStatus: "pending_connection" | "connected" | "not_connected") => {
@@ -554,101 +469,7 @@ export default function IntegrationsPage() {
       )}
 
       {/* Stripe */}
-      <PortalModal isOpen={stripeModalOpen} onClose={() => setStripeModalOpen(false)}>
-        <div className="w-[34rem] max-w-[calc(100vw-2rem)] rounded-xl bg-surface border border-line shadow-lg overflow-hidden">
-          <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-surface-2 border border-line flex items-center justify-center p-2">
-                <IntegrationLogo id="stripe" className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-text">Stripe</h2>
-                <p className="text-sm text-text-muted">Payments and subscriptions</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setStripeModalOpen(false)}
-              aria-label="Close"
-              className="p-1 text-text-muted hover:text-text cursor-pointer"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="px-6 pb-6 space-y-5 text-sm">
-            {stripeSuccessMsg && (
-              <p className="p-3 rounded-lg border border-line bg-surface-2 text-text">{stripeSuccessMsg}</p>
-            )}
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="font-medium text-text">Restricted API key</label>
-                <button
-                  type="button"
-                  onClick={() => handleConnectStripe("sk_test_demo_live_sync_verified_1234")}
-                  className="text-xs text-brass hover:underline cursor-pointer"
-                >
-                  Use a test key
-                </button>
-              </div>
-              <input
-                type="password"
-                value={stripeApiKey}
-                onChange={e => setStripeApiKey(e.target.value)}
-                placeholder="sk_live_… or sk_test_…"
-                className={inputClass}
-              />
-              <p className="text-xs text-text-muted mt-1.5">Needs read access to charges, invoices and subscriptions.</p>
-            </div>
-
-            <div className="rounded-lg border border-line p-4 space-y-2">
-              <p className="font-medium text-text">Webhook endpoint</p>
-              <p className="px-3 py-2 rounded-md bg-surface-2 text-xs font-mono text-text select-all">
-                /api/integrations/stripe/webhook
-              </p>
-              <p className="text-xs text-text-muted">
-                Listens for payment_intent.succeeded and invoice.paid.
-              </p>
-            </div>
-
-            {stripeEvents.length > 0 && (
-              <div className="space-y-2">
-                <p className="font-medium text-text">Recent events</p>
-                <ul className="divide-y divide-line border border-line rounded-lg max-h-36 overflow-y-auto">
-                  {stripeEvents.map(evt => (
-                    <li key={evt.id} className="px-3 py-2 flex items-center justify-between text-xs">
-                      <span className="text-text">{evt.eventType}</span>
-                      <span className="text-text-muted">
-                        +₹{evt.amount?.toLocaleString("en-IN")} · {new Date(evt.createdAt).toLocaleTimeString()}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          <div className="px-6 py-4 border-t border-line bg-surface-2/40 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={handleTriggerTestWebhook}
-              disabled={stripeTestingWebhook}
-              className="px-3.5 py-2 rounded-lg border border-line text-sm text-text hover:bg-surface disabled:opacity-50 cursor-pointer"
-            >
-              {stripeTestingWebhook ? "Sending…" : "Send test payment"}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleConnectStripe()}
-              disabled={stripeConnecting}
-              className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
-            >
-              {stripeConnecting ? "Verifying…" : "Save and connect"}
-            </button>
-          </div>
-        </div>
-      </PortalModal>
+      
 
       {/* Generic connect */}
       <PortalModal isOpen={Boolean(genericModalItem)} onClose={() => setGenericModalItem(null)}>
@@ -783,16 +604,13 @@ export default function IntegrationsPage() {
                 onClick={() => {
                   const target = inspectItem;
                   setInspectItem(null);
-                  if (target.id === "stripe") {
-                    setStripeModalOpen(true);
-                  } else {
-                    setGenericModalItem(target);
-                    setGenericCredential(target.apiKey || "");
-                  }
+                  setGenericModalItem(target);
+                  setGenericCredential(target.apiKey || "");
                 }}
-                className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer shrink-0"
+                disabled={inspectItem.id === "stripe"}
+                className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Configure
+                {inspectItem.id === "stripe" ? "Coming soon" : "Configure"}
               </button>
             </div>
           </div>

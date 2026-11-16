@@ -15,15 +15,15 @@ interface Props {
 }
 
 export function ConnectSourcesStep({ auth, onConnect, onBack, onNext }: Props) {
-  // Only tools whose connection we can actually verify are offered. Stripe now lives in the Payments step.
+  // Only tools whose connection we can actually verify are offered.
   const LIVE = new Set(["google"]);
-  const tools = TOOLS_OPTIONS.filter((t) => t.id !== "stripe");
+  const tools = TOOLS_OPTIONS.filter((t) => LIVE.has(t.id));
   const connected = tools.filter((t) => auth[t.id]?.status === "connected").length;
 
   return (
     <div className="space-y-6">
       <StepHeader eyebrow="Step 6 · Other tools" title="Connect your other tools">
-        We only show a tool as connected when we have really verified the connection. Tools marked &quot;Coming soon&quot; aren&apos;t available yet, and nothing is faked in the meantime.
+        We only show a tool as connected when we have really verified the connection. More tools are on the way. You can also add records by uploading files on your dashboard.
       </StepHeader>
 
       <div className="space-y-3">

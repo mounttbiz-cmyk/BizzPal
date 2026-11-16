@@ -47,7 +47,7 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p className="text-sm text-[#9CA3AF]">
-            Effective Date: January 1, 2026 · Last Updated: October 28, 2026
+            Effective Date: January 1, 2026 · Last Updated: November 16, 2026
           </p>
         </div>
 
@@ -117,10 +117,35 @@ export default function PrivacyPage() {
           </p>
         </section>
 
+        {/* Google user data */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <span className="text-[#D9B44A]">05.</span> Google User Data
+          </h2>
+          <p className="text-sm leading-relaxed text-[#9CA3AF]">
+            If you choose to sign in with Google or connect Google Drive, BizzPal asks Google for the following access:
+          </p>
+          <ul className="list-disc pl-5 text-sm leading-relaxed text-[#9CA3AF] space-y-1.5">
+            <li><strong className="text-white">Your name, email address and profile picture</strong>, to create your account and sign you in.</li>
+            <li><strong className="text-white">Google Drive files you choose</strong> (the drive.file permission). BizzPal can open only the specific files you pick in Google&apos;s file picker. It cannot see the rest of your Drive.</li>
+          </ul>
+          <p className="text-sm leading-relaxed text-[#9CA3AF]">
+            We use this data only to run these features for you: signing you in and importing the files you select into your own workspace. We do not sell it, use it for advertising, or share it with third parties. Humans at BizzPal do not read it unless you ask us for support.
+          </p>
+          <p className="text-sm leading-relaxed text-[#9CA3AF]">
+            BizzPal&apos;s use and transfer of information received from Google APIs to any other app will adhere to the{" "}
+            <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-[#D9B44A]" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>, including the Limited Use requirements.
+          </p>
+          <p className="text-sm leading-relaxed text-[#9CA3AF]">
+            You can disconnect Google Drive at any time from the Integrations page, or remove BizzPal&apos;s access from your Google Account permissions page. You can delete your account and all stored data from Settings, or by emailing{" "}
+            <a href="mailto:hello@bizzpal.ai" className="text-[#D9B44A]">hello@bizzpal.ai</a>.
+          </p>
+        </section>
+
         {/* Section 5 */}
         <section className="space-y-4">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <span className="text-[#D9B44A]">05.</span> Your Rights &amp; Data Deletion
+            <span className="text-[#D9B44A]">06.</span> Your Rights &amp; Data Deletion
           </h2>
           <p className="text-sm leading-relaxed text-[#9CA3AF]">
             You have full ownership of your data. You may request data export or complete account deletion at any time by contacting our data protection officer at <a href="mailto:hello@bizzpal.ai" className="text-[#D9B44A] underline">hello@bizzpal.ai</a>.
@@ -130,7 +155,7 @@ export default function PrivacyPage() {
         {/* Section 6 */}
         <section className="space-y-4 border-t border-white/[0.08] pt-8">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <span className="text-[#D9B44A]">06.</span> Privacy Inquiries
+            <span className="text-[#D9B44A]">07.</span> Privacy Inquiries
           </h2>
           <p className="text-sm leading-relaxed text-[#9CA3AF]">
             For questions or requests regarding your personal or business data, contact our security team:

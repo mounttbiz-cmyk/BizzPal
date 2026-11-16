@@ -207,7 +207,7 @@ export default function TeamPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-4 border-b border-line">
         <div>
           <h1 className="text-xl font-bold text-text">Team</h1>
-          <p className="text-sm text-text-muted mt-1">Manage who can access your workspace and what they can do.</p>
+          <p className="text-sm text-text-muted mt-1">Invite colleagues, confirm their work email, and set what each role will be able to open.</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -380,8 +380,8 @@ export default function TeamPage() {
             <div>
               <h2 className="text-base font-semibold text-text">What each role can access</h2>
               <p className="text-sm text-text-muted mt-0.5 max-w-xl">
-                Choose &ldquo;None&rdquo; to hide a section from a role completely. Owners always have full access, and only
-                owners can open this Team page.
+                Choose &ldquo;None&rdquo; to hide a section from a role. Owners always have full access, and only
+                owners can open this Team page. Teammates signing in to your workspace with these roles is coming soon.
               </p>
             </div>
             <button
@@ -500,7 +500,7 @@ export default function TeamPage() {
           <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
             <div>
               <h3 className="text-lg font-semibold text-text">Invite a colleague</h3>
-              <p className="text-sm text-text-muted mt-1">They will get an email to join your workspace.</p>
+              <p className="text-sm text-text-muted mt-1">Share the invite link with them. They confirm their work email with Google.</p>
             </div>
             <button
               type="button"
