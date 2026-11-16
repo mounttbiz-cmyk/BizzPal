@@ -1,8 +1,7 @@
 /**
  * Signed customer sessions.
  *
- * After a customer proves who they are (Google sign-in, or a Firebase email/password sign-in whose token the
- * server checks), the server hands the browser a cookie that only the server could have made. Every customer
+ * After a customer proves who they are (Google sign-in, or an email and password the server checks), the server hands the browser a cookie that only the server could have made. Every customer
  * API reads that cookie to know who is calling. Nothing the browser sends in the request body or query string is
  * trusted as an identity.
  *
