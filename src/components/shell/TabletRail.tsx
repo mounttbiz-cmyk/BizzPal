@@ -100,27 +100,24 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
                   : "text-text-muted hover:text-text hover:bg-surface-2"
               }`}
             >
-              <DynamicIcon name={item.icon} className={`w-5 h-5 ${isActive ? "text-gold" : "text-text-muted"}`} />
-              {item.badge && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-gold ring-2 ring-surface" />
-              )}
+              <DynamicIcon name={item.icon} className="w-5 h-5" />
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom theme cycler button */}
-      <div className="pt-2 border-t border-line w-full flex justify-center">
+      {/* Theme toggle */}
+      <div className="pt-2 border-t border-line w-full flex flex-col items-center gap-2">
         <button
           type="button"
           onClick={cycleTheme}
-          title="Cycle Theme (⌘⇧L)"
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2 transition-colors btn-tactile"
+          title={`Theme: ${resolvedTheme} (click to toggle)`}
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
         >
           {resolvedTheme === "dark" ? (
-            <Moon className="w-4 h-4 text-brass" />
+            <Moon className="w-4 h-4 text-gold" />
           ) : (
-            <Sun className="w-4 h-4 text-brass" />
+            <Sun className="w-4 h-4 text-amber-500" />
           )}
         </button>
       </div>
