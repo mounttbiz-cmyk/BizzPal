@@ -302,10 +302,25 @@ export function CloudDrivePickerModal({
           ].join(",")
         );
 
+      const origin = typeof window !== "undefined" ? window.location.protocol + "//" + window.location.host : "";
+
+      // Ensure Google Picker displays on top of high z-index modal backdrops
+      const styleId = "google-picker-zindex-fix";
+      if (typeof document !== "undefined" && !document.getElementById(styleId)) {
+        const styleEl = document.createElement("style");
+        styleEl.id = styleId;
+        styleEl.textContent = `
+          .picker-dialog { z-index: 200000 !important; }
+          .picker-dialog-bg { z-index: 199999 !important; }
+        `;
+        document.head.appendChild(styleEl);
+      }
+
       const picker = new g.PickerBuilder()
         .setOAuthToken(cfg.accessToken)
         .setDeveloperKey(cfg.apiKey)
         .setAppId(cfg.appId)
+        .setOrigin(origin)
         .addView(view)
         .addView(new g.DocsView(g.ViewId.SPREADSHEETS))
         .setTitle("Choose a file to import")
@@ -481,38 +496,8 @@ export function CloudDrivePickerModal({
             </div>
           )}
 
-          {/* Google: connected -> choose a file with Google's picker */}
-          {isConnected && provider === "google" && (
-            <div className="border border-line rounded-2xl p-10 bg-surface text-center flex flex-col items-center justify-center space-y-5">
-              <div className="w-14 h-14 rounded-2xl bg-surface border border-line flex items-center justify-center">
-                <GoogleDriveIcon className="w-7 h-7" />
-              </div>
-              <div className="max-w-md">
-                <h3 className="text-base font-medium text-text">Choose a file from Google Drive</h3>
-                <p className="text-sm text-text-muted mt-1 leading-relaxed">
-                  Pick a Google Sheet, CSV, Excel or JSON file. BizzPal can only open the file you choose, nothing else in your Drive.
-                </p>
-              </div>
-              {error && (
-                <div className="w-full max-w-md px-4 py-3 rounded-xl bg-rust/10 text-rust text-sm text-left flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{error}</span>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={openGooglePicker}
-                disabled={pickerBusy || isDownloading !== null}
-                className="px-5 py-2.5 rounded-xl bg-brass text-white hover:brightness-110 font-medium text-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
-              >
-                <GoogleDriveIcon className="w-4 h-4" />
-                <span>{isDownloading !== null ? "Importing…" : pickerBusy ? "Opening…" : "Choose from Google Drive"}</span>
-              </button>
-            </div>
-          )}
-
-          {/* OneDrive: connected -> search, breadcrumbs and file table */}
-          {isConnected && provider === "onedrive" && (
+          {/* Connected State: Search, breadcrumbs and direct file browser for both Google Drive and OneDrive */}
+          {isConnected && (
             <>
               {/* Search & Filter Toolbar */}
               <div className="flex flex-col sm:flex-row gap-2.5">
@@ -525,7 +510,7 @@ export function CloudDrivePickerModal({
                     onKeyDown={e => {
                       if (e.key === "Enter") loadFiles(currentFolder.id, searchQuery);
                     }}
-                    placeholder={"Search your OneDrive files"}
+                    placeholder={provider === "google" ? "Search Google Drive spreadsheets & data..." : "Search OneDrive files..."}
                     className="w-full pl-9 pr-8 py-2 rounded-xl bg-surface border border-line text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
                   />
                   {searchQuery && (
@@ -557,6 +542,19 @@ export function CloudDrivePickerModal({
                   >
                     {filterType === "supported" ? "CSVs, Sheets & Data" : "All Files"}
                   </button>
+
+                  {provider === "google" && (
+                    <button
+                      type="button"
+                      onClick={openGooglePicker}
+                      disabled={pickerBusy || isDownloading !== null}
+                      className="px-3 py-2 rounded-xl text-xs font-semibold bg-surface border border-line hover:border-brass text-text flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                      title="Open Google's native popup file picker"
+                    >
+                      <GoogleDriveIcon className="w-3.5 h-3.5" />
+                      <span>{pickerBusy ? "Opening…" : "Google Popup"}</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -601,7 +599,7 @@ export function CloudDrivePickerModal({
                 {isLoading ? (
                   <div className="p-12 text-center text-xs text-text-muted flex flex-col items-center justify-center gap-3">
                     <RefreshCw className="w-6 h-6 animate-spin text-brass" />
-                    <span>Loading files from OneDrive...</span>
+                    <span>Loading files from {provider === "google" ? "Google Drive" : "OneDrive"}...</span>
                   </div>
                 ) : files.length === 0 ? (
                   <div className="p-12 text-center text-xs text-text-muted flex flex-col items-center justify-center gap-2">
