@@ -300,7 +300,13 @@ export function ReviewGenerateCard({
 
       {/* Bottom Action: Primary Generate Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-        <p className="text-xs text-text-muted">Each record includes name, phone, website, address and notes.</p>
+        <p className={`text-xs ${!hasTarget ? "text-rust font-medium" : "text-text-muted"}`}>
+          {!hasTarget
+            ? "Type what you are looking for above, or pick a category, to enable this button."
+            : isOutOfCredits
+            ? "You have no records left. Buy credits to continue."
+            : "Each record includes name, phone, website, address and notes."}
+        </p>
 
         <button
           type="button"
