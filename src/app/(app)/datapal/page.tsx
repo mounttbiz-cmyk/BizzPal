@@ -88,11 +88,7 @@ export default function DataPalPage() {
   const [mustHavePhone, setMustHavePhone] = useState(true);
   const [mustHaveEmail, setMustHaveEmail] = useState(false);
   const [minRating, setMinRating] = useState(0);
-  const [selectedSources, setSelectedSources] = useState<string[]>([
-    "Google Maps & Places",
-    "JustDial India",
-    "IndiaMART B2B",
-  ]);
+  const [selectedSources, setSelectedSources] = useState<string[]>(["Google Maps & Places"]);
 
   // Mobile Accordion state: open step index (1, 2, or 3)
   const [mobileOpenStep, setMobileOpenStep] = useState<1 | 2 | 3>(1);
@@ -272,7 +268,7 @@ export default function DataPalPage() {
         mustHavePhone: advancedRulesEnabled ? mustHavePhone : true,
         mustHaveEmail: advancedRulesEnabled ? mustHaveEmail : false,
         minRating: advancedRulesEnabled ? minRating : 0,
-        sources: advancedRulesEnabled ? selectedSources : ["Google Maps & Places", "JustDial India"],
+        sources: advancedRulesEnabled ? selectedSources : ["Google Maps & Places"],
       },
       servicePitch: {
         text: serviceDescription,

@@ -13,9 +13,6 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Share2,
-  Shield,
-  ShieldCheck,
   Upload,
   UploadCloud,
   Users,
@@ -35,29 +32,14 @@ interface Props {
 
 const ROLES = ["Executive", "Manager", "Operator"];
 
-type TabMode = "hris" | "crm" | "excel" | "alternatives" | "manual";
-
-interface CatalogItem {
-  id: string;
-  name: string;
-  category: "enterprise_hris" | "cloud_hris" | "idp_directory" | "statutory_payroll" | "crm" | "spreadsheet";
-  badge: string;
-  description: string;
-  authType: "oauth" | "api_key" | "epfo_upload" | "payroll_csv" | "excel_upload";
-  fields: { key: string; label: string; placeholder: string; type?: string; secure?: boolean }[];
-}
+type TabMode = "excel" | "manual";
 
 export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNext }: Props) {
-  const [tab, setTab] = useState<TabMode>("hris");
+  const [tab, setTab] = useState<TabMode>("excel");
 
   // HRIS State
-  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [activeSync, setActiveSync] = useState<HrisSyncData | null>(null);
   const [, setLoadingHris] = useState(true);
-  const [selectedProvider, setSelectedProvider] = useState<CatalogItem | null>(null);
-  const [formInputs, setFormInputs] = useState<Record<string, string>>({});
-  const [connecting, setConnecting] = useState(false);
-  const [hrisError, setHrisError] = useState("");
   const [employeeSearch, setEmployeeSearch] = useState("");
 
   // Excel Upload State
@@ -88,7 +70,6 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
       const res = await fetch(`/api/team/hris?email=${encodeURIComponent(email)}`);
       const d = await res.json();
       if (d.ok) {
-        if (d.catalog) setCatalog(d.catalog);
         if (d.summary) {
           setActiveSync(d.summary);
         }
@@ -125,36 +106,6 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
       prev.current[i.id] = i.status;
     }
   }, [invites]);
-
-  // Connect & sync HRIS or CRM provider
-  const handleConnectProvider = async () => {
-    if (!selectedProvider) return;
-    setConnecting(true);
-    setHrisError("");
-    try {
-      const res = await fetch("/api/team/hris", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          provider: selectedProvider.id,
-          config: formInputs,
-        }),
-      });
-      const d = await res.json();
-      if (res.ok && d.ok) {
-        setActiveSync(d.summary);
-        setSelectedProvider(null);
-        setFormInputs({});
-      } else {
-        setHrisError(d.error || "Failed to connect to integration.");
-      }
-    } catch {
-      setHrisError("Could not reach synchronization server. Please try again.");
-    } finally {
-      setConnecting(false);
-    }
-  };
 
   // Upload Excel / CSV file
   const handleUploadExcel = async (e?: React.FormEvent) => {
@@ -276,10 +227,6 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
     );
   });
 
-  const enterpriseHrisList = catalog.filter((c) => c.category === "enterprise_hris" || c.category === "cloud_hris");
-  const crmList = catalog.filter((c) => c.category === "crm");
-  const verifiedAlternatives = catalog.filter((c) => c.category === "idp_directory" || c.category === "statutory_payroll");
-
   const totalVerifiedHeadcount = (activeSync?.activeHeadcount || 0) + confirmed;
 
   return (
@@ -300,7 +247,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
               {totalVerifiedHeadcount}{" "}
               <span className="text-sm font-normal text-text-muted">
                 {activeSync
-                  ? `synced via ${catalog.find((c) => c.id === activeSync.provider)?.name || activeSync.provider}`
+                  ? `synced via ${"your uploaded employee list"}`
                   : confirmed > 0
                   ? "confirmed by Google"
                   : "not connected yet"}
@@ -348,7 +295,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
               </div>
               <div>
                 <div className="text-xs font-semibold text-text flex items-center gap-1.5">
-                  <span>{catalog.find((c) => c.id === activeSync.provider)?.name || activeSync.provider}</span>
+                  <span>{"your uploaded employee list"}</span>
                   <Pill tone="good">Verified Live Sync</Pill>
                 </div>
                 <div className="text-xs text-text-muted">
@@ -438,10 +385,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
       {/* Mode Navigation Tabs */}
       <div className="flex border-b border-line gap-1 overflow-x-auto">
         {([
-          { id: "hris", label: "HR system" },
-          { id: "crm", label: "CRM" },
-          { id: "excel", label: "Spreadsheet" },
-          { id: "alternatives", label: "Government records" },
+          { id: "excel", label: "Upload employee list" },
           { id: "manual", label: `Invite by email (${invites.length})` },
         ] as const).map(t => (
           <button
@@ -456,76 +400,6 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
           </button>
         ))}
       </div>
-
-      {/* TAB 1: HRIS / HCM SYSTEM INTEGRATIONS */}
-      {tab === "hris" && (
-        <div className="space-y-5 animate-fade-in">
-          <div className="text-sm text-text-muted leading-relaxed">
-            Connect the system where you keep your employee records. We bring in your active staff, their managers and job titles.
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {enterpriseHrisList.map((prov) => (
-              <div
-                key={prov.id}
-                onClick={() => {
-                  setSelectedProvider(prov);
-                  setFormInputs({});
-                  setHrisError("");
-                }}
-                className="p-5 rounded-2xl border border-line bg-surface shadow-sm hover:border-line-strong transition-colors cursor-pointer flex flex-col justify-between group"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="text-base font-medium text-text">{prov.name}</span>
-                    <span className="text-xs text-text-muted shrink-0 mt-1">{prov.badge}</span>
-                  </div>
-                  <p className="text-sm text-text-muted leading-relaxed mt-1.5 line-clamp-2">{prov.description}</p>
-                </div>
-                <div className="mt-4 text-sm font-medium text-brass">Connect →</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: INDIVIDUAL CRM CONNECTIONS */}
-      {tab === "crm" && (
-        <div className="space-y-5 animate-fade-in">
-          <div className="p-5 rounded-2xl border border-line bg-surface-2/40">
-            <h4 className="text-xs font-semibold text-text mb-1 flex items-center gap-1.5">
-              <Share2 className="w-4 h-4 text-text-muted" />
-              Connect Your Company&apos;s CRM
-            </h4>
-            <p className="text-xs text-text-muted leading-relaxed">
-              If your company manages its personnel, account executives, and operational staff through a CRM (Salesforce, HubSpot, Zoho CRM, LeadSquared, Pipedrive, or an in-house CRM database), connect below to instantly sync your active verified staff list.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {crmList.map((crm) => (
-              <div
-                key={crm.id}
-                onClick={() => {
-                  setSelectedProvider(crm);
-                  setFormInputs({});
-                  setHrisError("");
-                }}
-                className="p-5 rounded-2xl border border-line bg-surface shadow-sm hover:border-line-strong transition-colors cursor-pointer flex flex-col justify-between group"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="text-base font-medium text-text">{crm.name}</span>
-                    <span className="text-xs text-text-muted shrink-0 mt-1">{crm.badge}</span>
-                  </div>
-                  <p className="text-sm text-text-muted leading-relaxed mt-1.5 line-clamp-2">{crm.description}</p>
-                </div>
-                <div className="mt-4 text-sm font-medium text-brass">Connect →</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* TAB 3: DIRECT EXCEL / SPREADSHEET UPLOAD */}
       {tab === "excel" && (
@@ -621,58 +495,6 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
               <span className="font-semibold text-text block mb-0.5">Verified Calculation</span>
               Active headcount is immediately computed for your company profile and trust score.
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: VERIFIED ALTERNATIVE METHODS (NO HRIS / EPFO / IDP) */}
-      {tab === "alternatives" && (
-        <div className="space-y-5 animate-fade-in">
-          <div className="p-5 rounded-2xl border border-line bg-surface-2/40">
-            <h4 className="text-xs font-semibold text-text mb-1 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-jade" />
-              Genuine Verified Alternatives for Companies Without an HRIS
-            </h4>
-            <p className="text-xs text-text-muted leading-relaxed">
-              Verify your team headcount through official statutory government filings (EPFO ECR) or enterprise Identity Provider (IdP) directories (Google Workspace Admin / Microsoft Entra ID). No manual invites required.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {verifiedAlternatives.map((alt) => (
-              <div
-                key={alt.id}
-                onClick={() => {
-                  setSelectedProvider(alt);
-                  setFormInputs({});
-                  setHrisError("");
-                }}
-                className="p-4 rounded-xl border border-line bg-surface-2/30 hover:border-jade/70 hover:bg-surface-2/60 transition-all cursor-pointer flex flex-col justify-between group"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-semibold text-text group-hover:text-jade transition-colors">
-                      {alt.name}
-                    </span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-jade/10 text-jade">
-                      {alt.badge}
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-muted leading-relaxed">
-                    {alt.description}
-                  </p>
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-line flex items-center justify-between text-xs">
-                  <span className="text-text-muted flex items-center gap-1 text-xs">
-                    <Shield className="w-3 h-3 text-jade" /> Official Third-Party Proof
-                  </span>
-                  <span className="font-semibold text-jade flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                    Verify via {alt.authType === "epfo_upload" ? "Filing" : "IdP"} →
-                  </span>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -814,79 +636,6 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
           <Callout tone="info" icon={<Info className="w-4 h-4" />} title="How individual confirmation works">
             Send each person their link. They open it and sign in with the Google account for that email. If the email doesn&apos;t match, or Google hasn&apos;t verified it, they&apos;re not counted.
           </Callout>
-        </div>
-      )}
-
-      {/* Integration Connection Modal (HRIS & CRM) */}
-      {selectedProvider && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-lg rounded-2xl border border-line bg-surface shadow-theme p-6 space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-xs font-semibold text-brass">
-                  {selectedProvider.badge}
-                </span>
-                <h3 className="text-base font-semibold text-text mt-0.5">{selectedProvider.name}</h3>
-              </div>
-              <button
-                onClick={() => setSelectedProvider(null)}
-                className="p-1.5 rounded-lg border border-line bg-surface-2 text-text-muted hover:text-text cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-text-muted leading-relaxed">
-              {selectedProvider.description}
-            </p>
-
-            <div className="space-y-3 pt-2">
-              {selectedProvider.fields.map((f) => (
-                <div key={f.key} className="space-y-1">
-                  <label className="text-xs font-semibold text-text">{f.label}</label>
-                  <input
-                    type={f.secure ? "password" : "text"}
-                    placeholder={f.placeholder}
-                    value={formInputs[f.key] || ""}
-                    onChange={(e) => setFormInputs({ ...formInputs, [f.key]: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-lg bg-surface-2 border border-line text-xs text-text focus:outline-none focus:ring-1 focus:ring-brass"
-                  />
-                </div>
-              ))}
-            </div>
-
-            {selectedProvider.authType === "epfo_upload" && (
-              <div className="p-3 rounded-lg border border-line bg-surface-2/40 text-xs text-text-muted space-y-2">
-                <div className="font-semibold text-text flex items-center gap-1.5">
-                  <UploadCloud className="w-3.5 h-3.5 text-jade" /> Electronic Challan Cum Return (ECR)
-                </div>
-                <div>
-                  Upload or enter the EPFO ECR filing details. BizzPal parses active Member IDs, UAN numbers, and gross wages to compute statutory verified headcount.
-                </div>
-              </div>
-            )}
-
-            {hrisError && (
-              <p className="text-xs text-rust font-medium flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                {hrisError}
-              </p>
-            )}
-
-            <div className="pt-3 border-t border-line flex items-center justify-end gap-2.5">
-              <GhostButton onClick={() => setSelectedProvider(null)}>Cancel</GhostButton>
-              <PrimaryButton onClick={handleConnectProvider} disabled={connecting}>
-                {connecting ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                    Synchronizing...
-                  </>
-                ) : (
-                  "Authenticate & Sync Records"
-                )}
-              </PrimaryButton>
-            </div>
-          </div>
         </div>
       )}
 

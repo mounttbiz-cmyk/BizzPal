@@ -73,11 +73,13 @@ export async function investigateBusinessAnomaly(params: {
   }));
 
   // Correlated signals
-  const correlatedSignals: string[] = [
-    `Cash runway stands at ${metricsSnapshot.runwayMonths} months with ₹${(metricsSnapshot.cashReserve / 1000).toFixed(0)}k cash reserve.`,
-    `Unit economics: CAC is ₹${metricsSnapshot.cac}, LTV is ₹${metricsSnapshot.ltv} (LTV/CAC: ${metricsSnapshot.ltvCacRatio}x).`,
-    `Execution velocity: ${metricsSnapshot.tasksCompletedRate}% of sprint tasks currently delivered.`,
-  ];
+  const correlatedSignals: string[] = [];
+  if (metricsSnapshot.runwayMonths !== null) {
+    correlatedSignals.push(`Cash runway stands at ${metricsSnapshot.runwayMonths} months with \u20B9${(metricsSnapshot.cashReserve / 1000).toFixed(0)}k cash in the bank.`);
+  }
+  if (metricsSnapshot.tasksCompletedRate !== null) {
+    correlatedSignals.push(`${metricsSnapshot.tasksCompletedRate}% of the business's tasks are marked done.`);
+  }
 
   // 2. Invoke AI for root-cause synthesis and corrective action formulation
   const prompt = `You are BizzPal's Chief Business Intelligence Copilot.
@@ -93,8 +95,7 @@ An important business KPI alert was triggered:
 - Monthly Revenue: ₹${metricsSnapshot.monthlyRevenue}
 - Monthly Burn: ₹${metricsSnapshot.monthlyBurn}
 - Cash Reserve: ₹${metricsSnapshot.cashReserve}
-- Runway: ${metricsSnapshot.runwayMonths} months
-- Spend Breakdown: ${JSON.stringify(metricsSnapshot.categorySpend)}
+- Runway: ${metricsSnapshot.runwayMonths ?? "not known"} months
 
 === RETRIEVED COMPANY MEMORY EVIDENCE ===
 ${documentEvidence.map((d) => `Document "${d.title}": ${d.snippet}`).join("\n") || "No internal strategy documents found."}

@@ -414,12 +414,11 @@ export function recordHrisSync(
 
   let employeesToSave: HrisEmployeeRecord[] = [];
 
-  if (Array.isArray(customEmployees) && customEmployees.length > 0) {
-    employeesToSave = customEmployees;
-  } else {
-    // Generate authentic enterprise dataset matching the company and provider
-    employeesToSave = generateProviderEmployees(owner, provider, config);
+  // Only employees that were really supplied (an uploaded file) are ever saved. Nothing is generated.
+  if (!Array.isArray(customEmployees) || customEmployees.length === 0) {
+    throw new Error("No employee records were supplied. Upload your employee list (CSV or Excel).");
   }
+  employeesToSave = customEmployees;
 
   // Clear previous employee records for this owner & provider
   db.prepare("DELETE FROM hris_employees WHERE owner_email = ?").run(o);
@@ -501,94 +500,5 @@ export function recordHrisSync(
     syncedAt: now,
     employees: employeesToSave,
   };
-}
-
-/** Generates realistic authentic employee directory data when an enterprise connects their HRIS/HCM or verified alternative */
-function generateProviderEmployees(owner: string, provider: HrisProvider, config: Record<string, string>): HrisEmployeeRecord[] {
-  const domain = owner.includes("@") ? owner.split("@")[1] : "company.com";
-  let prefix = provider.toUpperCase().slice(0, 3) + "-";
-  if (provider === "epfo_ecr") prefix = "UAN-";
-  if (provider === "salesforce") prefix = "SF-";
-  if (provider === "hubspot") prefix = "HS-";
-  if (provider === "zoho_crm") prefix = "ZC-";
-  if (provider === "leadsquared") prefix = "LS-";
-  if (provider === "pipedrive") prefix = "PD-";
-  if (provider === "custom_crm") prefix = "CRM-";
-  if (provider === "excel_roster") prefix = "XLS-";
-
-  // When CRM is connected, tailor roles to sales, account execs, support and ops
-  const isCrm = ["salesforce", "hubspot", "zoho_crm", "leadsquared", "pipedrive", "custom_crm"].includes(provider);
-
-  if (isCrm) {
-    const crmTeam = [
-      { num: "2001", name: "Kavita Rao", title: "VP of Global Sales & Revenue", dept: "Sales & Commercial", manager: "Chief Executive Officer", loc: "Delhi NCR", hireDate: "2021-04-10", type: "full-time" as const, status: "active" as const },
-      { num: "2002", name: "Deepak Choudhury", title: "Enterprise Account Executive (Tier-1)", dept: "Enterprise Sales", manager: "Kavita Rao", loc: "Bengaluru", hireDate: "2022-02-15", type: "full-time" as const, status: "active" as const },
-      { num: "2003", name: "Priya Nair", title: "Head of Customer Success & Renewals", dept: "Customer Success", manager: "Kavita Rao", loc: "Mumbai HQ", hireDate: "2022-06-01", type: "full-time" as const, status: "active" as const },
-      { num: "2004", name: "Rahul Deshmukh", title: "Senior Solutions Engineer", dept: "Pre-Sales Engineering", manager: "Kavita Rao", loc: "Bengaluru", hireDate: "2023-01-12", type: "full-time" as const, status: "active" as const },
-      { num: "2005", name: "Meera Sengupta", title: "Sales Development Manager (SDR)", dept: "Inbound Pipeline", manager: "Kavita Rao", loc: "Pune", hireDate: "2023-03-20", type: "full-time" as const, status: "active" as const },
-      { num: "2006", name: "Arjun Pillai", title: "Key Account Manager - Strategic Accounts", dept: "Enterprise Sales", manager: "Deepak Choudhury", loc: "Hyderabad", hireDate: "2023-07-08", type: "full-time" as const, status: "active" as const },
-      { num: "2007", name: "Tanya Kapoor", title: "Revenue Operations Specialist (RevOps)", dept: "Sales Operations", manager: "Kavita Rao", loc: "Mumbai HQ", hireDate: "2024-02-01", type: "full-time" as const, status: "active" as const },
-      { num: "2008", name: "Sameer Joshi", title: "Customer Success Specialist", dept: "Customer Success", manager: "Priya Nair", loc: "Pune", hireDate: "2024-04-15", type: "full-time" as const, status: "on_leave" as const },
-    ];
-    return crmTeam.map((t) => {
-      const handle = t.name.toLowerCase().replace(/[^a-z0-9]/g, ".");
-      return {
-        id: `${prefix}${t.num}`,
-        name: t.name,
-        email: `${handle}@${domain}`,
-        jobTitle: t.title,
-        department: t.dept,
-        manager: t.manager,
-        location: t.loc,
-        hireDate: t.hireDate,
-        salary: "Verified",
-        employmentType: t.type,
-        status: t.status,
-      };
-    });
-  }
-
-  // Provide rich realistic workforce data reflective of an established enterprise
-  const baseTeam: Array<{
-    num: string;
-    name: string;
-    title: string;
-    dept: string;
-    manager: string;
-    loc: string;
-    hireDate: string;
-    type: "full-time" | "part-time" | "contractor";
-    status: "active" | "on_leave";
-  }> = [
-    { num: "1001", name: "Ananya Deshmukh", title: "Chief Executive Officer", dept: "Executive Office", manager: "Board of Directors", loc: "Mumbai HQ", hireDate: "2021-03-01", type: "full-time", status: "active" },
-    { num: "1002", name: "Vikram Malhotra", title: "VP of Engineering & Architecture", dept: "Engineering", manager: "Ananya Deshmukh", loc: "Bengaluru", hireDate: "2021-06-15", type: "full-time", status: "active" },
-    { num: "1003", name: "Neha Sundaram", title: "Head of People & Human Capital", dept: "Human Resources", manager: "Ananya Deshmukh", loc: "Mumbai HQ", hireDate: "2022-01-10", type: "full-time", status: "active" },
-    { num: "1004", name: "Rohan Kulkarni", title: "Chief Financial Officer", dept: "Finance & Accounting", manager: "Ananya Deshmukh", loc: "Mumbai HQ", hireDate: "2021-08-01", type: "full-time", status: "active" },
-    { num: "1005", name: "Priya Nair", title: "Lead Product Architect", dept: "Product & Design", manager: "Vikram Malhotra", loc: "Bengaluru", hireDate: "2022-04-18", type: "full-time", status: "active" },
-    { num: "1006", name: "Aditya Verma", title: "Senior Staff Cloud Systems Engineer", dept: "Infrastructure & DevOps", manager: "Vikram Malhotra", loc: "Bengaluru", hireDate: "2022-09-05", type: "full-time", status: "active" },
-    { num: "1007", name: "Meera Sengupta", title: "Senior Business Intelligence Specialist", dept: "Analytics & Data", manager: "Rohan Kulkarni", loc: "Pune Hub", hireDate: "2023-02-14", type: "full-time", status: "active" },
-    { num: "1008", name: "Kavita Rao", title: "Director of Enterprise Sales", dept: "Commercial & Sales", manager: "Ananya Deshmukh", loc: "Delhi NCR", hireDate: "2022-11-01", type: "full-time", status: "active" },
-    { num: "1009", name: "Sameer Joshi", title: "Compliance & Corporate Governance Lead", dept: "Legal & Regulatory", manager: "Rohan Kulkarni", loc: "Mumbai HQ", hireDate: "2023-05-20", type: "full-time", status: "active" },
-    { num: "1010", name: "Arjun Pillai", title: "Senior Operations Director", dept: "Operations & Supply", manager: "Ananya Deshmukh", loc: "Hyderabad", hireDate: "2023-08-11", type: "full-time", status: "active" },
-    { num: "1011", name: "Tanya Kapoor", title: "Product Marketing Manager", dept: "Marketing & Growth", manager: "Kavita Rao", loc: "Delhi NCR", hireDate: "2024-01-08", type: "full-time", status: "on_leave" },
-    { num: "1012", name: "Deepak Choudhury", title: "Enterprise Security Architect", dept: "Security & Infosec", manager: "Vikram Malhotra", loc: "Bengaluru", hireDate: "2023-10-16", type: "contractor", status: "active" },
-  ];
-
-  return baseTeam.map((t) => {
-    const handle = t.name.toLowerCase().replace(/[^a-z0-9]/g, ".");
-    return {
-      id: `${prefix}${t.num}`,
-      name: t.name,
-      email: `${handle}@${domain}`,
-      jobTitle: t.title,
-      department: t.dept,
-      manager: t.manager,
-      location: t.loc,
-      hireDate: t.hireDate,
-      salary: t.status === "active" ? "Verified" : "Protected",
-      employmentType: t.type,
-      status: t.status,
-    };
-  });
 }
 

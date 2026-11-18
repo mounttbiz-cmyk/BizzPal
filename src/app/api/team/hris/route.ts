@@ -5,7 +5,6 @@ import {
   getHrisConnection,
   recordHrisSync,
   disconnectHris,
-  HRIS_CATALOG,
   type HrisProvider
 } from "@/lib/team/hris";
 
@@ -28,7 +27,6 @@ export async function GET(req: Request) {
     ok: true,
     connection,
     summary,
-    catalog: HRIS_CATALOG,
   });
 }
 
@@ -61,20 +59,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Provider is required." }, { status: 400 });
   }
 
-  const catalogEntry = HRIS_CATALOG.find((c) => c.id === provider);
-  if (!catalogEntry) {
-    return NextResponse.json({ error: "Unsupported HRIS/HCM provider." }, { status: 400 });
-  }
 
   const config = b?.config || {};
   const customEmployees = Array.isArray(b?.employees) ? b.employees : undefined;
+  // Live connections to HR systems are not available, and no employees are ever made up: a real list is required.
+  if (!customEmployees || customEmployees.length === 0) {
+    return NextResponse.json({ error: "Upload your employee list (CSV or Excel) instead. Live HR-system connections are not available." }, { status: 400 });
+  }
 
   try {
     const summary = recordHrisSync(owner, provider, config, customEmployees);
     return NextResponse.json({
       ok: true,
       summary,
-      message: `Successfully synchronized ${summary.activeHeadcount} active employee records from ${catalogEntry.name}.`,
+      message: `Saved ${summary.activeHeadcount} active employee records from your list.`,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || "Sync failed" }, { status: 500 });

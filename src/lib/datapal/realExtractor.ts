@@ -202,7 +202,8 @@ export async function extractRealBusinessLeads(
         });
 
         await addPublishedContacts(googleLeads);
-        return { leads: googleLeads, sourceMode: "google_places_live", googleRequests };
+        const wanted = rules.mustHaveEmail ? googleLeads.filter(l => l.email) : googleLeads;
+        return { leads: wanted, sourceMode: "google_places_live", googleRequests };
       }
     } catch (gErr) {
       console.warn("Google Places API live query error, falling back to OpenStreetMap:", gErr);

@@ -6,7 +6,7 @@ import { RenderWidget } from "@/components/widgets/WidgetRegistry";
 import { WidgetDef } from "@/config/schemas/widget";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Suspense } from "react";
 import { UploadDataModal } from "@/components/upload/UploadDataModal";
 import { QuickBusinessInputModal } from "@/components/intake/QuickBusinessInputModal";
@@ -64,72 +64,12 @@ function DashboardContent() {
     }
     return null;
   });
-  const [selectedTimeframe, setSelectedTimeframe] = useState("Live Today");
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [liquidRunwayMo, setLiquidRunwayMo] = useState("0.0");
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [monthlyBurn, setMonthlyBurn] = useState(0);
   const [cashOnHand, setCashOnHand] = useState(0);
-  const [overallHealthScore, setOverallHealthScore] = useState(50);
-  const [baseHealthScore, setBaseHealthScore] = useState(50);
-  const [baseLiquidRunwayMo, setBaseLiquidRunwayMo] = useState("0.0");
-  const [isCustomPickerOpen, setIsCustomPickerOpen] = useState(false);
-  const [customStartDate, setCustomStartDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 14);
-    return d.toISOString().split("T")[0];
-  });
-  const [customEndDate, setCustomEndDate] = useState(() => new Date().toISOString().split("T")[0]);
-  const startInputRef = React.useRef<HTMLInputElement>(null);
-  const endInputRef = React.useRef<HTMLInputElement>(null);
-  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
-
-  const calendarData = React.useMemo(() => {
-    const year = calendarMonth.getFullYear();
-    const month = calendarMonth.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const monthName = calendarMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-    return { year, month, firstDay, daysInMonth, monthName };
-  }, [calendarMonth]);
-
-  const customDaysDiff = React.useMemo(() => {
-    if (!customStartDate || !customEndDate) return 14;
-    const diff = Math.round((new Date(customEndDate).getTime() - new Date(customStartDate).getTime()) / (1000 * 60 * 60 * 24));
-    return Math.max(1, isNaN(diff) ? 14 : diff);
-  }, [customStartDate, customEndDate]);
-
-  const handleCalendarDaySelect = (day: number) => {
-    const y = calendarData.year;
-    const m = String(calendarData.month + 1).padStart(2, "0");
-    const dStr = String(day).padStart(2, "0");
-    const selected = `${y}-${m}-${dStr}`;
-
-    if (!customStartDate || (customStartDate && customEndDate && customStartDate !== customEndDate)) {
-      setCustomStartDate(selected);
-      setCustomEndDate(selected);
-    } else {
-      if (new Date(selected) < new Date(customStartDate)) {
-        setCustomEndDate(customStartDate);
-        setCustomStartDate(selected);
-      } else {
-        setCustomEndDate(selected);
-      }
-    }
-  };
-
-  const getDateStatus = (day: number) => {
-    const y = calendarData.year;
-    const m = String(calendarData.month + 1).padStart(2, "0");
-    const dStr = String(day).padStart(2, "0");
-    const current = `${y}-${m}-${dStr}`;
-
-    const isStart = current === customStartDate;
-    const isEnd = current === customEndDate;
-    const isInRange = customStartDate && customEndDate && current > customStartDate && current < customEndDate;
-
-    return { isStart, isEnd, isInRange, isSelected: isStart || isEnd };
-  };
+  const [overallHealthScore, setOverallHealthScore] = useState<number | null>(null);
   const [activeTaskCount, setActiveTaskCount] = useState<number | null>(null);
   const [bottleneckGapCount, setBottleneckGapCount] = useState(0);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -268,7 +208,6 @@ function DashboardContent() {
       rMoStr = "0.0";
     }
     setLiquidRunwayMo(rMoStr);
-    setBaseLiquidRunwayMo(rMoStr);
     setMonthlyRevenue(rev);
     setMonthlyBurn(burn);
     setCashOnHand(cash);
@@ -276,7 +215,6 @@ function DashboardContent() {
     // Same formula as the health score tile
     const computedScore = computeHealth(saved).overall;
     setOverallHealthScore(computedScore);
-    setBaseHealthScore(computedScore);
   };
 
   // Read saved business profile if available from localStorage or backend SQLite database
@@ -375,70 +313,6 @@ function DashboardContent() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleTimeframeChange = (tf: string) => {
-    if (tf === "Custom") {
-      setIsCustomPickerOpen(prev => !prev);
-      return;
-    }
-    setIsCustomPickerOpen(false);
-    setSelectedTimeframe(tf);
-
-    if (tf === "Live Today") {
-      setOverallHealthScore(baseHealthScore);
-      setLiquidRunwayMo(baseLiquidRunwayMo);
-      try {
-        window.dispatchEvent(new CustomEvent("bizzpal_timeframe_changed", { detail: { timeframe: "Live Today", days: 1 } }));
-      } catch {}
-      notify("Switched to Live Today");
-    } else if (tf === "7 Days") {
-      const calibratedHealth = baseHealthScore > 50 ? Math.min(99, baseHealthScore + 1) : baseHealthScore;
-      setOverallHealthScore(calibratedHealth);
-      try {
-        window.dispatchEvent(new CustomEvent("bizzpal_timeframe_changed", { detail: { timeframe: "7 Days", days: 7 } }));
-      } catch {}
-      notify("Switched to 7 Days trailing view");
-    } else if (tf === "1 Month") {
-      const calibratedHealth = baseHealthScore > 50 ? Math.min(99, baseHealthScore + 2) : baseHealthScore;
-      setOverallHealthScore(calibratedHealth);
-      try {
-        window.dispatchEvent(new CustomEvent("bizzpal_timeframe_changed", { detail: { timeframe: "1 Month", days: 30 } }));
-      } catch {}
-      notify("Switched to 1 Month rolling view");
-    }
-  };
-
-  const handleApplyCustomRange = (daysPreset?: number) => {
-    let days = 14;
-    let label = "";
-    if (daysPreset) {
-      days = daysPreset;
-      const d = new Date();
-      d.setDate(d.getDate() - daysPreset);
-      setCustomStartDate(d.toISOString().split("T")[0]);
-      setCustomEndDate(new Date().toISOString().split("T")[0]);
-      label = `Custom (${daysPreset}d)`;
-    } else {
-      const diff = Math.round((new Date(customEndDate).getTime() - new Date(customStartDate).getTime()) / (1000 * 60 * 60 * 24));
-      days = Math.max(1, isNaN(diff) ? 14 : diff);
-      label = `Custom (${days}d)`;
-    }
-
-    setSelectedTimeframe(label);
-    setIsCustomPickerOpen(false);
-
-    const delta = days > 30 ? 3 : days >= 7 ? 1 : 0;
-    const calibratedHealth = baseHealthScore > 50 ? Math.min(99, baseHealthScore + delta) : baseHealthScore;
-    setOverallHealthScore(calibratedHealth);
-
-    try {
-      window.dispatchEvent(new CustomEvent("bizzpal_timeframe_changed", {
-        detail: { timeframe: "Custom", days, startDate: customStartDate, endDate: customEndDate }
-      }));
-    } catch {}
-    notify(`Applied custom range: ${days} days`);
-  };
-
-  // Toggle widget visibility
   const toggleWidgetVisibility = (id: string) => {
     setActiveWidgets(prev =>
       prev.map(w => (w.id === id ? { ...w, enabled: !w.enabled } : w))
@@ -467,17 +341,17 @@ function DashboardContent() {
     notify("Restored default dashboard layout");
   };
 
-  const healthLabel = overallHealthScore >= 75 ? "Healthy" : "Needs data";
+  const healthLabel = overallHealthScore === null ? "No figures yet" : overallHealthScore >= 75 ? "Healthy" : "Needs attention";
   const runwayLabel = Number(liquidRunwayMo) >= 6 ? "Safe" : "Short";
 
   const stats = [
     {
       href: "/analytics",
       label: "Business health",
-      value: String(overallHealthScore),
+      value: overallHealthScore === null ? "\u2014" : String(overallHealthScore),
       unit: "/ 100",
       note: healthLabel,
-      good: overallHealthScore >= 75,
+      good: (overallHealthScore ?? 0) >= 75,
     },
     {
       href: "/simulator",
@@ -504,9 +378,6 @@ function DashboardContent() {
       good: bottleneckGapCount === 0,
     },
   ];
-
-  const calendarInput =
-    "w-full px-2.5 py-1.5 rounded-lg bg-surface border border-line text-text text-sm focus:outline-hidden focus:border-brass cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden";
 
   return (
     <div className="space-y-6 pb-28 sm:pb-32">
@@ -541,166 +412,6 @@ function DashboardContent() {
             </div>
           </div>
 
-          <div className="relative flex sm:inline-flex items-center p-1 bg-surface-2 rounded-xl w-full sm:w-auto sm:shrink-0">
-            {["Live Today", "7 Days", "1 Month", "Custom"].map(tf => {
-              const isActive =
-                tf === "Custom"
-                  ? selectedTimeframe.startsWith("Custom") || isCustomPickerOpen
-                  : selectedTimeframe === tf;
-
-              return (
-                <button
-                  key={tf}
-                  type="button"
-                  onClick={() => handleTimeframeChange(tf)}
-                  className={`flex-1 sm:flex-none px-2 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm cursor-pointer whitespace-nowrap transition-colors ${
-                    isActive ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
-                  }`}
-                >
-                  {tf === "Custom" && selectedTimeframe.startsWith("Custom") ? selectedTimeframe : tf}
-                </button>
-              );
-            })}
-
-            {isCustomPickerOpen && (
-              <>
-                <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsCustomPickerOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 z-50 w-80 p-4 rounded-2xl bg-surface border border-line shadow-lg space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-text">Select date range</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomPickerOpen(false)}
-                      aria-label="Close"
-                      className="p-1 text-text-muted hover:text-text cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    {[7, 14, 30, 90].map(d => (
-                      <button
-                        key={d}
-                        type="button"
-                        onClick={() => handleApplyCustomRange(d)}
-                        className={`flex-1 py-1 rounded-lg text-xs cursor-pointer border ${
-                          customDaysDiff === d
-                            ? "border-line-strong bg-surface-2 text-text font-medium"
-                            : "border-line text-text-muted hover:text-text hover:bg-surface-2"
-                        }`}
-                      >
-                        {d} days
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <label className="block">
-                      <span className="block text-xs text-text-muted mb-1">Start</span>
-                      <input
-                        ref={startInputRef}
-                        type="date"
-                        value={customStartDate}
-                        onChange={e => {
-                          setCustomStartDate(e.target.value);
-                          if (e.target.value) setCalendarMonth(new Date(e.target.value));
-                        }}
-                        onClick={e => {
-                          try {
-                            (e.currentTarget as any).showPicker?.();
-                          } catch {}
-                        }}
-                        className={calendarInput}
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="block text-xs text-text-muted mb-1">End</span>
-                      <input
-                        ref={endInputRef}
-                        type="date"
-                        value={customEndDate}
-                        onChange={e => {
-                          setCustomEndDate(e.target.value);
-                          if (e.target.value) setCalendarMonth(new Date(e.target.value));
-                        }}
-                        onClick={e => {
-                          try {
-                            (e.currentTarget as any).showPicker?.();
-                          } catch {}
-                        }}
-                        className={calendarInput}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                        aria-label="Previous month"
-                        className="p-1 rounded-md text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <span className="text-sm font-medium text-text">{calendarData.monthName}</span>
-                      <button
-                        type="button"
-                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                        aria-label="Next month"
-                        className="p-1 rounded-md text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-1 text-center text-xs text-text-muted">
-                      {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(d => (
-                        <div key={d} className="py-0.5">
-                          {d}
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-1 text-center text-xs">
-                      {Array.from({ length: calendarData.firstDay }).map((_, idx) => (
-                        <div key={`empty-${idx}`} className="h-7" />
-                      ))}
-                      {Array.from({ length: calendarData.daysInMonth }).map((_, idx) => {
-                        const day = idx + 1;
-                        const status = getDateStatus(day);
-                        return (
-                          <button
-                            key={day}
-                            type="button"
-                            onClick={() => handleCalendarDaySelect(day)}
-                            className={`h-7 w-full rounded-md flex items-center justify-center cursor-pointer ${
-                              status.isSelected
-                                ? "bg-brass text-white font-medium"
-                                : status.isInRange
-                                ? "bg-brass/15 text-text"
-                                : "text-text hover:bg-surface-2"
-                            }`}
-                          >
-                            {day}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleApplyCustomRange()}
-                    className="w-full py-2 rounded-lg text-sm font-medium bg-brass text-white hover:brightness-110 cursor-pointer"
-                  >
-                    Apply ({customDaysDiff} days)
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
@@ -709,8 +420,12 @@ function DashboardContent() {
               <>
                 Revenue is <span className="text-text font-medium">{formatCurrencyCompact(monthlyRevenue)} a month</span>{" "}
                 and you have <span className="text-text font-medium">{liquidRunwayMo} months</span> of cash left (
-                {formatCurrencyCompact(cashOnHand)} in the bank). Your health score is{" "}
-                <span className="text-text font-medium">{overallHealthScore} out of 100</span>
+                {formatCurrencyCompact(cashOnHand)} in the bank). {overallHealthScore !== null && (
+                  <>
+                    {" "}Your health score is{" "}
+                    <span className="text-text font-medium">{overallHealthScore} out of 100</span>
+                  </>
+                )}
                 {bottleneckGapCount > 0 && (
                   <>
                     , with{" "}

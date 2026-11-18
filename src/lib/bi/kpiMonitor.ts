@@ -122,14 +122,13 @@ export async function evaluateBusinessKpis(businessId = DEFAULT_BUSINESS_ID): Pr
       currentVal = metrics.monthlyBurn;
       prevVal = history.length >= 2 ? history[history.length - 2].burn : currentVal;
     } else if (kpi.metricKey === "runway_months") {
+      // Runway needs both cash and burn. Without them there is nothing to measure.
+      if (metrics.runwayMonths === null) continue;
       currentVal = metrics.runwayMonths;
       prevVal = currentVal;
-    } else if (kpi.metricKey === "gross_margin_pct") {
-      currentVal = metrics.grossMarginPct;
-      prevVal = currentVal;
-    } else if (kpi.metricKey === "ltv_cac_ratio") {
-      currentVal = metrics.ltvCacRatio;
-      prevVal = currentVal;
+    } else if (kpi.metricKey === "gross_margin_pct" || kpi.metricKey === "ltv_cac_ratio") {
+      // BizzPal does not have the data to measure these, and it no longer estimates them
+      continue;
     } else {
       currentVal = metrics.monthlyRevenue;
     }

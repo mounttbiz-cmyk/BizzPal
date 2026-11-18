@@ -45,7 +45,7 @@ export function buildBriefing(args: { profile: any; openTasks: number | null; do
   const health = computeHealth(p);
   const runwayNum = burn > 0 ? cash / burn : null;
   const runway = burn > 0 ? runwayNum!.toFixed(1) : cash > 0 ? "18+" : "—";
-  const healthLabel = !hasData ? "Not enough data" : health.overall >= 75 ? "Healthy" : health.overall >= 50 ? "Needs attention" : "At risk";
+  const healthLabel = !hasData || health.overall === null ? "Not enough data" : health.overall >= 75 ? "Healthy" : health.overall >= 50 ? "Needs attention" : "At risk";
 
   const signals: BriefingContent["signals"] = [];
   const risks: BriefingContent["risks"] = [];
@@ -162,7 +162,7 @@ export function buildBriefing(args: { profile: any; openTasks: number | null; do
   return {
     id: `brief-${Date.now()}`,
     generatedAt: new Date().toISOString(),
-    healthScore: hasData ? health.overall : 0,
+    healthScore: hasData ? health.overall ?? 0 : 0,
     healthLabel,
     annualRevenue,
     monthlyRevenue,

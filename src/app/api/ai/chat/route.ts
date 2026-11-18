@@ -145,33 +145,11 @@ Instructions:
       });
     }
 
-    // High-fidelity fallback deterministic executive responses
-    const curCash = Number(companyProfile?.cash ?? companyProfile?.cashOnHand ?? cashReserves);
-    const curBurn = Number(companyProfile?.burn ?? companyProfile?.monthlyBurn ?? monthlyBurn);
-    const curTeam = Number(companyProfile?.teamSize ?? teamSize);
-    const curAnnRev = Number(companyProfile?.annualRevenue ?? (monthlyRev * 12));
-    const calcRunway = curBurn > 0 ? (curCash / curBurn).toFixed(1) : (curCash > 0 ? "18+" : "0.0");
-    const revPerEmp = curTeam > 0 && curAnnRev > 0 ? Math.round(curAnnRev / curTeam) : 0;
-
-    const fallbackResponses: Record<string, string> = {
-      ceo: `Acknowledged. Based on ${companyProfile?.name || companyName}'s current operations in ${companyProfile?.industryLabel || industry}, our strategic imperative is capital-efficient scaling. With liquid reserves at ₹${curCash.toLocaleString("en-IN")}, our cash runway stands at ${calcRunway} months. I recommend concentrating leadership mindshare on client retention and pipeline closing over the next 60 days.`,
-      cfo: `Financial assessment: monthly net burn is ₹${curBurn.toLocaleString("en-IN")} against ₹${curCash.toLocaleString("en-IN")} in bank reserves. This yields a runway of ${calcRunway} months. To optimize solvency, ensure operating cash flows remain protected while accelerating invoice collection cycles.`,
-      marketing: `Target CAC should be strictly benchmarked under 25% of annual client value. For ${companyProfile?.name || companyName}, prioritizing high-intent organic search and account-based outreach will deliver high ROAS compared to uncalibrated ad spend.`,
-      sales: `Deal velocity audit indicates pipeline opportunities. I recommend introducing rigorous stage-gate qualification in our pipeline: route sub-threshold leads to automated touchpoints while focusing senior sales rep capacity on high-LTV enterprise accounts.`,
-      hr: `For a team of ${curTeam} FTEs, revenue per employee currently stands at ₹${revPerEmp.toLocaleString("en-IN")}. Before adding new headcount, let's automate routine operational workflows to keep unit economics lean.`,
-      operations: `Operational capacity review shows strong delivery efficiency. We can eliminate manual reporting overhead by linking automated execution workflows directly to our connected tools.`,
-      strategy: `Defensibility audit: Our competitive moat strengthens through integrated operational telemetry and rapid automated execution. I recommend documenting core standard operating procedures in our Knowledge Hub to ensure rapid scaling and quality control.`,
-    };
-
-    return NextResponse.json({
-      success: true,
-      agent: activeRole.title,
-      text:
-        "Sample guidance: the AI service could not be reached just now, so this is a general answer built from your numbers.\n\n" +
-        (fallbackResponses[agentId] || fallbackResponses.ceo),
-      provider: "fallback",
-      fallback: true,
-    });
+    // No provider answered. Say so plainly instead of showing pre-written advice.
+    return NextResponse.json(
+      { success: false, error: "The AI advisor can't answer right now. Please try again in a moment." },
+      { status: 503 }
+    );
   } catch (error) {
     return NextResponse.json(
       { success: false, error: "Failed to process AI request" },

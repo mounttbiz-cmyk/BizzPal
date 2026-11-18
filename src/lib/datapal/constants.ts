@@ -1543,12 +1543,8 @@ export const BUSINESS_CATEGORIES: BusinessCategory[] = [
   },
 ];
 
+// The only directory DataPal really reads is Google Maps & Places (with OpenStreetMap as a free backup).
 export const DIRECTORY_SOURCES = [
   { id: "gmaps", name: "Google Maps & Places", icon: "MapPin", color: "#4285F4" },
-  { id: "justdial", name: "JustDial India", icon: "PhoneCall", color: "#FF6600" },
-  { id: "indiamart", name: "IndiaMART B2B", icon: "Building2", color: "#00AEEF" },
-  { id: "tradeindia", name: "TradeIndia", icon: "Briefcase", color: "#2E7D32" },
-  { id: "linkedin", name: "LinkedIn Company Search", icon: "Users", color: "#0A66C2" },
-  { id: "yellowpages", name: "YellowPages Directory", icon: "BookOpen", color: "#F59E0B" },
 ];
 

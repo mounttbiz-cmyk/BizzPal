@@ -512,15 +512,9 @@ function ToolsContent() {
             setMonthlyInflow(m.monthlyRevenue);
             setWcRevenue(m.annualRevenue || m.monthlyRevenue * 12);
             setNrrStartingMrr(m.monthlyRevenue);
-            setGstAmount(Math.round(m.monthlyRevenue * 0.25));
           }
           if (m.monthlyBurn > 0) {
             setMonthlyBurn(m.monthlyBurn);
-            setCalcOpex(Math.round(m.monthlyBurn * 0.65));
-            setCalcCogs(Math.round(m.monthlyBurn * 0.35));
-            setFixedCosts(Math.round(m.monthlyBurn * 0.55));
-            setMarketingSpend(Math.round(m.monthlyBurn * 0.15));
-            setWcCogs(Math.round(m.monthlyBurn * 0.35 * 12));
           }
           if (m.cashReserve > 0) {
             setCashReserve(m.cashReserve);
