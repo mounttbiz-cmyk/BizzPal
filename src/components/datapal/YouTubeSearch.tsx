@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, Loader2, Search } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { YouTubeChannelCard, type YtChannel } from "@/components/datapal/YouTubeChannelCard";
 
 interface Props {
@@ -244,27 +244,20 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
   };
 
   const chip = (on: boolean) =>
-    `px-3 py-1.5 rounded-full border text-sm cursor-pointer transition-colors ${on ? "bg-brass text-white border-brass" : "bg-surface text-text border-line hover:border-line-strong"}`;
-  const field = "px-3 py-2 rounded-xl border border-line bg-surface text-sm text-text focus:outline-hidden focus:border-brass cursor-pointer";
+    `px-3 py-1.5 rounded-lg border text-sm cursor-pointer ${on ? "bg-text text-surface border-text" : "bg-surface text-text border-line hover:bg-surface-2"}`;
+  const field = "px-3 py-1.5 rounded-lg border border-line bg-surface text-sm text-text focus:outline-hidden focus:border-brass cursor-pointer";
 
   return (
     <div className="space-y-6">
-      <div className="inline-flex p-1 rounded-xl bg-surface-2 border border-line">
-        {([["find", "Find creators"], ["saved", `Saved list${saved.length ? ` (${saved.length})` : ""}`]] as const).map(([id, label]) => (
-          <button key={id} type="button" onClick={() => setTab(id)} className={`px-4 py-1.5 rounded-lg text-sm cursor-pointer ${tab === id ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"}`}>{label}</button>
+      <div className="flex gap-6 text-sm">
+        {([["find", "Find creators"], ["saved", `Saved${saved.length ? ` (${saved.length})` : ""}`]] as const).map(([id, label]) => (
+          <button key={id} type="button" onClick={() => setTab(id)} className={`pb-1 cursor-pointer border-b-2 ${tab === id ? "border-brass text-text font-medium" : "border-transparent text-text-muted hover:text-text"}`}>{label}</button>
         ))}
       </div>
 
       {tab === "find" && (
         <>
-          <div className="rounded-2xl border border-line bg-surface p-6 space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold text-text">Find YouTube creators</h2>
-              <p className="text-sm text-text-muted mt-1">
-                Paste a channel link, a video link, an @handle or a channel ID. Or type keywords such as &ldquo;fitness creators India&rdquo; to discover channels.
-              </p>
-            </div>
-
+          <div className="space-y-3">
             <form onSubmit={search} className="space-y-3">
               {bulk ? (
                 <textarea
@@ -272,49 +265,44 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
                   value={list}
                   onChange={e => setList(e.target.value)}
                   placeholder={"One per line, up to 20:\nhttps://www.youtube.com/@name\n@anotherhandle\nUCxxxxxxxxxxxxxxxxxxxxxx"}
-                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2 text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
+                  className="w-full px-4 py-3 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
                 />
               ) : (
-                <div className="relative">
-                  <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    placeholder="youtube.com/@name, a video link, @name, UC… or keywords"
-                    maxLength={200}
-                    className="w-full pl-10 pr-3.5 py-3 rounded-xl border border-line bg-surface-2 text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Channel link, @handle, or keywords like “fitness creators India”"
+                  maxLength={200}
+                  className="w-full px-4 py-3 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
+                />
               )}
-
-              <div>
-                <label className="text-sm font-medium text-text block mb-1.5">What are you promoting? <span className="text-text-muted font-normal">(optional, lets the AI rate how well each creator fits)</span></label>
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
                   value={offer}
                   onChange={e => setOffer(e.target.value)}
                   maxLength={300}
-                  placeholder="For example: protein supplements for gym-goers in India"
-                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2 text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
+                  aria-label="What you are promoting"
+                  placeholder="What are you promoting? (optional, used to score fit)"
+                  className="flex-1 px-4 py-3 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
                 />
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <button type="button" onClick={() => setBulk(b => !b)} className="text-sm text-brass hover:underline cursor-pointer">
-                  {bulk ? "Search one channel or keywords instead" : "Paste a list of channels instead"}
-                </button>
                 <button
                   type="submit"
                   disabled={busy || (bulk ? !list.trim() : !query.trim())}
-                  className="px-6 py-3 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer inline-flex items-center justify-center gap-2"
+                  className="px-6 py-3 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer inline-flex items-center justify-center gap-2"
                 >
                   {busy && <Loader2 className="w-4 h-4 animate-spin" />}
                   Search
                 </button>
               </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <button type="button" onClick={() => setBulk(b => !b)} className="text-sm text-brass hover:underline cursor-pointer">
+                  {bulk ? "Search one channel or keywords" : "Paste a list of channels"}
+                </button>
+                <p className="text-xs text-text-muted">Each channel found uses one DataPal record.</p>
+              </div>
             </form>
-            <p className="text-xs text-text-muted">Each channel found uses one DataPal record. Searching the same channel again within a day is still counted.</p>
             {error && <p className="text-sm text-rust">{error}</p>}
             {note && <p className="text-sm text-text-muted">{note}</p>}
           </div>
@@ -324,7 +312,7 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" className={chip(needEmail)} onClick={() => setNeedEmail(v => !v)}>Has email</button>
                 <button type="button" className={chip(needPhone)} onClick={() => setNeedPhone(v => !v)}>Has phone</button>
-                <button type="button" className={chip(onlyActive)} onClick={() => setOnlyActive(v => !v)}>Posted in last 3 months</button>
+                <button type="button" className={chip(onlyActive)} onClick={() => setOnlyActive(v => !v)}>Active lately</button>
                 <select value={minSubs} onChange={e => setMinSubs(Number(e.target.value))} aria-label="Minimum subscribers" className={field}>
                   {MIN_SUBS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
@@ -347,16 +335,16 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
 
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm text-text-muted">
-                  Showing {shown.length} of {results.length} {results.length === 1 ? "channel" : "channels"}
+                  {shown.length === results.length ? `${results.length} ${results.length === 1 ? "channel" : "channels"}` : `${shown.length} of ${results.length} channels`}
                   {fitBusy && <span className="ml-2 inline-flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />AI is rating them…</span>}
                 </p>
-                <button type="button" onClick={download} disabled={shown.length === 0} className="px-3.5 py-2 rounded-xl border border-line bg-surface text-sm text-text hover:bg-surface-2 cursor-pointer inline-flex items-center gap-2 disabled:opacity-50">
-                  <Download className="w-4 h-4" /> Download CSV
+                <button type="button" onClick={download} disabled={shown.length === 0} className="text-sm text-brass hover:underline cursor-pointer disabled:opacity-50">
+                  Download CSV
                 </button>
               </div>
               {fitError && <p className="text-sm text-rust">{fitError}</p>}
 
-              {shown.length === 0 && <p className="p-8 text-center text-sm text-text-muted rounded-2xl border border-line">No channel matches these filters. Loosen a filter to see the rest.</p>}
+              {shown.length === 0 && <p className="p-8 text-center text-sm text-text-muted rounded-xl border border-line">No channel matches these filters. Loosen a filter to see the rest.</p>}
 
               {shown.map(c => (
                 <YouTubeChannelCard
@@ -376,15 +364,14 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
 
               {nextToken && lastKeywords && (
                 <div className="text-center">
-                  <button type="button" onClick={loadMore} disabled={moreBusy} className="px-5 py-2.5 rounded-xl border border-line bg-surface text-sm text-text hover:bg-surface-2 cursor-pointer inline-flex items-center gap-2 disabled:opacity-50">
+                  <button type="button" onClick={loadMore} disabled={moreBusy} className="px-5 py-2 rounded-lg border border-line bg-surface text-sm text-text hover:bg-surface-2 cursor-pointer inline-flex items-center gap-2 disabled:opacity-50">
                     {moreBusy && <Loader2 className="w-4 h-4 animate-spin" />}Load 10 more channels
                   </button>
-                  <p className="text-xs text-text-muted mt-2">Each new channel uses one DataPal record.</p>
                 </div>
               )}
 
               <p className="text-xs text-text-muted">
-                Details come from each channel&apos;s public page, its latest videos, and the creator&apos;s own website or link page. Engagement and activity are worked out from the latest videos only. AI ratings and messages are suggestions, not facts. Use contact details lawfully and only for genuine business contact, not for spam.
+                Details come from public channel pages and the creator&apos;s own website. Fit scores and messages are AI suggestions. Use contact details only for genuine business contact.
               </p>
             </div>
           )}
@@ -395,7 +382,7 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
         <div className="space-y-4">
           {savedBusy && saved.length === 0 && <p className="p-8 text-center text-sm text-text-muted">Loading your saved list…</p>}
           {!savedBusy && saved.length === 0 && (
-            <p className="p-10 text-center text-sm text-text-muted rounded-2xl border border-line">
+            <p className="p-10 text-center text-sm text-text-muted rounded-xl border border-line">
               Nothing saved yet. Use &ldquo;Save to my list&rdquo; on a creator to keep track of who you contacted and what they said.
             </p>
           )}
@@ -413,7 +400,7 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
                 onSendEmail={sendEmail(s.channel)}
               />
             ) : (
-              <div key={s.channelId} className="rounded-2xl border border-line bg-surface p-5 flex items-center justify-between gap-3 text-sm">
+              <div key={s.channelId} className="rounded-xl border border-line bg-surface p-5 flex items-center justify-between gap-3 text-sm">
                 <span className="text-text-muted">This channel&apos;s details are not available right now. Your status and note are kept.</span>
                 <button type="button" onClick={() => removeSaved(s.channelId)} className="text-rust hover:underline cursor-pointer shrink-0">Remove</button>
               </div>

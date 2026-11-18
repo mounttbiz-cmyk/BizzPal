@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Copy, ExternalLink, Loader2, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 export interface YtContact {
   value: string;
@@ -86,15 +86,6 @@ interface Props {
   onSendEmail?: (to: string, subject: string, body: string) => Promise<string | null>;
 }
 
-function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
-  return (
-    <div title={hint}>
-      <p className="text-xs text-text-muted">{label}</p>
-      <p className="text-sm font-medium text-text">{value}</p>
-    </div>
-  );
-}
-
 export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave, onRemove, onStatusChange, onNoteSave, onDraft, onSendEmail }: Props) {
   const [copied, setCopied] = useState("");
   const [showVideos, setShowVideos] = useState(false);
@@ -150,272 +141,186 @@ export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave,
   };
 
   const badge = a ? STATUS_BADGE[a.status] : undefined;
-  const tags = [...c.keywords, ...c.topics].filter((t, i, all) => all.findIndex(x => x.toLowerCase() === t.toLowerCase()) === i).slice(0, 8);
+  const hasContact = c.emails.length > 0 || c.phones.length > 0;
+  const btn = "text-sm text-text-muted hover:text-text cursor-pointer";
+  const link = "text-sm text-brass hover:underline cursor-pointer";
+  const input = "w-full px-3 py-2 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass";
+  const meta = [
+    c.subscribers !== null ? `${compact(c.subscribers)} subscribers` : null,
+    a?.avgViews != null ? `${compact(a.avgViews)} avg views` : null,
+    a?.engagementPct != null ? `${a.engagementPct}% engagement` : null,
+    a?.uploadsPerMonth != null ? `${a.uploadsPerMonth} uploads a month` : null,
+    a?.lastUploadAt ? `last upload ${ago(a.lastUploadAt)}` : null,
+  ].filter(Boolean);
+  const sub = [c.language, c.country, a && a.sponsoredVideos > 0 ? `brand deals in ${a.sponsoredVideos} of last ${a.sampled} videos` : null].filter(Boolean);
+
+  const sourceOf = (m: YtContact) => [m.label, m.source === "Description" ? "channel description" : m.source, m.deliverable === false ? "domain cannot receive email" : null].filter(Boolean).join(" · ");
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5 space-y-4">
-      <div className="flex items-start gap-4">
+    <div className="rounded-xl border border-line bg-surface px-5 py-4 space-y-3.5">
+      <div className="flex items-start gap-3.5">
         {c.thumbnail ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={c.thumbnail} alt="" className="w-14 h-14 rounded-full border border-line object-cover shrink-0" />
+          <img src={c.thumbnail} alt="" className="w-11 h-11 rounded-full object-cover shrink-0" />
         ) : (
-          <div className="w-14 h-14 rounded-full bg-surface-2 border border-line shrink-0" />
+          <div className="w-11 h-11 rounded-full bg-surface-2 shrink-0" />
         )}
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <h3 className="text-base font-semibold text-text">{c.title}</h3>
-            <a href={c.url} target="_blank" rel="noopener noreferrer" className="text-xs text-brass hover:underline inline-flex items-center gap-1">
-              {c.handle || "Open channel"} <ExternalLink className="w-3 h-3" />
-            </a>
-            {badge && <span className={`text-xs px-2 py-0.5 rounded-full border ${badge.cls}`}>{badge.label}</span>}
-            {c.language && <span className="text-xs px-2 py-0.5 rounded-full border border-line bg-surface-2 text-text-muted">{c.language}</span>}
-            {a && a.sponsoredVideos > 0 && (
-              <span className="text-xs px-2 py-0.5 rounded-full border border-line bg-surface-2 text-text" title="Some of the latest videos mention sponsors, ads or promo codes">
-                Does brand deals ({a.sponsoredVideos} of last {a.sampled})
-              </span>
-            )}
+          <div className="flex flex-wrap items-baseline gap-x-2.5">
+            <a href={c.url} target="_blank" rel="noopener noreferrer" className="text-base font-semibold text-text hover:text-brass">{c.title}</a>
+            {c.handle && <span className="text-sm text-text-muted">{c.handle}</span>}
+            {badge && <span className={`text-xs ${a?.status === "inactive" ? "text-rust" : a?.status === "active" ? "text-jade" : "text-text-muted"}`}>{a?.status === "recent" ? "Posted recently" : badge.label}</span>}
           </div>
-          {tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {tags.map(t => <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-surface-2 border border-line text-text-muted">{t}</span>)}
-            </div>
-          )}
+          {meta.length > 0 && <p className="text-sm text-text-muted mt-0.5">{meta.join("  ·  ")}</p>}
+          {sub.length > 0 && <p className="text-xs text-text-muted mt-0.5">{sub.join("  ·  ")}</p>}
         </div>
-
         {(fit || fitLoading) && (
-          <div className="shrink-0 w-28 text-right">
+          <div className="shrink-0 text-right">
             {fitLoading && !fit ? (
-              <p className="text-xs text-text-muted inline-flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Rating…</p>
+              <Loader2 className="w-4 h-4 animate-spin text-text-muted" />
             ) : fit ? (
               <>
-                <p className="text-xs text-text-muted inline-flex items-center gap-1"><Sparkles className="w-3 h-3 text-brass" />AI fit</p>
-                <p className="text-xl font-semibold text-text leading-tight">{fit.score}<span className="text-xs font-normal text-text-muted">/100</span></p>
-                <div className="h-1.5 rounded-full bg-surface-2 mt-1 overflow-hidden"><div className="h-full bg-brass" style={{ width: `${fit.score}%` }} /></div>
+                <p className="text-xl font-semibold text-text leading-none">{fit.score}</p>
+                <p className="text-xs text-text-muted mt-1">fit score</p>
               </>
             ) : null}
           </div>
         )}
       </div>
 
-      {fit && <p className="text-sm text-text-muted"><span className="text-xs font-medium text-brass">AI suggestion: </span>{fit.reason}</p>}
-
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 rounded-xl bg-surface-2/60 border border-line p-4">
-        <Stat label="Subscribers" value={compact(c.subscribers)} />
-        <Stat label="Avg views / video" value={compact(a?.avgViews)} hint="Average over the latest videos" />
-        <Stat label="Engagement" value={a?.engagementPct === null || a?.engagementPct === undefined ? "n/a" : `${a.engagementPct}%`} hint="Likes and comments as a percentage of views" />
-        <Stat label="Uploads / month" value={a?.uploadsPerMonth ?? "n/a"} />
-        <Stat label="Last upload" value={ago(a?.lastUploadAt)} />
-      </div>
+      {fit && <p className="text-sm text-text-muted">{fit.reason}</p>}
 
       {c.management && (
-        <div className="rounded-xl border border-brass/40 bg-brass/5 px-4 py-3 text-sm text-text">
-          <span className="font-medium">Management contact{c.management.name ? `: ${c.management.name}` : ""}.</span>{" "}
-          <span className="text-text-muted">This creator lists a manager or agency, so only that contact is shown.</span>
-        </div>
+        <p className="text-sm text-text">
+          <span className="font-medium">Management{c.management.name ? `: ${c.management.name}` : ""}.</span>{" "}
+          <span className="text-text-muted">Only the manager&apos;s contact is shown.</span>
+        </p>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-xl bg-surface-2/60 border border-line p-4">
-          <p className="text-xs font-medium text-text-muted mb-2">{c.management ? "Management email" : "Email"}</p>
-          {c.emails.length > 0 ? (
-            <ul className="space-y-2.5">
-              {c.emails.map(m => (
-                <li key={m.value} className="text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <a href={`mailto:${m.value}`} className="text-text hover:text-brass break-all">{m.value}</a>
-                    <span className="flex items-center gap-3 shrink-0">
-                      {onSendEmail && m.deliverable !== false && (
-                        <button type="button" onClick={() => openCompose(m.value)} className="text-xs text-brass hover:underline cursor-pointer">Email</button>
-                      )}
-                      <button type="button" onClick={() => copy(m.value)} className="text-xs text-text-muted hover:text-text cursor-pointer inline-flex items-center gap-1">
-                        <Copy className="w-3 h-3" /> {copied === m.value ? "Copied" : "Copy"}
-                      </button>
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-muted">
-                    {m.label ? `${m.label} · ` : ""}From {m.source === "Description" ? "the channel description" : m.source}
-                    {m.kind === "business" ? " · Role address" : m.kind === "personal" ? " · Personal address" : ""}
-                  </p>
-                  {m.deliverable === true && <p className="text-xs text-jade">Domain can receive email</p>}
-                  {m.deliverable === false && <p className="text-xs text-rust">This domain cannot receive email. Check the spelling.</p>}
-                </li>
+      <div className="border-t border-line pt-3.5 space-y-2.5">
+        {hasContact ? (
+          <>
+            {c.emails.map(m => (
+              <div key={m.value} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                <span className="w-14 text-xs text-text-muted shrink-0">Email</span>
+                <a href={`mailto:${m.value}`} className="text-sm text-text hover:text-brass break-all">{m.value}</a>
+                <span className="text-xs text-text-muted">{sourceOf(m)}</span>
+                <span className="ml-auto flex items-center gap-3">
+                  {onSendEmail && m.deliverable !== false && <button type="button" onClick={() => openCompose(m.value)} className={link}>Send email</button>}
+                  <button type="button" onClick={() => copy(m.value)} className="text-xs text-text-muted hover:text-text cursor-pointer">{copied === m.value ? "Copied" : "Copy"}</button>
+                </span>
+              </div>
+            ))}
+            {c.phones.map(m => (
+              <div key={m.value} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                <span className="w-14 text-xs text-text-muted shrink-0">Phone</span>
+                <a href={`tel:${m.value.replace(/\s/g, "")}`} className="text-sm text-text hover:text-brass">{m.value}</a>
+                <span className="text-xs text-text-muted">{sourceOf(m)}</span>
+                <span className="ml-auto flex items-center gap-3">
+                  <a href={waLink(m.value)} target="_blank" rel="noopener noreferrer" className={link}>WhatsApp</a>
+                  <button type="button" onClick={() => copy(m.value)} className="text-xs text-text-muted hover:text-text cursor-pointer">{copied === m.value ? "Copied" : "Copy"}</button>
+                </span>
+              </div>
+            ))}
+          </>
+        ) : (
+          <p className="text-sm text-text-muted">{c.management ? "The manager's email and phone are not listed." : "No public email or phone found."}</p>
+        )}
+        {(c.socials.length > 0 || c.links.length > 0) && (
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <span className="w-14 text-xs text-text-muted shrink-0">Links</span>
+            <span className="flex flex-wrap gap-x-4 gap-y-0.5">
+              {c.socials.map(x => (
+                <a key={x.url} href={x.url} target="_blank" rel="noopener noreferrer" className="text-sm text-text hover:text-brass">{x.platform}</a>
               ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-text-muted">{c.management ? "The manager's email is not listed." : "No email found. Many channels keep it behind YouTube&apos;s “View email address” button, which can&apos;t be read here."}</p>
-          )}
-        </div>
-
-        <div className="rounded-xl bg-surface-2/60 border border-line p-4">
-          <p className="text-xs font-medium text-text-muted mb-2">{c.management ? "Management phone / WhatsApp" : "Phone / WhatsApp"}</p>
-          {c.phones.length > 0 ? (
-            <ul className="space-y-2.5">
-              {c.phones.map(m => (
-                <li key={m.value} className="text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <a href={`tel:${m.value.replace(/\s/g, "")}`} className="text-text hover:text-brass">{m.value}</a>
-                    <span className="flex items-center gap-3 shrink-0">
-                      <a href={waLink(m.value)} target="_blank" rel="noopener noreferrer" className="text-xs text-brass hover:underline">WhatsApp</a>
-                      <button type="button" onClick={() => copy(m.value)} className="text-xs text-text-muted hover:text-text cursor-pointer inline-flex items-center gap-1">
-                        <Copy className="w-3 h-3" /> {copied === m.value ? "Copied" : "Copy"}
-                      </button>
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-muted">{m.label ? `${m.label} · ` : ""}From {m.source === "Description" ? "the channel description" : m.source}</p>
-                </li>
+              {c.links.filter(l => !c.socials.some(x => x.url === l.url)).slice(0, 4).map(l => (
+                <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="text-sm text-text hover:text-brass">{l.label}</a>
               ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-text-muted">{c.management ? "The manager's number is not listed." : "No phone number found."}</p>
-          )}
-        </div>
-
-        <div className="rounded-xl bg-surface-2/60 border border-line p-4">
-          <p className="text-xs font-medium text-text-muted mb-2">Links</p>
-          {c.links.length > 0 ? (
-            <ul className="space-y-1.5">
-              {c.links.map(l => (
-                <li key={l.url} className="text-sm">
-                  <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-text hover:text-brass">
-                    <span className="text-text-muted">{l.label}: </span>
-                    <span className="break-all">{l.url.replace(/^https?:\/\/(www\.)?/, "")}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-text-muted">No links in the description.</p>
-          )}
-        </div>
+            </span>
+          </div>
+        )}
       </div>
 
-      {c.socials.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-text-muted mr-1">Reach them on</span>
-          {c.socials.map(x => (
-            <a key={x.url} href={x.url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 rounded-full border border-line bg-surface text-sm text-text hover:border-brass hover:text-brass">
-              {x.platform}{x.handle ? ` ${x.handle}` : ""}
-            </a>
-          ))}
-        </div>
-      )}
-
-      {sentTo && <p className="text-sm text-jade">Email sent to {sentTo}. Replies will come to your own inbox, and this creator is marked as contacted.</p>}
+      {sentTo && <p className="text-sm text-jade">Email sent to {sentTo}. Replies come to your own inbox.</p>}
 
       {composeTo && (
-        <div className="rounded-xl border border-line bg-surface-2/40 p-4 space-y-3">
+        <div className="rounded-lg border border-line bg-surface-2/50 p-4 space-y-3">
           <p className="text-sm font-medium text-text">Email {composeTo}</p>
-          <input
-            type="text"
-            value={subject}
-            onChange={e => setSubject(e.target.value)}
-            maxLength={120}
-            placeholder="Subject"
-            className="w-full px-3 py-2 rounded-xl border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
-          />
-          <textarea
-            rows={7}
-            value={body}
-            onChange={e => setBody(e.target.value)}
-            maxLength={2000}
-            placeholder="Write your message. Use Write a message with AI above to get a starting point, then edit it."
-            className="w-full px-3 py-2 rounded-xl border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
-          />
+          <input type="text" value={subject} onChange={e => setSubject(e.target.value)} maxLength={120} placeholder="Subject" className={input} />
+          <textarea rows={7} value={body} onChange={e => setBody(e.target.value)} maxLength={2000} placeholder="Write your message, or use Write message with AI for a starting point." className={input} />
           <p className="text-xs text-text-muted">
-            It is sent in your name. Replies go to your own email. A line saying who sent it and an unsubscribe link are added at the bottom. You can send a limited number of emails a day, and the same address can be emailed once every two weeks.
+            Sent in your name; replies go to your inbox. A sender line and an unsubscribe link are added. Daily limits apply, and an address can be emailed once every two weeks.
           </p>
           <label className="flex items-start gap-2 text-sm text-text cursor-pointer">
             <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} className="mt-1 accent-[#8a6414]" />
-            <span>This is genuine business outreach, not spam, and I am allowed to contact this person.</span>
+            <span>This is genuine business outreach and I am allowed to contact this person.</span>
           </label>
           {sendError && <p className="text-sm text-rust">{sendError}</p>}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={send}
-              disabled={sending || !confirmed || subject.trim().length < 3 || body.trim().length < 20}
-              className="px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer inline-flex items-center gap-2"
-            >
-              {sending && <Loader2 className="w-4 h-4 animate-spin" />}Send email
+          <div className="flex items-center gap-4">
+            <button type="button" onClick={send} disabled={sending || !confirmed || subject.trim().length < 3 || body.trim().length < 20}
+              className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer inline-flex items-center gap-2">
+              {sending && <Loader2 className="w-4 h-4 animate-spin" />}Send
             </button>
-            <button type="button" onClick={() => setComposeTo(null)} className="text-sm text-text-muted hover:text-text cursor-pointer">Cancel</button>
+            <button type="button" onClick={() => setComposeTo(null)} className={btn}>Cancel</button>
           </div>
         </div>
       )}
 
-      {a && a.recent.length > 0 && (
-        <div>
-          <button type="button" onClick={() => setShowVideos(v => !v)} className="text-sm text-brass hover:underline cursor-pointer">
-            {showVideos ? "Hide latest videos" : `Show latest videos (${a.recent.length})`}
-          </button>
-          {showVideos && (
-            <ul className="mt-2 divide-y divide-line rounded-xl border border-line">
-              {a.recent.map(v => (
-                <li key={v.url} className="px-4 py-2.5 flex items-center justify-between gap-3 text-sm">
-                  <a href={v.url} target="_blank" rel="noopener noreferrer" className="text-text hover:text-brass truncate">{v.title}</a>
-                  <span className="text-xs text-text-muted whitespace-nowrap">{compact(v.views)} views · {ago(v.publishedAt)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center gap-3 pt-1">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-3">
         {saved ? (
           <>
-            <select
-              value={saved.status}
-              onChange={e => onStatusChange?.(e.target.value)}
-              aria-label="Status"
-              className="px-3 py-2 rounded-xl border border-line bg-surface text-sm text-text cursor-pointer focus:outline-hidden focus:border-brass"
-            >
+            <select value={saved.status} onChange={e => onStatusChange?.(e.target.value)} aria-label="Status"
+              className="px-2.5 py-1 rounded-lg border border-line bg-surface text-sm text-text cursor-pointer focus:outline-hidden focus:border-brass">
               {SAVED_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
-            <button type="button" onClick={onRemove} className="text-sm text-rust hover:underline cursor-pointer">Remove from saved</button>
+            <button type="button" onClick={onRemove} className="text-sm text-text-muted hover:text-rust cursor-pointer">Remove</button>
           </>
         ) : onSave ? (
-          <button type="button" onClick={onSave} className="px-3.5 py-2 rounded-xl border border-line bg-surface text-sm text-text hover:bg-surface-2 cursor-pointer">Save to my list</button>
+          <button type="button" onClick={onSave} className={link}>Save</button>
         ) : null}
         {onDraft && (
-          <button type="button" onClick={writeDraft} disabled={drafting} className="px-3.5 py-2 rounded-xl border border-brass/50 text-sm text-brass hover:bg-brass hover:text-white cursor-pointer inline-flex items-center gap-2 disabled:opacity-50">
-            {drafting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Write a message with AI
+          <button type="button" onClick={writeDraft} disabled={drafting} className={`${link} disabled:opacity-50 inline-flex items-center gap-1.5`}>
+            {drafting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}Write message with AI
           </button>
+        )}
+        {a && a.recent.length > 0 && (
+          <button type="button" onClick={() => setShowVideos(v => !v)} className={btn}>{showVideos ? "Hide videos" : `Latest videos (${a.recent.length})`}</button>
         )}
       </div>
       {draftError && <p className="text-sm text-rust">{draftError}</p>}
 
+      {showVideos && a && (
+        <ul className="divide-y divide-line rounded-lg border border-line">
+          {a.recent.map(v => (
+            <li key={v.url} className="px-3.5 py-2 flex items-center justify-between gap-3 text-sm">
+              <a href={v.url} target="_blank" rel="noopener noreferrer" className="text-text hover:text-brass truncate">{v.title}</a>
+              <span className="text-xs text-text-muted whitespace-nowrap">{compact(v.views)} views · {ago(v.publishedAt)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {draft && (
-        <div className="rounded-xl border border-line bg-surface-2/40 p-4 space-y-3 text-sm">
-          <p className="text-xs font-medium text-brass">AI suggestion. Read and edit it before you send.</p>
+        <div className="rounded-lg bg-surface-2/50 p-4 space-y-3 text-sm">
+          <p className="text-xs text-text-muted">Suggested message. Read and edit it before you send.</p>
           <div>
-            <p className="text-xs text-text-muted mb-1">Email · Subject: {draft.subject}</p>
+            <p className="text-xs text-text-muted mb-1">Email · {draft.subject}</p>
             <p className="whitespace-pre-wrap text-text">{draft.email}</p>
-            <button type="button" onClick={() => copy(`Subject: ${draft.subject}\n\n${draft.email}`)} className="mt-1.5 text-xs text-text-muted hover:text-text cursor-pointer inline-flex items-center gap-1"><Copy className="w-3 h-3" />{copied.startsWith("Subject:") ? "Copied" : "Copy email"}</button>
+            <button type="button" onClick={() => copy(`Subject: ${draft.subject}\n\n${draft.email}`)} className="mt-1.5 text-xs text-text-muted hover:text-text cursor-pointer">{copied.startsWith("Subject:") ? "Copied" : "Copy email"}</button>
           </div>
           {draft.whatsapp && (
             <div>
               <p className="text-xs text-text-muted mb-1">WhatsApp</p>
               <p className="whitespace-pre-wrap text-text">{draft.whatsapp}</p>
-              <button type="button" onClick={() => copy(draft.whatsapp)} className="mt-1.5 text-xs text-text-muted hover:text-text cursor-pointer inline-flex items-center gap-1"><Copy className="w-3 h-3" />{copied === draft.whatsapp ? "Copied" : "Copy message"}</button>
+              <button type="button" onClick={() => copy(draft.whatsapp)} className="mt-1.5 text-xs text-text-muted hover:text-text cursor-pointer">{copied === draft.whatsapp ? "Copied" : "Copy message"}</button>
             </div>
           )}
         </div>
       )}
 
       {saved && onNoteSave && (
-        <div>
-          <label className="text-xs font-medium text-text-muted block mb-1">Your note</label>
-          <textarea
-            rows={2}
-            value={note}
-            onChange={e => setNote(e.target.value)}
-            onBlur={() => note !== saved.note && onNoteSave(note)}
-            maxLength={500}
-            placeholder="For example: asked for rates, call on Monday"
-            className="w-full px-3 py-2 rounded-xl border border-line bg-surface-2 text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
-          />
-        </div>
+        <textarea rows={2} value={note} onChange={e => setNote(e.target.value)} onBlur={() => note !== saved.note && onNoteSave(note)} maxLength={500}
+          placeholder="Add a note, for example: asked for rates, call on Monday" className={input} />
       )}
     </div>
   );
