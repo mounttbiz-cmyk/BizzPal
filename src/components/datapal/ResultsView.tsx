@@ -352,7 +352,6 @@ export function ResultsView({ campaign, creditsLeft, onOpenCredits, onGoSearch }
                             <button type="button" onClick={() => copy(lead.email!, `e_${lead.id}`)} className="p-1 rounded text-text-muted hover:text-text cursor-pointer shrink-0" title="Copy email" aria-label="Copy email">
                               {copied === `e_${lead.id}` ? <Check className="w-3.5 h-3.5 text-jade" /> : <Copy className="w-3.5 h-3.5" />}
                             </button>
-                            {lead.emailVerified === false && <span className="text-xs text-text-muted shrink-0">suggested</span>}
                           </div>
                         ) : (
                           <p className="text-text-muted">No email</p>
@@ -429,8 +428,8 @@ export function ResultsView({ campaign, creditsLeft, onOpenCredits, onGoSearch }
       </div>
 
       <p className="text-xs text-text-muted leading-relaxed max-w-3xl">
-        Names, phone numbers, addresses and ratings come straight from Google Maps or OpenStreetMap. Google does not list email addresses, so any email marked
-        &ldquo;suggested&rdquo; is the common info@ address for the business&apos;s website and has not been checked.
+        Names, phone numbers, addresses and ratings come straight from Google Maps or OpenStreetMap. Google does not list email addresses, so an email is shown
+        only when it is written on the business&apos;s own website. Nothing is guessed, and a blank means none was found.
       </p>
     </div>
   );

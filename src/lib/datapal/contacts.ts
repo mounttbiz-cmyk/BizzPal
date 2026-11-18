@@ -8,7 +8,7 @@ export interface Contact {
 
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;
 const PLACEHOLDER_DOMAINS = /(^|\.)(example\.(com|org|net)|domain\.com|yourdomain\.com|email\.com|sentry\.io|wixpress\.com|sentry-next\.wixpress\.com)$/i;
-const PLACEHOLDER_NAMES = /^(you|your|name|yourname|email|user|username|test|someone|john\.?doe)$/i;
+const PLACEHOLDER_NAMES = /^(you|your|name|yourname|email|user|username|test|someone|john.?doe|webmaster|postmaster|hostmaster|abuse|root|admin@?|no-?reply|do-?not-?reply|mailer-daemon)$/i;
 
 /** "name [at] site [dot] com" is turned back into a normal address before looking. */
 function undoObfuscation(text: string): string {

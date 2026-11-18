@@ -1,3 +1,4 @@
+import { readCreatorSites } from "@/lib/datapal/contactPages";
 import { DataPalBusinessLead, DataPalSearchConfig } from "./types";
 import { COUNTRY_HIERARCHIES } from "./constants";
 
@@ -6,6 +7,37 @@ import { COUNTRY_HIERARCHIES } from "./constants";
  * Combines OpenStreetMap Global Directory (100% Free, Zero Key Required)
  * with Google Places API ($200/mo Free Tier via process.env.GOOGLE_PLACES_API_KEY)
  */
+/** "ALL" or an empty value means the search was not limited to one place, so there is nothing to show. */
+const realPlace = (v?: string) => (!v || /^(all|all (states|cities))$/i.test(v.trim()) ? "" : v);
+
+/**
+ * Looks on each business's own website for an email or phone number it has published. Nothing is guessed:
+ * a lead only gets an email if one is written on its site. Limited to the first 30 websites and about 20 seconds.
+ */
+async function addPublishedContacts(leads: DataPalBusinessLead[]): Promise<void> {
+  const targets = leads.filter(l => l.website).slice(0, 30);
+  const deadline = Date.now() + 20_000;
+  let next = 0;
+  const worker = async () => {
+    while (next < targets.length && Date.now() < deadline) {
+      const lead = targets[next++];
+      try {
+        const found = await Promise.race([
+          readCreatorSites([lead.website as string], 1),
+          new Promise<null>(resolve => setTimeout(() => resolve(null), 6000)),
+        ]);
+        if (!found) continue;
+        if (found.emails[0]) {
+          lead.email = found.emails[0].value;
+          lead.emailVerified = true;
+        }
+        if (!lead.phone && found.phones[0]) lead.phone = found.phones[0].value;
+      } catch {}
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+}
+
 export async function extractRealBusinessLeads(
   config: DataPalSearchConfig,
   customApiKey?: string
@@ -134,14 +166,9 @@ export async function extractRealBusinessLeads(
           // Phone numbers come from Google only. A business without one has none listed.
           const phone: string | null = place.nationalPhoneNumber || place.internationalPhoneNumber || null;
 
-          // Google does not publish emails. For businesses with a website we can suggest the usual
-          // info@ address, clearly marked as unverified. Without a website we show nothing.
-          let email: string | null = null;
-          if (realWebsite) {
-            try {
-              email = `info@${new URL(realWebsite).hostname.replace(/^www\./, "")}`;
-            } catch {}
-          }
+          // Google does not publish emails. None is ever guessed: an email is only shown if it is found written on the
+          // business's own website (added below).
+          const email: string | null = null;
 
           const primaryType = (place.types && place.types[0] ? place.types[0].replace(/_/g, " ") : targetCategory) || "Commercial Establishment";
 
@@ -155,8 +182,8 @@ export async function extractRealBusinessLeads(
             emailVerified: false,
             mapsUrl: place.googleMapsUri || null,
             address: place.formattedAddress || locationTerm,
-            city: config.city || "City",
-            state: config.state || "State",
+            city: realPlace(config.city),
+            state: realPlace(config.state),
             country: countryName,
             postalCode: config.areaPincode || undefined,
             rating,
@@ -174,6 +201,7 @@ export async function extractRealBusinessLeads(
           };
         });
 
+        await addPublishedContacts(googleLeads);
         return { leads: googleLeads, sourceMode: "google_places_live", googleRequests };
       }
     } catch (gErr) {
