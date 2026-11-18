@@ -51,8 +51,9 @@ const SECTIONS: LegalSection[] = [
           "use the Service to violate law, infringe another person’s rights, deceive or defraud, harass, threaten, or facilitate harm;",
           "submit content that you are not authorised to share, or use outputs to make a consequential decision about another person without appropriate human review and legal safeguards;",
           "attempt to bypass plan limits, interfere with the Service, probe or defeat its security, reverse engineer it except where applicable law permits, or access another user’s account or data;",
-          "use the Service or its outputs to develop or train a competing general-purpose AI service, or to misrepresent an AI output as verified professional advice; or",
-          "upload malware, spam, unlawful content, or material that infringes intellectual-property or privacy rights.",
+          "use the Service or its outputs to develop or train a competing general-purpose AI service, or to misrepresent an AI output as verified professional advice;",
+          "upload malware, spam, unlawful content, or material that infringes intellectual-property or privacy rights; or",
+          "use contact details found through DataPal, including business and YouTube channel details, for spam, harassment, or marketing that breaks applicable anti-spam, consent, or data-protection law.",
         ],
       },
       { type: "p", text: "We may investigate suspected misuse and take proportionate action, including restricting access, removing content, or suspending an account, subject to applicable law and the procedures described in these Terms." },
@@ -89,6 +90,7 @@ const SECTIONS: LegalSection[] = [
     title: "9. Third-party services",
     blocks: [
       { type: "p", text: "The Service may rely on or link to third-party AI models, payment services, hosting, analytics, or other tools. Third-party services are governed by their own terms and privacy notices. We are not responsible for third-party services outside our reasonable control. We will remain responsible for our own obligations under applicable law." },
+      { type: "p", text: "Where the Service shows YouTube channel information through YouTube API Services, you are also bound by the YouTube Terms of Service (https://www.youtube.com/t/terms), and Google’s Privacy Policy (https://policies.google.com/privacy) applies to that data." },
     ],
   },
   {

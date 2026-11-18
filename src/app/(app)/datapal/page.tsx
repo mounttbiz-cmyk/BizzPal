@@ -33,6 +33,7 @@ import { useFeatureFlag } from "@/lib/datapal/featureFlags";
 // Redesigned DataPal Components
 import { DataPalHeader } from "@/components/datapal/DataPalHeader";
 import { SearchTabs, DataPalTab } from "@/components/datapal/SearchTabs";
+import { YouTubeSearch } from "@/components/datapal/YouTubeSearch";
 import { SearchInputStep, detectSearchType } from "@/components/datapal/SearchInputStep";
 import { CategoryPickerSheet } from "@/components/datapal/CategoryPickerSheet";
 import { LocationStep } from "@/components/datapal/LocationStep";
@@ -666,6 +667,13 @@ export default function DataPalPage() {
       {/* ============================================================== */}
       {/* TAB 2: EXTRACTED LEADS & TABLE VIEW                            */}
       {/* ============================================================== */}
+      {activeTab === "youtube" && (
+        <YouTubeSearch
+          onCreditsChanged={() => fetchDataPalCredits().then(st => st && setCreditStatus(st))}
+          onNeedCredits={() => setIsCreditsModalOpen(true)}
+        />
+      )}
+
       {activeTab === "leads" && (
         <ResultsView
           campaign={activeCampaign}

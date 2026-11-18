@@ -72,6 +72,7 @@ Without these, the app still works. Password reset by email, invite emails and t
 | `PLACES_COST_PER_REQUEST_USD`, `USD_TO_INR_RATE` | Cost estimate shown on the admin DataPal Usage page |
 | `GCP_BILLING_EXPORT_TABLE`, `GCP_BILLING_SERVICE_ACCOUNT`, `GCP_CREDITS_TOTAL` | Real Google Cloud spend on the admin DataPal Usage page (needs the BigQuery billing export) |
 | `GOOGLE_PICKER_API_KEY`, `GOOGLE_PROJECT_NUMBER` | Google Drive file picker |
+| `YOUTUBE_API_KEY` | DataPal YouTube channel lookup (YouTube Data API v3). Optional `YOUTUBE_DAILY_UNITS` caps the daily quota use (default 9000 of the free 10,000) |
 | `MICROSOFT_CLIENT_ID`, `NEXT_PUBLIC_MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | OneDrive connection |
 | `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `COHERE_API_KEY` | AI advisors. Gemini answers first (a lighter model for Free users, a stronger one for paid plans); the others are fallbacks, tried in turn |
 | `GEMINI_MODELS_FREE`, `GEMINI_MODELS_PAID` | Optional. Comma-separated Gemini model names for each tier, tried in order. Defaults are built in |

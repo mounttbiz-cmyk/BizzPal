@@ -1,7 +1,7 @@
 "use client";
 
 
-export type DataPalTab = "search" | "leads" | "history";
+export type DataPalTab = "search" | "youtube" | "leads" | "history";
 
 interface SearchTabsProps {
   activeTab: DataPalTab;
@@ -20,6 +20,7 @@ export function SearchTabs({
 }: SearchTabsProps) {
   const tabs = [
     { id: "search" as const, label: "Search", count: undefined },
+    { id: "youtube" as const, label: "YouTube", count: undefined },
     { id: "leads" as const, label: "Data", count: leadsCount },
     { id: "history" as const, label: "History", count: historyCount },
   ];

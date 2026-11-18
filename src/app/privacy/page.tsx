@@ -151,6 +151,7 @@ const SECTIONS: LegalSection[] = [
     title: "12. Third-party websites and services",
     blocks: [
       { type: "p", text: "The Service may link to websites or tools operated by third parties. Their privacy practices are governed by their own notices. Review those notices before sharing information with them. BizzPal is not responsible for privacy practices of services it does not operate." },
+      { type: "p", text: "DataPal can look up public YouTube channel information through YouTube API Services. That information is saved for a short time (up to a few days) so repeat lookups are quick, and is then deleted. By using the YouTube lookup you also agree to the YouTube Terms of Service (https://www.youtube.com/t/terms), and Google’s Privacy Policy (https://policies.google.com/privacy) applies to that data." },
     ],
   },
   {
