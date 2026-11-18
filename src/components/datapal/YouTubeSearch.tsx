@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Copy, Download, ExternalLink, Loader2, Search } from "lucide-react";
 
+const waLink = (phone: string) => `https://wa.me/${phone.replace(/[^0-9]/g, "")}`;
+
 interface Channel {
   channelId: string;
   title: string;
@@ -14,7 +16,8 @@ interface Channel {
   videos: number | null;
   views: number | null;
   description: string;
-  emails: string[];
+  emails: Array<{ value: string; source: string }>;
+  phones: Array<{ value: string; source: string }>;
   links: Array<{ url: string; label: string }>;
 }
 
@@ -70,9 +73,9 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
 
   const download = () => {
     const NL = String.fromCharCode(10);
-    const rows = [["Channel", "Handle", "Link", "Subscribers", "Country", "Emails", "Other links"]];
+    const rows = [["Channel", "Handle", "Link", "Subscribers", "Country", "Emails", "Phones", "Other links"]];
     for (const c of results) {
-      rows.push([c.title, c.handle || "", c.url, c.subscribers === null ? "" : String(c.subscribers), c.country || "", c.emails.join("; "), c.links.map(l => l.url).join("; ")]);
+      rows.push([c.title, c.handle || "", c.url, c.subscribers === null ? "" : String(c.subscribers), c.country || "", c.emails.map(e => e.value).join("; "), c.phones.map(p => p.value).join("; "), c.links.map(l => l.url).join("; ")]);
     }
     const blob = new Blob([rows.map(r => r.map(csvCell).join(",")).join(NL)], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
@@ -151,22 +154,48 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="rounded-xl bg-surface-2/60 border border-line p-4">
                   <p className="text-xs font-medium text-text-muted mb-2">Email</p>
                   {c.emails.length > 0 ? (
-                    <ul className="space-y-1.5">
+                    <ul className="space-y-2">
                       {c.emails.map(m => (
-                        <li key={m} className="flex items-center justify-between gap-2 text-sm">
-                          <a href={`mailto:${m}`} className="text-text hover:text-brass break-all">{m}</a>
-                          <button type="button" onClick={() => copy(m)} className="text-xs text-text-muted hover:text-text cursor-pointer inline-flex items-center gap-1 shrink-0">
-                            <Copy className="w-3 h-3" /> {copied === m ? "Copied" : "Copy"}
-                          </button>
+                        <li key={m.value} className="text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <a href={`mailto:${m.value}`} className="text-text hover:text-brass break-all">{m.value}</a>
+                            <button type="button" onClick={() => copy(m.value)} className="text-xs text-text-muted hover:text-text cursor-pointer inline-flex items-center gap-1 shrink-0">
+                              <Copy className="w-3 h-3" /> {copied === m.value ? "Copied" : "Copy"}
+                            </button>
+                          </div>
+                          <p className="text-xs text-text-muted">From {m.source === "Description" ? "the channel description" : m.source}</p>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-text-muted">No email in the description. Many channels keep it behind YouTube&apos;s &ldquo;View email address&rdquo; button, which can&apos;t be read here.</p>
+                    <p className="text-sm text-text-muted">No email found. Many channels keep it behind YouTube&apos;s &ldquo;View email address&rdquo; button, which can&apos;t be read here.</p>
+                  )}
+                </div>
+                <div className="rounded-xl bg-surface-2/60 border border-line p-4">
+                  <p className="text-xs font-medium text-text-muted mb-2">Phone / WhatsApp</p>
+                  {c.phones.length > 0 ? (
+                    <ul className="space-y-2">
+                      {c.phones.map(m => (
+                        <li key={m.value} className="text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <a href={`tel:${m.value.replace(/\s/g, "")}`} className="text-text hover:text-brass">{m.value}</a>
+                            <span className="flex items-center gap-3 shrink-0">
+                              <a href={waLink(m.value)} target="_blank" rel="noopener noreferrer" className="text-xs text-brass hover:underline">WhatsApp</a>
+                              <button type="button" onClick={() => copy(m.value)} className="text-xs text-text-muted hover:text-text cursor-pointer inline-flex items-center gap-1">
+                                <Copy className="w-3 h-3" /> {copied === m.value ? "Copied" : "Copy"}
+                              </button>
+                            </span>
+                          </div>
+                          <p className="text-xs text-text-muted">From {m.source === "Description" ? "the channel description" : m.source}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-text-muted">No phone number found.</p>
                   )}
                 </div>
                 <div className="rounded-xl bg-surface-2/60 border border-line p-4">
@@ -191,7 +220,7 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
           ))}
 
           <p className="text-xs text-text-muted">
-            These details are taken from each channel&apos;s public description. Use them lawfully and only to make genuine business contact, not for spam.
+            These details are taken from each channel&apos;s public description and from the creator&apos;s own website or link page. Use them lawfully and only to make genuine business contact, not for spam.
           </p>
         </div>
       )}

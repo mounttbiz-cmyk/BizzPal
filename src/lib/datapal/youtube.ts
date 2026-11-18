@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+import { extractEmails, extractPhones, mergeContacts, type Contact } from "@/lib/datapal/contacts";
+import { readCreatorSites } from "@/lib/datapal/contactPages";
 
 /**
  * YouTube channel lookup for DataPal. Reads PUBLIC channel information through the official YouTube Data API
@@ -20,7 +22,9 @@ export interface YouTubeChannel {
   videos: number | null;
   views: number | null;
   description: string;
-  emails: string[];
+  /** Written in the description, or found on the creator's own website */
+  emails: Contact[];
+  phones: Contact[];
   links: Array<{ url: string; label: string }>;
   createdAt: string | null;
 }
@@ -70,15 +74,7 @@ export function parseInput(raw: string): ParsedInput {
 
 // ---------------------------------------------------------------- finding contact details
 
-const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;
 const URLS = /https?:\/\/[^\s<>"')\]]+/g;
-
-export function extractEmails(text: string): string[] {
-  const found = (text.match(EMAIL) || [])
-    .map(e => e.replace(/[.,;:!?]+$/, "").toLowerCase())
-    .filter(e => !/\.(png|jpe?g|gif|webp|svg)$/.test(e));
-  return Array.from(new Set(found)).slice(0, 5);
-}
 
 const NAMED_HOSTS: Array<[RegExp, string]> = [
   [/instagram\.com/i, "Instagram"],
@@ -102,6 +98,19 @@ export function extractLinks(text: string): Array<{ url: string; label: string }
     });
 }
 
+/** Adds the emails and numbers listed on the creator's own website or link page. Never blocks the answer for long. */
+async function addSiteContacts(channel: YouTubeChannel): Promise<void> {
+  try {
+    const found = await Promise.race([
+      readCreatorSites(channel.links.map(l => l.url), 2),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 9000)),
+    ]);
+    if (!found) return;
+    channel.emails = mergeContacts(channel.emails, found.emails);
+    channel.phones = mergeContacts(channel.phones, found.phones);
+  } catch {}
+}
+
 function toChannel(item: any): YouTubeChannel {
   const s = item.snippet || {};
   const st = item.statistics || {};
@@ -119,7 +128,8 @@ function toChannel(item: any): YouTubeChannel {
     videos: num(st.videoCount),
     views: num(st.viewCount),
     description: description.slice(0, 600),
-    emails: extractEmails(description),
+    emails: extractEmails(description).map(value => ({ value, source: "Description" })),
+    phones: extractPhones(description).map(value => ({ value, source: "Description" })),
     links: extractLinks(description),
     createdAt: s.publishedAt || null,
   };
@@ -212,8 +222,9 @@ async function channelsByIds(ids: string[]): Promise<YouTubeChannel[]> {
   }
   if (missing.length > 0) {
     const data = await callYouTube("channels", { part: "snippet,statistics", id: missing.join(","), maxResults: "50" }, 1);
-    for (const item of data.items || []) {
-      const channel = toChannel(item);
+    const fresh: YouTubeChannel[] = (data.items || []).map(toChannel);
+    await Promise.all(fresh.map(addSiteContacts));
+    for (const channel of fresh) {
       cacheSet(`channel:${channel.channelId}`, channel);
       out.push(channel);
     }
@@ -237,6 +248,7 @@ export async function lookupChannels(input: ParsedInput, limit: number): Promise
     const item = (data.items || [])[0];
     if (!item) return { channels: [], cached: false };
     const channel = toChannel(item);
+    await addSiteContacts(channel);
     cacheSet(`channel:${channel.channelId}`, channel);
     cacheSet(key, channel.channelId);
     return { channels: [channel], cached: false };
