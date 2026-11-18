@@ -1,14 +1,37 @@
 import { db } from "@/lib/db";
 import { extractEmails, extractPhones, mergeContacts, type Contact } from "@/lib/datapal/contacts";
 import { readCreatorSites } from "@/lib/datapal/contactPages";
+import { annotateEmails } from "@/lib/datapal/emailCheck";
 
 /**
- * YouTube channel lookup for DataPal. Reads PUBLIC channel information through the official YouTube Data API
- * and pulls out the emails and links the creator wrote in the channel description.
+ * YouTube channel lookup for DataPal. Reads PUBLIC channel information through the official YouTube Data API,
+ * works out how active and engaged the creator is, and pulls out the emails and numbers the creator published
+ * (in the channel description or on their own website).
  *
- * Cost (the free daily allowance is 10,000 units): looking up a channel is 1 unit, a keyword search is 100.
- * Results are kept for 24 hours so repeat lookups cost nothing, and nothing is kept longer than YouTube allows.
+ * Cost (the free daily allowance is 10,000 units): a channel lookup is 1 unit, recent activity adds 2 per new channel,
+ * a keyword search is 100. Results are kept for 24 hours so repeat lookups cost nothing.
  */
+
+export interface RecentVideo {
+  title: string;
+  url: string;
+  views: number | null;
+  publishedAt: string | null;
+}
+
+export interface ChannelActivity {
+  lastUploadAt: string | null;
+  status: "active" | "recent" | "inactive" | "unknown";
+  uploadsPerMonth: number | null;
+  /** Average views of the creator's latest videos */
+  avgViews: number | null;
+  /** (likes + comments) as a percentage of views, averaged over the latest videos. null when likes are hidden */
+  engagementPct: number | null;
+  /** How many of the latest videos look like paid brand work (#ad, sponsored, promo code...) */
+  sponsoredVideos: number;
+  sampled: number;
+  recent: RecentVideo[];
+}
 
 export interface YouTubeChannel {
   channelId: string;
@@ -22,17 +45,22 @@ export interface YouTubeChannel {
   videos: number | null;
   views: number | null;
   description: string;
+  /** The topics the creator tagged the channel with */
+  keywords: string[];
+  topics: string[];
   /** Written in the description, or found on the creator's own website */
   emails: Contact[];
   phones: Contact[];
   links: Array<{ url: string; label: string }>;
   createdAt: string | null;
+  activity: ChannelActivity | null;
 }
 
 export type ParsedInput =
   | { kind: "id"; value: string }
   | { kind: "handle"; value: string }
   | { kind: "username"; value: string }
+  | { kind: "video"; value: string }
   | { kind: "search"; value: string };
 
 export class YouTubeError extends Error {
@@ -44,14 +72,16 @@ export class YouTubeError extends Error {
 const API_BASE = () => (process.env.YOUTUBE_API_BASE || "https://www.googleapis.com/youtube/v3").replace(/\/+$/, "");
 const CACHE_HOURS = 24;
 const DAILY_UNITS = () => Number(process.env.YOUTUBE_DAILY_UNITS) || 9000;
+const CACHE_VERSION = "v2";
 
 export const youtubeConfigured = () => Boolean(process.env.YOUTUBE_API_KEY);
 
 // ---------------------------------------------------------------- reading what the person typed
 
 const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
+const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 
-/** A channel link, @handle, channel ID or plain keywords. */
+/** A channel link, video link, @handle, channel ID or plain keywords. */
 export function parseInput(raw: string): ParsedInput {
   const text = String(raw || "").trim();
   if (text.length < 2 || text.length > 200) throw new YouTubeError("bad_input", "Enter a channel link, @handle, channel ID or a few keywords.");
@@ -62,17 +92,20 @@ export function parseInput(raw: string): ParsedInput {
     try {
       const url = new URL(/^https?:\/\//i.test(text) ? text : `https://${text}`);
       const parts = url.pathname.split("/").filter(Boolean);
+      if (url.hostname.replace(/^www\./, "") === "youtu.be" && VIDEO_ID.test(parts[0] || "")) return { kind: "video", value: parts[0] };
+      if (parts[0] === "watch" && VIDEO_ID.test(url.searchParams.get("v") || "")) return { kind: "video", value: url.searchParams.get("v")! };
+      if ((parts[0] === "shorts" || parts[0] === "live" || parts[0] === "embed") && VIDEO_ID.test(parts[1] || "")) return { kind: "video", value: parts[1] };
       if (parts[0] === "channel" && CHANNEL_ID.test(parts[1] || "")) return { kind: "id", value: parts[1] };
       if (parts[0]?.startsWith("@")) return { kind: "handle", value: decodeURIComponent(parts[0]) };
       if (parts[0] === "user" && parts[1]) return { kind: "username", value: parts[1] };
       if (parts[0] === "c" && parts[1]) return { kind: "search", value: decodeURIComponent(parts[1]) };
     } catch {}
-    throw new YouTubeError("bad_input", "That doesn't look like a channel link. Paste a channel link, @handle or channel ID, or type keywords.");
+    throw new YouTubeError("bad_input", "That doesn't look like a channel or video link. Paste a channel link, @handle or channel ID, or type keywords.");
   }
   return { kind: "search", value: text.replace(/\s+/g, " ") };
 }
 
-// ---------------------------------------------------------------- finding contact details
+// ---------------------------------------------------------------- links
 
 const URLS = /https?:\/\/[^\s<>"')\]]+/g;
 
@@ -98,6 +131,54 @@ export function extractLinks(text: string): Array<{ url: string; label: string }
     });
 }
 
+// ---------------------------------------------------------------- building a channel from YouTube's answer
+
+const num = (v: any) => (v === undefined || v === null || v === "" || Number.isNaN(Number(v)) ? null : Number(v));
+
+function keywordList(raw: unknown): string[] {
+  const out: string[] = [];
+  for (const m of Array.from(String(raw || "").matchAll(/"([^"]+)"|(\S+)/g))) {
+    const word = (m[1] || m[2] || "").trim();
+    if (word && word.length <= 40 && !out.includes(word)) out.push(word);
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
+function topicList(urls: unknown): string[] {
+  if (!Array.isArray(urls)) return [];
+  const names = urls.map(u => {
+    try { return decodeURIComponent(String(u).split("/").pop() || "").replace(/_/g, " "); } catch { return ""; }
+  }).filter(Boolean);
+  return Array.from(new Set(names)).slice(0, 5);
+}
+
+function toChannel(item: any): YouTubeChannel {
+  const s = item.snippet || {};
+  const st = item.statistics || {};
+  const description = String(s.description || "");
+  const custom = String(s.customUrl || "");
+  return {
+    channelId: item.id,
+    title: String(s.title || "Untitled channel"),
+    handle: custom ? (custom.startsWith("@") ? custom : `@${custom}`) : null,
+    url: custom.startsWith("@") ? `https://www.youtube.com/${custom}` : `https://www.youtube.com/channel/${item.id}`,
+    thumbnail: s.thumbnails?.default?.url || s.thumbnails?.medium?.url || null,
+    country: s.country || null,
+    subscribers: st.hiddenSubscriberCount ? null : num(st.subscriberCount),
+    videos: num(st.videoCount),
+    views: num(st.viewCount),
+    description: description.slice(0, 600),
+    keywords: keywordList(item.brandingSettings?.channel?.keywords),
+    topics: topicList(item.topicDetails?.topicCategories),
+    emails: extractEmails(description).map(value => ({ value, source: "Description" })),
+    phones: extractPhones(description).map(value => ({ value, source: "Description" })),
+    links: extractLinks(description),
+    createdAt: s.publishedAt || null,
+    activity: null,
+  };
+}
+
 /** Adds the emails and numbers listed on the creator's own website or link page. Never blocks the answer for long. */
 async function addSiteContacts(channel: YouTubeChannel): Promise<void> {
   try {
@@ -111,28 +192,70 @@ async function addSiteContacts(channel: YouTubeChannel): Promise<void> {
   } catch {}
 }
 
-function toChannel(item: any): YouTubeChannel {
-  const s = item.snippet || {};
-  const st = item.statistics || {};
-  const description = String(s.description || "");
-  const custom = String(s.customUrl || "");
-  const num = (v: any) => (v === undefined || v === null || v === "" ? null : Number(v));
-  return {
-    channelId: item.id,
-    title: String(s.title || "Untitled channel"),
-    handle: custom ? (custom.startsWith("@") ? custom : `@${custom}`) : null,
-    url: custom.startsWith("@") ? `https://www.youtube.com/${custom}` : `https://www.youtube.com/channel/${item.id}`,
-    thumbnail: s.thumbnails?.default?.url || s.thumbnails?.medium?.url || null,
-    country: s.country || null,
-    subscribers: st.hiddenSubscriberCount ? null : num(st.subscriberCount),
-    videos: num(st.videoCount),
-    views: num(st.viewCount),
-    description: description.slice(0, 600),
-    emails: extractEmails(description).map(value => ({ value, source: "Description" })),
-    phones: extractPhones(description).map(value => ({ value, source: "Description" })),
-    links: extractLinks(description),
-    createdAt: s.publishedAt || null,
-  };
+// ---------------------------------------------------------------- how active and engaged the creator is
+
+const SPONSORED = /(#ad\b|#sponsored|#paidpromotion|paid promotion|sponsored|in partnership with|in collaboration with|promo code|use code|discount code)/i;
+
+async function addActivity(channel: YouTubeChannel, uploadsPlaylist: string | undefined): Promise<void> {
+  if (!uploadsPlaylist) return;
+  try {
+    const list = await callYouTube("playlistItems", { part: "snippet", playlistId: uploadsPlaylist, maxResults: "10" }, 1);
+    const items: any[] = (list.items || []).filter((i: any) => i?.snippet?.resourceId?.videoId);
+    if (items.length === 0) {
+      channel.activity = { lastUploadAt: null, status: "unknown", uploadsPerMonth: null, avgViews: null, engagementPct: null, sponsoredVideos: 0, sampled: 0, recent: [] };
+      return;
+    }
+    const ids = items.map(i => i.snippet.resourceId.videoId as string);
+    const detail = await callYouTube("videos", { part: "snippet,statistics", id: ids.join(","), maxResults: "10" }, 1);
+    const byId = new Map<string, any>((detail.items || []).map((v: any) => [v.id, v]));
+
+    const videos = ids.map(id => byId.get(id)).filter(Boolean).map((v: any) => ({
+      id: v.id as string,
+      title: String(v.snippet?.title || ""),
+      description: String(v.snippet?.description || "").slice(0, 400),
+      publishedAt: (v.snippet?.publishedAt as string) || null,
+      views: num(v.statistics?.viewCount),
+      likes: num(v.statistics?.likeCount),
+      comments: num(v.statistics?.commentCount),
+    }));
+    if (videos.length === 0) return;
+
+    const dates = videos.map(v => (v.publishedAt ? new Date(v.publishedAt).getTime() : NaN)).filter(n => !Number.isNaN(n)).sort((a, b) => b - a);
+    const last = dates[0] ? new Date(dates[0]).toISOString() : null;
+    const ageDays = dates[0] ? (Date.now() - dates[0]) / 86_400_000 : Infinity;
+    const status: ChannelActivity["status"] = ageDays <= 30 ? "active" : ageDays <= 90 ? "recent" : Number.isFinite(ageDays) ? "inactive" : "unknown";
+    const spanDays = dates.length >= 2 ? (dates[0] - dates[dates.length - 1]) / 86_400_000 : 0;
+
+    // Videos from the last two days are still collecting views, so they are left out of the averages
+    const settled = videos.filter(v => v.publishedAt && Date.now() - new Date(v.publishedAt).getTime() > 2 * 86_400_000);
+    const base = settled.length > 0 ? settled : videos;
+    const withViews = base.filter(v => v.views !== null && v.views > 0);
+    const avgViews = withViews.length ? Math.round(withViews.reduce((a, v) => a + (v.views as number), 0) / withViews.length) : null;
+    const withLikes = withViews.filter(v => v.likes !== null || v.comments !== null);
+    const engagementPct = withLikes.length
+      ? Math.round((withLikes.reduce((a, v) => a + (((v.likes || 0) + (v.comments || 0)) / (v.views as number)), 0) / withLikes.length) * 1000) / 10
+      : null;
+
+    channel.activity = {
+      lastUploadAt: last,
+      status,
+      uploadsPerMonth: spanDays > 0 ? Math.round(((dates.length - 1) / (spanDays / 30)) * 10) / 10 : null,
+      avgViews,
+      engagementPct,
+      sponsoredVideos: videos.filter(v => SPONSORED.test(`${v.title} ${v.description}`)).length,
+      sampled: videos.length,
+      recent: videos.slice(0, 5).map(v => ({ title: v.title, url: `https://www.youtube.com/watch?v=${v.id}`, views: v.views, publishedAt: v.publishedAt })),
+    };
+  } catch (e) {
+    // The channel details are still useful without activity, unless the daily limit has been reached
+    if (e instanceof YouTubeError && e.code === "quota") return;
+  }
+}
+
+/** Everything extra we work out for a channel the first time it is fetched. */
+async function enrich(channel: YouTubeChannel, uploadsPlaylist: string | undefined): Promise<void> {
+  await Promise.all([addSiteContacts(channel), addActivity(channel, uploadsPlaylist)]);
+  channel.emails = await annotateEmails(channel.emails);
 }
 
 // ---------------------------------------------------------------- saved results and the daily budget
@@ -169,6 +292,7 @@ function cacheSet(key: string, value: unknown) {
   db.prepare("DELETE FROM youtube_cache WHERE fetched_at < ?").run(Date.now() - 3 * 86_400_000);
 }
 
+const channelKey = (id: string) => `channel:${CACHE_VERSION}:${id}`;
 const today = () => new Date().toISOString().slice(0, 10);
 
 function unitsUsedToday(): number {
@@ -213,45 +337,61 @@ async function callYouTube(path: string, params: Record<string, string>, cost: n
   throw new YouTubeError("unavailable", "YouTube didn't answer. Please try again.");
 }
 
-async function channelsByIds(ids: string[]): Promise<YouTubeChannel[]> {
-  const out: YouTubeChannel[] = [];
+const CHANNEL_PARTS = "snippet,statistics,contentDetails,topicDetails,brandingSettings";
+
+/** Fetches the channels not already saved, adds the extras, and saves them. */
+async function fetchFresh(params: Record<string, string>): Promise<YouTubeChannel[]> {
+  const data = await callYouTube("channels", { part: CHANNEL_PARTS, ...params }, 1);
+  const items: any[] = data.items || [];
+  const fresh = items.map(i => ({ channel: toChannel(i), uploads: i.contentDetails?.relatedPlaylists?.uploads as string | undefined }));
+  await Promise.all(fresh.map(f => enrich(f.channel, f.uploads)));
+  for (const f of fresh) cacheSet(channelKey(f.channel.channelId), f.channel);
+  return fresh.map(f => f.channel);
+}
+
+/** Channels for a list of IDs, using the saved copy when it is less than a day old. */
+export async function channelsByIds(ids: string[]): Promise<YouTubeChannel[]> {
+  const known = new Map<string, YouTubeChannel>();
   const missing: string[] = [];
   for (const id of ids) {
-    const hit = cacheGet<YouTubeChannel>(`channel:${id}`);
-    if (hit) out.push(hit); else missing.push(id);
+    const hit = cacheGet<YouTubeChannel>(channelKey(id));
+    if (hit) known.set(id, hit); else missing.push(id);
   }
-  if (missing.length > 0) {
-    const data = await callYouTube("channels", { part: "snippet,statistics", id: missing.join(","), maxResults: "50" }, 1);
-    const fresh: YouTubeChannel[] = (data.items || []).map(toChannel);
-    await Promise.all(fresh.map(addSiteContacts));
-    for (const channel of fresh) {
-      cacheSet(`channel:${channel.channelId}`, channel);
-      out.push(channel);
-    }
+  for (let i = 0; i < missing.length; i += 50) {
+    for (const c of await fetchFresh({ id: missing.slice(i, i + 50).join(","), maxResults: "50" })) known.set(c.channelId, c);
   }
-  // keep the order YouTube ranked them in
-  return ids.map(id => out.find(c => c.channelId === id)).filter(Boolean) as YouTubeChannel[];
+  // keep the order they were asked for
+  return ids.map(id => known.get(id)).filter(Boolean) as YouTubeChannel[];
 }
 
 /** Finds channels for what the person typed. `limit` only matters for keyword searches. */
 export async function lookupChannels(input: ParsedInput, limit: number): Promise<{ channels: YouTubeChannel[]; cached: boolean }> {
   if (input.kind === "id") {
-    const hit = cacheGet<YouTubeChannel>(`channel:${input.value}`);
+    const hit = cacheGet<YouTubeChannel>(channelKey(input.value));
     return { channels: await channelsByIds([input.value]), cached: Boolean(hit) };
+  }
+
+  if (input.kind === "video") {
+    const key = `video:${input.value}`;
+    let channelId = cacheGet<string>(key);
+    const wasCached = Boolean(channelId);
+    if (!channelId) {
+      const data = await callYouTube("videos", { part: "snippet", id: input.value }, 1);
+      channelId = data.items?.[0]?.snippet?.channelId || null;
+      if (!channelId) return { channels: [], cached: false };
+      cacheSet(key, channelId);
+    }
+    return { channels: await channelsByIds([channelId]), cached: wasCached };
   }
 
   if (input.kind === "handle" || input.kind === "username") {
     const key = `${input.kind}:${input.value.toLowerCase()}`;
     const cachedId = cacheGet<string>(key);
     if (cachedId) return { channels: await channelsByIds([cachedId]), cached: true };
-    const data = await callYouTube("channels", { part: "snippet,statistics", ...(input.kind === "handle" ? { forHandle: input.value } : { forUsername: input.value }) }, 1);
-    const item = (data.items || [])[0];
-    if (!item) return { channels: [], cached: false };
-    const channel = toChannel(item);
-    await addSiteContacts(channel);
-    cacheSet(`channel:${channel.channelId}`, channel);
-    cacheSet(key, channel.channelId);
-    return { channels: [channel], cached: false };
+    const found = await fetchFresh(input.kind === "handle" ? { forHandle: input.value } : { forUsername: input.value });
+    if (found.length === 0) return { channels: [], cached: false };
+    cacheSet(key, found[0].channelId);
+    return { channels: [found[0]], cached: false };
   }
 
   const key = `search:${input.value.toLowerCase()}`;

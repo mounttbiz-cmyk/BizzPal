@@ -4,6 +4,10 @@ export interface Contact {
   value: string;
   /** Where it was found: "Description", or the website it came from */
   source: string;
+  /** Emails only: a role address (collab@), a free-mail address, or a named address */
+  kind?: "business" | "personal" | "named";
+  /** Emails only: whether the address's domain can receive mail (null = could not be checked) */
+  deliverable?: boolean | null;
 }
 
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;

@@ -1,25 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Copy, Download, ExternalLink, Loader2, Search } from "lucide-react";
-
-const waLink = (phone: string) => `https://wa.me/${phone.replace(/[^0-9]/g, "")}`;
-
-interface Channel {
-  channelId: string;
-  title: string;
-  handle: string | null;
-  url: string;
-  thumbnail: string | null;
-  country: string | null;
-  subscribers: number | null;
-  videos: number | null;
-  views: number | null;
-  description: string;
-  emails: Array<{ value: string; source: string }>;
-  phones: Array<{ value: string; source: string }>;
-  links: Array<{ url: string; label: string }>;
-}
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Download, Loader2, Search } from "lucide-react";
+import { YouTubeChannelCard, type YtChannel } from "@/components/datapal/YouTubeChannelCard";
 
 interface Props {
   /** Called after a search so the records-left counter updates */
@@ -27,31 +10,117 @@ interface Props {
   onNeedCredits: () => void;
 }
 
-const compact = (n: number | null) => (n === null ? "Hidden" : new Intl.NumberFormat("en-IN", { notation: "compact", maximumFractionDigits: 1 }).format(n));
+interface SavedItem {
+  channelId: string;
+  status: string;
+  note: string;
+  savedAt: string;
+  channel: YtChannel | null;
+}
 
-const csvCell = (v: string) => `"${v.replace(/"/g, '""')}"`;
+type Fit = { score: number; reason: string };
+
+const csvCell = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+const post = (url: string, body: unknown, method = "POST") => fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+const SORTS = [
+  { id: "default", label: "Best match" },
+  { id: "subs", label: "Most subscribers" },
+  { id: "engagement", label: "Highest engagement" },
+  { id: "views", label: "Most average views" },
+  { id: "recent", label: "Most recently active" },
+];
+const MIN_SUBS = [
+  { id: 0, label: "Any size" },
+  { id: 1_000, label: "1K+" },
+  { id: 10_000, label: "10K+" },
+  { id: 50_000, label: "50K+" },
+  { id: 100_000, label: "100K+" },
+  { id: 500_000, label: "500K+" },
+];
 
 export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
+  const [tab, setTab] = useState<"find" | "saved">("find");
+  const [bulk, setBulk] = useState(false);
   const [query, setQuery] = useState("");
+  const [list, setList] = useState("");
+  const [offer, setOffer] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
-  const [results, setResults] = useState<Channel[]>([]);
-  const [copied, setCopied] = useState("");
+  const [results, setResults] = useState<YtChannel[]>([]);
+  const [fits, setFits] = useState<Record<string, Fit>>({});
+  const [fitBusy, setFitBusy] = useState(false);
+  const [fitError, setFitError] = useState("");
+
+  // filters and sorting
+  const [needEmail, setNeedEmail] = useState(false);
+  const [needPhone, setNeedPhone] = useState(false);
+  const [onlyActive, setOnlyActive] = useState(false);
+  const [country, setCountry] = useState("");
+  const [minSubs, setMinSubs] = useState(0);
+  const [sort, setSort] = useState("default");
+
+  // saved list
+  const [saved, setSaved] = useState<SavedItem[]>([]);
+  const [savedBusy, setSavedBusy] = useState(false);
+  const [savedWarning, setSavedWarning] = useState("");
+  const savedIds = useMemo(() => new Set(saved.map(s => s.channelId)), [saved]);
+
+  const loadSaved = useCallback(async () => {
+    setSavedBusy(true);
+    try {
+      const d = await fetch("/api/datapal/youtube/saved", { cache: "no-store" }).then(r => r.json());
+      if (d?.success) {
+        setSaved(d.items);
+        setSavedWarning(d.warning || "");
+      }
+    } catch {}
+    setSavedBusy(false);
+  }, []);
+
+  useEffect(() => { loadSaved(); }, [loadSaved]);
+
+  const rate = async (channels: YtChannel[], what: string) => {
+    if (what.trim().length < 3 || channels.length === 0) return;
+    setFitBusy(true);
+    setFitError("");
+    try {
+      const res = await post("/api/datapal/youtube/fit", { mode: "score", offer: what, channelIds: channels.map(c => c.channelId).slice(0, 10) });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.success) {
+        const next: Record<string, Fit> = {};
+        for (const s of d.scores) next[s.channelId] = { score: s.score, reason: s.reason };
+        setFits(next);
+        setSort("default");
+      } else setFitError(d.error || "The AI couldn't rate these right now.");
+    } catch {
+      setFitError("The AI couldn't rate these right now.");
+    }
+    setFitBusy(false);
+  };
 
   const search = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim() || busy) return;
+    const lines = list.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    if (busy || (bulk ? lines.length === 0 : !query.trim())) return;
     setBusy(true);
     setError("");
     setNote("");
+    setFits({});
+    setFitError("");
     try {
-      const res = await fetch("/api/datapal/youtube", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query }) });
+      const res = await post("/api/datapal/youtube", bulk ? { queries: lines } : { query });
       const d = await res.json().catch(() => ({}));
       if (res.ok && d.success) {
         setResults(d.results);
-        setNote(d.message || "");
+        const notes: string[] = [];
+        if (d.message) notes.push(d.message);
+        if (d.skipped?.length) notes.push(`${d.skipped.length} line${d.skipped.length === 1 ? " was" : "s were"} skipped: ${d.skipped.map((s: any) => s.text).slice(0, 3).join(", ")}${d.skipped.length > 3 ? "…" : ""}`);
+        if (d.limited) notes.push("Some channels were left out because you ran out of records.");
+        setNote(notes.join(" "));
         onCreditsChanged();
+        if (offer.trim().length >= 3) rate(d.results, offer);
       } else {
         if (d.code === "no_credits") onNeedCredits();
         setError(d.error || "Something went wrong. Please try again.");
@@ -63,19 +132,63 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
     }
   };
 
-  const copy = async (text: string) => {
+  const draftFor = (c: YtChannel) => async () => {
+    if (offer.trim().length < 3) return "Write what you are promoting in the box at the top first.";
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(text);
-      setTimeout(() => setCopied(""), 1500);
-    } catch {}
+      const res = await post("/api/datapal/youtube/fit", { mode: "draft", offer, channelId: c.channelId });
+      const d = await res.json().catch(() => ({}));
+      return res.ok && d.success ? (d.draft as { subject: string; email: string; whatsapp: string }) : d.error || "The AI couldn't write a message right now.";
+    } catch {
+      return "The AI couldn't write a message right now.";
+    }
   };
+
+  const save = async (c: YtChannel) => {
+    await post("/api/datapal/youtube/saved", { channelId: c.channelId, status: "new", note: "" });
+    loadSaved();
+  };
+  const updateSaved = async (id: string, patch: { status?: string; note?: string }) => {
+    const cur = saved.find(s => s.channelId === id);
+    if (!cur) return;
+    setSaved(prev => prev.map(s => (s.channelId === id ? { ...s, ...patch } : s)));
+    await post("/api/datapal/youtube/saved", { channelId: id, status: patch.status ?? cur.status, note: patch.note ?? cur.note });
+  };
+  const removeSaved = async (id: string) => {
+    setSaved(prev => prev.filter(s => s.channelId !== id));
+    await post("/api/datapal/youtube/saved", { channelId: id }, "DELETE");
+  };
+
+  const countries = useMemo(() => Array.from(new Set(results.map(r => r.country).filter(Boolean))) as string[], [results]);
+
+  const shown = useMemo(() => {
+    const out = results.filter(c =>
+      (!needEmail || c.emails.length > 0) &&
+      (!needPhone || c.phones.length > 0) &&
+      (!onlyActive || c.activity?.status === "active" || c.activity?.status === "recent") &&
+      (!country || c.country === country) &&
+      (minSubs === 0 || (c.subscribers ?? 0) >= minSubs)
+    );
+    const by: Record<string, (c: YtChannel) => number> = {
+      subs: c => c.subscribers ?? -1,
+      engagement: c => c.activity?.engagementPct ?? -1,
+      views: c => c.activity?.avgViews ?? -1,
+      recent: c => (c.activity?.lastUploadAt ? new Date(c.activity.lastUploadAt).getTime() : -1),
+    };
+    if (sort === "default" && Object.keys(fits).length > 0) return [...out].sort((a, b) => (fits[b.channelId]?.score ?? -1) - (fits[a.channelId]?.score ?? -1));
+    return sort in by ? [...out].sort((a, b) => by[sort](b) - by[sort](a)) : out;
+  }, [results, needEmail, needPhone, onlyActive, country, minSubs, sort, fits]);
 
   const download = () => {
     const NL = String.fromCharCode(10);
-    const rows = [["Channel", "Handle", "Link", "Subscribers", "Country", "Emails", "Phones", "Other links"]];
-    for (const c of results) {
-      rows.push([c.title, c.handle || "", c.url, c.subscribers === null ? "" : String(c.subscribers), c.country || "", c.emails.map(e => e.value).join("; "), c.phones.map(p => p.value).join("; "), c.links.map(l => l.url).join("; ")]);
+    const rows = [["Channel", "Handle", "Link", "Subscribers", "Country", "Status", "Avg views", "Engagement %", "Uploads per month", "Last upload", "Brand deals in last videos", "AI fit", "Emails", "Phones", "Other links"]];
+    for (const c of shown) {
+      const a = c.activity;
+      rows.push([
+        c.title, c.handle || "", c.url, c.subscribers === null ? "" : String(c.subscribers), c.country || "",
+        a?.status || "", a?.avgViews == null ? "" : String(a.avgViews), a?.engagementPct == null ? "" : String(a.engagementPct),
+        a?.uploadsPerMonth == null ? "" : String(a.uploadsPerMonth), a?.lastUploadAt ? a.lastUploadAt.slice(0, 10) : "", a ? String(a.sponsoredVideos) : "",
+        fits[c.channelId] ? String(fits[c.channelId].score) : "", c.emails.map(e => e.value).join("; "), c.phones.map(p => p.value).join("; "), c.links.map(l => l.url).join("; "),
+      ]);
     }
     const blob = new Blob([rows.map(r => r.map(csvCell).join(",")).join(NL)], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
@@ -85,143 +198,165 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
     URL.revokeObjectURL(a.href);
   };
 
+  const chip = (on: boolean) =>
+    `px-3 py-1.5 rounded-full border text-sm cursor-pointer transition-colors ${on ? "bg-brass text-white border-brass" : "bg-surface text-text border-line hover:border-line-strong"}`;
+  const field = "px-3 py-2 rounded-xl border border-line bg-surface text-sm text-text focus:outline-hidden focus:border-brass cursor-pointer";
+
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-line bg-surface p-6 space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-text">Find a YouTube channel</h2>
-          <p className="text-sm text-text-muted mt-1">
-            Paste a channel link, an @handle or a channel ID to get its contact details. Or type keywords, such as &ldquo;fitness creators India&rdquo;, to find channels.
-          </p>
-        </div>
-
-        <form onSubmit={search} className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="youtube.com/@name, @name, UC… or keywords"
-              maxLength={200}
-              className="w-full pl-10 pr-3.5 py-3 rounded-xl border border-line bg-surface-2 text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={busy || !query.trim()}
-            className="px-6 py-3 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer inline-flex items-center justify-center gap-2"
-          >
-            {busy && <Loader2 className="w-4 h-4 animate-spin" />}
-            Search
-          </button>
-        </form>
-        <p className="text-xs text-text-muted">Each channel found uses one DataPal record. Searching the same channel again within a day is still counted.</p>
-        {error && <p className="text-sm text-rust">{error}</p>}
-        {note && <p className="text-sm text-text-muted">{note}</p>}
+      <div className="inline-flex p-1 rounded-xl bg-surface-2 border border-line">
+        {([["find", "Find creators"], ["saved", `Saved list${saved.length ? ` (${saved.length})` : ""}`]] as const).map(([id, label]) => (
+          <button key={id} type="button" onClick={() => setTab(id)} className={`px-4 py-1.5 rounded-lg text-sm cursor-pointer ${tab === id ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"}`}>{label}</button>
+        ))}
       </div>
 
-      {results.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-text-muted">{results.length} {results.length === 1 ? "channel" : "channels"} found</p>
-            <button type="button" onClick={download} className="px-3.5 py-2 rounded-xl border border-line bg-surface text-sm text-text hover:bg-surface-2 cursor-pointer inline-flex items-center gap-2">
-              <Download className="w-4 h-4" /> Download CSV
-            </button>
+      {tab === "find" && (
+        <>
+          <div className="rounded-2xl border border-line bg-surface p-6 space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-text">Find YouTube creators</h2>
+              <p className="text-sm text-text-muted mt-1">
+                Paste a channel link, a video link, an @handle or a channel ID. Or type keywords such as &ldquo;fitness creators India&rdquo; to discover channels.
+              </p>
+            </div>
+
+            <form onSubmit={search} className="space-y-3">
+              {bulk ? (
+                <textarea
+                  rows={5}
+                  value={list}
+                  onChange={e => setList(e.target.value)}
+                  placeholder={"One per line, up to 20:\nhttps://www.youtube.com/@name\n@anotherhandle\nUCxxxxxxxxxxxxxxxxxxxxxx"}
+                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2 text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
+                />
+              ) : (
+                <div className="relative">
+                  <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder="youtube.com/@name, a video link, @name, UC… or keywords"
+                    maxLength={200}
+                    className="w-full pl-10 pr-3.5 py-3 rounded-xl border border-line bg-surface-2 text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-text block mb-1.5">What are you promoting? <span className="text-text-muted font-normal">(optional, lets the AI rate how well each creator fits)</span></label>
+                <input
+                  type="text"
+                  value={offer}
+                  onChange={e => setOffer(e.target.value)}
+                  maxLength={300}
+                  placeholder="For example: protein supplements for gym-goers in India"
+                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2 text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <button type="button" onClick={() => setBulk(b => !b)} className="text-sm text-brass hover:underline cursor-pointer">
+                  {bulk ? "Search one channel or keywords instead" : "Paste a list of channels instead"}
+                </button>
+                <button
+                  type="submit"
+                  disabled={busy || (bulk ? !list.trim() : !query.trim())}
+                  className="px-6 py-3 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer inline-flex items-center justify-center gap-2"
+                >
+                  {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Search
+                </button>
+              </div>
+            </form>
+            <p className="text-xs text-text-muted">Each channel found uses one DataPal record. Searching the same channel again within a day is still counted.</p>
+            {error && <p className="text-sm text-rust">{error}</p>}
+            {note && <p className="text-sm text-text-muted">{note}</p>}
           </div>
 
-          {results.map(c => (
-            <div key={c.channelId} className="rounded-2xl border border-line bg-surface p-5 space-y-4">
-              <div className="flex items-start gap-4">
-                {c.thumbnail ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.thumbnail} alt="" className="w-14 h-14 rounded-full border border-line object-cover shrink-0" />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-surface-2 border border-line shrink-0" />
+          {results.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" className={chip(needEmail)} onClick={() => setNeedEmail(v => !v)}>Has email</button>
+                <button type="button" className={chip(needPhone)} onClick={() => setNeedPhone(v => !v)}>Has phone</button>
+                <button type="button" className={chip(onlyActive)} onClick={() => setOnlyActive(v => !v)}>Posted in last 3 months</button>
+                <select value={minSubs} onChange={e => setMinSubs(Number(e.target.value))} aria-label="Minimum subscribers" className={field}>
+                  {MIN_SUBS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                </select>
+                {countries.length > 1 && (
+                  <select value={country} onChange={e => setCountry(e.target.value)} aria-label="Country" className={field}>
+                    <option value="">All countries</option>
+                    {countries.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <h3 className="text-base font-semibold text-text">{c.title}</h3>
-                    <a href={c.url} target="_blank" rel="noopener noreferrer" className="text-xs text-brass hover:underline inline-flex items-center gap-1">
-                      {c.handle || "Open channel"} <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                  <p className="text-sm text-text-muted mt-1">
-                    {compact(c.subscribers)} subscribers
-                    {c.videos !== null ? ` · ${compact(c.videos)} videos` : ""}
-                    {c.country ? ` · ${c.country}` : ""}
-                  </p>
-                </div>
+                <select value={sort} onChange={e => setSort(e.target.value)} aria-label="Sort by" className={`${field} ml-auto`}>
+                  {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-xl bg-surface-2/60 border border-line p-4">
-                  <p className="text-xs font-medium text-text-muted mb-2">Email</p>
-                  {c.emails.length > 0 ? (
-                    <ul className="space-y-2">
-                      {c.emails.map(m => (
-                        <li key={m.value} className="text-sm">
-                          <div className="flex items-center justify-between gap-2">
-                            <a href={`mailto:${m.value}`} className="text-text hover:text-brass break-all">{m.value}</a>
-                            <button type="button" onClick={() => copy(m.value)} className="text-xs text-text-muted hover:text-text cursor-pointer inline-flex items-center gap-1 shrink-0">
-                              <Copy className="w-3 h-3" /> {copied === m.value ? "Copied" : "Copy"}
-                            </button>
-                          </div>
-                          <p className="text-xs text-text-muted">From {m.source === "Description" ? "the channel description" : m.source}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-text-muted">No email found. Many channels keep it behind YouTube&apos;s &ldquo;View email address&rdquo; button, which can&apos;t be read here.</p>
-                  )}
-                </div>
-                <div className="rounded-xl bg-surface-2/60 border border-line p-4">
-                  <p className="text-xs font-medium text-text-muted mb-2">Phone / WhatsApp</p>
-                  {c.phones.length > 0 ? (
-                    <ul className="space-y-2">
-                      {c.phones.map(m => (
-                        <li key={m.value} className="text-sm">
-                          <div className="flex items-center justify-between gap-2">
-                            <a href={`tel:${m.value.replace(/\s/g, "")}`} className="text-text hover:text-brass">{m.value}</a>
-                            <span className="flex items-center gap-3 shrink-0">
-                              <a href={waLink(m.value)} target="_blank" rel="noopener noreferrer" className="text-xs text-brass hover:underline">WhatsApp</a>
-                              <button type="button" onClick={() => copy(m.value)} className="text-xs text-text-muted hover:text-text cursor-pointer inline-flex items-center gap-1">
-                                <Copy className="w-3 h-3" /> {copied === m.value ? "Copied" : "Copy"}
-                              </button>
-                            </span>
-                          </div>
-                          <p className="text-xs text-text-muted">From {m.source === "Description" ? "the channel description" : m.source}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-text-muted">No phone number found.</p>
-                  )}
-                </div>
-                <div className="rounded-xl bg-surface-2/60 border border-line p-4">
-                  <p className="text-xs font-medium text-text-muted mb-2">Links</p>
-                  {c.links.length > 0 ? (
-                    <ul className="space-y-1.5">
-                      {c.links.map(l => (
-                        <li key={l.url} className="text-sm">
-                          <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-text hover:text-brass">
-                            <span className="text-text-muted">{l.label}: </span>
-                            <span className="break-all">{l.url.replace(/^https?:\/\/(www\.)?/, "")}</span>
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-text-muted">No links in the description.</p>
-                  )}
-                </div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-text-muted">
+                  Showing {shown.length} of {results.length} {results.length === 1 ? "channel" : "channels"}
+                  {fitBusy && <span className="ml-2 inline-flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />AI is rating them…</span>}
+                </p>
+                <button type="button" onClick={download} disabled={shown.length === 0} className="px-3.5 py-2 rounded-xl border border-line bg-surface text-sm text-text hover:bg-surface-2 cursor-pointer inline-flex items-center gap-2 disabled:opacity-50">
+                  <Download className="w-4 h-4" /> Download CSV
+                </button>
               </div>
+              {fitError && <p className="text-sm text-rust">{fitError}</p>}
+
+              {shown.length === 0 && <p className="p-8 text-center text-sm text-text-muted rounded-2xl border border-line">No channel matches these filters. Loosen a filter to see the rest.</p>}
+
+              {shown.map(c => (
+                <YouTubeChannelCard
+                  key={c.channelId}
+                  channel={c}
+                  fit={fits[c.channelId] || null}
+                  fitLoading={fitBusy}
+                  saved={savedIds.has(c.channelId) ? saved.find(s => s.channelId === c.channelId) || null : null}
+                  onSave={() => save(c)}
+                  onRemove={() => removeSaved(c.channelId)}
+                  onStatusChange={s => updateSaved(c.channelId, { status: s })}
+                  onNoteSave={n => updateSaved(c.channelId, { note: n })}
+                  onDraft={draftFor(c)}
+                />
+              ))}
+
+              <p className="text-xs text-text-muted">
+                Details come from each channel&apos;s public page, its latest videos, and the creator&apos;s own website or link page. Engagement and activity are worked out from the latest videos only. AI ratings and messages are suggestions, not facts. Use contact details lawfully and only for genuine business contact, not for spam.
+              </p>
             </div>
-          ))}
+          )}
+        </>
+      )}
 
-          <p className="text-xs text-text-muted">
-            These details are taken from each channel&apos;s public description and from the creator&apos;s own website or link page. Use them lawfully and only to make genuine business contact, not for spam.
-          </p>
+      {tab === "saved" && (
+        <div className="space-y-4">
+          {savedBusy && saved.length === 0 && <p className="p-8 text-center text-sm text-text-muted">Loading your saved list…</p>}
+          {!savedBusy && saved.length === 0 && (
+            <p className="p-10 text-center text-sm text-text-muted rounded-2xl border border-line">
+              Nothing saved yet. Use &ldquo;Save to my list&rdquo; on a creator to keep track of who you contacted and what they said.
+            </p>
+          )}
+          {savedWarning && <p className="text-sm text-rust">{savedWarning}</p>}
+          {saved.map(s =>
+            s.channel ? (
+              <YouTubeChannelCard
+                key={s.channelId}
+                channel={s.channel}
+                saved={{ status: s.status, note: s.note }}
+                onRemove={() => removeSaved(s.channelId)}
+                onStatusChange={st => updateSaved(s.channelId, { status: st })}
+                onNoteSave={n => updateSaved(s.channelId, { note: n })}
+                onDraft={draftFor(s.channel)}
+              />
+            ) : (
+              <div key={s.channelId} className="rounded-2xl border border-line bg-surface p-5 flex items-center justify-between gap-3 text-sm">
+                <span className="text-text-muted">This channel&apos;s details are not available right now. Your status and note are kept.</span>
+                <button type="button" onClick={() => removeSaved(s.channelId)} className="text-rust hover:underline cursor-pointer shrink-0">Remove</button>
+              </div>
+            )
+          )}
         </div>
       )}
     </div>
