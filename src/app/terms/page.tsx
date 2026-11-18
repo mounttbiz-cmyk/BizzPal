@@ -164,7 +164,7 @@ export default function TermsPage() {
       badge="Terms of service"
       title="Terms & Conditions"
       subtitle="Terms for using the bizzpal.ai AI business-guidance service"
-      facts={["Effective Date: 16 November 2026 | Last Updated: 16 November 2026", "Website: https://bizzpal.ai", `Operator: ${OPERATOR}`, "Support & Grievance Email: care@bizzpal.ai"]}
+      facts={["Effective Date: 16 November 2026 | Last Updated: 18 November 2026", "Website: https://bizzpal.ai", `Operator: ${OPERATOR}`, "Support & Grievance Email: care@bizzpal.ai"]}
       intro={[
         `These Terms & Conditions (“Terms”) govern access to and use of bizzpal.ai, including its website, AI-powered business guidance, account features, paid plans, and related services (together, the “Service”). The Service is operated by ${OPERATOR}, whose registered office is at ${OFFICE} (“BizzPal,” “we,” “us,” or “our”).`,
         "By creating an account, purchasing a plan, or using the Service, you agree to these Terms. If you use the Service for a company or other organisation, you confirm that you are authorised to accept these Terms for that organisation, and “you” includes that organisation.",

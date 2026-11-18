@@ -192,7 +192,7 @@ export default function PrivacyPage() {
       badge="Data protection"
       title="Privacy Policy"
       subtitle="How bizzpal.ai handles information when you use its AI business-guidance service"
-      facts={["Effective Date: 16 November 2026 | Last Updated: 16 November 2026", "Website: https://bizzpal.ai", `Operator: ${OPERATOR}`, "Privacy & Grievance Email: care@bizzpal.ai"]}
+      facts={["Effective Date: 16 November 2026 | Last Updated: 18 November 2026", "Website: https://bizzpal.ai", `Operator: ${OPERATOR}`, "Privacy & Grievance Email: care@bizzpal.ai"]}
       intro={[
         `This Privacy Policy explains how ${OPERATOR}, the operator of bizzpal.ai, collects, uses, stores, and shares information in connection with bizzpal.ai and its AI-powered business guidance service (“BizzPal,” “we,” “us,” or “our”). Our registered office is ${OFFICE}.`,
         "This Policy applies to website visitors, account holders, people who contact us, and other individuals whose information is processed through the Service. It should be read with any short privacy notice, consent request, or plan-specific notice shown when information is collected.",
