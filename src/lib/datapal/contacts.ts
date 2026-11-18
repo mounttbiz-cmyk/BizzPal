@@ -94,3 +94,74 @@ export function mergeContacts(...groups: Contact[][]): Contact[] {
   }
   return out.slice(0, 8);
 }
+
+// ---------------------------------------------------------------- social profiles
+
+export interface Social {
+  platform: "Instagram" | "Telegram" | "X (Twitter)" | "Facebook" | "LinkedIn";
+  url: string;
+  /** The @name, when the address has one */
+  handle: string | null;
+}
+
+const RESERVED = /^(share|sharer|sharer\.php|intent|home|login|signup|explore|p|reel|reels|stories|hashtag|search|about|help|privacy|terms|legal|policies|dialog|plugins|watch|groups|events|pages|company|in|joinchat|s|addstickers|share\.php)$/i;
+
+/** Picks the social profile links out of a list of web addresses (never guesses a profile that is not linked). */
+export function extractSocials(urls: string[]): Social[] {
+  const out: Social[] = [];
+  const seen = new Set<string>();
+  const add = (platform: Social["platform"], url: string, handle: string | null) => {
+    const key = platform + ":" + (handle || url).toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ platform, url, handle });
+  };
+  for (const raw of urls) {
+    let u: URL;
+    try { u = new URL(raw); } catch { continue; }
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+    const parts = u.pathname.split("/").filter(Boolean);
+    const first = parts[0] || "";
+    if (host === "instagram.com" && first && !RESERVED.test(first)) add("Instagram", `https://www.instagram.com/${first}/`, "@" + first);
+    else if ((host === "t.me" || host === "telegram.me") && first && !RESERVED.test(first) && /^[A-Za-z0-9_]{4,}$/.test(first)) add("Telegram", `https://t.me/${first}`, "@" + first);
+    else if ((host === "x.com" || host === "twitter.com") && first && !RESERVED.test(first)) add("X (Twitter)", `https://x.com/${first}`, "@" + first);
+    else if ((host === "facebook.com" || host === "m.facebook.com") && first && !RESERVED.test(first) && first !== "profile.php") add("Facebook", `https://www.facebook.com/${first}`, null);
+    else if (host.endsWith("linkedin.com") && (first === "in" || first === "company") && parts[1]) add("LinkedIn", `https://www.linkedin.com/${first}/${parts[1]}`, null);
+  }
+  return out.slice(0, 8);
+}
+
+// ---------------------------------------------------------------- language
+
+const SCRIPTS: Array<[RegExp, string]> = [
+  [/[\u0900-\u097F]/g, "hi"],
+  [/[\u0B80-\u0BFF]/g, "ta"],
+  [/[\u0C00-\u0C7F]/g, "te"],
+  [/[\u0980-\u09FF]/g, "bn"],
+  [/[\u0A80-\u0AFF]/g, "gu"],
+  [/[\u0C80-\u0CFF]/g, "kn"],
+  [/[\u0D00-\u0D7F]/g, "ml"],
+  [/[\u0A00-\u0A7F]/g, "pa"],
+  [/[\u0600-\u06FF]/g, "ar"],
+];
+
+/** The language a channel is written in, from its script. Only returns something when the writing makes it clear. */
+export function languageFromScript(text: string): string | null {
+  let best: { code: string; n: number } | null = null;
+  for (const [re, code] of SCRIPTS) {
+    const n = (text.match(re) || []).length;
+    if (n >= 8 && (!best || n > best.n)) best = { code, n };
+  }
+  return best ? best.code : null;
+}
+
+/** "hi" becomes "Hindi". Unknown codes are returned as they are. */
+export function languageName(code: string | null | undefined): string | null {
+  if (!code) return null;
+  const base = code.split("-")[0].toLowerCase();
+  try {
+    return new Intl.DisplayNames(["en"], { type: "language" }).of(base) || base;
+  } catch {
+    return base;
+  }
+}

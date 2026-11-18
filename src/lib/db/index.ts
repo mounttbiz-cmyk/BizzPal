@@ -773,6 +773,7 @@ const EMAIL_KEYED: Array<[string, string]> = [
   ["business_verifications", "email"],
   ["team_invites", "owner_email"],
   ["team_invites", "invite_email"],
+  ["outreach_log", "user_email"],
 ];
 
 /** Deletes the account and everything stored for its business (tasks, documents, connections, team, settings). */

@@ -2,7 +2,7 @@ import dns from "node:dns";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
-import { extractEmails, extractPhones, isFollowable, mergeContacts, type Contact } from "@/lib/datapal/contacts";
+import { extractEmails, extractPhones, extractSocials, isFollowable, mergeContacts, type Contact, type Social } from "@/lib/datapal/contacts";
 
 /**
  * Reads the public website or link page a creator put in their channel description, and picks out the contact
@@ -154,7 +154,7 @@ function visibleText(html: string): string {
     .replace(/\s+/g, " ");
 }
 
-function pageContacts(html: string, source: string): { emails: Contact[]; phones: Contact[] } {
+function pageContacts(html: string, source: string): { emails: Contact[]; phones: Contact[]; socials: Social[] } {
   const hrefs = Array.from(html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)).map(m => m[1].replace(/&amp;/g, "&"));
   const fromLinks = hrefs.filter(h => /^(mailto:|tel:)/i.test(h) || /wa\.me|whatsapp\.com/i.test(h)).join(" ");
   const mailtos = hrefs.filter(h => /^mailto:/i.test(h)).map(h => decodeURIComponent(h.slice(7).split("?")[0]));
@@ -162,26 +162,29 @@ function pageContacts(html: string, source: string): { emails: Contact[]; phones
   const text = visibleText(html);
   const emails = extractEmails([...mailtos, text].join(" "));
   const phones = extractPhones([...tels, fromLinks, text].join(" "));
-  return { emails: emails.map(value => ({ value, source })), phones: phones.map(value => ({ value, source })) };
+  const absolute = hrefs.filter(h => /^https?:\/\//i.test(h));
+  return { emails: emails.map(value => ({ value, source })), phones: phones.map(value => ({ value, source })), socials: extractSocials(absolute) };
 }
 
 const CONTACT_PATHS = ["/contact", "/contact-us", "/about"];
 
-/** Opens up to `maxSites` of the creator's own links and collects the contact details found. */
-export async function readCreatorSites(links: string[], maxSites = 2): Promise<{ emails: Contact[]; phones: Contact[] }> {
+/** Opens up to `maxSites` of the creator's own links and collects the contact details and social profiles found. */
+export async function readCreatorSites(links: string[], maxSites = 2): Promise<{ emails: Contact[]; phones: Contact[]; socials: Social[] }> {
   const sites = links.filter(isFollowable).slice(0, maxSites);
   const results = await Promise.all(sites.map(async site => {
     let emails: Contact[] = [];
     let phones: Contact[] = [];
+    let socials: Social[] = [];
     try {
       const url = new URL(site);
-      if (!(await allowedByRobots(url))) return { emails, phones };
+      if (!(await allowedByRobots(url))) return { emails, phones, socials };
       const page = await fetchText(site);
-      if (!page) return { emails, phones };
+      if (!page) return { emails, phones, socials };
       const host = new URL(page.url).hostname.replace(/^www\./, "");
       let found = pageContacts(page.body, host);
       emails = found.emails;
       phones = found.phones;
+      socials = found.socials;
 
       // A normal website often keeps its details on a contact page
       if (emails.length === 0 && phones.length === 0) {
@@ -194,11 +197,36 @@ export async function readCreatorSites(links: string[], maxSites = 2): Promise<{
           found = pageContacts(sub.body, host);
           emails = found.emails;
           phones = found.phones;
+          socials = [...socials, ...found.socials];
           if (emails.length > 0 || phones.length > 0) break;
         }
       }
     } catch {}
-    return { emails, phones };
+    return { emails, phones, socials };
   }));
-  return { emails: mergeContacts(...results.map(r => r.emails)), phones: mergeContacts(...results.map(r => r.phones)) };
+  return {
+    emails: mergeContacts(...results.map(r => r.emails)),
+    phones: mergeContacts(...results.map(r => r.phones)),
+    socials: extractSocials(results.flatMap(r => r.socials.map(x => x.url))),
+  };
+}
+
+/** The public bio of a Telegram account (t.me/name), for an email or number the creator wrote there. */
+export async function readTelegramBio(handle: string): Promise<{ emails: Contact[]; phones: Contact[] }> {
+  const name = handle.replace(/^@/, "");
+  if (!/^[A-Za-z0-9_]{4,32}$/.test(name)) return { emails: [], phones: [] };
+  try {
+    const base = (process.env.TELEGRAM_BASE || "https://t.me").replace(/\/+$/, "");
+    const page = await fetchText(`${base}/${name}`);
+    if (!page) return { emails: [], phones: [] };
+    const meta = /<meta property="og:description" content="([^"]*)"/i.exec(page.body)?.[1] || "";
+    const bio = /<div class="tgme_page_description[^"]*"[^>]*>([\s\S]*?)<\/div>/i.exec(page.body)?.[1] || "";
+    const text = visibleText(`${meta} ${bio}`.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">"));
+    return {
+      emails: extractEmails(text).map(value => ({ value, source: `Telegram @${name}` })),
+      phones: extractPhones(text).map(value => ({ value, source: `Telegram @${name}` })),
+    };
+  } catch {
+    return { emails: [], phones: [] };
+  }
 }

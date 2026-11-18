@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { extractEmails, extractPhones, mergeContacts, type Contact } from "@/lib/datapal/contacts";
-import { readCreatorSites } from "@/lib/datapal/contactPages";
+import { extractEmails, extractPhones, extractSocials, languageFromScript, languageName, mergeContacts, type Contact, type Social } from "@/lib/datapal/contacts";
+import { readCreatorSites, readTelegramBio } from "@/lib/datapal/contactPages";
 import { annotateEmails } from "@/lib/datapal/emailCheck";
 
 /**
@@ -52,6 +52,10 @@ export interface YouTubeChannel {
   emails: Contact[];
   phones: Contact[];
   links: Array<{ url: string; label: string }>;
+  /** Instagram, Telegram, X, Facebook and LinkedIn profiles the creator links to */
+  socials: Social[];
+  /** The language the channel is in, as a readable name (for example Hindi). null when it cannot be told */
+  language: string | null;
   createdAt: string | null;
   activity: ChannelActivity | null;
 }
@@ -174,21 +178,31 @@ function toChannel(item: any): YouTubeChannel {
     emails: extractEmails(description).map(value => ({ value, source: "Description" })),
     phones: extractPhones(description).map(value => ({ value, source: "Description" })),
     links: extractLinks(description),
+    socials: extractSocials(extractLinks(description).map(l => l.url)),
+    language: languageName(s.defaultLanguage) || languageName(languageFromScript(`${s.title || ""} ${description}`)),
     createdAt: s.publishedAt || null,
     activity: null,
   };
 }
 
-/** Adds the emails and numbers listed on the creator's own website or link page. Never blocks the answer for long. */
+/** Adds what the creator published on their own website, link page and Telegram. Never blocks the answer for long. */
 async function addSiteContacts(channel: YouTubeChannel): Promise<void> {
   try {
     const found = await Promise.race([
-      readCreatorSites(channel.links.map(l => l.url), 2),
-      new Promise<null>(resolve => setTimeout(() => resolve(null), 9000)),
+      (async () => {
+        const sites = await readCreatorSites(channel.links.map(l => l.url), 2);
+        const socials = extractSocials([...channel.socials.map(x => x.url), ...sites.socials.map(x => x.url)]);
+        // A Telegram bio is public, and creators often put a business email or number there
+        const telegram = socials.find(x => x.platform === "Telegram");
+        const bio = telegram?.handle ? await readTelegramBio(telegram.handle) : { emails: [] as Contact[], phones: [] as Contact[] };
+        return { sites, socials, bio };
+      })(),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 10000)),
     ]);
     if (!found) return;
-    channel.emails = mergeContacts(channel.emails, found.emails);
-    channel.phones = mergeContacts(channel.phones, found.phones);
+    channel.emails = mergeContacts(channel.emails, found.sites.emails, found.bio.emails);
+    channel.phones = mergeContacts(channel.phones, found.sites.phones, found.bio.phones);
+    channel.socials = found.socials;
   } catch {}
 }
 
@@ -213,6 +227,7 @@ async function addActivity(channel: YouTubeChannel, uploadsPlaylist: string | un
       id: v.id as string,
       title: String(v.snippet?.title || ""),
       description: String(v.snippet?.description || "").slice(0, 400),
+      audio: (v.snippet?.defaultAudioLanguage as string) || (v.snippet?.defaultLanguage as string) || null,
       publishedAt: (v.snippet?.publishedAt as string) || null,
       views: num(v.statistics?.viewCount),
       likes: num(v.statistics?.likeCount),
@@ -236,6 +251,17 @@ async function addActivity(channel: YouTubeChannel, uploadsPlaylist: string | un
       ? Math.round((withLikes.reduce((a, v) => a + (((v.likes || 0) + (v.comments || 0)) / (v.views as number)), 0) / withLikes.length) * 1000) / 10
       : null;
 
+    // When the channel does not name its language, use what its latest videos say they are spoken in
+    if (!channel.language) {
+      const counts = new Map<string, number>();
+      for (const v of videos) {
+        if (!v.audio) continue;
+        const base = v.audio.split("-")[0];
+        counts.set(base, (counts.get(base) || 0) + 1);
+      }
+      const top = Array.from(counts.entries()).sort((x, y) => y[1] - x[1])[0];
+      if (top) channel.language = languageName(top[0]);
+    }
     channel.activity = {
       lastUploadAt: last,
       status,
@@ -365,7 +391,7 @@ export async function channelsByIds(ids: string[]): Promise<YouTubeChannel[]> {
 }
 
 /** Finds channels for what the person typed. `limit` only matters for keyword searches. */
-export async function lookupChannels(input: ParsedInput, limit: number): Promise<{ channels: YouTubeChannel[]; cached: boolean }> {
+export async function lookupChannels(input: ParsedInput, limit: number, pageToken?: string): Promise<{ channels: YouTubeChannel[]; cached: boolean; nextPageToken?: string | null }> {
   if (input.kind === "id") {
     const hit = cacheGet<YouTubeChannel>(channelKey(input.value));
     return { channels: await channelsByIds([input.value]), cached: Boolean(hit) };
@@ -394,13 +420,21 @@ export async function lookupChannels(input: ParsedInput, limit: number): Promise
     return { channels: [found[0]], cached: false };
   }
 
-  const key = `search:${input.value.toLowerCase()}`;
-  let ids = cacheGet<string[]>(key);
-  const wasCached = Boolean(ids);
-  if (!ids) {
-    const data = await callYouTube("search", { part: "snippet", type: "channel", q: input.value, maxResults: "10" }, 100);
-    ids = (data.items || []).map((i: any) => i?.id?.channelId || i?.snippet?.channelId).filter(Boolean);
-    cacheSet(key, ids);
+  // Keyword search. Each page is 10 channels; `pageToken` asks for the next 10.
+  const key = `search:${input.value.toLowerCase()}:${pageToken || ""}`;
+  let page = cacheGet<{ ids: string[]; next: string | null }>(key);
+  const wasCached = Boolean(page);
+  if (!page) {
+    const params: Record<string, string> = { part: "snippet", type: "channel", q: input.value, maxResults: "10" };
+    if (pageToken) params.pageToken = pageToken;
+    const data = await callYouTube("search", params, 100);
+    page = {
+      ids: (data.items || []).map((i: any) => i?.id?.channelId || i?.snippet?.channelId).filter(Boolean),
+      next: typeof data.nextPageToken === "string" ? data.nextPageToken : null,
+    };
+    cacheSet(key, page);
   }
-  return { channels: await channelsByIds(ids!.slice(0, Math.max(1, limit))), cached: wasCached };
+  const wanted = page.ids.slice(0, Math.max(1, limit));
+  // if the person's records ran out part-way through the page, there is more left on this same page
+  return { channels: await channelsByIds(wanted), cached: wasCached, nextPageToken: page.next };
 }

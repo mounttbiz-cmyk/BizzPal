@@ -25,6 +25,8 @@ export interface YtChannel {
   emails: YtContact[];
   phones: YtContact[];
   links: Array<{ url: string; label: string }>;
+  socials: Array<{ platform: string; url: string; handle: string | null }>;
+  language: string | null;
   activity: {
     lastUploadAt: string | null;
     status: "active" | "recent" | "inactive" | "unknown";
@@ -77,6 +79,8 @@ interface Props {
   onNoteSave?: (note: string) => void;
   /** Writes a message with AI. Receives nothing and returns the draft */
   onDraft?: () => Promise<{ subject: string; email: string; whatsapp: string } | string>;
+  /** Sends an email to one of the creator's addresses. Returns an error message, or null when it was sent */
+  onSendEmail?: (to: string, subject: string, body: string) => Promise<string | null>;
 }
 
 function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
@@ -88,13 +92,20 @@ function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: 
   );
 }
 
-export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave, onRemove, onStatusChange, onNoteSave, onDraft }: Props) {
+export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave, onRemove, onStatusChange, onNoteSave, onDraft, onSendEmail }: Props) {
   const [copied, setCopied] = useState("");
   const [showVideos, setShowVideos] = useState(false);
   const [draft, setDraft] = useState<{ subject: string; email: string; whatsapp: string } | null>(null);
   const [draftError, setDraftError] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [note, setNote] = useState(saved?.note || "");
+  const [composeTo, setComposeTo] = useState<string | null>(null);
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
+  const [sentTo, setSentTo] = useState("");
   const a = c.activity;
 
   const copy = async (text: string) => {
@@ -110,6 +121,28 @@ export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave,
       if (typeof r === "string") setDraftError(r); else setDraft(r);
     } finally {
       setDrafting(false);
+    }
+  };
+
+  const openCompose = (to: string) => {
+    setComposeTo(to);
+    setSendError("");
+    setSentTo("");
+    if (!subject && draft) setSubject(draft.subject);
+    if (!body && draft) setBody(draft.email);
+  };
+
+  const send = async () => {
+    if (!onSendEmail || !composeTo) return;
+    setSending(true);
+    setSendError("");
+    const error = await onSendEmail(composeTo, subject, body);
+    setSending(false);
+    if (error) setSendError(error);
+    else {
+      setSentTo(composeTo);
+      setComposeTo(null);
+      setConfirmed(false);
     }
   };
 
@@ -132,6 +165,7 @@ export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave,
               {c.handle || "Open channel"} <ExternalLink className="w-3 h-3" />
             </a>
             {badge && <span className={`text-xs px-2 py-0.5 rounded-full border ${badge.cls}`}>{badge.label}</span>}
+            {c.language && <span className="text-xs px-2 py-0.5 rounded-full border border-line bg-surface-2 text-text-muted">{c.language}</span>}
             {a && a.sponsoredVideos > 0 && (
               <span className="text-xs px-2 py-0.5 rounded-full border border-line bg-surface-2 text-text" title="Some of the latest videos mention sponsors, ads or promo codes">
                 Does brand deals ({a.sponsoredVideos} of last {a.sampled})
@@ -179,9 +213,14 @@ export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave,
                 <li key={m.value} className="text-sm">
                   <div className="flex items-center justify-between gap-2">
                     <a href={`mailto:${m.value}`} className="text-text hover:text-brass break-all">{m.value}</a>
-                    <button type="button" onClick={() => copy(m.value)} className="text-xs text-text-muted hover:text-text cursor-pointer inline-flex items-center gap-1 shrink-0">
-                      <Copy className="w-3 h-3" /> {copied === m.value ? "Copied" : "Copy"}
-                    </button>
+                    <span className="flex items-center gap-3 shrink-0">
+                      {onSendEmail && m.deliverable !== false && (
+                        <button type="button" onClick={() => openCompose(m.value)} className="text-xs text-brass hover:underline cursor-pointer">Email</button>
+                      )}
+                      <button type="button" onClick={() => copy(m.value)} className="text-xs text-text-muted hover:text-text cursor-pointer inline-flex items-center gap-1">
+                        <Copy className="w-3 h-3" /> {copied === m.value ? "Copied" : "Copy"}
+                      </button>
+                    </span>
                   </div>
                   <p className="text-xs text-text-muted">
                     From {m.source === "Description" ? "the channel description" : m.source}
@@ -239,6 +278,60 @@ export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave,
           )}
         </div>
       </div>
+
+      {c.socials.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-text-muted mr-1">Reach them on</span>
+          {c.socials.map(x => (
+            <a key={x.url} href={x.url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 rounded-full border border-line bg-surface text-sm text-text hover:border-brass hover:text-brass">
+              {x.platform}{x.handle ? ` ${x.handle}` : ""}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {sentTo && <p className="text-sm text-jade">Email sent to {sentTo}. Replies will come to your own inbox, and this creator is marked as contacted.</p>}
+
+      {composeTo && (
+        <div className="rounded-xl border border-line bg-surface-2/40 p-4 space-y-3">
+          <p className="text-sm font-medium text-text">Email {composeTo}</p>
+          <input
+            type="text"
+            value={subject}
+            onChange={e => setSubject(e.target.value)}
+            maxLength={120}
+            placeholder="Subject"
+            className="w-full px-3 py-2 rounded-xl border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
+          />
+          <textarea
+            rows={7}
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            maxLength={2000}
+            placeholder="Write your message. Use Write a message with AI above to get a starting point, then edit it."
+            className="w-full px-3 py-2 rounded-xl border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
+          />
+          <p className="text-xs text-text-muted">
+            It is sent in your name. Replies go to your own email. A line saying who sent it and an unsubscribe link are added at the bottom. You can send a limited number of emails a day, and the same address can be emailed once every two weeks.
+          </p>
+          <label className="flex items-start gap-2 text-sm text-text cursor-pointer">
+            <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} className="mt-1 accent-[#8a6414]" />
+            <span>This is genuine business outreach, not spam, and I am allowed to contact this person.</span>
+          </label>
+          {sendError && <p className="text-sm text-rust">{sendError}</p>}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={send}
+              disabled={sending || !confirmed || subject.trim().length < 3 || body.trim().length < 20}
+              className="px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer inline-flex items-center gap-2"
+            >
+              {sending && <Loader2 className="w-4 h-4 animate-spin" />}Send email
+            </button>
+            <button type="button" onClick={() => setComposeTo(null)} className="text-sm text-text-muted hover:text-text cursor-pointer">Cancel</button>
+          </div>
+        </div>
+      )}
 
       {a && a.recent.length > 0 && (
         <div>

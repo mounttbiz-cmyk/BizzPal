@@ -59,10 +59,13 @@ export async function POST(req: Request) {
   try {
     const found: YouTubeChannel[] = [];
     let cached = true;
+    let nextPageToken: string | null = null;
+    const pageToken = typeof body?.pageToken === "string" && body.pageToken.length < 300 ? body.pageToken : undefined;
     for (const input of inputs) {
       if (found.length >= credits.remaining) break;
-      const r = await lookupChannels(input, Math.min(10, credits.remaining - found.length));
+      const r = await lookupChannels(input, Math.min(10, credits.remaining - found.length), input.kind === "search" ? pageToken : undefined);
       cached = cached && r.cached;
+      if (input.kind === "search") nextPageToken = r.nextPageToken ?? null;
       for (const c of r.channels) if (!found.some(f => f.channelId === c.channelId)) found.push(c);
     }
     const results = found.slice(0, credits.remaining);
@@ -74,6 +77,7 @@ export async function POST(req: Request) {
       skipped,
       remaining: after.remaining,
       limited: found.length > results.length,
+      nextPageToken: results.length > 0 ? nextPageToken : null,
       message: results.length === 0 ? "No channel found. Check the link or try other keywords." : undefined,
     });
   } catch (e) {

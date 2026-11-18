@@ -52,6 +52,10 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
   const [fits, setFits] = useState<Record<string, Fit>>({});
   const [fitBusy, setFitBusy] = useState(false);
   const [fitError, setFitError] = useState("");
+  const [nextToken, setNextToken] = useState<string | null>(null);
+  const [moreBusy, setMoreBusy] = useState(false);
+  const [lastKeywords, setLastKeywords] = useState("");
+  const [language, setLanguage] = useState("");
 
   // filters and sorting
   const [needEmail, setNeedEmail] = useState(false);
@@ -114,6 +118,8 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
       const d = await res.json().catch(() => ({}));
       if (res.ok && d.success) {
         setResults(d.results);
+        setNextToken(d.nextPageToken || null);
+        setLastKeywords(bulk ? "" : query);
         const notes: string[] = [];
         if (d.message) notes.push(d.message);
         if (d.skipped?.length) notes.push(`${d.skipped.length} line${d.skipped.length === 1 ? " was" : "s were"} skipped: ${d.skipped.map((s: any) => s.text).slice(0, 3).join(", ")}${d.skipped.length > 3 ? "…" : ""}`);
@@ -129,6 +135,43 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
       setError("Couldn't reach the server. Please try again.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!nextToken || !lastKeywords || moreBusy) return;
+    setMoreBusy(true);
+    setError("");
+    try {
+      const res = await post("/api/datapal/youtube", { query: lastKeywords, pageToken: nextToken });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.success) {
+        const fresh: YtChannel[] = d.results.filter((r: YtChannel) => !results.some(x => x.channelId === r.channelId));
+        setResults(prev => [...prev, ...fresh]);
+        setNextToken(d.nextPageToken || null);
+        onCreditsChanged();
+        if (offer.trim().length >= 3) rate(fresh, offer);
+      } else {
+        if (d.code === "no_credits") onNeedCredits();
+        setError(d.error || "Couldn't load more. Please try again.");
+      }
+    } catch {
+      setError("Couldn't reach the server. Please try again.");
+    }
+    setMoreBusy(false);
+  };
+
+  const sendEmail = (c: YtChannel) => async (to: string, subject: string, body: string): Promise<string | null> => {
+    try {
+      const res = await post("/api/datapal/youtube/outreach", { channelId: c.channelId, to, subject, body, confirm: true });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.success) {
+        loadSaved();
+        return null;
+      }
+      return d.error || "The email could not be sent.";
+    } catch {
+      return "Couldn't reach the server. Please try again.";
     }
   };
 
@@ -158,6 +201,7 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
     await post("/api/datapal/youtube/saved", { channelId: id }, "DELETE");
   };
 
+  const languages = useMemo(() => Array.from(new Set(results.map(r => r.language).filter(Boolean))) as string[], [results]);
   const countries = useMemo(() => Array.from(new Set(results.map(r => r.country).filter(Boolean))) as string[], [results]);
 
   const shown = useMemo(() => {
@@ -166,6 +210,7 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
       (!needPhone || c.phones.length > 0) &&
       (!onlyActive || c.activity?.status === "active" || c.activity?.status === "recent") &&
       (!country || c.country === country) &&
+      (!language || c.language === language) &&
       (minSubs === 0 || (c.subscribers ?? 0) >= minSubs)
     );
     const by: Record<string, (c: YtChannel) => number> = {
@@ -176,18 +221,18 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
     };
     if (sort === "default" && Object.keys(fits).length > 0) return [...out].sort((a, b) => (fits[b.channelId]?.score ?? -1) - (fits[a.channelId]?.score ?? -1));
     return sort in by ? [...out].sort((a, b) => by[sort](b) - by[sort](a)) : out;
-  }, [results, needEmail, needPhone, onlyActive, country, minSubs, sort, fits]);
+  }, [results, needEmail, needPhone, onlyActive, country, language, minSubs, sort, fits]);
 
   const download = () => {
     const NL = String.fromCharCode(10);
-    const rows = [["Channel", "Handle", "Link", "Subscribers", "Country", "Status", "Avg views", "Engagement %", "Uploads per month", "Last upload", "Brand deals in last videos", "AI fit", "Emails", "Phones", "Other links"]];
+    const rows = [["Channel", "Handle", "Link", "Subscribers", "Country", "Language", "Status", "Avg views", "Engagement %", "Uploads per month", "Last upload", "Brand deals in last videos", "AI fit", "Emails", "Phones", "Social profiles", "Other links"]];
     for (const c of shown) {
       const a = c.activity;
       rows.push([
         c.title, c.handle || "", c.url, c.subscribers === null ? "" : String(c.subscribers), c.country || "",
-        a?.status || "", a?.avgViews == null ? "" : String(a.avgViews), a?.engagementPct == null ? "" : String(a.engagementPct),
+        c.language || "", a?.status || "", a?.avgViews == null ? "" : String(a.avgViews), a?.engagementPct == null ? "" : String(a.engagementPct),
         a?.uploadsPerMonth == null ? "" : String(a.uploadsPerMonth), a?.lastUploadAt ? a.lastUploadAt.slice(0, 10) : "", a ? String(a.sponsoredVideos) : "",
-        fits[c.channelId] ? String(fits[c.channelId].score) : "", c.emails.map(e => e.value).join("; "), c.phones.map(p => p.value).join("; "), c.links.map(l => l.url).join("; "),
+        fits[c.channelId] ? String(fits[c.channelId].score) : "", c.emails.map(e => e.value).join("; "), c.phones.map(p => p.value).join("; "), c.socials.map(x => x.url).join("; "), c.links.map(l => l.url).join("; "),
       ]);
     }
     const blob = new Blob([rows.map(r => r.map(csvCell).join(",")).join(NL)], { type: "text/csv;charset=utf-8" });
@@ -289,6 +334,12 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
                     {countries.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 )}
+                {languages.length > 1 && (
+                  <select value={language} onChange={e => setLanguage(e.target.value)} aria-label="Language" className={field}>
+                    <option value="">All languages</option>
+                    {languages.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                )}
                 <select value={sort} onChange={e => setSort(e.target.value)} aria-label="Sort by" className={`${field} ml-auto`}>
                   {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
@@ -319,8 +370,18 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
                   onStatusChange={s => updateSaved(c.channelId, { status: s })}
                   onNoteSave={n => updateSaved(c.channelId, { note: n })}
                   onDraft={draftFor(c)}
+                  onSendEmail={sendEmail(c)}
                 />
               ))}
+
+              {nextToken && lastKeywords && (
+                <div className="text-center">
+                  <button type="button" onClick={loadMore} disabled={moreBusy} className="px-5 py-2.5 rounded-xl border border-line bg-surface text-sm text-text hover:bg-surface-2 cursor-pointer inline-flex items-center gap-2 disabled:opacity-50">
+                    {moreBusy && <Loader2 className="w-4 h-4 animate-spin" />}Load 10 more channels
+                  </button>
+                  <p className="text-xs text-text-muted mt-2">Each new channel uses one DataPal record.</p>
+                </div>
+              )}
 
               <p className="text-xs text-text-muted">
                 Details come from each channel&apos;s public page, its latest videos, and the creator&apos;s own website or link page. Engagement and activity are worked out from the latest videos only. AI ratings and messages are suggestions, not facts. Use contact details lawfully and only for genuine business contact, not for spam.
@@ -349,6 +410,7 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
                 onStatusChange={st => updateSaved(s.channelId, { status: st })}
                 onNoteSave={n => updateSaved(s.channelId, { note: n })}
                 onDraft={draftFor(s.channel)}
+                onSendEmail={sendEmail(s.channel)}
               />
             ) : (
               <div key={s.channelId} className="rounded-2xl border border-line bg-surface p-5 flex items-center justify-between gap-3 text-sm">

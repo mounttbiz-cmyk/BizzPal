@@ -29,15 +29,35 @@ function getTransport(): nodemailer.Transporter {
 
 export type MailResult = { ok: true } | { ok: false; error: string };
 
-export async function sendMail(opts: { to: string; subject: string; text: string; html?: string }): Promise<MailResult> {
+export interface MailOptions {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  /** Where replies should go (for example a customer writing through BizzPal) */
+  replyTo?: string;
+  /** Shown as the sender's name, for example "Aayan via BizzPal". The sending address stays BizzPal's. */
+  fromName?: string;
+  headers?: Record<string, string>;
+}
+
+/** The address part of MAIL_FROM, for example hello@bizzpal.ai */
+function senderAddress(): string {
+  const raw = process.env.MAIL_FROM || process.env.SMTP_USER || "";
+  return /<([^>]+)>/.exec(raw)?.[1] || raw;
+}
+
+export async function sendMail(opts: MailOptions): Promise<MailResult> {
   if (!mailConfigured()) return { ok: false, error: "Email isn't set up on this server." };
   try {
     await getTransport().sendMail({
-      from: process.env.MAIL_FROM || `BizzPal <${process.env.SMTP_USER}>`,
+      from: opts.fromName ? { name: opts.fromName.replace(/[<>"]/g, "").replace(/\s+/g, " ").slice(0, 80), address: senderAddress() } : process.env.MAIL_FROM || `BizzPal <${process.env.SMTP_USER}>`,
       to: opts.to,
       subject: opts.subject,
       text: opts.text,
       html: opts.html,
+      replyTo: opts.replyTo,
+      headers: opts.headers,
     });
     return { ok: true };
   } catch (e: any) {

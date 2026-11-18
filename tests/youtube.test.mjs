@@ -13,6 +13,7 @@ if (!process.env.YT_FAKE) {
 }
 
 const LOCAL_FETCH = process.env.YT_LOCAL_FETCH === "1";
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const NL = String.fromCharCode(10);
 const t = reporter();
 const db = openDatabase();
@@ -20,6 +21,7 @@ const USER = `yt_user_${Date.now()}@example.test`;
 const OTHER = `yt_other_${Date.now()}@example.test`;
 const UC = "UC" + "a".repeat(22);
 const UC_B = "UC" + "b".repeat(22);
+const UC_C = "UC" + "c".repeat(22);
 const VIDEO_OF_A = "aaaaaaaaaaa";
 const calls = [];
 const siteHits = [];
@@ -30,11 +32,12 @@ const DESCRIPTION = [
   "Call +91 98765 43210 or WhatsApp https://wa.me/919812345678",
   "Instagram https://instagram.com/fitindia",
   "Shop http://127.0.0.1:2627/shop",
+  "Telegram https://t.me/fitindia_official",
 ].join(" ");
 
 const channel = (id, title, description, extra = {}) => ({
   id,
-  snippet: { title, description, customUrl: extra.customUrl || "", country: extra.country || "IN", publishedAt: "2020-01-01T00:00:00Z", thumbnails: { default: { url: "https://example.test/a.jpg" } } },
+  snippet: { title, description, customUrl: extra.customUrl || "", country: extra.country || "IN", defaultLanguage: extra.lang, publishedAt: "2020-01-01T00:00:00Z", thumbnails: { default: { url: "https://example.test/a.jpg" } } },
   statistics: { subscriberCount: extra.subs || "125000", videoCount: "340", viewCount: "9000000", hiddenSubscriberCount: Boolean(extra.hidden) },
   contentDetails: { relatedPlaylists: { uploads: id === UC ? "UUa" : "UUb" } },
   topicDetails: { topicCategories: id === UC ? ["https://en.wikipedia.org/wiki/Physical_fitness"] : [] },
@@ -56,7 +59,10 @@ const fakeYouTube = http.createServer((req, res) => {
   res.setHeader("Content-Type", "application/json");
   if (req.headers["x-goog-api-key"] !== "test-key") { res.statusCode = 403; return res.end(JSON.stringify({ error: { errors: [{ reason: "keyInvalid" }] } })); }
 
-  if (url.pathname.endsWith("/search")) return res.end(JSON.stringify({ items: [{ id: { channelId: UC } }, { id: { channelId: UC_B } }] }));
+  if (url.pathname.endsWith("/search")) {
+    if (url.searchParams.get("pageToken") === "PAGE2") return res.end(JSON.stringify({ items: [{ id: { channelId: UC_C } }] }));
+    return res.end(JSON.stringify({ items: [{ id: { channelId: UC } }, { id: { channelId: UC_B } }], nextPageToken: "PAGE2" }));
+  }
 
   if (url.pathname.endsWith("/playlistItems")) {
     if (url.searchParams.get("playlistId") !== "UUa") return res.end(JSON.stringify({ items: [] }));
@@ -76,7 +82,8 @@ const fakeYouTube = http.createServer((req, res) => {
     const ids = (url.searchParams.get("id") || "").split(",").filter(Boolean);
     const list = ids.length === 0 ? [UC] : ids;
     return res.end(JSON.stringify({ items: list.map(id => id === UC
-      ? channel(id, "Fit India", DESCRIPTION, { customUrl: "@fitindia" })
+      ? channel(id, "Fit India", DESCRIPTION, { customUrl: "@fitindia", lang: "hi" })
+      : id === UC_C ? channel(id, "Third Channel", "Third one", { country: "IN" })
       : channel(id, "Quiet Channel", "Contact: team@gmail.com", { hidden: true, country: "US" })) }));
   }
   res.statusCode = 404; res.end("{}");
@@ -86,6 +93,7 @@ const fakeSite = http.createServer((req, res) => {
   siteHits.push(req.url);
   res.setHeader("Content-Type", req.url === "/robots.txt" ? "text/plain" : "text/html");
   if (req.url === "/robots.txt") return res.end(["User-agent: *", "Disallow: /secret"].join(NL));
+  if (req.url === "/tg/fitindia_official") return res.end('<html><head><meta property="og:description" content="Business enquiries: tg-biz@fitindia.test or call +91 99999 88888"></head><body></body></html>');
   if (req.url === "/shop") return res.end("<html><body><h1>Fit India shop</h1><p>Buy things.</p></body></html>");
   if (req.url === "/contact") return res.end('<html><body><a href="mailto:booking@fitindia.test?subject=Hi">Book us</a> <a href="tel:+919000011111">Call</a> sales [at] fitindia [dot] test</body></html>');
   res.statusCode = 404; res.end("not found");
@@ -100,7 +108,10 @@ function cleanup() {
     del("DELETE FROM registered_users WHERE email = ?", e);
     del("DELETE FROM datapal_credits WHERE account_email = ?", e);
     del("DELETE FROM youtube_saved WHERE business_id = ?", "biz_" + e.replace(/[^a-zA-Z0-9]/g, "_"));
+    del("DELETE FROM outreach_log WHERE user_email = ?", e);
   }
+  del("DELETE FROM email_suppressions WHERE email IN (?, ?)", "hello@fitindia.test", "team@gmail.com");
+  del("DELETE FROM outreach_log WHERE to_email IN (?, ?)", "hello@fitindia.test", "team@gmail.com");
   del("DELETE FROM youtube_cache");
   del("DELETE FROM youtube_usage");
 }
@@ -132,6 +143,8 @@ try {
   t.check("the key goes in a header, not the web address", calls.every(x => x.key === "test-key"));
   t.check("niche tags come from the channel's own keywords", JSON.stringify(c?.keywords) === JSON.stringify(["fitness", "home workouts", "yoga"]));
   t.check("topics come from YouTube's topic list", c?.topics?.includes("Physical fitness"));
+  t.check("the channel's language is named", c?.language === "Hindi", String(c?.language));
+  t.check("social profiles linked in the description are listed", c?.socials?.some(x => x.platform === "Instagram" && x.handle === "@fitindia") && c?.socials?.some(x => x.platform === "Telegram" && x.handle === "@fitindia_official"));
 
   const act = c?.activity;
   t.check("the channel is marked active (last upload 5 days ago)", act?.status === "active");
@@ -152,6 +165,8 @@ try {
     t.check("an email written as 'name [at] site [dot] test' is found", c?.emails?.some(e => e.value === "sales@fitindia.test"));
     t.check("a phone number from a tel: link on the website is added", c?.phones?.some(p => p.value === "+91 90000 11111"));
     t.check("pages the site disallows were not opened", !siteHits.includes("/secret"));
+    t.check("the creator's public Telegram bio was read for an email", c?.emails?.some(e => e.value === "tg-biz@fitindia.test" && e.source === "Telegram @fitindia_official"));
+    t.check("and for a phone number", c?.phones?.some(p => p.value === "+91 99999 88888"));
   } else {
     t.check("the website on this computer was NOT opened (private addresses are blocked)", siteHits.length === 0, JSON.stringify(siteHits));
     t.check("so nothing from it was added", !c?.emails?.some(e => e.source !== "Description"));
@@ -174,6 +189,10 @@ try {
   t.check("a free-mail address is labelled personal", quiet?.emails?.[0]?.kind === "business" || quiet?.emails?.[0]?.kind === "personal");
   t.check("a channel with no uploads has no activity numbers", !quiet?.activity || quiet.activity.sampled === 0);
   t.check("a channel with no phone listed has an empty phone list", quiet?.phones?.length === 0);
+  t.check("a keyword search says there are more results", search.json?.nextPageToken === "PAGE2");
+  const more = await ask({ query: "fitness creators india", pageToken: "PAGE2" });
+  t.check("'load more' returns the next channels", more.status === 200 && more.json?.results?.length === 1 && more.json.results[0].channelId === UC_C);
+  t.check("and has no further page", !more.json?.nextPageToken);
 
   // a list of channels
   const bulkBefore = await credits();
@@ -211,6 +230,47 @@ try {
     JSON.stringify(Object.keys(db.prepare("SELECT * FROM youtube_saved LIMIT 1").get() || {}).sort()) === JSON.stringify(["business_id", "channel_id", "note", "saved_at", "status"]));
   await call("/api/datapal/youtube/saved", { method: "DELETE", cookie, body: { channelId: UC } });
   t.check("a saved channel can be removed", !(await call("/api/datapal/youtube/saved", { cookie })).json?.items?.some(i => i.channelId === UC));
+
+  // ---------- emailing a creator (needs the app started with SMTP_* pointing at the test mail server, and MAIL_SINK) ----------
+  if (process.env.MAIL_SINK) {
+    const { readFileSync } = await import("node:fs");
+    const sink = () => readFileSync(process.env.MAIL_SINK, "utf8").split("=" + NL).join("").replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+    const send = body => call("/api/datapal/youtube/outreach", { method: "POST", cookie, body });
+    const good = { channelId: UC, to: "hello@fitindia.test", subject: "Collaboration idea", body: "Hi, we sell protein for gym-goers and would love to work with you. Could we talk this week?", confirm: true };
+
+    t.check("outreach: not signed in -> 401", (await call("/api/datapal/youtube/outreach", { method: "POST", body: good })).status === 401);
+    t.check("outreach: needs the confirmation tick", (await send({ ...good, confirm: false })).status === 400);
+    t.check("outreach: refuses an address that was not found for the creator", (await send({ ...good, to: "someone.else@example.test" })).status === 400);
+    t.check("outreach: refuses a very short message", (await send({ ...good, body: "Hi" })).status === 400);
+    t.check("outreach: refuses too many links", (await send({ ...good, body: "Look at http://a.test http://b.test http://c.test http://d.test please reply soon" })).status === 400);
+
+    const sent = await send(good);
+    t.check("outreach: an email to a found address is sent", sent.status === 200 && sent.json?.success === true, JSON.stringify(sent.json));
+    await new Promise(r => setTimeout(r, 800));
+    const mail = sink();
+    t.check("outreach: it went to the creator's address", mail.includes("RCPT TO:<hello@fitindia.test>"));
+    t.check("outreach: replies go to the sender", mail.includes("Reply-To: " + USER) || mail.includes("Reply-To: <" + USER + ">"));
+    t.check("outreach: it is sent in the sender's name 'via BizzPal'", /From: .*via BizzPal/i.test(mail));
+    t.check("outreach: it says who sent it and has an unsubscribe link", mail.includes("written and sent by") && mail.includes("/api/outreach/unsubscribe?t="));
+    t.check("outreach: it carries the one-click unsubscribe header", mail.includes("List-Unsubscribe-Post: List-Unsubscribe=One-Click"));
+    t.check("outreach: the same address cannot be emailed again within two weeks", (await send(good)).status === 409);
+    t.check("outreach: the creator is marked as contacted in the saved list",
+      (await call("/api/datapal/youtube/saved", { cookie })).json?.items?.find(i => i.channelId === UC)?.status === "contacted");
+
+    // unsubscribe: another found address, then it is never emailed again
+    const other = { ...good, channelId: UC_B, to: "team@gmail.com" };
+    t.check("outreach: a second creator can be emailed", (await send(other)).status === 200);
+    await new Promise(r => setTimeout(r, 800));
+    const links = Array.from(sink().matchAll(/unsubscribe[?]t=([A-Za-z0-9_.-]+)/g));
+    const token = links[links.length - 1]?.[1];
+    t.check("outreach: a tampered unsubscribe link is refused", (await fetch(BASE_URL + "/api/outreach/unsubscribe?t=" + token + "x")).status === 400);
+    t.check("outreach: the real unsubscribe link works", (await fetch(BASE_URL + "/api/outreach/unsubscribe?t=" + token)).status === 200);
+    db.prepare("DELETE FROM outreach_log WHERE to_email = ?").run("team@gmail.com");
+    const blocked = await send(other);
+    t.check("outreach: after unsubscribing, that address is never emailed again", blocked.status === 409 && /not to be emailed/.test(blocked.json?.error || ""), JSON.stringify(blocked.json));
+  } else {
+    console.log("SKIP outreach email checks (set MAIL_SINK and start the app with SMTP_* pointing at the test mail server)");
+  }
 
   db.prepare("INSERT INTO datapal_credits (account_email, used, addon, updated_at) VALUES (?, 100000, 0, ?) ON CONFLICT(account_email) DO UPDATE SET used = 100000").run(USER, new Date().toISOString());
   t.check("with no records left it asks to buy more (402)", (await ask({ query: "@fitindia" })).status === 402);

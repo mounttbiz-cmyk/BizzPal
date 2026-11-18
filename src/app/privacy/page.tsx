@@ -152,6 +152,7 @@ const SECTIONS: LegalSection[] = [
     blocks: [
       { type: "p", text: "The Service may link to websites or tools operated by third parties. Their privacy practices are governed by their own notices. Review those notices before sharing information with them. BizzPal is not responsible for privacy practices of services it does not operate." },
       { type: "p", text: "DataPal can look up public YouTube channel information through YouTube API Services. That information is saved for a short time (up to a few days) so repeat lookups are quick, and is then deleted. By using the YouTube lookup you also agree to the YouTube Terms of Service (https://www.youtube.com/t/terms), and Google’s Privacy Policy (https://policies.google.com/privacy) applies to that data." },
+      { type: "p", text: "If you email a creator or business from BizzPal, the message is sent from BizzPal’s email system in your name, with your email address as the reply address. We keep a record of the recipient, subject and time to enforce sending limits and prevent abuse. People who receive these emails can unsubscribe with one click, and we will not email an unsubscribed address through BizzPal again." },
     ],
   },
   {
