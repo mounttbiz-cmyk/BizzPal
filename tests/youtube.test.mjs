@@ -22,10 +22,23 @@ const OTHER = `yt_other_${Date.now()}@example.test`;
 const UC = "UC" + "a".repeat(22);
 const UC_B = "UC" + "b".repeat(22);
 const UC_C = "UC" + "c".repeat(22);
+const UC_M = "UC" + "m".repeat(22); // has a manager
+const UC_BZ = "UC" + "z".repeat(22); // has a business address and a personal one, no manager
 const VIDEO_OF_A = "aaaaaaaaaaa";
 const calls = [];
 const siteHits = [];
 const daysAgo = d => new Date(Date.now() - d * 86_400_000).toISOString();
+
+const NL0 = String.fromCharCode(10);
+const MANAGED_DESCRIPTION = [
+  "Business enquiries: ceo-personal@gmail.test",
+  "Management: Night Media - mgmt@nightmedia.test +91 90000 22222",
+  "Instagram https://instagram.com/bigstar",
+].join(NL0);
+const BUSINESS_DESCRIPTION = [
+  "For business enquiries: biz@bigcreator.test",
+  "My personal address: me@gmail.test",
+].join(NL0);
 
 const DESCRIPTION = [
   "Business: Hello@FitIndia.test.",
@@ -83,6 +96,8 @@ const fakeYouTube = http.createServer((req, res) => {
     const list = ids.length === 0 ? [UC] : ids;
     return res.end(JSON.stringify({ items: list.map(id => id === UC
       ? channel(id, "Fit India", DESCRIPTION, { customUrl: "@fitindia", lang: "hi" })
+      : id === UC_M ? channel(id, "Big Creator", MANAGED_DESCRIPTION, { customUrl: "@bigstar" })
+      : id === UC_BZ ? channel(id, "Business Creator", BUSINESS_DESCRIPTION, { customUrl: "@bizcreator" })
       : id === UC_C ? channel(id, "Third Channel", "Third one", { country: "IN" })
       : channel(id, "Quiet Channel", "Contact: team@gmail.com", { hidden: true, country: "US" })) }));
   }
@@ -177,6 +192,20 @@ try {
   t.check("the same channel again comes from the saved copy (no new YouTube call)", again.status === 200 && again.json?.results?.length === 1 && calls.length === callsBefore);
   t.check("a channel that does not exist returns nothing", (await ask({ query: "@nobody" })).json?.results?.length === 0);
   t.check("lookup by channel ID works", (await ask({ query: UC })).json?.results?.[0]?.channelId === UC);
+
+  // a creator who lists a manager: only the manager is shown
+  const managed = (await ask({ query: UC_M })).json?.results?.[0];
+  t.check("a named manager's email is shown", managed?.emails?.some(e => e.value === "mgmt@nightmedia.test" && e.role === "manager" && e.label === "Management"));
+  t.check("a named manager's phone number is shown", managed?.phones?.some(p => p.value === "+91 90000 22222" && p.role === "manager"));
+  t.check("when there is a manager, the creator's other emails are hidden", managed?.emails?.length === 1 && !managed.emails.some(e => e.value === "ceo-personal@gmail.test"));
+  t.check("the card is marked as a management contact, with the agency name the creator wrote", managed?.management?.name === "Night Media", JSON.stringify(managed?.management));
+
+  // a creator with a business address but no manager: business first, nothing hidden
+  const biz = (await ask({ query: UC_BZ })).json?.results?.[0];
+  t.check("with no manager the card is not marked as management", biz?.management === null);
+  t.check("a business-labelled address comes first, with the creator's own label", biz?.emails?.[0]?.value === "biz@bigcreator.test" && biz.emails[0].role === "business" && biz.emails[0].label === "Business enquiries");
+  t.check("and the personal address is still shown after it", biz?.emails?.some(e => e.value === "me@gmail.test" && !e.role));
+  t.check("a creator who lists nothing gets no invented manager", c?.management === null);
 
   const byVideo = await ask({ query: `https://youtu.be/${VIDEO_OF_A}` });
   t.check("a video link finds the channel that made it", byVideo.status === 200 && byVideo.json?.results?.[0]?.channelId === UC);

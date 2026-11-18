@@ -2,7 +2,7 @@ import dns from "node:dns";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
-import { extractEmails, extractPhones, extractSocials, isFollowable, mergeContacts, type Contact, type Social } from "@/lib/datapal/contacts";
+import { extractLabelled, extractSocials, isFollowable, mergeContacts, type Contact, type Social } from "@/lib/datapal/contacts";
 
 /**
  * Reads the public website or link page a creator put in their channel description, and picks out the contact
@@ -149,21 +149,27 @@ async function allowedByRobots(url: URL): Promise<boolean> {
 function visibleText(html: string): string {
   return html
     .replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, " ")
+    // keep line breaks, so a label stays on the same line as the contact it belongs to
+    .replace(/<\/(p|div|li|tr|h[1-6]|section|article|ul|ol|td)>|<br\s*\/?>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
     .replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/&#0*64;|&commat;/g, "@").replace(/&#43;/g, "+")
-    .replace(/\s+/g, " ");
+    .replace(/[ \t\r\f]+/g, " ")
+    .replace(/ ?\n ?/g, "\n")
+    .replace(/\n{2,}/g, "\n");
 }
 
 function pageContacts(html: string, source: string): { emails: Contact[]; phones: Contact[]; socials: Social[] } {
   const hrefs = Array.from(html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)).map(m => m[1].replace(/&amp;/g, "&"));
-  const fromLinks = hrefs.filter(h => /^(mailto:|tel:)/i.test(h) || /wa\.me|whatsapp\.com/i.test(h)).join(" ");
-  const mailtos = hrefs.filter(h => /^mailto:/i.test(h)).map(h => decodeURIComponent(h.slice(7).split("?")[0]));
-  const tels = hrefs.filter(h => /^tel:/i.test(h)).map(h => decodeURIComponent(h.slice(4)));
-  const text = visibleText(html);
-  const emails = extractEmails([...mailtos, text].join(" "));
-  const phones = extractPhones([...tels, fromLinks, text].join(" "));
+  // Put each mail and call link's address right after its text ("Book us booking@..."), so the label before it still applies
+  const withLinks = html.replace(/<a\b[^>]*href\s*=\s*["'](mailto:|tel:)([^"'?]+)[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi, (_, kind: string, target: string, label: string) => {
+    let address = target;
+    try { address = decodeURIComponent(target); } catch {}
+    return ` ${label} ${address} `;
+  });
+  const fromLinks = hrefs.filter(h => /wa\.me|whatsapp\.com/i.test(h)).join("\n");
+  const found = extractLabelled(`${visibleText(withLinks)}\n${fromLinks}`, source);
   const absolute = hrefs.filter(h => /^https?:\/\//i.test(h));
-  return { emails: emails.map(value => ({ value, source })), phones: phones.map(value => ({ value, source })), socials: extractSocials(absolute) };
+  return { emails: found.emails, phones: found.phones, socials: extractSocials(absolute) };
 }
 
 const CONTACT_PATHS = ["/contact", "/contact-us", "/about"];
@@ -222,10 +228,7 @@ export async function readTelegramBio(handle: string): Promise<{ emails: Contact
     const meta = /<meta property="og:description" content="([^"]*)"/i.exec(page.body)?.[1] || "";
     const bio = /<div class="tgme_page_description[^"]*"[^>]*>([\s\S]*?)<\/div>/i.exec(page.body)?.[1] || "";
     const text = visibleText(`${meta} ${bio}`.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">"));
-    return {
-      emails: extractEmails(text).map(value => ({ value, source: `Telegram @${name}` })),
-      phones: extractPhones(text).map(value => ({ value, source: `Telegram @${name}` })),
-    };
+    return extractLabelled(text, `Telegram @${name}`);
   } catch {
     return { emails: [], phones: [] };
   }

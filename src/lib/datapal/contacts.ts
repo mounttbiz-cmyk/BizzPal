@@ -8,6 +8,10 @@ export interface Contact {
   kind?: "business" | "personal" | "named";
   /** Emails only: whether the address's domain can receive mail (null = could not be checked) */
   deliverable?: boolean | null;
+  /** "manager": written next to words like Management, Agent, Agency or Represented by. "business": next to Business, Collab, Booking... */
+  role?: "manager" | "business";
+  /** The label the creator used, for example "Management" or "Business enquiries" */
+  label?: string;
 }
 
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;
@@ -87,12 +91,19 @@ export function mergeContacts(...groups: Contact[][]): Contact[] {
   const out: Contact[] = [];
   for (const group of groups) {
     for (const c of group) {
-      if (seen.has(c.value)) continue;
+      if (seen.has(c.value)) {
+        const existing = out.find(x => x.value === c.value);
+        if (existing && c.role && (!existing.role || (c.role === "manager" && existing.role !== "manager"))) {
+          existing.role = c.role;
+          existing.label = c.label;
+        }
+        continue;
+      }
       seen.add(c.value);
       out.push(c);
     }
   }
-  return out.slice(0, 8);
+  return out.slice(0, 12);
 }
 
 // ---------------------------------------------------------------- social profiles
@@ -164,4 +175,94 @@ export function languageName(code: string | null | undefined): string | null {
   } catch {
     return base;
   }
+}
+
+// ---------------------------------------------------------------- who the contact is for
+
+const MANAGER_WORDS = /(manager|management|mgmt|managed by|\bagent\b|agency|represented by|representation|talent)/i;
+const BUSINESS_WORDS = /(business|collab|booking|sponsor|promo|partnership|brand deal|brand enquir|\bpr\b|press|enquir|inquir|advertis|work with)/i;
+
+function businessLabel(before: string): string {
+  if (/booking/i.test(before)) return "Bookings";
+  if (/collab/i.test(before)) return "Collaborations";
+  if (/sponsor|promo|brand/i.test(before)) return "Brand deals";
+  if (/\bpr\b|press/i.test(before)) return "PR";
+  return "Business enquiries";
+}
+
+/**
+ * Finds emails and phone numbers in text and, where the creator wrote a label right before one, says what it is for.
+ * Only the creator's own words are used: a contact with no label next to it has no role.
+ */
+export function extractLabelled(rawText: string, source: string): { emails: Contact[]; phones: Contact[] } {
+  const text = undoObfuscation(rawText);
+  type Hit = { kind: "email" | "phone"; value: string; start: number; end: number };
+  const hits: Hit[] = [];
+
+  for (const m of Array.from(text.matchAll(EMAIL))) {
+    const value = m[0].replace(/[.,;:!?]+$/, "").toLowerCase();
+    const [local, domain] = value.split("@");
+    if (/\.(png|jpe?g|gif|webp|svg|css|js)$/.test(value) || PLACEHOLDER_DOMAINS.test(domain) || PLACEHOLDER_NAMES.test(local)) continue;
+    hits.push({ kind: "email", value, start: m.index ?? 0, end: (m.index ?? 0) + m[0].length });
+  }
+  for (const re of [WITH_PLUS, INDIAN_MOBILE]) {
+    for (const m of Array.from(text.matchAll(re))) {
+      const value = normalizePhone(m[0]);
+      if (value) hits.push({ kind: "phone", value, start: m.index ?? 0, end: (m.index ?? 0) + m[0].length });
+    }
+  }
+  for (const m of Array.from(text.matchAll(WHATSAPP_LINK))) {
+    const value = normalizePhone(m[1].length === 10 ? m[1] : "+" + m[1]);
+    if (value) hits.push({ kind: "phone", value, start: m.index ?? 0, end: (m.index ?? 0) + m[0].length });
+  }
+  hits.sort((a, b) => a.start - b.start);
+
+  const emails: Contact[] = [];
+  const phones: Contact[] = [];
+  let prevEnd = 0;
+  let prev: Contact | null = null;
+  for (const h of hits) {
+    // The label has to be on the same line, between the previous contact and this one
+    const lineStart = text.lastIndexOf("\n", h.start) + 1;
+    const before = text.slice(Math.max(prevEnd, lineStart, h.start - 90), h.start);
+    const between = text.slice(prevEnd, h.start);
+    prevEnd = Math.max(prevEnd, h.end);
+    const contact: Contact = { value: h.value, source };
+    if (MANAGER_WORDS.test(before)) {
+      contact.role = "manager";
+      contact.label = "Management";
+    } else if (BUSINESS_WORDS.test(before)) {
+      contact.role = "business";
+      contact.label = businessLabel(before);
+    } else if (prev?.role && !between.includes("\n") && /^[\s,;|/&:.-]*(or|and|call|whatsapp|phone|tel|mobile|ph)?[\s,;|/&:.-]*$/i.test(between)) {
+      // "Management: Name - mgmt@x.com +91 90000 22222": the number belongs to the same contact as the email before it
+      contact.role = prev.role;
+      contact.label = prev.label;
+    }
+    prev = contact;
+    const list = h.kind === "email" ? emails : phones;
+    const existing = list.find(c => c.value === contact.value);
+    if (!existing) list.push(contact);
+    else if (contact.role && !existing.role) { existing.role = contact.role; existing.label = contact.label; }
+  }
+  return { emails: emails.slice(0, 8), phones: phones.slice(0, 8) };
+}
+
+/** "Managed by Night Media" gives "Night Media". Only returns a name when the creator wrote one right after such words. */
+export function findAgencyName(text: string): string | null {
+  const m = /(?:managed by|represented by|management|talent management|agency|mgmt)\s*[:\-\u2013\u2014]?\s+([A-Z][A-Za-z0-9&.' ]{1,38}?)(?=\s*(?:[\n,;|(<]|https?:|[A-Za-z0-9._%+-]+@|$|\s-\s))/i.exec(text);
+  const name = m?.[1]?.trim();
+  if (!name || !/^[A-Z]/.test(name) || /^(contact|email|e-mail|mail|inquiries|enquiries|business|only|for|at|is|please|info)\b/i.test(name)) return null;
+  return name;
+}
+
+/**
+ * When a creator names a manager or agency, only that contact is shown: it is the one they want used.
+ * Otherwise contacts labelled for business come first and nothing is hidden.
+ */
+export function prioritiseContacts(emails: Contact[], phones: Contact[]): { emails: Contact[]; phones: Contact[]; management: boolean } {
+  const hasManager = [...emails, ...phones].some(c => c.role === "manager");
+  if (hasManager) return { emails: emails.filter(c => c.role === "manager"), phones: phones.filter(c => c.role === "manager"), management: true };
+  const rank = (c: Contact) => (c.role === "business" ? 0 : 1);
+  return { emails: [...emails].sort((a, b) => rank(a) - rank(b)), phones: [...phones].sort((a, b) => rank(a) - rank(b)), management: false };
 }

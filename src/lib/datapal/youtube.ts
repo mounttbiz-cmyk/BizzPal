@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { extractEmails, extractPhones, extractSocials, languageFromScript, languageName, mergeContacts, type Contact, type Social } from "@/lib/datapal/contacts";
+import { extractLabelled, extractSocials, findAgencyName, languageFromScript, languageName, mergeContacts, prioritiseContacts, type Contact, type Social } from "@/lib/datapal/contacts";
 import { readCreatorSites, readTelegramBio } from "@/lib/datapal/contactPages";
 import { annotateEmails } from "@/lib/datapal/emailCheck";
 
@@ -48,10 +48,15 @@ export interface YouTubeChannel {
   /** The topics the creator tagged the channel with */
   keywords: string[];
   topics: string[];
-  /** Written in the description, or found on the creator's own website */
+  /**
+   * Written in the description, or found on the creator's own website or Telegram. When the creator names a manager or
+   * agency, these are that contact only.
+   */
   emails: Contact[];
   phones: Contact[];
   links: Array<{ url: string; label: string }>;
+  /** Set when the contacts above are the creator's manager or agency. `name` is the agency, when the creator wrote one */
+  management: { name: string | null } | null;
   /** Instagram, Telegram, X, Facebook and LinkedIn profiles the creator links to */
   socials: Social[];
   /** The language the channel is in, as a readable name (for example Hindi). null when it cannot be told */
@@ -76,7 +81,7 @@ export class YouTubeError extends Error {
 const API_BASE = () => (process.env.YOUTUBE_API_BASE || "https://www.googleapis.com/youtube/v3").replace(/\/+$/, "");
 const CACHE_HOURS = 24;
 const DAILY_UNITS = () => Number(process.env.YOUTUBE_DAILY_UNITS) || 9000;
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 
 export const youtubeConfigured = () => Boolean(process.env.YOUTUBE_API_KEY);
 
@@ -175,8 +180,9 @@ function toChannel(item: any): YouTubeChannel {
     description: description.slice(0, 600),
     keywords: keywordList(item.brandingSettings?.channel?.keywords),
     topics: topicList(item.topicDetails?.topicCategories),
-    emails: extractEmails(description).map(value => ({ value, source: "Description" })),
-    phones: extractPhones(description).map(value => ({ value, source: "Description" })),
+    emails: extractLabelled(description, "Description").emails,
+    phones: extractLabelled(description, "Description").phones,
+    management: null,
     links: extractLinks(description),
     socials: extractSocials(extractLinks(description).map(l => l.url)),
     language: languageName(s.defaultLanguage) || languageName(languageFromScript(`${s.title || ""} ${description}`)),
@@ -281,6 +287,11 @@ async function addActivity(channel: YouTubeChannel, uploadsPlaylist: string | un
 /** Everything extra we work out for a channel the first time it is fetched. */
 async function enrich(channel: YouTubeChannel, uploadsPlaylist: string | undefined): Promise<void> {
   await Promise.all([addSiteContacts(channel), addActivity(channel, uploadsPlaylist)]);
+  // A named manager or agency is the contact to use, so only that one is kept
+  const ranked = prioritiseContacts(channel.emails, channel.phones);
+  channel.emails = ranked.emails;
+  channel.phones = ranked.phones;
+  channel.management = ranked.management ? { name: findAgencyName(channel.description) } : null;
   channel.emails = await annotateEmails(channel.emails);
 }
 

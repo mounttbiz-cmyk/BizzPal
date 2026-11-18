@@ -8,6 +8,8 @@ export interface YtContact {
   source: string;
   kind?: "business" | "personal" | "named";
   deliverable?: boolean | null;
+  role?: "manager" | "business";
+  label?: string;
 }
 
 export interface YtChannel {
@@ -26,6 +28,7 @@ export interface YtChannel {
   phones: YtContact[];
   links: Array<{ url: string; label: string }>;
   socials: Array<{ platform: string; url: string; handle: string | null }>;
+  management: { name: string | null } | null;
   language: string | null;
   activity: {
     lastUploadAt: string | null;
@@ -204,9 +207,16 @@ export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave,
         <Stat label="Last upload" value={ago(a?.lastUploadAt)} />
       </div>
 
+      {c.management && (
+        <div className="rounded-xl border border-brass/40 bg-brass/5 px-4 py-3 text-sm text-text">
+          <span className="font-medium">Management contact{c.management.name ? `: ${c.management.name}` : ""}.</span>{" "}
+          <span className="text-text-muted">This creator lists a manager or agency, so only that contact is shown.</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-xl bg-surface-2/60 border border-line p-4">
-          <p className="text-xs font-medium text-text-muted mb-2">Email</p>
+          <p className="text-xs font-medium text-text-muted mb-2">{c.management ? "Management email" : "Email"}</p>
           {c.emails.length > 0 ? (
             <ul className="space-y-2.5">
               {c.emails.map(m => (
@@ -223,8 +233,8 @@ export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave,
                     </span>
                   </div>
                   <p className="text-xs text-text-muted">
-                    From {m.source === "Description" ? "the channel description" : m.source}
-                    {m.kind === "business" ? " · Business address" : m.kind === "personal" ? " · Personal address" : ""}
+                    {m.label ? `${m.label} · ` : ""}From {m.source === "Description" ? "the channel description" : m.source}
+                    {m.kind === "business" ? " · Role address" : m.kind === "personal" ? " · Personal address" : ""}
                   </p>
                   {m.deliverable === true && <p className="text-xs text-jade">Domain can receive email</p>}
                   {m.deliverable === false && <p className="text-xs text-rust">This domain cannot receive email. Check the spelling.</p>}
@@ -232,12 +242,12 @@ export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave,
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-text-muted">No email found. Many channels keep it behind YouTube&apos;s &ldquo;View email address&rdquo; button, which can&apos;t be read here.</p>
+            <p className="text-sm text-text-muted">{c.management ? "The manager's email is not listed." : "No email found. Many channels keep it behind YouTube&apos;s “View email address” button, which can&apos;t be read here."}</p>
           )}
         </div>
 
         <div className="rounded-xl bg-surface-2/60 border border-line p-4">
-          <p className="text-xs font-medium text-text-muted mb-2">Phone / WhatsApp</p>
+          <p className="text-xs font-medium text-text-muted mb-2">{c.management ? "Management phone / WhatsApp" : "Phone / WhatsApp"}</p>
           {c.phones.length > 0 ? (
             <ul className="space-y-2.5">
               {c.phones.map(m => (
@@ -251,12 +261,12 @@ export function YouTubeChannelCard({ channel: c, fit, fitLoading, saved, onSave,
                       </button>
                     </span>
                   </div>
-                  <p className="text-xs text-text-muted">From {m.source === "Description" ? "the channel description" : m.source}</p>
+                  <p className="text-xs text-text-muted">{m.label ? `${m.label} · ` : ""}From {m.source === "Description" ? "the channel description" : m.source}</p>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-text-muted">No phone number found.</p>
+            <p className="text-sm text-text-muted">{c.management ? "The manager's number is not listed." : "No phone number found."}</p>
           )}
         </div>
 
