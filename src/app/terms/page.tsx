@@ -12,7 +12,7 @@ const SECTIONS: LegalSection[] = [
   {
     title: "1. What the Service does",
     blocks: [
-      { type: "p", text: "BizzPal provides AI-assisted guidance intended to help people think through business questions. Topics may include business roles and responsibilities, staffing, operational processes, technology choices, planning, and general information about legal or regulatory requirements. The Service may generate explanations, examples, checklists, suggested questions, and other responses from information supplied by you and from sources available to the system." },
+      { type: "p", text: "BizzPal provides AI-assisted guidance intended to help people think through business questions. Topics may include business roles and responsibilities, staffing, operational processes, technology choices, planning, and general information about legal or regulatory requirements. The Service may generate explanations, examples, checklists, suggested questions, and other responses from information supplied by you and from sources available to the system. The Service also includes business-management tools that work from the figures you enter or upload (such as dashboards, calculators, gap checks and forecasts), shared workspaces for your team, a daily email briefing, optional connections to services you choose (such as Google Drive, Slack, Razorpay and Stripe), and DataPal, which finds publicly available business details and YouTube channel information and lets you contact the people it finds." },
       { type: "p", text: "Features, availability, supported languages, usage limits, and outputs may vary by plan and may change over time. Any plan-specific limits, included usage, and feature descriptions shown during purchase form part of the applicable plan offer." },
     ],
   },
@@ -28,7 +28,8 @@ const SECTIONS: LegalSection[] = [
     title: "3. Accounts and eligibility",
     blocks: [
       { type: "p", text: "You must be at least 18 years old and legally able to enter into a contract to create an account or purchase a plan. You must provide accurate account information, keep it current, protect your login credentials, and promptly tell us if you suspect unauthorised access. You are responsible for activity carried out through your account, except to the extent caused by our failure to meet a non-excludable legal duty." },
-      { type: "p", text: "If the Service is used by multiple people under an organisation account, the account owner is responsible for assigning access appropriately and ensuring that authorised users comply with these Terms." },
+      { type: "p", text: "If the Service is used by multiple people under an organisation account, the account owner is responsible for assigning access appropriately and ensuring that authorised users comply with these Terms. The account owner decides what each invited teammate can open and can remove a teammate at any time. Teammates act under the owner's workspace, and the owner is responsible for what they do in it." },
+      { type: "p", text: "Figures such as forecasts, health scores and runway are worked out only from information you have entered or uploaded. If you have not entered a figure, BizzPal does not estimate it. You are responsible for the accuracy of what you enter, and the results are not a financial or accounting statement." },
     ],
   },
   {
@@ -57,6 +58,9 @@ const SECTIONS: LegalSection[] = [
           "use BizzPal’s email feature to send bulk, unsolicited, deceptive, or unlawful messages, or to contact anyone who has asked not to be contacted.",
         ],
       },
+      { type: "h3", text: "5.1 DataPal and outreach emails" },
+      { type: "p", text: "DataPal results are provided for genuine business contact. When you use BizzPal to email a creator or business, you confirm that you are allowed to contact them, that the message is truthful and not misleading, and that it is not spam. You must not use another sender's name, hide who you are, or keep contacting anyone who has asked you to stop. Emails are sent in your name and replies go to your own email address. BizzPal adds a line saying who sent the message and an unsubscribe link, and will not email an address that has unsubscribed. We limit the number of emails you can send each day and do not allow the same address to be emailed more than once every two weeks. You are responsible for complying with anti-spam, consent, marketing and data-protection laws that apply to your messages." },
+      { type: "p", text: "DataPal records and credits: each channel or business found uses one DataPal record from your allowance, including when you search the same channel again. We show only details that the person or their management has published, and we do not promise that any particular email address or phone number will be found or still works." },
       { type: "p", text: "We may investigate suspected misuse and take proportionate action, including restricting access, removing content, or suspending an account, subject to applicable law and the procedures described in these Terms." },
     ],
   },
@@ -90,7 +94,7 @@ const SECTIONS: LegalSection[] = [
   {
     title: "9. Third-party services",
     blocks: [
-      { type: "p", text: "The Service may rely on or link to third-party AI models, payment services, hosting, analytics, or other tools. Third-party services are governed by their own terms and privacy notices. We are not responsible for third-party services outside our reasonable control. We will remain responsible for our own obligations under applicable law." },
+      { type: "p", text: "The Service may rely on or link to third-party AI models, payment services, hosting, email delivery, Slack, Google, Microsoft, or other tools. Third-party services are governed by their own terms and privacy notices. We are not responsible for third-party services outside our reasonable control. We will remain responsible for our own obligations under applicable law." },
       { type: "p", text: "Where the Service shows YouTube channel information through YouTube API Services, you are also bound by the YouTube Terms of Service (https://www.youtube.com/t/terms), and Google’s Privacy Policy (https://policies.google.com/privacy) applies to that data." },
     ],
   },
@@ -165,7 +169,7 @@ export default function TermsPage() {
       badge="Terms of service"
       title="Terms & Conditions"
       subtitle="Terms for using the bizzpal.ai AI business-guidance service"
-      facts={["Effective Date: 16 November 2026 | Last Updated: 18 November 2026", "Website: https://bizzpal.ai", `Operator: ${OPERATOR}`, "Support & Grievance Email: care@bizzpal.ai"]}
+      facts={["Effective Date: 16 November 2026 | Last Updated: 18 November 2026 (version 3)", "Website: https://bizzpal.ai", `Operator: ${OPERATOR}`, "Support & Grievance Email: care@bizzpal.ai"]}
       intro={[
         `These Terms & Conditions (“Terms”) govern access to and use of bizzpal.ai, including its website, AI-powered business guidance, account features, paid plans, and related services (together, the “Service”). The Service is operated by ${OPERATOR}, whose registered office is at ${OFFICE} (“BizzPal,” “we,” “us,” or “our”).`,
         "By creating an account, purchasing a plan, or using the Service, you agree to these Terms. If you use the Service for a company or other organisation, you confirm that you are authorised to accept these Terms for that organisation, and “you” includes that organisation.",

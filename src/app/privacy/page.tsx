@@ -18,7 +18,8 @@ const SECTIONS: LegalSection[] = [
         items: [
           "Account and contact details, such as your name, email address, organisation, login details, and preferences.",
           "Questions, prompts, business descriptions, files, notes, and other material you submit, as well as AI-generated responses and conversation history. These may contain personal or confidential information if you choose to include it.",
-          "Business details and figures you enter or upload, such as your company name, industry, GSTIN, website, team members you invite, and spreadsheets or documents you import.",
+          "Business details and figures you enter or upload, such as your company name, industry, GSTIN, website, team members you invite (including their email addresses and roles), and spreadsheets or documents you import.",
+          "Notes, statuses and lists you save in the Service, such as saved DataPal creators and your notes on them.",
           "Support messages, feedback, survey responses, and information you provide when you contact us.",
         ],
       },
@@ -27,12 +28,15 @@ const SECTIONS: LegalSection[] = [
         type: "ul",
         items: [
           "Usage and technical information such as pages or features used, approximate timestamps, device and browser information, language, diagnostic logs, and security events.",
+          "DataPal results: business contact details and public YouTube channel information returned by your lookups. For YouTube creators this can include an email address or phone number that the creator or their manager has published on the channel page, on the creator's own website, or on a link page they publish. These are people other than you, and Section 12 explains how we handle their information.",
+          "A saved snapshot of your business figures (revenue, burn, cash) once a month while you use the Service, which is used to show your own history and trends.",
+          "Records of emails sent through BizzPal (recipient, subject, time) and of addresses that have asked not to be emailed.",
           "Cookie and similar technology information, as described in Section 6.",
         ],
       },
       { type: "h3", text: "Payment-related information" },
       { type: "p", text: "If you purchase a plan or credits, our payment provider collects your payment credentials directly on its own checkout. Card, UPI and bank details never reach BizzPal. We receive and keep transaction information such as the plan or credit pack purchased, amount, currency, payment status, receipt details and transaction reference. If you provide billing details or tax identifiers such as GSTIN or PAN, we use them to issue invoices and administer applicable tax, accounting, or withholding obligations." },
-      { type: "p", text: "If you choose to connect your own Razorpay or Stripe account so that BizzPal can show your real revenue, you give us an API key. We store it in encrypted form and use it only to read your payments for you." },
+      { type: "p", text: "If you choose to connect your own Razorpay or Stripe account so that BizzPal can show your real revenue, you give us an API key. We store it in encrypted form and use it only to read your payments for you. If you connect Slack, you give us an incoming-webhook URL from your own Slack. We store it in encrypted form and use it only to post the messages you turn on, such as the daily briefing. You can disconnect either at any time from the Integrations page, and we then delete the stored key or URL." },
       { type: "h3", text: "Information from Google and Microsoft" },
       { type: "p", text: "If you sign in with Google or connect Google Drive or Microsoft OneDrive, we receive your name, email address and profile picture, and the files you choose to import. Section 13 explains how we use Google user data." },
     ],
@@ -52,7 +56,8 @@ const SECTIONS: LegalSection[] = [
         items: [
           "create and administer accounts, provide AI responses, maintain conversation history, and deliver plan features;",
           "process purchases, manage subscriptions or other plan payments, and provide receipts and account notices;",
-          "send the emails you ask for or that the Service needs, such as password reset links, team invitations and the daily briefing if you turn it on;",
+          "send the emails you ask for or that the Service needs, such as password reset links, team invitations and the daily briefing if you turn it on, and post to Slack if you connect it;",
+          "carry out the DataPal lookups and emails you request, including sending an email to a creator or business in your name;",
           "respond to questions, provide support, and communicate important service or security updates;",
           "maintain, secure, troubleshoot, and improve the Service using relevant service-usage and technical information, including detecting abuse, fraud, or technical problems. This does not authorise use of User Content to train foundation models contrary to Section 4;",
           "understand product usage, prepare aggregated reporting, and evaluate features, subject to applicable law; and",
@@ -76,7 +81,7 @@ const SECTIONS: LegalSection[] = [
       {
         type: "ul",
         items: [
-          "service providers that host the Service or provide AI models, infrastructure, account authentication, email delivery, customer support, security, and payment processing;",
+          "service providers that host the Service or provide AI models, infrastructure, account authentication, email delivery, customer support, security, and payment processing, and, where you connect them, Slack, Google, Microsoft, Razorpay or Stripe;",
           "professional advisers, auditors, insurers, and similar recipients who are subject to appropriate duties;",
           "government authorities, courts, regulators, or other parties when disclosure is required by law or reasonably necessary to protect rights, safety, or the Service; and",
           "a successor or transaction counterparty in connection with a merger, financing, restructuring, or sale of all or part of the relevant business, subject to appropriate safeguards and applicable law.",
@@ -99,7 +104,10 @@ const SECTIONS: LegalSection[] = [
       {
         type: "ul",
         items: [
-          "Account, business, conversation and uploaded-file data are kept while your account is open.",
+          "Account, business, conversation, saved-list and uploaded-file data are kept while your account is open.",
+          "Monthly snapshots of your business figures are kept while your account is open.",
+          "YouTube channel information from lookups is kept in a cache for up to 24 hours and is then refreshed or deleted. Creators you choose to save stay in your saved list until you remove them.",
+          "Records of emails sent through BizzPal and the list of addresses that unsubscribed are kept so we can enforce sending limits and honour opt-outs. An unsubscribed address is kept on the list so that it is not emailed again.",
           "If you delete your account in Settings, or ask us to, we delete this data from our live systems.",
           "We take a daily backup of our database and keep the 14 most recent copies, so deleted data can remain in a backup for up to about two weeks before it is overwritten.",
           "Payment and invoice records are kept for as long as tax and accounting law requires.",
@@ -151,7 +159,8 @@ const SECTIONS: LegalSection[] = [
     title: "12. Third-party websites and services",
     blocks: [
       { type: "p", text: "The Service may link to websites or tools operated by third parties. Their privacy practices are governed by their own notices. Review those notices before sharing information with them. BizzPal is not responsible for privacy practices of services it does not operate." },
-      { type: "p", text: "DataPal can look up public YouTube channel information through YouTube API Services. That information is saved for a short time (up to a few days) so repeat lookups are quick, and is then deleted. By using the YouTube lookup you also agree to the YouTube Terms of Service (https://www.youtube.com/t/terms), and Google’s Privacy Policy (https://policies.google.com/privacy) applies to that data." },
+      { type: "p", text: "DataPal can look up public YouTube channel information through YouTube API Services. That information is saved for up to 24 hours so repeat lookups are quick, and is then refreshed or deleted. By using the YouTube lookup you also agree to the YouTube Terms of Service (https://www.youtube.com/t/terms), and Google’s Privacy Policy (https://policies.google.com/privacy) applies to that data." },
+      { type: "p", text: "Information about creators and other people in DataPal. DataPal shows contact details that the person or their management has published publicly: on the YouTube channel page, in the channel description, on the creator's own website, or on a link page they publish. We read these pages in line with their robots.txt rules, and we do not guess, buy or generate email addresses or phone numbers. When a creator lists a manager or agency, we show only that contact. We provide these details to you only so that you can make genuine business contact. If you are a creator or business and want your details removed from BizzPal, or do not want to be contacted through it, write to care@bizzpal.ai and we will act on the request." },
       { type: "p", text: "If you email a creator or business from BizzPal, the message is sent from BizzPal’s email system in your name, with your email address as the reply address. We keep a record of the recipient, subject and time to enforce sending limits and prevent abuse. People who receive these emails can unsubscribe with one click, and we will not email an unsubscribed address through BizzPal again." },
     ],
   },
@@ -193,7 +202,7 @@ export default function PrivacyPage() {
       badge="Data protection"
       title="Privacy Policy"
       subtitle="How bizzpal.ai handles information when you use its AI business-guidance service"
-      facts={["Effective Date: 16 November 2026 | Last Updated: 18 November 2026", "Website: https://bizzpal.ai", `Operator: ${OPERATOR}`, "Privacy & Grievance Email: care@bizzpal.ai"]}
+      facts={["Effective Date: 16 November 2026 | Last Updated: 18 November 2026 (version 3)", "Website: https://bizzpal.ai", `Operator: ${OPERATOR}`, "Privacy & Grievance Email: care@bizzpal.ai"]}
       intro={[
         `This Privacy Policy explains how ${OPERATOR}, the operator of bizzpal.ai, collects, uses, stores, and shares information in connection with bizzpal.ai and its AI-powered business guidance service (“BizzPal,” “we,” “us,” or “our”). Our registered office is ${OFFICE}.`,
         "This Policy applies to website visitors, account holders, people who contact us, and other individuals whose information is processed through the Service. It should be read with any short privacy notice, consent request, or plan-specific notice shown when information is collected.",
