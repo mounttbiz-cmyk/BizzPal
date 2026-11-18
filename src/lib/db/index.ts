@@ -1731,6 +1731,11 @@ export function getUserBusiness(email: string) {
   }
 }
 
+// Made-up team members that an earlier version added (an "Executive Founder" and the AI advisors listed as people).
+try {
+  db.prepare("DELETE FROM team_members WHERE id IN ('mem_owner', 'mem_astra', 'mem_marcus') OR email LIKE '%@bizzpal.internal'").run();
+} catch {}
+
 // The menu is saved in the database. Remove the retired Workflows item and any typed-in count badge from the saved copy.
 try {
   const navRow = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'dashboard_nav'").get() as any;
