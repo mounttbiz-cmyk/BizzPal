@@ -38,101 +38,35 @@ export interface ExtendedGapItem {
   };
 }
 
-const INITIAL_EXTENDED_GAPS: ExtendedGapItem[] = [
-  {
-    ...defaultGapRules[0],
-    targetMetric: "Runway ≥ 12.0 Months",
-    actualMetric: "8.0 Months",
-    deviation: "-33.3% Deficit",
-    deviationPercent: -33.3,
-    status: "in_progress",
-    assignedOwner: "Finance & Runway Lead",
-    assignedRole: "Lead Owner",
-    completedSteps: [0],
-    evidenceTemplate: "Current cash reserve of ₹12,00,000 against net monthly burn of ₹1,50,000 gives 8.0 months runway.",
-  },
-  {
-    ...defaultGapRules[1],
-    targetMetric: "Top Client ≤ 20.0%",
-    actualMetric: "36.5% of Revenue",
-    deviation: "+82.5% Concentration",
-    deviationPercent: 82.5,
-    status: "detected",
-    assignedOwner: "Executive Strategy",
-    assignedRole: "Lead Owner",
-    completedSteps: [],
-    evidenceTemplate: "Top client represents 36.5% of trailing enterprise revenue against the 20% safe diversification benchmark.",
-  },
-  {
-    ...defaultGapRules[2],
-    targetMetric: "Primary Channel ≤ 45.0%",
-    actualMetric: "68.0% via Meta Ads",
-    deviation: "+51.1% Vulnerability",
-    deviationPercent: 51.1,
-    status: "prioritized",
-    assignedOwner: "Growth & Acquisition",
-    assignedRole: "Lead Owner",
-    completedSteps: [],
-    evidenceTemplate: "Meta advertising accounts for 68.0% of customer acquisition, creating critical channel risk.",
-  },
-  {
-    id: "rule_gross_margin",
-    key: "gross_margin",
-    title: "Gross profit margin slippage (<75%)",
-    category: "Financial",
-    severity: "high",
-    effort: "project",
-    targetMetric: "Gross Margin ≥ 80.0%",
-    actualMetric: "71.4%",
-    deviation: "-10.8% Margin Leakage",
-    deviationPercent: -10.8,
-    status: "detected",
-    assignedOwner: "Delivery Operations",
-    assignedRole: "Lead Owner",
-    completedSteps: [],
-    whyItMatters: "Gross margin dilution below 75% erodes cash retention, ballooning forward net burn and delaying break-even milestones.",
-    evidenceTemplate: "Cost of goods and cloud vendor pass-throughs currently total 28.6% of billed revenue.",
-    solutionPlaybook: {
-      summary: "Audit third-party cloud hosting usage and contractor rate cards to eliminate gross margin leakage.",
-      successMetric: "Restore gross profit margin to 80% within 45 days",
-      firstAction: "Review vendor invoices and cloud infrastructure spend",
-      steps: [
-        { title: "Audit AWS/Azure reserved instances and unallocated compute", detail: "Downsize idle dev environments and enforce 1-year reserved savings plans.", ownerRole: "Operations", days: 4 },
-        { title: "Renegotiate contractor delivery rates", detail: "Standardize contractor master service agreements with performance SLA gates.", ownerRole: "Finance", days: 10 },
-        { title: "Institute milestone billing sign-off", detail: "Prevent scope creep by requiring written client approvals for out-of-scope work.", ownerRole: "Sales", days: 14 }
-      ]
-    }
-  },
-  {
-    id: "rule_churn_spike",
-    key: "churn_spike",
-    title: "Quarterly account logo churn (>6.0%)",
-    category: "Operations",
-    severity: "critical",
-    effort: "project",
-    targetMetric: "Annual Churn ≤ 5.0%",
-    actualMetric: "8.6% Annualized",
-    deviation: "+72.0% Churn Exposure",
-    deviationPercent: 72,
-    status: "under_verification",
-    assignedOwner: "Client Success",
-    assignedRole: "Lead Owner",
-    completedSteps: [0, 1],
-    whyItMatters: "High churn creates a leaky bucket where new acquisition spend is consumed just replacing departed accounts.",
-    evidenceTemplate: "Over the last 90 days, 3 enterprise accounts cancelled services citing onboarding lag.",
-    solutionPlaybook: {
-      summary: "Deploy an executive churn prevention playbook with high-touch 30-day onboarding milestones.",
-      successMetric: "Reduce quarterly logo churn below 4.5%",
-      firstAction: "Review cancellation audit logs and customer tickets",
-      steps: [
-        { title: "Implement 14-day customer time-to-value check-in", detail: "Assign dedicated implementation specialist to unblock customer setup.", ownerRole: "Operations", days: 3 },
-        { title: "Launch executive satisfaction telemetry", detail: "Track weekly product usage alerts to detect disengaged accounts early.", ownerRole: "Product", days: 7 },
-        { title: "Establish proactive renewal outreach", detail: "Engage clients 90 days prior to contract expiration with usage ROI summaries.", ownerRole: "Sales", days: 21 }
-      ]
-    }
-  }
-];
+const RUNWAY_RULE = defaultGapRules.find(r => r.key === "cash_runway")!;
+const RUNWAY_TARGET = Number((RUNWAY_RULE.condition as any).value) || 6;
+const PROGRESS_KEY = "bizzpal_gap_progress";
 
+/**
+ * The gaps that can really be found from the numbers the business has entered. Nothing is assumed: checks that need
+ * data BizzPal does not have yet (customer concentration, channels, churn) are not shown at all.
+ */
+function findGaps(profile: any): { gaps: ExtendedGapItem[]; hasNumbers: boolean; runway: number | null } {
+  const cash = Number(profile?.cash ?? profile?.cashOnHand ?? 0);
+  const burn = Number(profile?.burn ?? profile?.monthlyBurn ?? 0);
+  if (!(cash > 0) || !(burn > 0)) return { gaps: [], hasNumbers: false, runway: null };
+  const runway = cash / burn;
+  if (runway >= RUNWAY_TARGET) return { gaps: [], hasNumbers: true, runway };
+  const dev = ((runway - RUNWAY_TARGET) / RUNWAY_TARGET) * 100;
+  const gap = {
+    ...RUNWAY_RULE,
+    targetMetric: `Runway of at least ${RUNWAY_TARGET} months`,
+    actualMetric: `${runway.toFixed(1)} months`,
+    deviation: `${dev.toFixed(1)}% vs target`,
+    deviationPercent: dev,
+    status: "detected" as GapStatus,
+    assignedOwner: "Not assigned yet",
+    assignedRole: "",
+    completedSteps: [] as number[],
+    evidenceTemplate: `Cash in bank of ₹${cash.toLocaleString("en-IN")} against net monthly burn of ₹${burn.toLocaleString("en-IN")} gives ${runway.toFixed(1)} months of runway.`,
+  } as ExtendedGapItem;
+  return { gaps: [gap], hasNumbers: true, runway };
+}
 
 const STATUS_LABEL: Record<GapStatus, string> = {
   detected: "Detected",
@@ -154,36 +88,43 @@ const DEPARTMENTS = ["all", "financial", "risk", "marketing", "operations"];
 export default function GapsPage() {
   const [category, setCategory] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [gaps, setGaps] = useState<ExtendedGapItem[]>(INITIAL_EXTENDED_GAPS);
+  const [gaps, setGaps] = useState<ExtendedGapItem[]>([]);
+  const [hasNumbers, setHasNumbers] = useState(false);
+  const [runway, setRunway] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
 
-  // Sync runway gap with the saved business profile, if present
-  useEffect(() => {
+  // Look for gaps in the business's own saved numbers, and restore what the team already did about them
+  const scan = () => {
+    let profile: any = null;
     try {
-      const savedStr = localStorage.getItem("bizzpal_business_profile");
-      if (!savedStr) return;
-      const saved = JSON.parse(savedStr);
-      const cash = Number(saved.cash || saved.cashOnHand || 0);
-      const burn = Number(saved.burn || saved.monthlyBurn || 0);
-      const runway = burn > 0 ? cash / burn : 0;
-      const dev = ((runway - 12) / 12) * 100;
-      setGaps(prev =>
-        prev.map(g =>
-          g.key === "cash_runway"
-            ? {
-                ...g,
-                actualMetric: `${runway.toFixed(1)} Months`,
-                deviation: `${dev.toFixed(1)}% vs target`,
-                deviationPercent: dev,
-                evidenceTemplate: `Cash reserve of ₹${cash.toLocaleString("en-IN")} against monthly burn of ₹${burn.toLocaleString("en-IN")} gives ${runway.toFixed(1)} months of runway.`,
-              }
-            : g
-        )
-      );
-    } catch {
-      // ignore bad saved data
-    }
+      profile = JSON.parse(localStorage.getItem("bizzpal_business_profile") || "null");
+    } catch {}
+    const found = findGaps(profile);
+    let progress: Record<string, { status: GapStatus; completedSteps: number[] }> = {};
+    try {
+      progress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}");
+    } catch {}
+    setGaps(found.gaps.map(g => (progress[g.key] ? { ...g, status: progress[g.key].status, completedSteps: progress[g.key].completedSteps } : g)));
+    setHasNumbers(found.hasNumbers);
+    setRunway(found.runway);
+    setLoaded(true);
+  };
+
+  useEffect(() => {
+    scan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Remember progress on each gap
+  useEffect(() => {
+    if (!loaded) return;
+    try {
+      const progress: Record<string, { status: GapStatus; completedSteps: number[] }> = {};
+      for (const g of gaps) progress[g.key] = { status: g.status, completedSteps: g.completedSteps };
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+    } catch {}
+  }, [gaps, loaded]);
 
   const updateGap = (id: string, fn: (g: ExtendedGapItem) => ExtendedGapItem) =>
     setGaps(prev => prev.map(g => (g.id === id ? fn(g) : g)));
@@ -206,7 +147,8 @@ export default function GapsPage() {
 
   const runScan = () => {
     setIsScanning(true);
-    setTimeout(() => setIsScanning(false), 1200);
+    scan();
+    setTimeout(() => setIsScanning(false), 400);
   };
 
   const filtered = gaps.filter(g => {
@@ -293,8 +235,23 @@ export default function GapsPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="p-10 rounded-2xl border border-line text-center text-sm text-text-muted">
-          No gaps match these filters.
+        <div className="p-10 rounded-2xl border border-line text-center text-sm text-text-muted space-y-2">
+          {!loaded ? (
+            <p>Checking your numbers…</p>
+          ) : gaps.length > 0 ? (
+            <p>No gaps match these filters.</p>
+          ) : hasNumbers ? (
+            <>
+              <p className="text-text font-medium">No gaps found.</p>
+              <p>Your cash runway is {runway?.toFixed(1)} months, which is above the {RUNWAY_TARGET}-month minimum.</p>
+              <p>BizzPal can only check what it can see. Connect your payments and upload your records to unlock checks such as customer concentration and churn.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-text font-medium">Nothing to check yet.</p>
+              <p>BizzPal needs your cash in bank and monthly burn to check your runway. Add them in Settings, or connect your payments and upload your records.</p>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-6">

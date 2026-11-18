@@ -24,17 +24,17 @@ export default function MainAppLayout({
             ? (parsed.tradeName || parsed.legalName)
             : parsed.name;
           return {
-            name: cleanName || "BizzPal Enterprise",
-            industry: parsed.industry || "saas",
-            industryLabel: parsed.industryLabel || "Technology & Enterprise Services",
+            name: cleanName || "",
+            industry: parsed.industry || "",
+            industryLabel: parsed.industryLabel || "",
           };
         }
       } catch {}
     }
     return {
-      name: "BizzPal Enterprise",
-      industry: "saas",
-      industryLabel: "Technology & Enterprise Services",
+      name: "",
+      industry: "",
+      industryLabel: "",
     };
   });
 
@@ -48,9 +48,9 @@ export default function MainAppLayout({
             ? (parsed.tradeName || parsed.legalName)
             : parsed.name;
           setBusinessProfile({
-            name: cleanName || "BizzPal Enterprise",
-            industry: parsed.industry || "saas",
-            industryLabel: parsed.industryLabel || "Technology & Enterprise Services",
+            name: cleanName || "",
+            industry: parsed.industry || "",
+            industryLabel: parsed.industryLabel || "",
           });
         }
       } catch {}

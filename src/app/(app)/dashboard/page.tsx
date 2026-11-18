@@ -46,11 +46,11 @@ function DashboardContent() {
         const p = localStorage.getItem("bizzpal_business_profile");
         if (p) {
           const parsed = JSON.parse(p);
-          if (parsed.name && !parsed.name.includes("Acme")) return parsed.name;
+          if (parsed.name) return parsed.name;
         }
       } catch {}
     }
-    return "My Enterprise";
+    return "";
   });
   const [companyLogo, setCompanyLogo] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -241,9 +241,7 @@ function DashboardContent() {
       setCompanyLogo(saved.logoUrl || saved.logo || saved.logo_url);
     }
     if (saved.name) {
-      if (saved.name.includes("Acme")) {
-        setCompanyName("My Enterprise");
-      } else if (saved.name.startsWith("GSTIN ") && (saved.tradeName || saved.legalName || saved.customBusinessType)) {
+      if (saved.name.startsWith("GSTIN ") && (saved.tradeName || saved.legalName || saved.customBusinessType)) {
         setCompanyName(saved.tradeName || saved.legalName || saved.name.replace(/^GSTIN\s+/, ""));
       } else {
         setCompanyName(saved.name);
@@ -288,20 +286,6 @@ function DashboardContent() {
         const savedProfileStr = localStorage.getItem("bizzpal_business_profile");
         if (savedProfileStr) {
           const parsed = JSON.parse(savedProfileStr);
-          if (parsed.name && parsed.name.includes("Acme")) {
-            localStorage.removeItem("bizzpal_business_profile");
-            fetch("/api/auth/session", { method: "DELETE" }).catch(() => {}); localStorage.removeItem("bizzpal_user_session");
-            fetch("/api/business/intake")
-              .then(r => r.json())
-              .then(d => {
-                if (d.success && d.business) {
-                  applyProfileData(d.business);
-                  localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business));
-                }
-              })
-              .catch(() => {});
-            return;
-          }
           applyProfileData(parsed);
         } else {
           // Fetch real enterprise record from database API

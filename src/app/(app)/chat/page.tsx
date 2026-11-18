@@ -135,7 +135,6 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
     color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/30",
     summary: "Process optimization, workflow automation, operational bottlenecks, vendor SLAs, and delivery margins.",
     quickTools: [
-      { name: "Workflows Builder", href: "/workflows" },
       { name: "Automations Engine", href: "/automations" },
       { name: "Tasks Queue", href: "/tasks" },
     ],

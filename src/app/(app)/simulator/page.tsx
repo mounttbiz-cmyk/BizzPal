@@ -1,847 +1,342 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { RefreshCw, Check } from "lucide-react";
-import { useCustomAdvisors } from "@/lib/advisors";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 
-interface ScenarioOption {
+/**
+ * Decision simulator. Every number here is either from the business's own profile or typed in by the person.
+ * Nothing is pre-filled with example figures: the results are plain arithmetic on those numbers.
+ */
+
+interface Option {
   id: string;
   name: string;
-  subtitle: string;
-  hiringCount: number;
-  monthlyCost: number;
-  projectedRevenueIncrease: number;
-  runwayImpactMonths: number;
-  riskScore: "Low" | "Medium" | "High";
-  roiPercent: number;
-  isRecommended?: boolean;
+  oneTime: string;
+  monthlyCost: string;
+  monthlyRevenue: string;
+  delay: string;
 }
 
-interface SimulationResult {
-  query: string;
-  title: string;
-  options: ScenarioOption[];
-  consensusBadge: string;
-  consensusQuote: string;
-  executionTasks: Array<{
-    title: string;
-    owner: string;
-    gap: string;
-    priority: "low" | "medium" | "high" | "critical";
-    category: string;
-  }>;
+interface Outcome {
+  cashByMonth: number[];
+  endCash: number;
+  runwayMonths: number | null; // null = cash lasts beyond 5 years
+  totalCost: number;
+  totalRevenue: number;
+  paybackMonth: number | null;
+  returnPct: number | null;
 }
 
-interface CompanyProfileContext {
-  companyName: string;
-  founderName: string;
-  burn: number;
-  cash: number;
-  revenue: number;
-  teamSize: number;
-  industry: string;
-}
+const DRAFT_KEY = "bizzpal_simulator_draft";
+const MAX_OPTIONS = 3;
+const LINE_COLORS = ["#8a6414", "#2563eb", "#059669", "#9333ea"];
 
-// Preset and Dynamic Scenario Generator
-function generateSimulation(
-  query: string,
-  profile: CompanyProfileContext
-): SimulationResult {
-  const q = query.trim().toLowerCase();
-  const cName = profile.companyName || "Enterprise Organization";
-  const fName = profile.founderName || "Founder";
-  const burn = profile.burn || 0;
+const toNum = (v: string) => {
+  const n = Number(String(v).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+};
+const inr = (n: number) => `${n < 0 ? "-" : ""}₹${Math.abs(Math.round(n)).toLocaleString("en-IN")}`;
+const newOption = (n: number): Option => ({ id: `opt_${Date.now()}_${n}`, name: "", oneTime: "", monthlyCost: "", monthlyRevenue: "", delay: "" });
 
-  // 1. IT Guy / IT Specialist / Sysadmin query
-  if (
-    q.includes("it guy") ||
-    q.includes("hire an it") ||
-    q.includes("it person") ||
-    q.includes("it specialist") ||
-    q.includes("sysadmin") ||
-    q.includes("system admin") ||
-    q.includes("tech support") ||
-    q.includes("it support")
-  ) {
-    return {
-      query,
-      title: 'Should I hire an IT guy?',
-      options: [
-        {
-          id: "it_opt_a",
-          name: "Option A: Dedicated Full-Time In-House IT Specialist",
-          subtitle: `Hire a full-time internal IT and security administrator for hardware, network & employee helpdesk at ${cName}.`,
-          hiringCount: 1,
-          monthlyCost: 120000,
-          projectedRevenueIncrease: 320000,
-          runwayImpactMonths: -1.3,
-          riskScore: "Medium",
-          roiPercent: 167,
-        },
-        {
-          id: "it_opt_b",
-          name: "Option B: Fractional IT Architect + Autonomous DevOps (Recommended)",
-          subtitle: `Retain a fractional enterprise IT architect (15 hrs/mo) paired with BizzPal automated infrastructure & security workflows.`,
-          hiringCount: 0,
-          monthlyCost: 45000,
-          projectedRevenueIncrease: 410000,
-          runwayImpactMonths: -0.4,
-          riskScore: "Low",
-          roiPercent: 380,
-          isRecommended: true,
-        },
-        {
-          id: "it_opt_c",
-          name: "Option C: External Managed Service Provider (MSP Retainer)",
-          subtitle: `Outsource corporate IT operations, workstation security & MDM to an external certified MSP on an annual SLA.`,
-          hiringCount: 0,
-          monthlyCost: 75000,
-          projectedRevenueIncrease: 260000,
-          runwayImpactMonths: -0.8,
-          riskScore: "Low",
-          roiPercent: 147,
-        },
-      ],
-      consensusBadge: "Optimal Capital Efficiency",
-      consensusQuote: `"For ${cName}, hiring a single full-time IT guy introduces a single point of failure when they take leave, and creates fixed payroll drag of ₹1,20,000/mo. Option B is our executive consensus: pairing an on-demand fractional IT architect with autonomous monitoring workflows saves ₹75,000/mo in net burn while providing 24/7 uptime coverage at a 380% expected ROI."`,
-      executionTasks: [
-        {
-          title: `Configure BizzPal Automated DevOps & Security Alerting for ${cName}`,
-          owner: "Operations Lead",
-          gap: "Operational Continuity",
-          priority: "critical",
-          category: "Infrastructure",
-        },
-        {
-          title: "Contract fractional senior IT architect on 15 hr/month retainer",
-          owner: fName,
-          gap: "Engineering Capacity",
-          priority: "high",
-          category: "Talent",
-        },
-        {
-          title: "Audit employee laptop MDM, access permissions & backup protocols",
-          owner: "Operations Lead",
-          gap: "Governance",
-          priority: "high",
-          category: "Compliance",
-        },
-      ],
-    };
+/** Month by month: cash after the one-time cost, then each month's burn, the new cost, and the new revenue once it starts. */
+function simulate(cash: number, burn: number, o: { oneTime: number; monthlyCost: number; monthlyRevenue: number; delay: number }, horizon: number): Outcome {
+  const cashByMonth = [cash - o.oneTime];
+  let c = cash - o.oneTime;
+  let cumCost = o.oneTime;
+  let cumRev = 0;
+  let payback: number | null = null;
+  let runsOut: number | null = c <= 0 ? 0 : null;
+  let endCash = c;
+  let costAtHorizon = cumCost;
+  let revAtHorizon = 0;
+  for (let m = 1; m <= 60; m++) {
+    const rev = m > o.delay ? o.monthlyRevenue : 0;
+    c = c - burn - o.monthlyCost + rev;
+    cumCost += o.monthlyCost;
+    cumRev += rev;
+    if (payback === null && cumCost > 0 && cumRev >= cumCost) payback = m;
+    if (runsOut === null && c <= 0) runsOut = m;
+    if (m <= horizon) {
+      cashByMonth.push(c);
+      endCash = c;
+      costAtHorizon = cumCost;
+      revAtHorizon = cumRev;
+    }
   }
-
-  // 2. Scale Engineering Capacity query
-  if (
-    q.includes("engineering") ||
-    q.includes("scale engineering") ||
-    q.includes("dev capacity") ||
-    q.includes("hire developer") ||
-    q.includes("hire 5") ||
-    q.includes("software team")
-  ) {
-    return {
-      query,
-      title: "What happens if we scale our engineering capacity?",
-      options: [
-        {
-          id: "eng_opt_a",
-          name: "Option A: Hire 5 Full-Time Engineers",
-          subtitle: `Accelerate product roadmap with dedicated domestic in-house team at ${cName}.`,
-          hiringCount: 5,
-          monthlyCost: 650000,
-          projectedRevenueIncrease: 1200000,
-          runwayImpactMonths: -3.2,
-          riskScore: "High",
-          roiPercent: 184,
-        },
-        {
-          id: "eng_opt_b",
-          name: "Option B: Lean AI Workflows + 2 Senior Leads (Recommended)",
-          subtitle: `Automate delivery pipelines with BizzPal Workflows & hire 2 architects.`,
-          hiringCount: 2,
-          monthlyCost: 320000,
-          projectedRevenueIncrease: 1050000,
-          runwayImpactMonths: -1.1,
-          riskScore: "Low",
-          roiPercent: 328,
-          isRecommended: true,
-        },
-        {
-          id: "eng_opt_c",
-          name: "Option C: Contract Agency Staffing",
-          subtitle: "Flexible 6-month contract agency support with zero long-term severance.",
-          hiringCount: 4,
-          monthlyCost: 480000,
-          projectedRevenueIncrease: 750000,
-          runwayImpactMonths: -2.0,
-          riskScore: "Medium",
-          roiPercent: 156,
-        },
-      ],
-      consensusBadge: "Optimal Capital Efficiency",
-      consensusQuote: `"Option B delivers 328% expected ROI with minimal liquidity drawdown (-1.1 months). By pairing 2 senior architects with autonomous delivery workflows, ${cName} preserves cash reserves while achieving 88% of Option A's revenue velocity."`,
-      executionTasks: [
-        {
-          title: `Establish automated CI/CD & quality gates across ${cName} engineering`,
-          owner: "Lead Architect",
-          gap: "Engineering Capacity",
-          priority: "critical",
-          category: "DevOps",
-        },
-        {
-          title: "Recruit 2 senior staff engineers with specialized domain experience",
-          owner: fName,
-          gap: "Talent Acquisition",
-          priority: "high",
-          category: "Hiring",
-        },
-      ],
-    };
-  }
-
-  // 3. Sales / SDR / Account Executives query
-  if (
-    q.includes("sales") ||
-    q.includes("sdr") ||
-    q.includes("account executive") ||
-    q.includes("sales rep") ||
-    q.includes("hire sales")
-  ) {
-    return {
-      query,
-      title: "Should we hire 3 full-time sales reps?",
-      options: [
-        {
-          id: "sales_opt_a",
-          name: "Option A: 3 Full-Time Enterprise Account Executives",
-          subtitle: `Hire 3 dedicated inbound/outbound closers with base salary + commission plans.`,
-          hiringCount: 3,
-          monthlyCost: 450000,
-          projectedRevenueIncrease: 1400000,
-          runwayImpactMonths: -2.8,
-          riskScore: "High",
-          roiPercent: 211,
-        },
-        {
-          id: "sales_opt_b",
-          name: "Option B: 1 Senior Closer + AI Outbound Ingestion (Recommended)",
-          subtitle: `Hire 1 veteran enterprise sales lead and deploy BizzPal autonomous lead qualification bots.`,
-          hiringCount: 1,
-          monthlyCost: 180000,
-          projectedRevenueIncrease: 1150000,
-          runwayImpactMonths: -0.9,
-          riskScore: "Low",
-          roiPercent: 385,
-          isRecommended: true,
-        },
-        {
-          id: "sales_opt_c",
-          name: "Option C: Commission-Only Channel & Reseller Network",
-          subtitle: "Partner with regional distributors and affiliate brokers with zero fixed payroll obligation.",
-          hiringCount: 0,
-          monthlyCost: 90000,
-          projectedRevenueIncrease: 600000,
-          runwayImpactMonths: -0.3,
-          riskScore: "Low",
-          roiPercent: 240,
-        },
-      ],
-      consensusBadge: "Sustained Margin Expansion",
-      consensusQuote: `"Hiring 3 full-time reps risks heavy cash drawdown before their 4-month ramp period. Option B (1 senior closer + AI outbound automation) captures 82% of target quota at 60% lower burn, turning cash-flow positive within 60 days."`,
-      executionTasks: [
-        {
-          title: "Deploy BizzPal Outbound AI Lead Scraper & Qualifier",
-          owner: "Revenue Ops",
-          gap: "Sales Velocity",
-          priority: "high",
-          category: "Sales Automation",
-        },
-        {
-          title: "Draft commission-based offer letter for Principal Enterprise Closer",
-          owner: fName,
-          gap: "Talent",
-          priority: "critical",
-          category: "Executive Hiring",
-        },
-      ],
-    };
-  }
-
-  // 4. Pricing / Raise Prices query
-  if (
-    q.includes("price") ||
-    q.includes("pricing") ||
-    q.includes("raise price") ||
-    q.includes("increase price") ||
-    q.includes("reprice")
-  ) {
-    return {
-      query,
-      title: "Should we raise our product / service pricing by 20%?",
-      options: [
-        {
-          id: "price_opt_a",
-          name: "Option A: 20% Across-the-Board Price Increase",
-          subtitle: "Enact immediate price change on both existing customer renewals and new signups.",
-          hiringCount: 0,
-          monthlyCost: 15000,
-          projectedRevenueIncrease: 850000,
-          runwayImpactMonths: 2.1,
-          riskScore: "High",
-          roiPercent: 480,
-        },
-        {
-          id: "price_opt_b",
-          name: "Option B: Value-Tiered Packaging + 15% on Renewals (Recommended)",
-          subtitle: `Grandfather current clients for 6 months while introducing premium feature add-ons at +25%.`,
-          hiringCount: 0,
-          monthlyCost: 35000,
-          projectedRevenueIncrease: 620000,
-          runwayImpactMonths: 1.5,
-          riskScore: "Low",
-          roiPercent: 540,
-          isRecommended: true,
-        },
-        {
-          id: "price_opt_c",
-          name: "Option C: Consumption-Based Overages Only",
-          subtitle: "Keep base price static but charge metered overages on usage and priority support SLAs.",
-          hiringCount: 0,
-          monthlyCost: 40000,
-          projectedRevenueIncrease: 480000,
-          runwayImpactMonths: 1.1,
-          riskScore: "Medium",
-          roiPercent: 320,
-        },
-      ],
-      consensusBadge: "Zero Liquidity Dilution",
-      consensusQuote: `"A blunt 20% price hike on existing accounts risks sudden churn among legacy accounts. Option B cushions client retention with a 6-month grandfather window while unlocking 15-25% expansion on new renewals, generating ₹6,20,000/mo net gains."`,
-      executionTasks: [
-        {
-          title: "Publish updated tier rate cards and enterprise add-on schedule",
-          owner: "Product Lead",
-          gap: "Gross Margin",
-          priority: "high",
-          category: "Monetization",
-        },
-        {
-          title: "Prepare executive renewal letters emphasizing recent ROI deliverables",
-          owner: fName,
-          gap: "Customer Retention",
-          priority: "medium",
-          category: "Account Management",
-        },
-      ],
-    };
-  }
-
-  // 5. Marketing / Agency / Advertising query
-  if (
-    q.includes("market") ||
-    q.includes("agency") ||
-    q.includes("ads") ||
-    q.includes("advertising") ||
-    q.includes("cmo") ||
-    q.includes("marketing")
-  ) {
-    return {
-      query,
-      title: "Should we outsource marketing to an agency?",
-      options: [
-        {
-          id: "mkt_opt_a",
-          name: "Option A: Retain Full-Service Growth & Ads Agency",
-          subtitle: "Hire an external agency with ₹2.5L/mo retainer + managed ad spend on Meta & Google.",
-          hiringCount: 0,
-          monthlyCost: 380000,
-          projectedRevenueIncrease: 780000,
-          runwayImpactMonths: -2.1,
-          riskScore: "Medium",
-          roiPercent: 105,
-        },
-        {
-          id: "mkt_opt_b",
-          name: "Option B: In-House Growth Specialist + AI Performance Loops (Recommended)",
-          subtitle: `Hire 1 internal growth marketer armed with BizzPal automated ad creative & analytics pipelines.`,
-          hiringCount: 1,
-          monthlyCost: 160000,
-          projectedRevenueIncrease: 840000,
-          runwayImpactMonths: -0.8,
-          riskScore: "Low",
-          roiPercent: 375,
-          isRecommended: true,
-        },
-        {
-          id: "mkt_opt_c",
-          name: "Option C: Organic Content & Founder-Led Thought Leadership",
-          subtitle: `Focus exclusively on organic LinkedIn, SEO, and podcast guesting with micro-freelancer editing.`,
-          hiringCount: 0,
-          monthlyCost: 65000,
-          projectedRevenueIncrease: 420000,
-          runwayImpactMonths: -0.3,
-          riskScore: "Low",
-          roiPercent: 280,
-        },
-      ],
-      consensusBadge: "Long-Term IP Retention",
-      consensusQuote: `"Agencies often suffer from high turnover and split incentives. Option B brings growth institutional knowledge inside ${cName} while leveraging automated performance testing, cutting blended CAC by 34%."`,
-      executionTasks: [
-        {
-          title: "Recruit Data-Driven Head of Growth for performance pipelines",
-          owner: fName,
-          gap: "Acquisition Velocity",
-          priority: "critical",
-          category: "Talent",
-        },
-        {
-          title: "Integrate Google Ads & Meta conversion tracking with BizzPal telemetry",
-          owner: "Operations Lead",
-          gap: "Data Integrity",
-          priority: "high",
-          category: "Attribution",
-        },
-      ],
-    };
-  }
-
-  // 6. Generic / Custom User Decision Fallback
-  const displayTitle = query.endsWith("?") ? query : `${query}?`;
-  const formattedTitle = displayTitle.charAt(0).toUpperCase() + displayTitle.slice(1);
-  const estCostA = Math.round(burn * 0.45);
-  const estCostB = Math.round(burn * 0.18);
-  const estCostC = Math.round(burn * 0.28);
-  const estRevA = Math.round(estCostA * 2.2);
-  const estRevB = Math.round(estCostB * 3.4);
-  const estRevC = Math.round(estCostC * 1.8);
-  const runwayA = -(estCostA / (burn || 100000)).toFixed(1);
-  const runwayB = -(estCostB / (burn || 100000)).toFixed(1);
-  const runwayC = -(estCostC / (burn || 100000)).toFixed(1);
-
   return {
-    query,
-    title: formattedTitle,
-    options: [
-      {
-        id: "custom_opt_a",
-        name: `Option A: Capital-Intensive Full In-House Execution`,
-        subtitle: `Execute "${query}" through direct internal hires, dedicated infrastructure, and dedicated team allocation at ${cName}.`,
-        hiringCount: 2,
-        monthlyCost: estCostA,
-        projectedRevenueIncrease: estRevA,
-        runwayImpactMonths: Number(runwayA),
-        riskScore: "High",
-        roiPercent: 195,
-      },
-      {
-        id: "custom_opt_b",
-        name: `Option B: Lean AI-Augmented Hybrid Execution (Recommended)`,
-        subtitle: `Pair autonomous workflows and modular contractor support to achieve 85% of target output at 1/3rd the burn.`,
-        hiringCount: 1,
-        monthlyCost: estCostB,
-        projectedRevenueIncrease: estRevB,
-        runwayImpactMonths: Number(runwayB),
-        riskScore: "Low",
-        roiPercent: 360,
-        isRecommended: true,
-      },
-      {
-        id: "custom_opt_c",
-        name: `Option C: Phased Milestone Pilot / Outsourced Trial`,
-        subtitle: `Run an 8-week structured validation pilot before signing permanent long-term payroll or vendor commitments.`,
-        hiringCount: 0,
-        monthlyCost: estCostC,
-        projectedRevenueIncrease: estRevC,
-        runwayImpactMonths: Number(runwayC),
-        riskScore: "Medium",
-        roiPercent: 165,
-      },
-    ],
-    consensusBadge: "Prudent Capital Allocation",
-    consensusQuote: `"When evaluating '${query}', committing full-time payroll up-front introduces unnecessary downside exposure. Option B achieves fast operational turnaround while preserving cash runway and flexibility for ${cName}."`,
-    executionTasks: [
-      {
-        title: `Draft 30-day trial roadmap for '${query}'`,
-        owner: fName,
-        gap: "Strategic Execution",
-        priority: "high",
-        category: "Strategy",
-      },
-      {
-        title: "Set up milestone tracking metrics and budget thresholds",
-        owner: "Operations Lead",
-        gap: "Runway Discipline",
-        priority: "medium",
-        category: "Finance",
-      },
-    ],
+    cashByMonth,
+    endCash,
+    runwayMonths: runsOut,
+    totalCost: costAtHorizon,
+    totalRevenue: revAtHorizon,
+    paybackMonth: payback !== null && payback <= horizon ? payback : null,
+    returnPct: costAtHorizon > 0 ? ((revAtHorizon - costAtHorizon) / costAtHorizon) * 100 : null,
   };
 }
-
-const SUGGESTIONS_BY_INDUSTRY: Record<string, string[]> = {
-  it_tech: [
-    "Should we hire 3 full-time sales reps?",
-    "What happens if we scale our engineering capacity?",
-    "Should we raise our rates by 20%?",
-    "Should we outsource marketing to an agency?",
-    "Should I hire an IT guy?",
-  ],
-  saas: [
-    "What happens if we scale our engineering capacity?",
-    "Should we raise our pricing by 20%?",
-    "Should we hire 3 full-time sales reps?",
-    "Should we outsource marketing to an agency?",
-    "Should we offer a discount on annual plans?",
-  ],
-  d2c: [
-    "Should we raise our prices by 10%?",
-    "Should we spend more on ads?",
-    "Should we hire a customer support person?",
-    "Should we outsource marketing to an agency?",
-    "Should we stock more inventory before the festive season?",
-  ],
-  agency: [
-    "Should we hire 2 more designers?",
-    "Should we raise our rates by 15%?",
-    "Should we hire 3 full-time sales reps?",
-    "Should we outsource marketing to an agency?",
-    "Should we say no to low-paying clients?",
-  ],
-  healthcare: [
-    "Should we add another doctor or specialist?",
-    "Should we raise our consultation fees by 10%?",
-    "Should we spend more on ads?",
-    "Should we hire a front-desk assistant?",
-  ],
-  manufacturing: [
-    "Should we add a second production shift?",
-    "Should we raise our prices by 10%?",
-    "Should we hire 3 full-time sales reps?",
-    "Should we buy new machinery?",
-  ],
-  real_estate: [
-    "Should we hire 3 full-time sales reps?",
-    "Should we spend more on ads?",
-    "Should we raise our commission by 1%?",
-    "Should we outsource marketing to an agency?",
-  ],
-  finance: [
-    "Should we hire 3 full-time sales reps?",
-    "Should we raise our fees by 10%?",
-    "Should we spend more on ads?",
-    "Should we outsource marketing to an agency?",
-  ],
-};
-
-const DEFAULT_SUGGESTIONS = [
-  "Should we hire 3 full-time sales reps?",
-  "Should we raise our pricing by 20%?",
-  "Should we outsource marketing to an agency?",
-  "What happens if we scale our team?",
-];
-
-function getSuggestions(profile: CompanyProfileContext): string[] {
-  const list: string[] = [];
-  const runway = profile.burn > 0 ? profile.cash / profile.burn : null;
-
-  // Situation-based ideas come first
-  if (profile.revenue === 0 && profile.burn === 0 && profile.cash === 0) {
-    list.push("What should we do to get our first customers?");
-  } else if (runway !== null && runway < 6) {
-    list.push("How can we extend our cash runway?");
-  }
-
-  const ALIASES: Record<string, string> = { it_services: "it_tech", ecommerce: "d2c", retail: "d2c" };
-  const key = ALIASES[profile.industry] || profile.industry;
-  const byIndustry = SUGGESTIONS_BY_INDUSTRY[key] || DEFAULT_SUGGESTIONS;
-  return [...list, ...byIndustry].slice(0, 6);
-}
-
-
-const cleanName = (name: string) => name.replace(/\s*\(Recommended\)\s*$/, "");
 
 export default function SimulatorPage() {
-  const { ceoName, cfoName } = useCustomAdvisors();
-  const [profile, setProfile] = useState<CompanyProfileContext>({
-    companyName: "My Enterprise",
-    founderName: "Founder",
-    burn: 0,
-    cash: 0,
-    revenue: 0,
-    teamSize: 1,
-    industry: "",
-  });
-  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [companyName, setCompanyName] = useState("");
+  const [owner, setOwner] = useState("");
+  const [cash, setCash] = useState("");
+  const [burn, setBurn] = useState("");
+  const [fromProfile, setFromProfile] = useState(false);
+  const [horizon, setHorizon] = useState(12);
+  const [decision, setDecision] = useState("");
+  const [options, setOptions] = useState<Option[]>([newOption(1)]);
+  const [aiText, setAiText] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [taskMsg, setTaskMsg] = useState("");
 
-  const [queryInput, setQueryInput] = useState("");
-  const [activeQuery, setActiveQuery] = useState("");
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [selectedScenarioId, setSelectedScenarioId] = useState("");
-
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [executionMessage, setExecutionMessage] = useState<string | null>(null);
-
-  // Load business profile from storage or the intake API
+  // The business's own numbers, then whatever the person had typed last time
   useEffect(() => {
-    try {
-      const savedProfile = localStorage.getItem("bizzpal_business_profile");
-      if (savedProfile) {
-        const parsed = JSON.parse(savedProfile);
-        setProfile(prev => ({
-          ...prev,
-          companyName: parsed.name || prev.companyName,
-          founderName: parsed.founderName || prev.founderName,
-          burn: Number(parsed.burn || parsed.monthly_burn) || prev.burn,
-          cash: Number(parsed.cash || parsed.cash_on_hand) || prev.cash,
-          revenue: Number(parsed.revenue || parsed.monthly_revenue) || prev.revenue,
-          teamSize: Number(parsed.teamSize || parsed.team_size) || prev.teamSize,
-          industry: String(parsed.industry || prev.industry || "").toLowerCase(),
-        }));
-        setProfileLoaded(true);
-      } else {
-        fetch("/api/business/intake")
-          .then(r => r.json())
-          .then(d => {
-            if (d.success && d.business) {
-              const b = d.business;
-              setProfile(prev => ({
-                ...prev,
-                companyName: b.name || prev.companyName,
-                founderName: b.founder_name || prev.founderName,
-                burn: Number(b.monthly_burn) || prev.burn,
-                cash: Number(b.cash_on_hand) || prev.cash,
-                revenue: Number(b.monthly_revenue) || prev.revenue,
-                teamSize: Number(b.team_size) || prev.teamSize,
-                industry: String(b.industry || prev.industry || "").toLowerCase(),
-              }));
-              localStorage.setItem("bizzpal_business_profile", JSON.stringify(b));
-            }
-          })
-          .catch(() => {})
-          .finally(() => setProfileLoaded(true));
+    (async () => {
+      let profile: any = null;
+      try { profile = JSON.parse(localStorage.getItem("bizzpal_business_profile") || "null"); } catch {}
+      if (!profile?.name) {
+        try {
+          const d = await fetch("/api/business/intake", { cache: "no-store" }).then(r => r.json());
+          if (d?.success && d.business) profile = { ...d.business, cash: d.business.cashOnHand, burn: d.business.monthlyBurn, founderName: d.business.founderName };
+        } catch {}
       }
-    } catch {
-      setProfileLoaded(true);
-    }
+      const c = Number(profile?.cash ?? profile?.cashOnHand ?? 0);
+      const b = Number(profile?.burn ?? profile?.monthlyBurn ?? 0);
+      setCompanyName(profile?.name || "");
+      setOwner(profile?.founderName || "");
+      if (c > 0) setCash(String(c));
+      if (b > 0) setBurn(String(b));
+      setFromProfile(c > 0 || b > 0);
+      try {
+        const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+        if (draft) {
+          if (draft.decision) setDecision(draft.decision);
+          if (Array.isArray(draft.options) && draft.options.length > 0) setOptions(draft.options.slice(0, MAX_OPTIONS));
+          if (draft.horizon) setHorizon(draft.horizon);
+        }
+      } catch {}
+      setLoaded(true);
+    })();
   }, []);
 
-  const allSuggestions = useMemo(() => getSuggestions(profile), [profile]);
-  const suggestions = useMemo(
-    () => allSuggestions.filter(q => q.toLowerCase() !== activeQuery.toLowerCase()).slice(0, 5),
-    [allSuggestions, activeQuery]
+  useEffect(() => {
+    if (!loaded) return;
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ decision, options, horizon })); } catch {}
+  }, [loaded, decision, options, horizon]);
+
+  const cashN = toNum(cash);
+  const burnN = toNum(burn);
+  const ready = cashN > 0 && burnN >= 0 && cash.trim() !== "";
+
+  const baseline = useMemo(() => simulate(cashN, burnN, { oneTime: 0, monthlyCost: 0, monthlyRevenue: 0, delay: 0 }, horizon), [cashN, burnN, horizon]);
+  const results = useMemo(
+    () => options.map(o => simulate(cashN, burnN, { oneTime: toNum(o.oneTime), monthlyCost: toNum(o.monthlyCost), monthlyRevenue: toNum(o.monthlyRevenue), delay: Math.max(0, Math.round(toNum(o.delay))) }, horizon)),
+    [options, cashN, burnN, horizon]
   );
 
-  // Start with the first idea that fits this business instead of a fixed example
-  useEffect(() => {
-    if (profileLoaded && !activeQuery && allSuggestions.length > 0) {
-      setQueryInput(allSuggestions[0]);
-      setActiveQuery(allSuggestions[0]);
-    }
-  }, [profileLoaded, activeQuery, allSuggestions]);
-
-  const simulationResult = useMemo(() => generateSimulation(activeQuery, profile), [activeQuery, profile]);
-
-  // Default to the recommended option whenever the simulation changes
-  useEffect(() => {
-    const pick = simulationResult.options.find(o => o.isRecommended) || simulationResult.options[0];
-    if (pick) setSelectedScenarioId(pick.id);
-  }, [simulationResult]);
-
-  const activeScenario =
-    simulationResult.options.find(s => s.id === selectedScenarioId) || simulationResult.options[0];
-
-  const handleSimulate = (override?: string) => {
-    const q = (override ?? queryInput).trim();
-    if (!q) return;
-    setQueryInput(q);
-    setIsSimulating(true);
-    setTimeout(() => {
-      setActiveQuery(q);
-      setIsSimulating(false);
-    }, 600);
+  const filled = options.map((o, i) => ({ o, r: results[i] })).filter(x => x.o.name.trim() && (toNum(x.o.oneTime) || toNum(x.o.monthlyCost) || toNum(x.o.monthlyRevenue)));
+  const best = {
+    runway: filled.length > 1 ? [...filled].sort((a, b) => (b.r.runwayMonths ?? 999) - (a.r.runwayMonths ?? 999))[0]?.o.id : null,
+    ret: filled.length > 1 ? [...filled].filter(x => x.r.returnPct !== null).sort((a, b) => (b.r.returnPct as number) - (a.r.returnPct as number))[0]?.o.id : null,
   };
 
-  const handleExecutePlan = async () => {
-    if (!activeScenario) return;
-    setIsExecuting(true);
-    for (const task of simulationResult.executionTasks) {
-      await fetch("/api/tasks", {
+  const update = (id: string, patch: Partial<Option>) => setOptions(prev => prev.map(o => (o.id === id ? { ...o, ...patch } : o)));
+  const runwayText = (r: Outcome) => (r.runwayMonths === null ? "More than 5 years" : r.runwayMonths === 0 ? "Already out of cash" : `${r.runwayMonths} months`);
+
+  const askAi = async () => {
+    setAiBusy(true);
+    setAiError("");
+    setAiText("");
+    const lines = [
+      `I am deciding: ${decision || "a business decision"}.`,
+      `My cash is ${inr(cashN)} and my net monthly burn is ${inr(burnN)}. Without any change my cash lasts ${runwayText(baseline)}.`,
+      ...filled.map(({ o, r }) => `${o.name}: one-time cost ${inr(toNum(o.oneTime))}, extra monthly cost ${inr(toNum(o.monthlyCost))}, extra monthly revenue ${inr(toNum(o.monthlyRevenue))} starting after month ${toNum(o.delay) || 0}. Result: cash lasts ${runwayText(r)}; after ${horizon} months cash is ${inr(r.endCash)}; return on the extra spend is ${r.returnPct === null ? "not defined" : r.returnPct.toFixed(0) + "%"}.`),
+      "Using only these figures, say which option looks better and why, what could go wrong, and what I should check before deciding. Be brief and do not invent any numbers.",
+    ];
+    try {
+      const res = await fetch("/api/ai/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: lines.join(" "), agentId: "cfo" }) });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.success && d.text) setAiText(d.text);
+      else setAiError(d.error || "The AI couldn't answer right now. Please try again.");
+    } catch {
+      setAiError("Couldn't reach the server. Please try again.");
+    }
+    setAiBusy(false);
+  };
+
+  const saveTask = async (o: Option) => {
+    setTaskMsg("");
+    try {
+      const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: `[${activeScenario.name.split(":")[0]}] ${task.title}`,
-          owner: task.owner,
-          gap: task.gap,
-          priority: task.priority,
-          category: task.category,
-          status: "todo",
-        }),
-      }).catch(() => {});
+        body: JSON.stringify({ title: `Decide: ${decision || "decision"}. Option: ${o.name}`, owner: owner || "Owner", priority: "medium", status: "todo" }),
+      });
+      setTaskMsg(res.ok ? "Added to your tasks." : "Couldn't add the task. Please try again.");
+    } catch {
+      setTaskMsg("Couldn't add the task. Please try again.");
     }
-    setIsExecuting(false);
-    setExecutionMessage(
-      `Created ${simulationResult.executionTasks.length} tasks for ${activeScenario.name.split(":")[0]}.`
-    );
-    setTimeout(() => setExecutionMessage(null), 6000);
+    setTimeout(() => setTaskMsg(""), 5000);
   };
 
-  const recommended = simulationResult.options.find(o => o.isRecommended);
+  // chart
+  const chartMax = Math.max(1, ...[baseline, ...results].flatMap(r => r.cashByMonth));
+  const chartMin = Math.min(0, ...[baseline, ...results].flatMap(r => r.cashByMonth));
+  const W = 640, H = 220, PAD = 28;
+  const x = (m: number) => PAD + (m / horizon) * (W - PAD * 2);
+  const y = (v: number) => H - PAD - ((v - chartMin) / (chartMax - chartMin || 1)) * (H - PAD * 2);
+  const line = (r: Outcome) => r.cashByMonth.map((v, m) => `${m === 0 ? "M" : "L"}${x(m).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+
+  const field = "w-full px-3 py-2 rounded-xl border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass";
+  const label = "block text-xs font-medium text-text-muted mb-1";
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-text">Decision simulator</h1>
         <p className="text-sm text-text-muted mt-1">
-          Compare the cost, return and runway impact of a decision before you make it.
+          See what a decision does to your cash before you make it. You enter what each option costs and earns; BizzPal works out the runway, the payback and the return. No figures are assumed.
         </p>
       </div>
 
-      {executionMessage && (
-        <div className="px-4 py-3 rounded-xl bg-surface-2 text-sm text-text flex items-center justify-between gap-3">
-          <span>{executionMessage}</span>
-          <Link href="/tasks" className="text-brass hover:underline shrink-0">
-            View tasks
-          </Link>
+      <section className="rounded-2xl border border-line bg-surface p-6 space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-text">1. Your starting numbers</h2>
+          <p className="text-sm text-text-muted mt-0.5">
+            {fromProfile ? `Taken from ${companyName || "your business"}'s profile. Change them to test a what-if.` : "BizzPal doesn't have your cash and burn yet. Enter them here, or add them in Settings."}
+          </p>
         </div>
-      )}
-
-      <div className="space-y-3">
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            handleSimulate();
-          }}
-          className="flex flex-col sm:flex-row gap-2"
-        >
-          <input
-            type="text"
-            value={queryInput}
-            onChange={e => setQueryInput(e.target.value)}
-            placeholder="Type a decision, e.g. Should we raise prices by 20%?"
-            className="flex-1 px-4 py-3 rounded-xl border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
-          />
-          <button
-            type="submit"
-            disabled={isSimulating || !queryInput.trim()}
-            className="px-6 py-3 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 inline-flex items-center justify-center gap-2 cursor-pointer"
-          >
-            {isSimulating && <RefreshCw className="w-4 h-4 animate-spin" />}
-            {isSimulating ? "Simulating…" : "Simulate"}
-          </button>
-        </form>
-
-        {suggestions.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-text-muted mr-1">Other ideas for your business:</span>
-            {suggestions.map(q => (
-              <button
-                key={q}
-                type="button"
-                onClick={() => handleSimulate(q)}
-                className="px-3.5 py-1.5 rounded-full border border-line text-sm text-text hover:bg-surface-2 cursor-pointer"
-              >
-                {q}
-              </button>
-            ))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className={label}>Cash in bank (&#8377;)</label>
+            <input type="text" inputMode="numeric" value={cash} onChange={e => setCash(e.target.value)} placeholder="Amount in rupees" className={field} />
           </div>
-        )}
-      </div>
+          <div>
+            <label className={label}>Net monthly burn (&#8377;)</label>
+            <input type="text" inputMode="numeric" value={burn} onChange={e => setBurn(e.target.value)} placeholder="What you lose each month" className={field} />
+          </div>
+          <div>
+            <label className={label}>Look ahead</label>
+            <select value={horizon} onChange={e => setHorizon(Number(e.target.value))} className={field}>
+              {[6, 12, 18, 24].map(m => <option key={m} value={m}>{m} months</option>)}
+            </select>
+          </div>
+        </div>
+        {ready && <p className="text-sm text-text-muted">If nothing changes, your cash lasts <span className="text-text font-medium">{runwayText(baseline)}</span>.</p>}
+      </section>
 
-      {simulationResult.options.length > 0 && activeQuery && (
-        <>
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-text">{simulationResult.title}</h2>
+      <section className="rounded-2xl border border-line bg-surface p-6 space-y-5">
+        <div>
+          <h2 className="text-base font-semibold text-text">2. The decision and its options</h2>
+          <p className="text-sm text-text-muted mt-0.5">For example hiring someone, raising a price, or running a campaign. Add up to {MAX_OPTIONS} options to compare.</p>
+        </div>
+        <div>
+          <label className={label}>What are you deciding?</label>
+          <input type="text" value={decision} onChange={e => setDecision(e.target.value)} maxLength={120} placeholder="Describe the decision" className={field} />
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {simulationResult.options.map(sc => {
-                const isSelected = sc.id === selectedScenarioId;
-                return (
-                  <button
-                    key={sc.id}
-                    type="button"
-                    onClick={() => setSelectedScenarioId(sc.id)}
-                    className={`text-left p-6 rounded-2xl border bg-surface shadow-sm flex flex-col gap-4 cursor-pointer transition-colors ${
-                      isSelected ? "border-line-strong bg-surface-2/50" : "border-line hover:bg-surface-2/40"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="text-base font-medium text-text leading-snug">{cleanName(sc.name)}</h3>
-                      <span
-                        className={`w-5 h-5 mt-0.5 rounded-full border flex items-center justify-center shrink-0 ${
-                          isSelected ? "bg-brass border-brass text-white" : "border-line-strong"
-                        }`}
-                      >
-                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                      </span>
-                    </div>
-                    <p className="text-sm text-text-muted leading-relaxed">{sc.subtitle}</p>
-
-                    <dl className="grid grid-cols-2 gap-x-4 gap-y-4 pt-4 mt-auto border-t border-line text-sm">
-                      <div>
-                        <dt className="text-xs text-text-muted">Monthly cost</dt>
-                        <dd className="font-medium text-text mt-0.5">₹{sc.monthlyCost.toLocaleString("en-IN")}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-text-muted">Expected revenue</dt>
-                        <dd className="font-medium text-text mt-0.5">+₹{sc.projectedRevenueIncrease.toLocaleString("en-IN")}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-text-muted">Runway</dt>
-                        <dd className={`font-medium mt-0.5 ${sc.runwayImpactMonths >= 0 ? "text-jade" : "text-rust"}`}>
-                          {sc.runwayImpactMonths > 0 ? "+" : ""}
-                          {sc.runwayImpactMonths} months
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-text-muted">Return</dt>
-                        <dd className="font-medium text-text mt-0.5">{sc.roiPercent}%</dd>
-                      </div>
-                    </dl>
-
-                    <p className="text-sm text-text-muted">
-                      {sc.riskScore} risk
-                      {sc.isRecommended && <span className="text-brass font-medium"> · Recommended</span>}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-line bg-surface shadow-sm p-6 sm:p-7 space-y-5">
-            <div>
-              <h2 className="text-lg font-semibold text-text">
-                What {ceoName} and {cfoName} suggest
-              </h2>
-              {recommended && (
-                <p className="text-sm text-brass mt-1">Best fit: {cleanName(recommended.name)}</p>
-              )}
-              <p className="text-sm text-text-muted leading-relaxed mt-3 max-w-3xl">
-                {simulationResult.consensusQuote.replace(/^"|"$/g, "")}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-line">
-              <button
-                type="button"
-                onClick={handleExecutePlan}
-                disabled={isExecuting}
-                className="px-5 py-2.5 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 inline-flex items-center gap-2 cursor-pointer"
-              >
-                {isExecuting && <RefreshCw className="w-4 h-4 animate-spin" />}
-                {isExecuting ? "Creating tasks…" : `Create tasks for ${activeScenario?.name.split(":")[0]}`}
-              </button>
-              <div className="flex items-center gap-5 text-sm">
-                <Link href="/workflows" className="text-brass hover:underline">
-                  Workflows
-                </Link>
-                <Link href="/tasks" className="text-brass hover:underline">
-                  Tasks
-                </Link>
+        <div className="space-y-4">
+          {options.map((o, i) => (
+            <div key={o.id} className="rounded-xl border border-line bg-surface-2/40 p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: LINE_COLORS[i + 1] }} />
+                <input type="text" value={o.name} onChange={e => update(o.id, { name: e.target.value })} maxLength={80} placeholder={`Option ${i + 1} name`} className={field} />
+                {options.length > 1 && (
+                  <button type="button" onClick={() => setOptions(prev => prev.filter(x => x.id !== o.id))} aria-label="Remove option" className="p-2 text-text-muted hover:text-rust cursor-pointer"><Trash2 className="w-4 h-4" /></button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div><label className={label}>One-time cost (&#8377;)</label><input type="text" inputMode="numeric" value={o.oneTime} onChange={e => update(o.id, { oneTime: e.target.value })} placeholder="0" className={field} /></div>
+                <div><label className={label}>Extra cost per month (&#8377;)</label><input type="text" inputMode="numeric" value={o.monthlyCost} onChange={e => update(o.id, { monthlyCost: e.target.value })} placeholder="0" className={field} /></div>
+                <div><label className={label}>Extra revenue per month (&#8377;)</label><input type="text" inputMode="numeric" value={o.monthlyRevenue} onChange={e => update(o.id, { monthlyRevenue: e.target.value })} placeholder="0" className={field} /></div>
+                <div><label className={label}>Revenue starts after (months)</label><input type="text" inputMode="numeric" value={o.delay} onChange={e => update(o.id, { delay: e.target.value })} placeholder="0" className={field} /></div>
               </div>
             </div>
-          </section>
-        </>
+          ))}
+        </div>
+        {options.length < MAX_OPTIONS && (
+          <button type="button" onClick={() => setOptions(prev => [...prev, newOption(prev.length + 1)])} className="text-sm text-brass hover:underline cursor-pointer inline-flex items-center gap-1.5"><Plus className="w-4 h-4" />Add another option</button>
+        )}
+      </section>
+
+      {!ready ? (
+        <p className="p-8 text-center text-sm text-text-muted rounded-2xl border border-line">Enter your cash in bank and monthly burn above to see the results.</p>
+      ) : filled.length === 0 ? (
+        <p className="p-8 text-center text-sm text-text-muted rounded-2xl border border-line">Give an option a name and at least one cost or revenue figure to see what it does to your cash.</p>
+      ) : (
+        <section className="space-y-6">
+          <h2 className="text-base font-semibold text-text">3. What each option does</h2>
+
+          <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-line text-xs font-medium text-text-muted">
+                  <th className="py-3 pl-5 pr-3">&nbsp;</th>
+                  <th className="py-3 px-3">Do nothing</th>
+                  {filled.map(({ o }, i) => <th key={o.id} className="py-3 px-3"><span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: LINE_COLORS[options.findIndex(x => x.id === o.id) + 1] }} />{o.name}</th>)}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {([
+                  ["Cash lasts", (r: Outcome) => runwayText(r), (id: string) => (best.runway === id ? "Longest runway" : "")],
+                  [`Cash after ${horizon} months`, (r: Outcome) => inr(r.endCash), () => ""],
+                  [`Extra spend over ${horizon} months`, (r: Outcome) => inr(r.totalCost), () => ""],
+                  [`Extra revenue over ${horizon} months`, (r: Outcome) => inr(r.totalRevenue), () => ""],
+                  ["Pays for itself", (r: Outcome) => (r.paybackMonth !== null ? `Month ${r.paybackMonth}` : "Not within the period"), () => ""],
+                  ["Return on the extra spend", (r: Outcome) => (r.returnPct === null ? "n/a" : `${r.returnPct.toFixed(0)}%`), (id: string) => (best.ret === id ? "Highest return" : "")],
+                ] as Array<[string, (r: Outcome) => string, (id: string) => string]>).map(([name, fmt, tag]) => (
+                  <tr key={name}>
+                    <td className="py-3.5 pl-5 pr-3 text-text-muted">{name}</td>
+                    <td className="py-3.5 px-3 text-text">{name === "Cash lasts" || name.startsWith("Cash after") ? fmt(baseline) : "n/a"}</td>
+                    {filled.map(({ o, r }) => (
+                      <td key={o.id} className="py-3.5 px-3 text-text">
+                        {fmt(r)}
+                        {tag(o.id) && <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-jade/10 text-jade border border-jade/30">{tag(o.id)}</span>}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="rounded-2xl border border-line bg-surface p-5">
+            <p className="text-sm font-medium text-text mb-3">Cash over the next {horizon} months</p>
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="Cash over time for each option">
+              {chartMin < 0 && <line x1={PAD} x2={W - PAD} y1={y(0)} y2={y(0)} stroke="#c0392b" strokeDasharray="4 4" strokeWidth="1" />}
+              <path d={line(baseline)} fill="none" stroke={LINE_COLORS[0]} strokeWidth="2" strokeDasharray="6 4" />
+              {filled.map(({ o, r }) => <path key={o.id} d={line(r)} fill="none" stroke={LINE_COLORS[options.findIndex(x => x.id === o.id) + 1]} strokeWidth="2.5" />)}
+            </svg>
+            <div className="flex flex-wrap gap-4 text-xs text-text-muted mt-2">
+              <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed" style={{ borderColor: LINE_COLORS[0] }} />Do nothing</span>
+              {filled.map(({ o }) => <span key={o.id} className="inline-flex items-center gap-1.5"><span className="w-4 border-t-2" style={{ borderColor: LINE_COLORS[options.findIndex(x => x.id === o.id) + 1] }} />{o.name}</span>)}
+              {chartMin < 0 && <span className="text-rust">Dashed red line: cash reaches zero</span>}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-line bg-surface p-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-text">Get a second opinion</p>
+                <p className="text-sm text-text-muted">The AI reads only the figures above. Its view is a suggestion, not a fact.</p>
+              </div>
+              <button type="button" onClick={askAi} disabled={aiBusy} className="px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer inline-flex items-center gap-2">
+                {aiBusy && <Loader2 className="w-4 h-4 animate-spin" />}Ask the CFO advisor
+              </button>
+            </div>
+            {aiError && <p className="text-sm text-rust">{aiError}</p>}
+            {aiText && <div className="rounded-xl bg-surface-2/50 border border-line p-4 text-sm text-text whitespace-pre-wrap leading-relaxed"><p className="text-xs font-medium text-brass mb-2">AI suggestion</p>{aiText}</div>}
+          </div>
+
+          <div className="rounded-2xl border border-line bg-surface p-5 space-y-3">
+            <p className="text-sm font-medium text-text">Decided? Add it to your tasks</p>
+            <div className="flex flex-wrap gap-2">
+              {filled.map(({ o }) => <button key={o.id} type="button" onClick={() => saveTask(o)} className="px-3.5 py-2 rounded-xl border border-line bg-surface text-sm text-text hover:bg-surface-2 cursor-pointer">Go with &ldquo;{o.name}&rdquo;</button>)}
+            </div>
+            {taskMsg && <p className="text-sm text-text-muted">{taskMsg} <Link href="/tasks" className="text-brass hover:underline">Open tasks</Link></p>}
+          </div>
+        </section>
       )}
     </div>
   );

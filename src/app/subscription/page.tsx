@@ -97,8 +97,8 @@ export default function SubscriptionPage() {
 
   // Helper to extract active user details for checkout
   const getUserCheckoutDetails = () => {
-    let email = "founder@bizzpal.ai";
-    let name = "Founder";
+    let email = "";
+    let name = "";
     let phone = "";
     try {
       const sessStr = localStorage.getItem("bizzpal_user_session");

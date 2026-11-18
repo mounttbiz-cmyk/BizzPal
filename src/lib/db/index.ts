@@ -907,276 +907,22 @@ export function registerUser(email: string, name?: string, provider?: string, ui
 // Default business ID for single-tenant local workspace
 export const DEFAULT_BUSINESS_ID = "biz_enterprise_01";
 
-// Ensure default business exists with clean, fresh baseline metrics (no hardcoded fake values)
-const existingBiz = db.prepare("SELECT id FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID);
-if (!existingBiz) {
-  const now = new Date().toISOString();
-  db.prepare(`
-    INSERT INTO businesses (
-      id, name, industry, industry_label, founder_name, website, team_size,
-      annual_revenue, monthly_revenue, monthly_burn, cash_on_hand,
-      connected_tools, no_integrations, whatsapp_opt_in, whatsapp_number,
-      dynamic_intake_answers, created_at, updated_at
-    ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?,
-      ?, ?, ?, ?,
-      ?, ?, ?
-    )
-  `).run(
-    DEFAULT_BUSINESS_ID,
-    "My Enterprise",
-    "saas",
-    "Technology & Services",
-    "Founder",
-    "",
-    1,
-    0,
-    0,
-    0,
-    0,
-    JSON.stringify([]),
-    0,
-    0,
-    "",
-    JSON.stringify({}),
-    now,
-    now
-  );
-}
-
-// Ensure default integrations exist
-const DEFAULT_TOOLS = [
-  { tool_key: "stripe", name: "Stripe", category: "payments" },
-  { tool_key: "slack", name: "Slack", category: "communication" },
-  { tool_key: "zoho_books", name: "Zoho Books", category: "accounting" },
-  { tool_key: "google_calendar", name: "Google Calendar", category: "scheduling" },
-  { tool_key: "help_desk", name: "Help Desk (Zendesk / Freshdesk)", category: "support" },
-  { tool_key: "zoom", name: "Zoom", category: "meetings" },
-  { tool_key: "github", name: "GitHub", category: "engineering" },
-];
-
-for (const tool of DEFAULT_TOOLS) {
-  const exists = db
-    .prepare("SELECT id FROM integrations WHERE business_id = ? AND tool_key = ?")
-    .get(DEFAULT_BUSINESS_ID, tool.tool_key);
-  if (!exists) {
-    db.prepare(`
-      INSERT INTO integrations (id, business_id, tool_key, name, category, status, updated_at)
-      VALUES (?, ?, ?, ?, ?, 'not_connected', ?)
-    `).run(
-      `int_${tool.tool_key}`,
-      DEFAULT_BUSINESS_ID,
-      tool.tool_key,
-      tool.name,
-      tool.category,
-      new Date().toISOString()
-    );
-  }
-}
-
-// Ensure initial seed team members exist
-const teamCountRow = db.prepare("SELECT COUNT(*) as count FROM team_members WHERE business_id = ?").get(DEFAULT_BUSINESS_ID) as { count: number };
-if (teamCountRow.count === 0) {
-  const initialTeam = [
-    {
-      id: "mem_owner",
-      name: "Executive Founder",
-      email: "founder@bizzpal.ai",
-      role: "Owner",
-      department: "Executive Office",
-      two_factor: 1,
-      status: "active",
-      last_active: "Active now"
-    },
-    {
-      id: "mem_astra",
-      name: "CEO Advisor",
-      email: "ceo.ai@bizzpal.internal",
-      role: "Executive",
-      department: "Autonomous Strategy",
-      two_factor: 1,
-      status: "active",
-      last_active: "Real-time engine"
-    },
-    {
-      id: "mem_marcus",
-      name: "CFO Advisor",
-      email: "cfo.ai@bizzpal.internal",
-      role: "Executive",
-      department: "Autonomous Finance",
-      two_factor: 1,
-      status: "active",
-      last_active: "Real-time engine"
-    }
-  ];
-
-  for (const m of initialTeam) {
-    db.prepare(`
-      INSERT INTO team_members (id, business_id, name, email, role, department, two_factor, status, last_active, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(m.id, DEFAULT_BUSINESS_ID, m.name, m.email, m.role, m.department, m.two_factor, m.status, m.last_active, new Date().toISOString());
-  }
-
-  db.prepare(`
-    INSERT INTO team_audit_logs (id, business_id, action, user_name, ip_address, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(`log_${Date.now()}`, DEFAULT_BUSINESS_ID, "Workspace security & autonomous copilot initialization", "System Engine", "127.0.0.1", new Date().toISOString());
-}
-
-// Ensure initial seed automations exist
-const automationsCountRow = db.prepare("SELECT COUNT(*) as count FROM business_automations WHERE business_id = ?").get(DEFAULT_BUSINESS_ID) as { count: number };
-if (automationsCountRow.count === 0) {
-  const initialAutomations = [
-    {
-      id: "auto_discretionary_spend",
-      title: "Discretionary SaaS Spend Guard",
-      description: "Dispatches instant alert to Slack & WhatsApp when monthly software charges exceed budget by ₹10,000.",
-      trigger_event: "Monthly burn variance > 5%",
-      action_event: "Dispatch notification & log audit event",
-      tool_key: "slack",
-      category: "Finance & Cost Guard",
-      enabled: 1,
-      executions_count: 14,
-      last_run: "Today at 09:15"
-    },
-    {
-      id: "auto_checkin_digest",
-      title: "Daily Executive Check-in Digest",
-      description: "Summarizes team blocker and cash updates from the daily check-in into an executive intelligence brief.",
-      trigger_event: "Daily at 17:00 UTC+5:30",
-      action_event: "Generate executive briefing card & dispatch to WhatsApp",
-      tool_key: "whatsapp",
-      category: "Operations & Governance",
-      enabled: 1,
-      executions_count: 42,
-      last_run: "Yesterday at 17:00"
-    },
-    {
-      id: "auto_stripe_revenue_sync",
-      title: "Stripe Revenue & Inbound Webhook Sync",
-      description: "Auto-reconciles customer payments, calculates net ARR, and updates runway forecast in real time.",
-      trigger_event: "Stripe charge.succeeded webhook",
-      action_event: "Update database cash ledger & refresh runway KPI",
-      tool_key: "stripe",
-      category: "Revenue Operations",
-      enabled: 1,
-      executions_count: 128,
-      last_run: "30m ago"
-    },
-    {
-      id: "auto_tax_gst_reminder",
-      title: "Quarterly GST & Tax Filing Reminder",
-      description: "Auto-computes projected Input Tax Credit (ITC) balance and schedules reconciliation meeting 5 days before filing.",
-      trigger_event: "Calendar: 5 days prior to GST deadline",
-      action_event: "Schedule Google Calendar review & notify finance owner",
-      tool_key: "google_calendar",
-      category: "Compliance & Tax",
-      enabled: 1,
-      executions_count: 3,
-      last_run: "1 week ago"
-    }
-  ];
-
-  for (const a of initialAutomations) {
-    db.prepare(`
-      INSERT INTO business_automations (id, business_id, title, description, trigger_event, action_event, tool_key, category, enabled, executions_count, last_run, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(a.id, DEFAULT_BUSINESS_ID, a.title, a.description, a.trigger_event, a.action_event, a.tool_key, a.category, a.enabled, a.executions_count, a.last_run, new Date().toISOString());
-  }
-}
-
-// Ensure default KPI monitoring rules exist
+// Nothing is created for the default business any more. An earlier version added a placeholder business with made-up
+// team members, automations and KPI rules. Those rows are removed here if they are still untouched.
 try {
-  const kpiCountRow = db.prepare("SELECT COUNT(*) as count FROM kpi_definitions WHERE business_id = ?").get(DEFAULT_BUSINESS_ID) as { count: number };
-  if (kpiCountRow.count === 0) {
-    const defaultKPIs = [
-      {
-        id: "kpi_mrr_growth",
-        metric_key: "monthly_revenue",
-        name: "Revenue Momentum & Growth",
-        description: "Monitors monthly top-line revenue for contractions exceeding 10% period-over-period.",
-        target_value: 15.0,
-        warning_threshold: -5.0,
-        critical_threshold: -15.0,
-        comparison_type: "period_over_period",
-        alert_severity: "critical",
-        frequency: "daily"
-      },
-      {
-        id: "kpi_burn_control",
-        metric_key: "monthly_burn",
-        name: "Monthly Net Burn Inflation",
-        description: "Monitors unexpected operational spend spikes exceeding 20% MoM.",
-        target_value: 0.0,
-        warning_threshold: 15.0,
-        critical_threshold: 30.0,
-        comparison_type: "pct_change",
-        alert_severity: "warning",
-        frequency: "daily"
-      },
-      {
-        id: "kpi_runway_safety",
-        metric_key: "runway_months",
-        name: "Cash Runway Safeguard",
-        description: "Alerts when cash reserves fall below 6 months of current net burn.",
-        target_value: 18.0,
-        warning_threshold: 6.0,
-        critical_threshold: 3.0,
-        comparison_type: "threshold",
-        alert_severity: "critical",
-        frequency: "daily"
-      },
-      {
-        id: "kpi_gross_margin",
-        metric_key: "gross_margin_pct",
-        name: "Gross Margin Integrity",
-        description: "Ensures gross margin remains above healthy unit economics threshold (70%).",
-        target_value: 80.0,
-        warning_threshold: 65.0,
-        critical_threshold: 50.0,
-        comparison_type: "threshold",
-        alert_severity: "warning",
-        frequency: "weekly"
-      },
-      {
-        id: "kpi_ltv_cac",
-        metric_key: "ltv_cac_ratio",
-        name: "LTV / CAC Efficiency",
-        description: "Verifies customer lifetime value to acquisition cost ratio exceeds 3.0x.",
-        target_value: 4.0,
-        warning_threshold: 3.0,
-        critical_threshold: 1.8,
-        comparison_type: "threshold",
-        alert_severity: "warning",
-        frequency: "weekly"
-      }
-    ];
-
-    for (const k of defaultKPIs) {
-      db.prepare(`
-        INSERT INTO kpi_definitions (id, business_id, metric_key, name, description, target_value, warning_threshold, critical_threshold, comparison_type, alert_severity, frequency, enabled, last_evaluated_at, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL, ?, ?)
-      `).run(
-        k.id,
-        DEFAULT_BUSINESS_ID,
-        k.metric_key,
-        k.name,
-        k.description,
-        k.target_value,
-        k.warning_threshold,
-        k.critical_threshold,
-        k.comparison_type,
-        k.alert_severity,
-        k.frequency,
-        new Date().toISOString(),
-        new Date().toISOString()
-      );
+  const seed = db.prepare("SELECT name, monthly_revenue FROM businesses WHERE id = ?").get(DEFAULT_BUSINESS_ID) as any;
+  if (seed && seed.name === "My Enterprise" && !Number(seed.monthly_revenue)) {
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as any[];
+    for (const { name } of tables) {
+      if (name === "payment_transactions" || name === "subscriptions") continue;
+      try {
+        const cols = (db.prepare(`PRAGMA table_info("${name}")`).all() as any[]).map(c => c.name);
+        if (cols.includes("business_id")) db.prepare(`DELETE FROM "${name}" WHERE business_id = ?`).run(DEFAULT_BUSINESS_ID);
+      } catch {}
     }
+    db.prepare("DELETE FROM businesses WHERE id = ?").run(DEFAULT_BUSINESS_ID);
   }
-} catch (e) {
-  console.warn("Could not seed default KPIs:", e);
-}
+} catch {}
 
 // -------------------------------------------------------------
 // Platform Dynamic Configuration (Website + Dashboard)
@@ -1969,21 +1715,37 @@ export function getUserBusiness(email: string) {
     if (!row) return null;
     return {
       id: row.id,
-      name: row.name || "BizzPal Enterprise",
-      industry: (row.industry as any) || "saas",
-      industryLabel: row.industry_label || "Enterprise",
-      founderName: row.founder_name || "Founder",
+      name: row.name || "",
+      industry: (row.industry as any) || "",
+      industryLabel: row.industry_label || "",
+      founderName: row.founder_name || "",
       annualRevenue: Number(row.annual_revenue || 0),
       monthlyRevenue: Number(row.monthly_revenue || 0),
       monthlyBurn: Number(row.monthly_burn || 0),
       cashOnHand: Number(row.cash_on_hand || 0),
-      teamSize: Number(row.team_size || 5),
+      teamSize: Number(row.team_size || 0),
       website: row.website || "",
     };
   } catch {
     return null;
   }
 }
+
+// The menu is saved in the database. Remove the retired Workflows item and any typed-in count badge from the saved copy.
+try {
+  const navRow = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'dashboard_nav'").get() as any;
+  if (navRow && typeof navRow.config_value === "string") {
+    const nav = JSON.parse(navRow.config_value);
+    if (Array.isArray(nav)) {
+      const cleaned = nav
+        .filter((i: any) => i?.id !== "nav_workflows")
+        .map((i: any) => (typeof i?.badge === "string" && /^[0-9]+$/.test(i.badge.trim()) ? { ...i, badge: undefined } : i));
+      if (JSON.stringify(cleaned) !== JSON.stringify(nav)) {
+        db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'dashboard_nav'").run(JSON.stringify(cleaned), new Date().toISOString());
+      }
+    }
+  }
+} catch {}
 
 // Saved plans used to promise a WhatsApp briefing. The daily briefing now goes by email, so the plan text says that.
 try {

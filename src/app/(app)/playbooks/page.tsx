@@ -370,7 +370,7 @@ export default function ExecutivePlaybooksPage() {
   const [activePlaybook, setActivePlaybook] = useState<Playbook | null>(null);
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [companyName, setCompanyName] = useState("My Enterprise");
+  const [companyName, setCompanyName] = useState("your business");
   const [runwayMonths, setRunwayMonths] = useState("0.0");
   const [, setMonthlyBurn] = useState(0);
   const [, setCashOnHand] = useState(0);

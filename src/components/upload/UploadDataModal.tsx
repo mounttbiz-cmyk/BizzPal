@@ -252,9 +252,9 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
     }
   };
 
-  // Reset to Demo Baseline
+  // Remove the uploaded data
   const handleResetToDemo = async () => {
-    if (!confirm("Reset dashboard back to baseline demo data (Apex Analytics)?")) return;
+    if (!confirm("Remove the uploaded data? The dashboard will go back to the figures you entered yourself.")) return;
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/business/upload", { method: "DELETE" });
@@ -467,7 +467,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     <div className="p-3 rounded-xl bg-surface-2/60 border border-line">
                       <span className="text-xs text-text-muted font-semibold block">Company Name</span>
                       <span className="text-sm font-medium text-text truncate block mt-0.5">
-                        {parsedPreview.name || "Apex Analytics"}
+                        {parsedPreview.name || "Not found in the file"}
                       </span>
                     </div>
 
@@ -488,7 +488,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                     <div className="p-3 rounded-xl bg-surface-2/60 border border-line">
                       <span className="text-xs text-text-muted font-semibold block">Calculated Runway</span>
                       <span className="text-sm font-medium text-jade block mt-0.5">
-                        {parsedPreview.runwayMonths ? `${parsedPreview.runwayMonths} mo` : "18+ mo"}
+                        {parsedPreview.runwayMonths ? `${parsedPreview.runwayMonths} mo` : "n/a"}
                       </span>
                     </div>
                   </div>
@@ -743,7 +743,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
                   </div>
                   <div>
                     <span className="text-xs font-medium text-text block">
-                      {activeDataInfo ? `Custom Dataset: ${activeDataInfo.fileName}` : "Default Demo Dataset Active (Apex Analytics)"}
+                      {activeDataInfo ? `Custom Dataset: ${activeDataInfo.fileName}` : "No file uploaded yet. The dashboard uses the figures you entered."}
                     </span>
                     <span className="text-xs text-text-muted">
                       {activeDataInfo

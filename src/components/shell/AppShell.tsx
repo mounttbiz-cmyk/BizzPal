@@ -34,16 +34,18 @@ function sanitizeNavItems(list: NavItem[]): NavItem[] {
     return {
       ...item,
       icon: isWorkspace ? "BrainCircuit" : isStrategy ? "Target" : isPlaybooks ? "BookOpen" : isAnalytics ? "BarChart3" : item.icon,
-      badge: (item.badge?.toUpperCase() === "NEW" || item.badge?.toUpperCase() === "PRO" || item.id === "nav_datapal" || item.label.includes("DataPal")) ? undefined : item.badge,
+      badge: (item.badge?.toUpperCase() === "NEW" || item.badge?.toUpperCase() === "PRO" || item.id === "nav_datapal" || item.label.includes("DataPal")) ? undefined : notACount(item.badge),
     };
   });
 }
 
+const notACount = (b?: string) => (b && /^[0-9]+$/.test(b.trim()) ? undefined : b);
+
 export function AppShell({
   children,
   navItems,
-  companyName: initialCompanyName = "Apex Analytics",
-  industry: initialIndustry = "B2B SaaS",
+  companyName: initialCompanyName = "",
+  industry: initialIndustry = "",
 }: AppShellProps) {
   const pathname = usePathname();
   const [chatOpen, setChatOpen] = useState(false);
@@ -204,10 +206,7 @@ export function AppShell({
     };
   }, []);
 
-  const [contextChips, setContextChips] = useState<ContextChip[]>([
-    { id: "chip_dash", label: "Dashboard: Q3 Live Data", type: "page" },
-    { id: "chip_runway", label: "Runway: 7.2 months", type: "metric" },
-  ]);
+  const [contextChips, setContextChips] = useState<ContextChip[]>([]);
 
   const handleRemoveChip = (id: string) => {
     setContextChips(prev => prev.filter(c => c.id !== id));

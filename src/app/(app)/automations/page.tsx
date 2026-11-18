@@ -21,7 +21,7 @@ export default function AutomationsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [companyName, setCompanyName] = useState("Your Enterprise");
+  const [companyName, setCompanyName] = useState("your business");
 
   // Close Create modal when Escape key is pressed
   useEscapeKey(() => setIsCreateModalOpen(false), isCreateModalOpen);

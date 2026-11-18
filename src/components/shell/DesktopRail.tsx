@@ -21,10 +21,12 @@ interface DesktopRailProps {
   onOpenSearch?: () => void;
 }
 
+const notACount = (b?: string) => (b && /^[0-9]+$/.test(b.trim()) ? undefined : b);
+
 export function DesktopRail({
   navItems,
-  companyName = "Apex Labs",
-  industry = "B2B SaaS",
+  companyName = "",
+  industry = "",
   companyLogo,
   onOpenSearch,
 }: DesktopRailProps) {
@@ -147,7 +149,7 @@ export function DesktopRail({
                     ...rawItem,
                     label: isDataPal ? "DataPal" : rawItem.label,
                     icon: isWorkspace ? "BrainCircuit" : isStrategy ? "Target" : isPlaybooks ? "BookOpen" : isAnalytics ? "BarChart3" : rawItem.icon,
-                    badge: (rawItem.badge?.toUpperCase() === "NEW" || rawItem.badge?.toUpperCase() === "PRO" || isDataPal) ? undefined : rawItem.badge,
+                    badge: (rawItem.badge?.toUpperCase() === "NEW" || rawItem.badge?.toUpperCase() === "PRO" || isDataPal) ? undefined : notACount(rawItem.badge),
                   };
 
                   const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));

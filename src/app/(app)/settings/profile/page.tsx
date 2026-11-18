@@ -86,7 +86,7 @@ export default function BusinessProfileSettingsPage() {
               setBusinessLogo((prev) => prev || d.business.logoUrl);
             }
             if (d.business.name) {
-              setBusinessName((prev) => (!prev || prev === "Apex Analytics" ? d.business.name : prev));
+              setBusinessName((prev) => prev || d.business.name);
             }
           }
         })

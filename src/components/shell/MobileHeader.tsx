@@ -12,7 +12,7 @@ interface MobileHeaderProps {
 }
 
 export function MobileHeader({
-  companyName = "Apex Labs",
+  companyName = "",
   onOpenChat,
   onOpenSearch,
 }: MobileHeaderProps) {

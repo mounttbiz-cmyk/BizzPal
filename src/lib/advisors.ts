@@ -130,7 +130,6 @@ export const DEFAULT_EXECUTIVE_AGENTS: AgentMeta[] = [
     color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/30",
     summary: "Fulfillment bottlenecks, delivery SLAs, cross-team handoffs, and vendor cost optimization.",
     quickTools: [
-      { name: "Workflows Builder", href: "/workflows" },
       { name: "Automations Engine", href: "/automations" },
       { name: "Tasks Queue", href: "/tasks" },
     ],

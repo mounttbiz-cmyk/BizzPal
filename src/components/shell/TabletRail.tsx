@@ -71,7 +71,7 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
             ...rawItem,
             label: isDataPal ? "DataPal" : rawItem.label,
             icon: isWorkspace ? "BrainCircuit" : isStrategy ? "Target" : isPlaybooks ? "BookOpen" : isAnalytics ? "BarChart3" : rawItem.icon,
-            badge: isRedundant ? undefined : rawItem.badge,
+            badge: isRedundant ? undefined : rawItem.badge && /^[0-9]+$/.test(rawItem.badge.trim()) ? undefined : rawItem.badge,
           };
 
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));

@@ -14,10 +14,10 @@ export function emitBusinessDataUpdated(metrics: any) {
 
     const updatedProfile = {
       ...existing,
-      name: metrics.name || existing.name || "Apex Analytics",
-      industry: metrics.industry || existing.industry || "saas",
-      industryLabel: metrics.industryLabel || existing.industryLabel || "B2B SaaS",
-      founderName: metrics.founderName || existing.founderName || "Founder",
+      name: metrics.name || existing.name || "",
+      industry: metrics.industry || existing.industry || "",
+      industryLabel: metrics.industryLabel || existing.industryLabel || "",
+      founderName: metrics.founderName || existing.founderName || "",
       revenue: metrics.monthlyRevenue ?? existing.revenue ?? 0,
       annualRevenue: metrics.annualRevenue ?? existing.annualRevenue ?? 0,
       burn: metrics.monthlyBurn ?? existing.burn ?? 0,

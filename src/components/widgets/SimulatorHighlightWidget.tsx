@@ -10,8 +10,8 @@ export function SimulatorHighlightWidget() {
         <div className="max-w-2xl">
           <h2 className="text-base font-semibold text-text">Decision simulator</h2>
           <p className="text-sm text-text-muted mt-0.5 leading-relaxed">
-            Thinking about a new hire, a price change or a big expense? Test it first and see the best, likely and worst
-            outcomes for your cash.
+            Thinking about a new hire, a price change or a big expense? Enter what each option costs and earns, and see
+            what it does to your cash and runway.
           </p>
         </div>
         <Link

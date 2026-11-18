@@ -18,79 +18,10 @@ export interface GrowthVector {
   riskTier: "Low" | "Medium" | "High";
 }
 
-const DEFAULT_GROWTH_VECTORS: GrowthVector[] = [
-  {
-    id: "vector-1",
-    title: "Enterprise Upmarket Expansion & High-ACV Accounts",
-    category: "Enterprise",
-    status: "In Flight",
-    expectedImpact: "+₹24,00,000 ARR",
-    timeline: "Q3 – Q4",
-    owner: "Founder & Sales Lead",
-    description: "Shift focus toward larger tier-1 enterprise accounts with dedicated solution engineering, custom SLAs, and multi-year contract commitments.",
-    riskTier: "Medium",
-    milestones: [
-      { title: "Define Enterprise ICP & qualification criteria", done: true },
-      { title: "Standardize enterprise MSA & security compliance package", done: true },
-      { title: "Initiate outreach to top 50 target accounts", done: false },
-      { title: "Close first 2 multi-year enterprise contracts (> ₹15L ACV)", done: false },
-    ],
-  },
-  {
-    id: "vector-2",
-    title: "Value-Tier Repricing & 15% Renewal Expansion",
-    category: "Monetization",
-    status: "Active",
-    expectedImpact: "+22% Gross Margin",
-    timeline: "Immediate (Ongoing)",
-    owner: "CEO & CFO",
-    description: "Introduce modular feature packaging and value tiers. Grandfather legacy clients for 6 months while applying +15% expansion at contract renewals.",
-    riskTier: "Low",
-    milestones: [
-      { title: "Audit feature usage and customer pricing sensitivity", done: true },
-      { title: "Publish updated tier rate card with add-on options", done: true },
-      { title: "Deploy renewal outreach with quantified ROI deliverables", done: false },
-    ],
-  },
-  {
-    id: "vector-3",
-    title: "Product-Led Onboarding Loops & Trial Velocity",
-    category: "Product",
-    status: "Active",
-    expectedImpact: "38% Faster Sales Cycle",
-    timeline: "Q3",
-    owner: "Product & Engineering",
-    description: "Compress the time-to-value for new inbound buyers. Enable automated telemetry extraction so clients see live business dashboards in under 3 minutes.",
-    riskTier: "Low",
-    milestones: [
-      { title: "Deploy real website intelligence extraction engine", done: true },
-      { title: "Enable multi-format CSV/Excel business data upload", done: true },
-      { title: "Add interactive decision and financial calculators", done: true },
-      { title: "Implement automated daily check-in loops", done: false },
-    ],
-  },
-  {
-    id: "vector-4",
-    title: "Channel Reseller & Strategic Agency Partnerships",
-    category: "Partnerships",
-    status: "Planned",
-    expectedImpact: "3.4x Partner Pipeline",
-    timeline: "Q4 Launch",
-    owner: "Head of Partnerships",
-    description: "Partner with regional consulting firms, digital agencies, and system integrators to distribute BizzPal with zero fixed payroll overhead.",
-    riskTier: "Medium",
-    milestones: [
-      { title: "Draft partner revenue share & certification terms", done: false },
-      { title: "Sign 3 pilot regional agency partners", done: false },
-      { title: "Launch co-branded executive briefing reports", done: false },
-    ],
-  },
-];
-
 export default function GrowthStrategyPage() {
-  const [vectors, setVectors] = useState<GrowthVector[]>(DEFAULT_GROWTH_VECTORS);
+  const [vectors, setVectors] = useState<GrowthVector[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedVectorId, setSelectedVectorId] = useState<string>("vector-1");
+  const [selectedVectorId, setSelectedVectorId] = useState<string>("");
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -110,7 +41,7 @@ export default function GrowthStrategyPage() {
   const [formMilestones, setFormMilestones] = useState<string[]>([""]);
 
   // Loaded Business Profile Context
-  const [companyName, setCompanyName] = useState("My Enterprise");
+  const [companyName, setCompanyName] = useState("your business");
   const [founderName, setFounderName] = useState("Founder");
   const [annualRevenue, setAnnualRevenue] = useState(0);
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
@@ -180,10 +111,10 @@ export default function GrowthStrategyPage() {
   }, []);
 
   const runwayMonths =
-    monthlyBurn > 0 ? (cashOnHand / monthlyBurn).toFixed(1) : "18+";
+    monthlyBurn > 0 && cashOnHand > 0 ? (cashOnHand / monthlyBurn).toFixed(1) : null;
 
   const selectedVector =
-    vectors.find(v => v.id === selectedVectorId) || vectors[0] || DEFAULT_GROWTH_VECTORS[0];
+    vectors.find(v => v.id === selectedVectorId) || vectors[0] || null;
 
   const handleToggleMilestone = (vectorId: string, index: number) => {
     setVectors(prev => {
@@ -207,12 +138,12 @@ export default function GrowthStrategyPage() {
     setFormTitle("");
     setFormCategory("Enterprise");
     setFormStatus("In Flight");
-    setFormExpectedImpact("+₹15,00,000 ARR");
-    setFormTimeline("Q3 – Q4");
+    setFormExpectedImpact("");
+    setFormTimeline("");
     setFormOwner(founderName ? `${founderName} (Executive)` : "Founder");
     setFormRiskTier("Medium");
     setFormDescription("");
-    setFormMilestones(["Define key deliverables & target ICP", "Deploy operational workflow"]);
+    setFormMilestones([""]);
     setIsModalOpen(true);
   };
 
@@ -255,7 +186,7 @@ export default function GrowthStrategyPage() {
               title: formTitle.trim(),
               category: formCategory,
               status: formStatus,
-              expectedImpact: formExpectedImpact.trim() || "+₹10,00,000 ARR",
+              expectedImpact: formExpectedImpact.trim() || "Not estimated",
               timeline: formTimeline.trim() || "Ongoing",
               owner: formOwner.trim() || "Founder",
               riskTier: formRiskTier,
@@ -272,7 +203,7 @@ export default function GrowthStrategyPage() {
         title: formTitle.trim(),
         category: formCategory,
         status: formStatus,
-        expectedImpact: formExpectedImpact.trim() || "+₹10,00,000 ARR",
+        expectedImpact: formExpectedImpact.trim() || "Not estimated",
         timeline: formTimeline.trim() || "Q4 2026",
         owner: formOwner.trim() || "Executive",
         riskTier: formRiskTier,
@@ -294,10 +225,6 @@ export default function GrowthStrategyPage() {
   };
 
   const handleDeleteVector = (vectorId: string) => {
-    if (vectors.length <= 1) {
-      alert("At least one strategic vector must remain active.");
-      return;
-    }
     const target = vectors.find(v => v.id === vectorId);
     if (!confirm(`Are you sure you want to delete strategic vector '${target?.title || ""}'?`)) {
       return;
@@ -355,7 +282,7 @@ export default function GrowthStrategyPage() {
     { label: "Yearly revenue", value: `₹${annualRevenue.toLocaleString("en-IN")}` },
     { label: "Monthly revenue", value: `₹${monthlyRevenue.toLocaleString("en-IN")}` },
     { label: "Cash in the bank", value: `₹${cashOnHand.toLocaleString("en-IN")}` },
-    { label: "Cash runway", value: `${runwayMonths} months` },
+    { label: "Cash runway", value: runwayMonths ? `${runwayMonths} months` : "Add cash and burn in Settings" },
   ];
 
   const completedOf = (v: GrowthVector) => v.milestones.filter(m => m.done).length;
@@ -470,6 +397,7 @@ export default function GrowthStrategyPage() {
             })}
           </div>
 
+          {selectedVector ? (
           <div className="lg:col-span-7 rounded-2xl border border-line bg-surface shadow-sm p-6 sm:p-7 space-y-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -557,6 +485,15 @@ export default function GrowthStrategyPage() {
               </button>
             </div>
           </div>
+          ) : (
+            <div className="lg:col-span-7 rounded-2xl border border-line bg-surface shadow-sm p-10 text-center space-y-3">
+              <p className="text-base font-medium text-text">No initiatives yet</p>
+              <p className="text-sm text-text-muted max-w-md mx-auto">
+                Add the growth moves you are really working on, with their milestones. BizzPal will track progress and can turn them into tasks.
+              </p>
+              <button type="button" onClick={handleOpenAddModal} className="px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer">Add your first initiative</button>
+            </div>
+          )}
         </div>
       </section>
 

@@ -50,18 +50,8 @@ export function ChatDock({
       senderName: "CEO",
       role: "Chief Executive Officer",
       avatar: "Briefcase",
-      content: "Good morning. I've reviewed your latest telemetry and runway metrics. How can I assist with your executive priorities today?",
-      timestamp: "09:00 AM",
-      situation: "Active operations pipeline is healthy; cash runway sits at 8.0 months.",
-      analysis: "Top client represents 35% of total recurring income (₹1,75,000/mo of ₹5,00,000 monthly revenue). This triggers our Layer 1 concentration safeguard.",
-      recommendation: "Prioritize closing secondary accounts to reduce top-client concentration under 25% within 60 days.",
-      risks: "If top account slows payment, runway decreases from 8.0 to 4.5 months.",
-      opportunities: "Expanding higher-tier retained service could yield an extra ₹85,000/mo with minimal delivery overhead.",
-      nextSteps: [
-        "Create task: Review contract renewal terms for primary client",
-        "Run scenario simulation: Model 15% pricing increase vs 5% churn",
-      ],
-      provenance: "from_data",
+      content: "Hello. Ask me about your business and I will answer using the details and documents you have added to BizzPal.",
+      timestamp: "",
     },
   ]);
   const [input, setInput] = useState("");

@@ -58,8 +58,8 @@ export function QuickBusinessInputModal({ isOpen, onClose, onSuccess }: QuickBus
           const parsed = JSON.parse(stored);
           setFormData(prev => ({
             ...prev,
-            companyName: parsed.name && !parsed.name.includes("Acme") ? parsed.name : "",
-            founderName: parsed.founderName && !parsed.founderName.includes("Test") ? parsed.founderName : "",
+            companyName: parsed.name || "",
+            founderName: parsed.founderName || "",
             monthlyRevenue: parsed.revenue || parsed.monthlyRevenue ? String(parsed.revenue || parsed.monthlyRevenue) : "",
             monthlyBurn: parsed.burn || parsed.monthlyBurn ? String(parsed.burn || parsed.monthlyBurn) : "",
             cashOnHand: parsed.cash || parsed.cashOnHand ? String(parsed.cash || parsed.cashOnHand) : "",

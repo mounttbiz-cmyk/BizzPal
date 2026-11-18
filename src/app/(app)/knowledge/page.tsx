@@ -83,170 +83,11 @@ export default function KnowledgeHubPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Business News Items
-  const [newsList, setNewsList] = useState<BusinessNewsItem[]>([
-    {
-      id: "news-1",
-      title: "RBI Monetary Policy: Repo Rate Held Steady at 6.50% as Corporate Credit Expands",
-      category: "economy",
-      categoryLabel: "Economy & Markets",
-      source: "The Economic Times",
-      publishedAt: "2 hours ago",
-      summary: "The Reserve Bank of India maintained the benchmark policy rate, pointing to resilient macroeconomic expansion and stable headline inflation figures. Private capex and credit uptake among Indian mid-market enterprises registered a 14.8% annualized growth.",
-      businessImpact: "Stabilized corporate interest rates reduce debt servicing volatility and ensure lower cost of working capital for your forward expansion.",
-      keyTakeaways: [
-        "Bank loan benchmark rates remain anchored for the upcoming quarter.",
-        "Domestic consumption demand across tier-1 and tier-2 business centers remains strong.",
-        "Advisable to lock in annual vendor contracts before anticipated year-end repricing."
-      ],
-      badgeColor: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-      executiveAdvisor: "CFO",
-    },
-    {
-      id: "news-2",
-      title: "GST Council Mandate: Real-Time E-Invoicing & Automated ITC Reconciliation Enforced",
-      category: "tax_compliance",
-      categoryLabel: "Tax & GST Compliance",
-      source: "Financial Express",
-      publishedAt: "Today, 10:15 AM",
-      summary: "CBIC has issued updated compliance protocols mandating two-way electronic invoice matching for Input Tax Credit (ITC) claims. Companies exceeding ₹5Cr turnover must integrate automated ledger APIs with GSTN within 45 days.",
-      businessImpact: "Requires immediate synchronization between Zoho Books / Tally ledger and BizzPal compliance checks to prevent vendor ITC clawbacks.",
-      keyTakeaways: [
-        "Unreconciled vendor invoices older than 180 days risk automated reversal with 18% penal interest.",
-        "Direct API integration through Zoho Books / accounting software eliminates manual GSTR-2B matching.",
-        "CFO team must audit active contractor GSTIN validity monthly."
-      ],
-      badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-      executiveAdvisor: "CFO",
-    },
-    {
-      id: "news-3",
-      title: "Enterprise SaaS Valuation Benchmarks: Q3 Multiple Rebounds to 6.8x ARR for Profitable Scale",
-      category: "funding",
-      categoryLabel: "Funding & Valuation",
-      source: "Bloomberg Intelligence",
-      publishedAt: "Yesterday",
-      summary: "Global and Indian enterprise software valuations have rebounded from cyclical lows, heavily rewarding companies with net burn under 15% and Net Revenue Retention (NRR) above 110%. Pure 'growth-at-all-costs' models continue to trade at steep discounts.",
-      businessImpact: "Your current gross margins (82%) and positive unit economics position your company for top-quartile valuation multiples in future equity or debt rounds.",
-      keyTakeaways: [
-        "Rule of 40 (Revenue Growth % + Free Cash Flow Margin %) remains the primary investor valuation anchor.",
-        "Annual upfront payment contracts command higher investor sentiment than monthly recurring billing.",
-        "Venture debt yields average 12.5% to 14.2%, preserving valuable founder equity dilution."
-      ],
-      badgeColor: "bg-purple-500/15 text-purple-400 border-purple-500/30",
-      executiveAdvisor: "CEO",
-    },
-    {
-      id: "news-4",
-      title: "Digital Personal Data Protection (DPDP) Act: Operating Rules Released for Enterprise Software",
-      category: "tech_ai",
-      categoryLabel: "Tech & AI Regulations",
-      source: "LiveMint",
-      publishedAt: "1 day ago",
-      summary: "The Ministry of Electronics and Information Technology (MeitY) has finalized compliance standards under the DPDP Act. Enterprise platforms storing Indian consumer or B2B customer contact records must maintain verifiable audit trails and explicit consent records.",
-      businessImpact: "Ensures BizzPal automated client databases and marketing outreach lists remain 100% legally compliant without regulatory exposure.",
-      keyTakeaways: [
-        "Data fiduciaries must implement clear opt-out workflows for enterprise communications.",
-        "Customer records must be encrypted at rest and in transit (AES-256 / TLS 1.3 enforced).",
-        "Breach notification SLA mandated within 72 hours to the Data Protection Board."
-      ],
-      badgeColor: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-      executiveAdvisor: "Marketing",
-    },
-    {
-      id: "news-5",
-      title: "B2B Payment Cycles: DSO Drops by 22% as Indian Corporates Adopt Instant UPI & NACH Mandates",
-      category: "saas_trends",
-      categoryLabel: "Industry Trends",
-      source: "TechCrunch",
-      publishedAt: "3 days ago",
-      summary: "Adoption of recurring UPI e-mandates and automated Net Banking auto-debit has drastically cut Days Sales Outstanding (DSO) for enterprise service providers and SaaS platforms across India from 58 days down to 34 days.",
-      businessImpact: "Transitioning your top 10 client invoices to automated recurring auto-debits will recover significant trapped working capital.",
-      keyTakeaways: [
-        "Automated recurring mandates reduce payment friction and involuntary churn.",
-        "DSO reduction directly extends cash runway without needing external loans.",
-        "Recommended action: Enable Stripe / Razorpay Auto-Debit for monthly retainer clients."
-      ],
-      badgeColor: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
-      executiveAdvisor: "Operations",
-    },
-    {
-      id: "news-6",
-      title: "Venture Debt Surges Past $1.4B in India: Alternative Non-Dilutive Capital for Scaled Startups",
-      category: "funding",
-      categoryLabel: "Funding & Valuation",
-      source: "Inc42",
-      publishedAt: "4 days ago",
-      summary: "Non-dilutive venture debt and revenue-based financing have reached an all-time high in 2026. Founders are pairing modest equity rounds with venture debt lines to finance working capital, sales hiring, and server infrastructure.",
-      businessImpact: "Provides an immediate financing buffer to extend cash runway beyond 14 months without giving up equity or board control.",
-      keyTakeaways: [
-        "Venture debt lines typically offer 1.5x to 3.0x current monthly revenue.",
-        "Warrant coverage has moderated to 8-12%, reducing founder dilution.",
-        "Optimal for financing enterprise sales team ramp periods with predictable payback."
-      ],
-      badgeColor: "bg-purple-500/15 text-purple-400 border-purple-500/30",
-      executiveAdvisor: "CFO",
-    },
-  ]);
+  // Live business news (loaded from the news feeds below; nothing is pre-written)
+  const [newsList, setNewsList] = useState<BusinessNewsItem[]>([]);
 
-  // Company SOP Docs
-  const [docs, setDocs] = useState<KnowledgeDoc[]>([
-    {
-      id: "doc-1",
-      title: "Standard Operating Procedures: Client Onboarding & SLA Protocol",
-      category: "operations",
-      description: "End-to-end framework for provisioning enterprise client accounts, assigning project leads, and meeting 99.9% uptime SLAs.",
-      updatedAt: "3 days ago",
-      version: "v2.4",
-      author: "COO / Operations",
-      indexed: true,
-      content: `### 1. Scope & Objective\nThis document codifies the mandatory onboarding standard for all enterprise clients. Compliance is tracked automatically by CEO AI.\n\n### 2. Immediate 48-Hour Protocol\n- **T+2 Hours**: Account setup in CRM and assignment of senior account lead.\n- **T+24 Hours**: Kickoff alignment call, discovery survey sign-off, and security verification.\n- **T+48 Hours**: Infrastructure configuration and access provisioning.\n\n### 3. Escalation Criteria\nAny blocker exceeding 4 hours must be escalated to the Executive Operations Slack Channel.`,
-    },
-    {
-      id: "doc-2",
-      title: "Quarterly Financial Governance & Discretionary Opex Policy",
-      category: "finance",
-      description: "Threshold rules for software vendor renewals, departmental budget caps, and capital expense approval workflows.",
-      updatedAt: "1 week ago",
-      version: "v3.1",
-      author: "CFO / Finance",
-      indexed: true,
-      content: `### Financial Controls Policy\n- Any vendor contract exceeding ₹50,000/yr requires dual sign-off from Department Head and CFO.\n- Discretionary SaaS subscriptions are audited monthly by CFO AI.\n- Target cash runway must never breach 6.0 months without board disclosure.`,
-    },
-    {
-      id: "doc-3",
-      title: "Enterprise Sales Playbook & Objection Handling Matrix",
-      category: "sales",
-      description: "Codified closing methodology, competitor battlecards, and ROI calculation frameworks for high-ticket accounts.",
-      updatedAt: "Yesterday",
-      version: "v4.0",
-      author: "Founder / Head of Growth",
-      indexed: true,
-      content: `### Sales Closing Playbook\n- **Target ICP**: Mid-market and enterprise leadership.\n- **Primary Value Prop**: Proven 3.8x ROI within 90 days.\n- **Objection: 'We already have legacy software'**: Highlight integration speed and zero-downtime deployment.\n- **Pricing Guardrail**: Never discount annual prepay beyond 15% without CEO approval.`,
-    },
-    {
-      id: "doc-4",
-      title: "Cloud Infrastructure Architecture & Data Security Standard",
-      category: "technology",
-      description: "SOC2 compliance guidelines, multi-region deployment topography, encrypted backup rotation, and incident drills.",
-      updatedAt: "2 weeks ago",
-      version: "v2.0",
-      author: "CTO / Engineering",
-      indexed: true,
-      content: `### Security Standards\n- All customer data encrypted at rest (AES-256) and in transit (TLS 1.3).\n- Zero-trust RBAC enforced across all internal production databases.\n- Automated failover tests executed bi-weekly.`,
-    },
-    {
-      id: "doc-5",
-      title: "Company Shareholder Governance & Board Charter",
-      category: "governance",
-      description: "Voting thresholds, stock option plan administration, quarterly board meeting schedules, and advisory committee structure.",
-      updatedAt: "1 month ago",
-      version: "v1.2",
-      author: "General Counsel",
-      indexed: true,
-      content: `### Governance & Board Protocols\n- Board packets distributed exactly 5 business days prior to quarterly review.\n- Executive compensation and option grant approvals require majority quorum.\n- Material litigation or regulatory inquiries require immediate notice within 24 hours.`,
-    },
-  ]);
+  // The company's own documents and playbooks. Only what the team adds appears here.
+  const [docs, setDocs] = useState<KnowledgeDoc[]>([]);
 
   // Fetch live news from Google RSS API
   const fetchLiveNews = async (showToast = false) => {
@@ -547,7 +388,7 @@ export default function KnowledgeHubPage() {
 
           {filteredNews.length === 0 && (
             <p className="p-8 text-center rounded-xl border border-line text-sm text-text-muted">
-              No news matches your filter.
+              No news yet. It loads from live news feeds. Press Refresh if it stays empty.
             </p>
           )}
         </div>
@@ -575,7 +416,7 @@ export default function KnowledgeHubPage() {
 
           {filteredDocs.length === 0 && (
             <p className="p-8 text-center rounded-xl border border-line text-sm text-text-muted">
-              No playbooks match your search.
+              Nothing here yet. Add your own company playbooks and documents with the Add button.
             </p>
           )}
         </div>

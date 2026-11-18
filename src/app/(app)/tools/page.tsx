@@ -421,64 +421,84 @@ function ToolsContent() {
   }, [searchParams, toolsList, hasPlanLevel]);
 
   // Interactive Calculator State (Profit & Margin) - dynamically hydrated
-  const [calcRevenue, setCalcRevenue] = useState(1200000);
-  const [calcCogs, setCalcCogs] = useState(300000);
-  const [calcOpex, setCalcOpex] = useState(450000);
+  const [calcRevenue, setCalcRevenue] = useState(0);
+  const [calcCogs, setCalcCogs] = useState(0);
+  const [calcOpex, setCalcOpex] = useState(0);
 
   // Break-even State
-  const [fixedCosts, setFixedCosts] = useState(250000);
-  const [pricePerUnit, setPricePerUnit] = useState(25000);
-  const [variableCostPerUnit, setVariableCostPerUnit] = useState(5000);
+  const [fixedCosts, setFixedCosts] = useState(0);
+  const [pricePerUnit, setPricePerUnit] = useState(0);
+  const [variableCostPerUnit, setVariableCostPerUnit] = useState(0);
 
   // CAC / LTV State
-  const [marketingSpend, setMarketingSpend] = useState(200000);
-  const [acquiredCustomers, setAcquiredCustomers] = useState(20);
-  const [avgRevenuePerAccount, setAvgRevenuePerAccount] = useState(60000);
-  const [avgRetentionMonths] = useState(18);
+  const [marketingSpend, setMarketingSpend] = useState(0);
+  const [acquiredCustomers, setAcquiredCustomers] = useState(0);
+  const [avgRevenuePerAccount, setAvgRevenuePerAccount] = useState(0);
+  const [avgRetentionMonths, setAvgRetentionMonths] = useState(0);
+  const [ltvMarginPct, setLtvMarginPct] = useState(0);
 
   // Cash Flow State
-  const [cashReserve, setCashReserve] = useState(5000000);
-  const [monthlyInflow, setMonthlyInflow] = useState(1500000);
-  const [monthlyBurn, setMonthlyBurn] = useState(2000000);
+  const [cashReserve, setCashReserve] = useState(0);
+  const [monthlyInflow, setMonthlyInflow] = useState(0);
+  const [monthlyBurn, setMonthlyBurn] = useState(0);
 
   // ROI State
-  const [roiCost, setRoiCost] = useState(600000);
-  const [roiBenefit, setRoiBenefit] = useState(1800000);
+  const [roiCost, setRoiCost] = useState(0);
+  const [roiBenefit, setRoiBenefit] = useState(0);
 
   // EMI Calculator State
-  const [emiPrincipal, setEmiPrincipal] = useState(2500000);
-  const [emiRateAnnual, setEmiRateAnnual] = useState(11.5);
-  const [emiTenureMonths, setEmiTenureMonths] = useState(36);
+  const [emiPrincipal, setEmiPrincipal] = useState(0);
+  const [emiRateAnnual, setEmiRateAnnual] = useState(0);
+  const [emiTenureMonths, setEmiTenureMonths] = useState(0);
 
   // GST State
-  const [gstAmount, setGstAmount] = useState(100000);
+  const [gstAmount, setGstAmount] = useState(0);
   const [gstRate, setGstRate] = useState(18);
   const [gstIsInterState, setGstIsInterState] = useState(false);
-  const [gstItc, setGstItc] = useState(8000);
+  const [gstItc, setGstItc] = useState(0);
 
   // Working Capital State
-  const [wcRevenue, setWcRevenue] = useState(12000000);
-  const [wcReceivables, setWcReceivables] = useState(1800000);
-  const [wcCogs, setWcCogs] = useState(4500000);
-  const [wcInventory, setWcInventory] = useState(750000);
-  const [wcPayables, setWcPayables] = useState(600000);
+  const [wcRevenue, setWcRevenue] = useState(0);
+  const [wcReceivables, setWcReceivables] = useState(0);
+  const [wcCogs, setWcCogs] = useState(0);
+  const [wcInventory, setWcInventory] = useState(0);
+  const [wcPayables, setWcPayables] = useState(0);
 
   // Discount & Margin Sensitivity State
-  const [discDealPrice, setDiscDealPrice] = useState(500000);
-  const [discBaseMargin, setDiscBaseMargin] = useState(55);
-  const [discPercent, setDiscPercent] = useState(15);
+  const [discDealPrice, setDiscDealPrice] = useState(0);
+  const [discBaseMargin, setDiscBaseMargin] = useState(0);
+  const [discPercent, setDiscPercent] = useState(0);
 
   // NRR State
-  const [nrrStartingMrr, setNrrStartingMrr] = useState(1000000);
-  const [nrrChurnMrr, setNrrChurnMrr] = useState(40000);
-  const [nrrExpansionMrr, setNrrExpansionMrr] = useState(120000);
-  const [nrrNewMrr, setNrrNewMrr] = useState(150000);
+  const [nrrStartingMrr, setNrrStartingMrr] = useState(0);
+  const [nrrChurnMrr, setNrrChurnMrr] = useState(0);
+  const [nrrExpansionMrr, setNrrExpansionMrr] = useState(0);
+  const [nrrNewMrr, setNrrNewMrr] = useState(0);
 
   // Fully Loaded Employee Cost State
-  const [empBaseCtc, setEmpBaseCtc] = useState(1200000);
-  const [empBenefitsPct, setEmpBenefitsPct] = useState(18);
-  const [empToolsAnnual, setEmpToolsAnnual] = useState(120000);
-  const [empBillableHours, setEmpBillableHours] = useState(1500);
+  const [empBaseCtc, setEmpBaseCtc] = useState(0);
+  const [empBenefitsPct, setEmpBenefitsPct] = useState(0);
+  const [empToolsAnnual, setEmpToolsAnnual] = useState(0);
+  const [empBillableHours, setEmpBillableHours] = useState(0);
+
+  // Start from the business's own numbers, when BizzPal has them
+  useEffect(() => {
+    try {
+      const p = JSON.parse(localStorage.getItem("bizzpal_business_profile") || "null");
+      if (!p) return;
+      const rev = Number(p.revenue ?? p.monthlyRevenue ?? 0);
+      const burn = Number(p.burn ?? p.monthlyBurn ?? 0);
+      const cash = Number(p.cash ?? p.cashOnHand ?? 0);
+      if (rev > 0) {
+        setCalcRevenue(rev);
+        setMonthlyInflow(rev);
+        setNrrStartingMrr(rev);
+        setWcRevenue(rev * 12);
+      }
+      if (burn > 0) setMonthlyBurn(burn);
+      if (cash > 0) setCashReserve(cash);
+    } catch {}
+  }, []);
 
   // Dynamically hydrate calculators with live company financial data
   useEffect(() => {
@@ -535,7 +555,7 @@ function ToolsContent() {
   const breakevenRevenue = breakevenUnits * pricePerUnit;
 
   const calculatedCAC = acquiredCustomers > 0 ? Math.round(marketingSpend / acquiredCustomers) : 0;
-  const calculatedLTV = Math.round(avgRevenuePerAccount * (avgRetentionMonths / 12) * 0.7);
+  const calculatedLTV = Math.round(avgRevenuePerAccount * (avgRetentionMonths / 12) * (ltvMarginPct / 100));
   const ltvToCacRatio = calculatedCAC > 0 ? (calculatedLTV / calculatedCAC).toFixed(1) : "0";
 
   const netCashFlow = monthlyInflow - monthlyBurn;
@@ -785,7 +805,10 @@ function ToolsContent() {
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
+                      {!(calcRevenue > 0) && (
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">Fill in the boxes on the left to see the result.</div>
+                      )}
+                      <div className={`md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4 ${(calcRevenue > 0) ? "" : "hidden"}`}>
                         <div className="space-y-3">
                           <span className="text-xs font-medium text-text-muted block">
                             Result
@@ -873,7 +896,10 @@ function ToolsContent() {
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
+                      {!(fixedCosts > 0 && pricePerUnit > variableCostPerUnit) && (
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">Fill in the boxes on the left to see the result.</div>
+                      )}
+                      <div className={`md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4 ${(fixedCosts > 0 && pricePerUnit > variableCostPerUnit) ? "" : "hidden"}`}>
                         <div className="space-y-3">
                           <span className="text-xs font-medium text-text-muted block">
                             Break-Even Solvency Requirement
@@ -949,9 +975,36 @@ function ToolsContent() {
                             className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass focus:ring-0"
                           />
                         </div>
+                        <div>
+                          <label className="font-medium text-text block mb-1.5 text-sm">
+                            How many months a customer stays
+                          </label>
+                          <input
+                            type="number"
+                            value={avgRetentionMonths || ""}
+                            onChange={e => setAvgRetentionMonths(Number(e.target.value) || 0)}
+                            placeholder="Your own figure"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass"
+                          />
+                        </div>
+                        <div>
+                          <label className="font-medium text-text block mb-1.5 text-sm">
+                            Gross margin on that revenue (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={ltvMarginPct || ""}
+                            onChange={e => setLtvMarginPct(Number(e.target.value) || 0)}
+                            placeholder="Your own figure"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm focus:outline-none focus:border-brass"
+                          />
+                        </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
+                      {!(marketingSpend > 0 && acquiredCustomers > 0 && avgRetentionMonths > 0 && ltvMarginPct > 0) && (
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">Fill in the boxes on the left to see the result.</div>
+                      )}
+                      <div className={`md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4 ${(marketingSpend > 0 && acquiredCustomers > 0 && avgRetentionMonths > 0 && ltvMarginPct > 0) ? "" : "hidden"}`}>
                         <div className="space-y-3">
                           <span className="text-xs font-medium text-text-muted block">
                             Unit Acquisition & Lifetime Value
@@ -1035,7 +1088,10 @@ function ToolsContent() {
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
+                      {!(cashReserve > 0 && (monthlyInflow > 0 || monthlyBurn > 0)) && (
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">Fill in the boxes on the left to see the result.</div>
+                      )}
+                      <div className={`md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4 ${(cashReserve > 0 && (monthlyInflow > 0 || monthlyBurn > 0)) ? "" : "hidden"}`}>
                         <div className="space-y-3">
                           <span className="text-xs font-medium text-text-muted block">
                             Runway & Liquidity Telemetry
@@ -1102,7 +1158,10 @@ function ToolsContent() {
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
+                      {!(roiCost > 0) && (
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">Fill in the boxes on the left to see the result.</div>
+                      )}
+                      <div className={`md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4 ${(roiCost > 0) ? "" : "hidden"}`}>
                         <div className="space-y-3">
                           <span className="text-xs font-medium text-text-muted block">
                             Return on Investment Dynamics
@@ -1185,7 +1244,10 @@ function ToolsContent() {
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
+                      {!(emiPrincipal > 0 && emiTenureMonths > 0 && emiRateAnnual > 0) && (
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">Fill in the boxes on the left to see the result.</div>
+                      )}
+                      <div className={`md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4 ${(emiPrincipal > 0 && emiTenureMonths > 0 && emiRateAnnual > 0) ? "" : "hidden"}`}>
                         <div className="space-y-3">
                           <span className="text-xs font-medium text-text-muted block">
                             Amortization & Debt Service Telemetry
@@ -1305,7 +1367,10 @@ function ToolsContent() {
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
+                      {!(gstAmount > 0) && (
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">Fill in the boxes on the left to see the result.</div>
+                      )}
+                      <div className={`md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4 ${(gstAmount > 0) ? "" : "hidden"}`}>
                         <div className="space-y-3">
                           <span className="text-xs font-medium text-text-muted block">
                             Tax Assessment & Compliance
@@ -1416,7 +1481,10 @@ function ToolsContent() {
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3">
+                      {!(wcRevenue > 0) && (
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">Fill in the boxes on the left to see the result.</div>
+                      )}
+                      <div className={`md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3 ${(wcRevenue > 0) ? "" : "hidden"}`}>
                         <div className="space-y-2.5">
                           <span className="text-xs font-medium text-text-muted block">
                             Working Capital & Cash Velocity
@@ -1500,7 +1568,10 @@ function ToolsContent() {
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3">
+                      {!(discDealPrice > 0) && (
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">Fill in the boxes on the left to see the result.</div>
+                      )}
+                      <div className={`md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3 ${(discDealPrice > 0) ? "" : "hidden"}`}>
                         <div className="space-y-2.5">
                           <span className="text-xs font-medium text-text-muted block">
                             Margin Erosion Diagnostics
@@ -1595,7 +1666,10 @@ function ToolsContent() {
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3">
+                      {!(nrrStartingMrr > 0) && (
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">Fill in the boxes on the left to see the result.</div>
+                      )}
+                      <div className={`md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3 ${(nrrStartingMrr > 0) ? "" : "hidden"}`}>
                         <div className="space-y-2.5">
                           <span className="text-xs font-medium text-text-muted block">
                             Retention & Expansion Benchmarks
@@ -1689,7 +1763,10 @@ function ToolsContent() {
                         </div>
                       </div>
 
-                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3">
+                      {!(empBaseCtc > 0) && (
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">Fill in the boxes on the left to see the result.</div>
+                      )}
+                      <div className={`md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-3 ${(empBaseCtc > 0) ? "" : "hidden"}`}>
                         <div className="space-y-2.5">
                           <span className="text-xs font-medium text-text-muted block">
                             True Headcount Economics
