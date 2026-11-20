@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { message, agentId, companyProfile, agentName, agentRole, customRoleTitle } = await req.json();
+    const { message, agentId, companyProfile, agentName, agentRole, customRoleTitle, toolContext } = await req.json();
 
     const auth = requireUser(req);
     if (auth instanceof NextResponse) return auth;
@@ -121,12 +121,17 @@ Company Context:
       }
     } catch {}
 
+    const toolInstruction = toolContext?.name
+      ? `\nActive Tool Context: You are currently assisting the founder with the "${toolContext.name}" tool (${toolContext.category || "General"}${toolContext.badge ? ` / ${toolContext.badge}` : ""}). Directly address and apply this tool's analytical methodology, variables, and strategic levers to their company numbers.\n`
+      : "";
+
     const systemPrompt = `You are ${activeRole.title}, an executive AI advisor in the BizzPal Enterprise Business OS.
 Your Focus: ${activeRole.focus}
 Your Tone: ${activeRole.tone}
 
 ${companyContext}
 ${memoryEvidence}
+${toolInstruction}
 Instructions:
 1. Always frame your answer with executive authority for the Indian market (using INR ₹ notation where relevant).
 2. Ground your advice in the company fundamentals and verified memory above.

@@ -354,6 +354,26 @@ function ToolsContent() {
   // Close active tool calculator on Escape
   useEscapeKey(() => setActiveToolId(null), Boolean(activeToolId));
 
+  const getAdvisorUrl = (tool: BusinessTool, customPrompt?: string, advisorOverride?: string) => {
+    const advisor = advisorOverride || (
+      tool.category === "marketing" ? "marketing" :
+      tool.category === "sales" ? "sales" :
+      tool.category === "operations" ? "operations" :
+      tool.category === "strategy" ? "strategy" : "cfo"
+    );
+    const prompt = customPrompt || `I want to work through the ${tool.name} for my business. ${tool.description} Based on our company financials and telemetry, please analyze our numbers and guide me step-by-step with recommendations.`;
+    const params = new URLSearchParams({
+      advisor,
+      tool: tool.name,
+      toolId: tool.id,
+      category: tool.category,
+      badge: tool.badge || "",
+      prompt,
+      autoSend: "1",
+    });
+    return `/chat?${params.toString()}`;
+  };
+
   // Fetch dynamic tools catalog with live updates from Superadmin
   useEffect(() => {
     let active = true;
@@ -737,8 +757,8 @@ function ToolsContent() {
 
                   <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
                     <Link
-                      href={`/chat?message=${encodeURIComponent(`Run comprehensive diagnostic simulation on ${activeTool.name} with current enterprise benchmarks.`)}`}
-                      className="px-4 py-2.5 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm inline-flex items-center gap-2 transition-colors"
+                      href={getAdvisorUrl(activeTool)}
+                      className="px-4 py-2.5 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm inline-flex items-center gap-2 transition-colors cursor-pointer"
                     >
                       <Bot className="w-4 h-4" />
                       <span>Ask your advisor</span>
@@ -835,8 +855,8 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-line">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`${cfoName}, analyze our current net margin of ${netMargin}% on ₹${calcRevenue.toLocaleString("en-IN")} monthly revenue. What are the best cost levers to improve operating cash?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
+                            href={getAdvisorUrl(activeTool, `${cfoName}, analyze our current net margin of ${netMargin}% on ₹${calcRevenue.toLocaleString("en-IN")} monthly revenue. What are the best cost levers to improve operating cash?`, "cfo")}
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Consult {cfoName} →
                           </Link>
@@ -918,8 +938,8 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-line">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`${cfoName}, our break-even target is ₹${breakevenRevenue.toLocaleString("en-IN")} across ${breakevenUnits} contracts/mo. What's our quickest path to achieving this?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
+                            href={getAdvisorUrl(activeTool, `${cfoName}, our break-even target is ₹${breakevenRevenue.toLocaleString("en-IN")} across ${breakevenUnits} contracts/mo. What's our quickest path to achieving this?`, "cfo")}
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Analyze with {cfoName} →
                           </Link>
@@ -1027,8 +1047,8 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-line">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`${marketingName}, evaluate our LTV to CAC ratio of ${ltvToCacRatio}x (CAC: ₹${calculatedCAC.toLocaleString("en-IN")}, LTV: ₹${calculatedLTV.toLocaleString("en-IN")}). How should we optimize our demand funnel?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
+                            href={getAdvisorUrl(activeTool, `${marketingName}, evaluate our LTV to CAC ratio of ${ltvToCacRatio}x (CAC: ₹${calculatedCAC.toLocaleString("en-IN")}, LTV: ₹${calculatedLTV.toLocaleString("en-IN")}). How should we optimize our demand funnel?`, "marketing")}
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Consult {marketingName} on CAC →
                           </Link>
@@ -1110,8 +1130,8 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-line">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`${cfoName}, our cash runway is ${runwayMonths} months with net monthly outflow of ₹${Math.abs(netCashFlow).toLocaleString("en-IN")}. What cash stabilization steps do you advise?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
+                            href={getAdvisorUrl(activeTool, `${cfoName}, our cash runway is ${runwayMonths} months with net monthly outflow of ₹${Math.abs(netCashFlow).toLocaleString("en-IN")}. What cash stabilization steps do you advise?`, "cfo")}
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Plan Cash Runway with {cfoName} →
                           </Link>
@@ -1182,8 +1202,8 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-line">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`Evaluate capital allocation for ${activeTool.name} with expected ${roiPercentage}% ROI and ${paybackMonths} months payback.`)}`}
-                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
+                            href={getAdvisorUrl(activeTool, `Evaluate capital allocation for ${activeTool.name} with expected ${roiPercentage}% ROI and ${paybackMonths} months payback.`, "cfo")}
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Verify Payback with CFO AI →
                           </Link>
@@ -1274,8 +1294,8 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-line">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`${cfoName}, evaluate a business loan EMI of ₹${emiMonthlyAmount.toLocaleString("en-IN")}/mo on ₹${emiPrincipal.toLocaleString("en-IN")} borrowing. What is our optimal debt-to-cash strategy?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
+                            href={getAdvisorUrl(activeTool, `${cfoName}, evaluate a business loan EMI of ₹${emiMonthlyAmount.toLocaleString("en-IN")}/mo on ₹${emiPrincipal.toLocaleString("en-IN")} borrowing. What is our optimal debt-to-cash strategy?`, "cfo")}
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Consult {cfoName} on Loan Amortization →
                           </Link>
@@ -1393,8 +1413,8 @@ function ToolsContent() {
 
                         <div className="pt-3 border-t border-line">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`${cfoName}, analyze our GST cash outflow of ₹${gstNetPayable.toLocaleString("en-IN")} after ₹${gstItc.toLocaleString("en-IN")} ITC offset. How should we optimize working capital around GST filing deadlines?`)}`}
-                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
+                            href={getAdvisorUrl(activeTool, `${cfoName}, analyze our GST cash outflow of ₹${gstNetPayable.toLocaleString("en-IN")} after ₹${gstItc.toLocaleString("en-IN")} ITC offset. How should we optimize working capital around GST filing deadlines?`, "cfo")}
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Verify GST Filing with {cfoName} →
                           </Link>
@@ -1509,8 +1529,8 @@ function ToolsContent() {
 
                         <div className="pt-2 border-t border-line">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`${cfoName}, our cash conversion cycle is ${wcCcc} days with ₹${wcTrappedCash.toLocaleString("en-IN")} trapped in working capital. How do we compress DSO from ${wcDso} days?`)}`}
-                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
+                            href={getAdvisorUrl(activeTool, `${cfoName}, our cash conversion cycle is ${wcCcc} days with ₹${wcTrappedCash.toLocaleString("en-IN")} trapped in working capital. How do we compress DSO from ${wcDso} days?`, "cfo")}
+                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Optimize Cash Conversion with {cfoName} →
                           </Link>
@@ -1594,8 +1614,8 @@ function ToolsContent() {
 
                         <div className="pt-2 border-t border-line">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`${cfoName}, our sales rep wants to offer a ${discPercent}% discount on a ₹${discDealPrice.toLocaleString("en-IN")} deal. This drops our gross margin from ${discBaseMargin}% to ${discNewMargin}% and requires ${discExtraVolumeNeeded}% more volume. Should we approve this discount?`)}`}
-                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
+                            href={getAdvisorUrl(activeTool, `${cfoName}, our sales rep wants to offer a ${discPercent}% discount on a ₹${discDealPrice.toLocaleString("en-IN")} deal. This drops our gross margin from ${discBaseMargin}% to ${discNewMargin}% and requires ${discExtraVolumeNeeded}% more volume. Should we approve this discount?`, "cfo")}
+                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Analyze Discount Risk with {cfoName} →
                           </Link>
@@ -1690,8 +1710,8 @@ function ToolsContent() {
 
                         <div className="pt-2 border-t border-line">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`${ceoName} & ${cfoName}, our current Net Revenue Retention is ${nrrPercentage}% with ₹${nrrChurnMrr.toLocaleString("en-IN")} monthly churn. What accounts are at risk and how do we drive account expansion?`)}`}
-                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
+                            href={getAdvisorUrl(activeTool, `${ceoName} & ${cfoName}, our current Net Revenue Retention is ${nrrPercentage}% with ₹${nrrChurnMrr.toLocaleString("en-IN")} monthly churn. What accounts are at risk and how do we drive account expansion?`, "cfo")}
+                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Review Retention Playbook with {ceoName} →
                           </Link>
@@ -1789,8 +1809,8 @@ function ToolsContent() {
 
                         <div className="pt-2 border-t border-line">
                           <Link
-                            href={`/chat?message=${encodeURIComponent(`${cfoName}, an employee with ₹${empBaseCtc.toLocaleString("en-IN")} base CTC costs us ₹${empLoadedAnnual.toLocaleString("en-IN")} fully loaded. How should we price their services to maintain 40% gross margins?`)}`}
-                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors"
+                            href={getAdvisorUrl(activeTool, `${cfoName}, an employee with ₹${empBaseCtc.toLocaleString("en-IN")} base CTC costs us ₹${empLoadedAnnual.toLocaleString("en-IN")} fully loaded. How should we price their services to maintain 40% gross margins?`, "cfo")}
+                            className="w-full block py-2 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Evaluate Hiring Economics with {cfoName} →
                           </Link>
@@ -1815,8 +1835,8 @@ function ToolsContent() {
                       </div>
                       <div className="pt-3 flex items-center justify-center gap-3">
                         <Link
-                          href={`/chat?message=${encodeURIComponent(`Open ${activeTool.name} analysis with relevant operational telemetry.`)}`}
-                          className="px-4 py-2.5 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm inline-flex items-center gap-2 transition-colors"
+                          href={getAdvisorUrl(activeTool)}
+                          className="px-4 py-2.5 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm inline-flex items-center gap-2 transition-colors cursor-pointer"
                         >
                           <Bot className="w-4 h-4" />
                           <span>Ask your advisor</span>

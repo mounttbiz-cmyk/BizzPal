@@ -1,6 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, useRef } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Wrench, X } from "lucide-react";
 import { parseNaturalBusinessInput, ExtractedBusinessRecord } from "@/lib/intake/nlpParser";
 import { emitBusinessDataUpdated } from "@/lib/upload/events";
 import {
@@ -18,6 +21,13 @@ import { MobileAdvisorStrip } from "@/components/chat/MobileAdvisorStrip";
 import { ChatThread } from "@/components/chat/ChatThread";
 import { Composer } from "@/components/chat/Composer";
 import { ChatHistoryDrawer, ChatHistoryPanel } from "@/components/chat/ChatHistoryDrawer";
+
+interface ActiveToolContext {
+  id?: string;
+  name: string;
+  category?: string;
+  badge?: string;
+}
 
 const EXECUTIVE_AGENTS: AgentMeta[] = [
   {
@@ -170,13 +180,30 @@ const EXECUTIVE_AGENTS: AgentMeta[] = [
 ];
 
 export default function ChatWorkspacePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-[calc(100vh-5.5rem)] flex items-center justify-center text-text-muted text-sm">
+          Loading advisor workspace…
+        </div>
+      }
+    >
+      <ChatWorkspaceContent />
+    </Suspense>
+  );
+}
+
+function ChatWorkspaceContent() {
+  const searchParams = useSearchParams();
+  const [activeToolContext, setActiveToolContext] = useState<ActiveToolContext | null>(null);
   const [activeAgentId, setActiveAgentId] = useState<string>("ceo");
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isRosterCollapsed, setIsRosterCollapsed] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
-  const abortControllerRef = React.useRef<AbortController | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const hasAutoSentRef = useRef(false);
 
   const [customAdvisors, setCustomAdvisors] = useState<Record<string, { name?: string; avatar?: string }>>(() => {
     return getStoredCustomAdvisors();
@@ -352,6 +379,52 @@ export default function ChatWorkspacePage() {
     }
   }, []);
 
+  // Handle URL deep-linking from Tools & Advisory (e.g. /chat?advisor=cfo&tool=Pricing+Simulator&prompt=...)
+  useEffect(() => {
+    if (!searchParams) return;
+    const advisorParam = searchParams.get("advisor") || searchParams.get("agent");
+    const toolParam = searchParams.get("tool") || searchParams.get("toolName");
+    const toolIdParam = searchParams.get("toolId");
+    const categoryParam = searchParams.get("category");
+    const badgeParam = searchParams.get("badge");
+    const promptParam = searchParams.get("prompt") || searchParams.get("message");
+    const autoSendParam = searchParams.get("autoSend");
+
+    let targetAdvisor = "ceo";
+    if (advisorParam && effectiveAgents.some(a => a.id === advisorParam.toLowerCase())) {
+      targetAdvisor = advisorParam.toLowerCase();
+      setActiveAgentId(targetAdvisor);
+    } else if (categoryParam) {
+      const cat = categoryParam.toLowerCase();
+      if (cat === "finance") targetAdvisor = "cfo";
+      else if (cat === "marketing") targetAdvisor = "marketing";
+      else if (cat === "sales") targetAdvisor = "sales";
+      else if (cat === "operations") targetAdvisor = "operations";
+      else if (cat === "strategy") targetAdvisor = "strategy";
+      setActiveAgentId(targetAdvisor);
+    }
+
+    if (toolParam) {
+      setActiveToolContext({
+        name: toolParam,
+        id: toolIdParam || undefined,
+        category: categoryParam || undefined,
+        badge: badgeParam || undefined,
+      });
+    }
+
+    if (promptParam) {
+      setInputMessage(promptParam);
+      if ((autoSendParam === "1" || autoSendParam === "true") && !hasAutoSentRef.current) {
+        hasAutoSentRef.current = true;
+        const timer = setTimeout(() => {
+          handleSendMessage(promptParam, undefined, targetAdvisor);
+        }, 300);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [searchParams, effectiveAgents]);
+
   const activeAgent = effectiveAgents.find(a => a.id === activeAgentId) || effectiveAgents[0];
   const currentMessages = conversations[activeAgentId] || [];
 
@@ -449,7 +522,9 @@ export default function ChatWorkspacePage() {
     }
   };
 
-  const handleSendMessage = async (textToSend?: string, attachmentsToSend?: ChatAttachment[]) => {
+  const handleSendMessage = async (textToSend?: string, attachmentsToSend?: ChatAttachment[], agentIdOverride?: string) => {
+    const targetAgentId = agentIdOverride || activeAgentId;
+    const targetAgent = effectiveAgents.find(a => a.id === targetAgentId) || activeAgent;
     const rawMessage = (textToSend || inputMessage).trim();
     if ((!rawMessage && (!attachmentsToSend || attachmentsToSend.length === 0)) || isTyping) return;
 
@@ -461,7 +536,7 @@ export default function ChatWorkspacePage() {
     const userMsg: ChatMessage = {
       id: `usr_${Date.now()}`,
       sender: "user",
-      agentId: activeAgentId,
+      agentId: targetAgentId,
       agentName: companyProfile?.founderName || "You",
       avatar: "User",
       timestamp: "Just now",
@@ -473,7 +548,7 @@ export default function ChatWorkspacePage() {
 
     setConversations(prev => ({
       ...prev,
-      [activeAgentId]: [...(prev[activeAgentId] || []), userMsg],
+      [targetAgentId]: [...(prev[targetAgentId] || []), userMsg],
     }));
 
     if (!textToSend) setInputMessage("");
@@ -493,10 +568,16 @@ export default function ChatWorkspacePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: `${message}${attachmentContext}`,
-          agentId: activeAgentId,
-          agentName: activeAgent.name,
-          agentRole: activeAgent.role,
+          agentId: targetAgentId,
+          agentName: targetAgent.name,
+          agentRole: targetAgent.role,
           companyProfile,
+          toolContext: activeToolContext ? {
+            name: activeToolContext.name,
+            id: activeToolContext.id,
+            category: activeToolContext.category,
+            badge: activeToolContext.badge,
+          } : undefined,
           email: (() => { try { return JSON.parse(localStorage.getItem("bizzpal_user_session") || "{}")?.email || ""; } catch { return ""; } })(),
         }),
       });
@@ -511,9 +592,9 @@ export default function ChatWorkspacePage() {
         const agentMsg: ChatMessage = {
           id: `agt_${Date.now()}`,
           sender: "agent",
-          agentId: activeAgentId,
-          agentName: activeAgent.name,
-          avatar: activeAgent.avatar,
+          agentId: targetAgentId,
+          agentName: targetAgent.name,
+          avatar: targetAgent.avatar,
           timestamp: "Just now",
           content: responseContent,
           provider: data.provider,
@@ -521,7 +602,7 @@ export default function ChatWorkspacePage() {
 
         setConversations(prev => ({
           ...prev,
-          [activeAgentId]: [...(prev[activeAgentId] || []), agentMsg],
+          [targetAgentId]: [...(prev[targetAgentId] || []), agentMsg],
         }));
       }
     } catch (err: any) {
@@ -532,9 +613,9 @@ export default function ChatWorkspacePage() {
       const fallbackMsg: ChatMessage = {
         id: `agt_err_${Date.now()}`,
         sender: "agent",
-        agentId: activeAgentId,
-        agentName: activeAgent.name,
-        avatar: activeAgent.avatar,
+        agentId: targetAgentId,
+        agentName: targetAgent.name,
+        avatar: targetAgent.avatar,
         timestamp: "Just now",
         content: `Acknowledged for ${companyProfile?.name || "your enterprise"}.${
           companyProfile?.cash
@@ -545,7 +626,7 @@ export default function ChatWorkspacePage() {
       };
       setConversations(prev => ({
         ...prev,
-        [activeAgentId]: [...(prev[activeAgentId] || []), fallbackMsg],
+        [targetAgentId]: [...(prev[targetAgentId] || []), fallbackMsg],
       }));
     } finally {
       abortControllerRef.current = null;
@@ -627,6 +708,48 @@ export default function ChatWorkspacePage() {
             isHistoryOpen={isHistoryOpen}
             historyCount={currentMessages.length}
           />
+
+          {/* Active Tool Context Banner */}
+          {activeToolContext && (
+            <div className="px-4 py-2.5 bg-brass/10 border-b border-brass/20 flex items-center justify-between gap-3 text-xs shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-brass text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Wrench className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-text truncate">
+                      Active Tool: {activeToolContext.name}
+                    </span>
+                    {activeToolContext.badge && (
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-brass/20 text-brass font-medium uppercase tracking-wider">
+                        {activeToolContext.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-text-muted truncate text-[11px] mt-0.5">
+                    Analyzing with your {activeAgent.name}. Telemetry & formulas linked.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  href="/tools"
+                  className="px-2.5 py-1 rounded-md bg-surface border border-line hover:border-brass text-text text-[11px] font-medium transition-colors cursor-pointer"
+                >
+                  Tools Catalog
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setActiveToolContext(null)}
+                  className="p-1 rounded-md text-text-muted hover:text-text hover:bg-surface transition-colors cursor-pointer"
+                  title="Dismiss tool banner"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Conversation Messages Stream */}
           <ChatThread
