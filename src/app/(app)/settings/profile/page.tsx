@@ -394,7 +394,7 @@ export default function BusinessProfileSettingsPage() {
                 type="text"
                 value={website}
                 onChange={e => setWebsite(e.target.value)}
-                placeholder="e.g. apexanalytics.io"
+                placeholder="e.g. yourcompany.com"
                 className={inputClass}
               />
             </div>

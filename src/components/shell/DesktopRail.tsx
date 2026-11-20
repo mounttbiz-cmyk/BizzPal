@@ -12,6 +12,7 @@ import { WEBSITE_URL } from "@/config/urls";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 import { usePlanName } from "@/lib/hooks/usePlanName";
 import { UpgradeModal } from "./UpgradeModal";
+import { forgetBrowserOwner } from "@/lib/auth/localData";
 
 interface DesktopRailProps {
   navItems: NavItem[];
@@ -80,7 +81,7 @@ export function DesktopRail({
     } catch (e) {
       // ignore
     }
-    fetch("/api/auth/session", { method: "DELETE" }).catch(() => {}); localStorage.removeItem("bizzpal_user_session"); localStorage.removeItem("bizzpal_business_profile"); localStorage.removeItem("bizzpal_subscription_plan"); localStorage.removeItem("bizzpal_datapal_campaigns");
+    fetch("/api/auth/session", { method: "DELETE" }).catch(() => {}); localStorage.removeItem("bizzpal_user_session"); localStorage.removeItem("bizzpal_business_profile"); localStorage.removeItem("bizzpal_subscription_plan"); localStorage.removeItem("bizzpal_datapal_campaigns"); forgetBrowserOwner();
     window.location.href = WEBSITE_URL;
   };
 

@@ -6,7 +6,6 @@ import { RenderWidget } from "@/components/widgets/WidgetRegistry";
 import { WidgetDef } from "@/config/schemas/widget";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
 import { Suspense } from "react";
 import { UploadDataModal } from "@/components/upload/UploadDataModal";
 import { QuickBusinessInputModal } from "@/components/intake/QuickBusinessInputModal";
@@ -106,22 +105,7 @@ function DashboardContent() {
             const wList = JSON.parse(cachedWidgets);
             if (Array.isArray(wList) && wList.length > 0) {
               hasLoadedBackendWidgetsRef.current = true;
-              const disabledIds = new Set(
-                wList.filter((w: any) => w.enabled === false).map((w: any) => w.id)
-              );
-              const savedLayout = localStorage.getItem(`bizzpal_layout_${selectedIndustry}`);
-              if (savedLayout) {
-                try {
-                  const parsed = JSON.parse(savedLayout);
-                  const existingIds = new Set(parsed.map((w: any) => w.id));
-                  const missingDefaults = wList.filter((w: any) => !existingIds.has(w.id) && !disabledIds.has(w.id));
-                  setActiveWidgets([...parsed.filter((w: any) => !disabledIds.has(w.id)), ...missingDefaults]);
-                } catch {
-                  setActiveWidgets(wList.filter((w: any) => w.enabled !== false));
-                }
-              } else {
-                setActiveWidgets(wList.filter((w: any) => w.enabled !== false));
-              }
+              setActiveWidgets(wList.filter((w: any) => w.enabled !== false));
             }
           }
         } catch {}
@@ -134,22 +118,7 @@ function DashboardContent() {
           if (d.success) {
             if (Array.isArray(d.widgets) && d.widgets.length > 0) {
               hasLoadedBackendWidgetsRef.current = true;
-              const disabledIds = new Set(
-                d.widgets.filter((w: any) => w.enabled === false).map((w: any) => w.id)
-              );
-              const savedLayout = localStorage.getItem(`bizzpal_layout_${selectedIndustry}`);
-              if (savedLayout) {
-                try {
-                  const parsed = JSON.parse(savedLayout);
-                  const existingIds = new Set(parsed.map((w: any) => w.id));
-                  const missingDefaults = d.widgets.filter((w: any) => !existingIds.has(w.id) && !disabledIds.has(w.id));
-                  setActiveWidgets([...parsed.filter((w: any) => !disabledIds.has(w.id)), ...missingDefaults]);
-                } catch {
-                  setActiveWidgets(d.widgets.filter((w: any) => w.enabled !== false));
-                }
-              } else {
-                setActiveWidgets(d.widgets.filter((w: any) => w.enabled !== false));
-              }
+              setActiveWidgets(d.widgets.filter((w: any) => w.enabled !== false));
             }
           }
         })
@@ -279,13 +248,7 @@ function DashboardContent() {
     plan: "growth",
   });
 
-  // User's custom layout state (allowing user to customize the website dashboard)
-  const [isEditingLayout, setIsEditingLayout] = useState(false);
-
   useEffect(() => {
-    if (searchParams.get("customize") === "true") {
-      setIsEditingLayout(true);
-    }
     if (searchParams.get("quickInput") === "true") {
       setIsQuickInputModalOpen(true);
     }
@@ -293,52 +256,9 @@ function DashboardContent() {
   const [activeWidgets, setActiveWidgets] = useState<WidgetDef[]>(baseConfig.widgets);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Load custom layout overrides from storage ONLY if customized and no backend widgets loaded yet
-  useEffect(() => {
-    if (hasLoadedBackendWidgetsRef.current) return;
-    try {
-      const savedLayout = localStorage.getItem(`bizzpal_layout_${selectedIndustry}`);
-      if (savedLayout) {
-        setActiveWidgets(JSON.parse(savedLayout));
-      } else {
-        setActiveWidgets(baseConfig.widgets);
-      }
-    } catch (e) {
-      setActiveWidgets(baseConfig.widgets);
-    }
-  }, [selectedIndustry, baseConfig.version]);
-
   const notify = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
-  };
-
-  const toggleWidgetVisibility = (id: string) => {
-    setActiveWidgets(prev =>
-      prev.map(w => (w.id === id ? { ...w, enabled: !w.enabled } : w))
-    );
-  };
-
-  // Change widget span
-  const changeWidgetSpan = (id: string, span: 1 | 2 | 3 | 4) => {
-    setActiveWidgets(prev =>
-      prev.map(w => (w.id === id ? { ...w, defaultSpan: span } : w))
-    );
-  };
-
-  // Save layout
-  const handleSaveLayout = () => {
-    localStorage.setItem(`bizzpal_layout_${selectedIndustry}`, JSON.stringify(activeWidgets));
-    setIsEditingLayout(false);
-    notify("Custom Dashboard Layout Saved!");
-  };
-
-  // Reset to default layout
-  const handleResetLayout = () => {
-    localStorage.removeItem(`bizzpal_layout_${selectedIndustry}`);
-    setActiveWidgets(baseConfig.widgets);
-    setIsEditingLayout(false);
-    notify("Restored default dashboard layout");
   };
 
   const healthLabel = overallHealthScore === null ? "No figures yet" : overallHealthScore >= 75 ? "Healthy" : "Needs attention";
@@ -457,14 +377,7 @@ function DashboardContent() {
             >
               Upload data
             </button>
-            <button
-              type="button"
-              onClick={() => setIsEditingLayout(prev => !prev)}
-              className="px-4 py-2.5 rounded-xl text-sm text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
-            >
-              {isEditingLayout ? "Close customize" : "Customize"}
-            </button>
-          </div>
+                    </div>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -484,73 +397,6 @@ function DashboardContent() {
           ))}
         </div>
       </div>
-
-      {isEditingLayout && (
-        <div className="rounded-2xl border border-line bg-surface shadow-sm p-6 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold text-text">Customize dashboard</h2>
-              <p className="text-sm text-text-muted mt-0.5">Show or hide sections and choose how wide each one is.</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleResetLayout}
-                className="px-3.5 py-2 rounded-lg text-sm border border-line text-text hover:bg-surface-2 cursor-pointer"
-              >
-                Reset
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveLayout}
-                className="px-3.5 py-2 rounded-lg text-sm font-medium bg-brass text-white hover:brightness-110 cursor-pointer"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {activeWidgets.map(widget => (
-              <div
-                key={widget.id}
-                className={`px-3.5 py-3 rounded-xl bg-surface-2/60 flex items-center justify-between gap-3 ${
-                  widget.enabled ? "" : "opacity-60"
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <button
-                    type="button"
-                    onClick={() => toggleWidgetVisibility(widget.id)}
-                    aria-label={widget.enabled ? "Hide from dashboard" : "Show on dashboard"}
-                    className="p-1 text-text-muted hover:text-text cursor-pointer"
-                  >
-                    {widget.enabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </button>
-                  <span className="text-sm text-text truncate">{widget.title}</span>
-                </div>
-
-                {widget.enabled && (
-                  <div className="flex items-center p-0.5 bg-surface-2 rounded-md shrink-0">
-                    {([2, 4] as const).map(span => (
-                      <button
-                        key={span}
-                        type="button"
-                        onClick={() => changeWidgetSpan(widget.id, span)}
-                        className={`px-2 py-0.5 rounded text-xs cursor-pointer ${
-                          widget.defaultSpan === span ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted"
-                        }`}
-                      >
-                        {span === 4 ? "Full" : "Half"}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-max grid-flow-row-dense">
         {activeWidgets

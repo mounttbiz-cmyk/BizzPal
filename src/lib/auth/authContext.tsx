@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { claimBrowserFor, forgetBrowserOwner } from "@/lib/auth/localData";
 
 /** The signed-in customer, as the server sees them. */
 export interface AuthUser {
@@ -77,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(d => {
         if (cancelled) return;
         if (d?.authenticated) {
+          claimBrowserFor(d.email);
           const u = toUser(d.email, d.name);
           setUser(u);
           rememberSession(u, d.provider || "email");
@@ -93,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmail = async (email: string, password: string) => {
     const d = await postJson("/api/auth/login", { email, password });
+    claimBrowserFor(d.email);
     const u = toUser(d.email, d.name);
     setUser(u);
     return u;
@@ -100,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUpWithEmail = async (email: string, password: string, name?: string) => {
     const d = await postJson("/api/auth/register", { email, password, name });
+    claimBrowserFor(d.email);
     const u = toUser(d.email, d.name);
     setUser(u);
     return u;
@@ -112,6 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.removeItem("bizzpal_user_session");
     } catch {}
+    forgetBrowserOwner();
     setUser(null);
   };
 
@@ -127,6 +132,18 @@ export async function hasServerSession(): Promise<boolean> {
     return res.ok;
   } catch {
     return false;
+  }
+}
+
+/** The email the server says is signed in, or null when nobody is. */
+export async function getServerSessionEmail(): Promise<string | null> {
+  try {
+    const res = await fetch("/api/auth/session", { cache: "no-store" });
+    if (!res.ok) return null;
+    const d = await res.json();
+    return d?.authenticated && d.email ? String(d.email) : null;
+  } catch {
+    return null;
   }
 }
 

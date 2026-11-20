@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { hasServerSession } from "@/lib/auth/authContext";
+import { getServerSessionEmail } from "@/lib/auth/authContext";
+import { claimBrowserFor } from "@/lib/auth/localData";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -20,16 +21,18 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
 
         // The server has to agree that this browser is signed in. The copy in local storage proves nothing.
-        const ok = await hasServerSession();
+        const serverEmail = await getServerSessionEmail();
         if (cancelled) return;
-        if (!ok) {
+        if (!serverEmail) {
           localStorage.removeItem("bizzpal_user_session");
           router.replace("/login");
           return;
         }
 
+        // Anything saved in this browser for a different account is thrown away before the app reads it
+        claimBrowserFor(serverEmail);
         setChecked(true);
-        const email = parsed.email;
+        const email = serverEmail;
         if (email) {
           const sessionRecordedKey = `bizzpal_session_recorded_${email}`;
           const lastRec = sessionStorage.getItem(sessionRecordedKey);
