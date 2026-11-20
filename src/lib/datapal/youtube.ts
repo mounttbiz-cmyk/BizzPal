@@ -401,6 +401,121 @@ export async function channelsByIds(ids: string[]): Promise<YouTubeChannel[]> {
   return ids.map(id => known.get(id)).filter(Boolean) as YouTubeChannel[];
 }
 
+export interface SearchIntent {
+  raw: string;
+  cleanQuery: string;
+  regionCode?: string;
+  relevanceLanguage?: string;
+  hasTemporal: boolean;
+  targetYear?: number;
+  wantsFamous: boolean;
+  topicKeywords: string[];
+}
+
+/**
+ * Intelligently analyzes user search intent. Strips literal noise years (e.g., 2026) and superlatives (e.g., top, best)
+ * from the literal token query, while extracting them as semantic weighting signals for ranking.
+ */
+export function analyzeSearchIntent(rawText: string): SearchIntent {
+  const text = rawText.trim();
+  const lower = text.toLowerCase();
+
+  // 1. Detect year / temporal markers (e.g. 2024, 2025, 2026, 2027, latest, recent)
+  const yearMatch = lower.match(/\b(202[0-9]|203[0-9])\b/);
+  const targetYear = yearMatch ? Number(yearMatch[1]) : undefined;
+  const hasTemporal = Boolean(targetYear || /\b(latest|current|recent|new|today)\b/i.test(lower));
+
+  // 2. Detect fame / authority desire (top, best, famous, popular, biggest, trending, major)
+  const wantsFamous = /\b(top|best|famous|popular|biggest|trending|most subscribed|celebrity|major|star)\b/i.test(lower);
+
+  // 3. Detect regional & language signals
+  let regionCode: string | undefined = undefined;
+  let relevanceLanguage: string | undefined = undefined;
+  if (/\b(india|indian|bharat|desi|delhi|mumbai|bangalore)\b/i.test(lower)) {
+    regionCode = "IN";
+  }
+  if (/\b(hindi)\b/i.test(lower)) {
+    relevanceLanguage = "hi";
+    regionCode = regionCode || "IN";
+  } else if (/\b(tamil)\b/i.test(lower)) {
+    relevanceLanguage = "ta";
+    regionCode = regionCode || "IN";
+  } else if (/\b(telugu)\b/i.test(lower)) {
+    relevanceLanguage = "te";
+    regionCode = regionCode || "IN";
+  }
+
+  // 4. Construct clean search query without noise tokens that break YouTube's exact token index
+  let clean = text
+    .replace(/\b(202[0-9]|203[0-9])\b/gi, "")
+    .replace(/\b(top|best|famous|popular|biggest|trending|most subscribed|all|latest|current)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Fall back to original if cleaning stripped everything
+  if (clean.length < 2) clean = text;
+
+  // Extract core keywords
+  const topicKeywords = clean
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !["the", "for", "and", "in", "with", "from"].includes(w));
+
+  return {
+    raw: text,
+    cleanQuery: clean,
+    regionCode,
+    relevanceLanguage,
+    hasTemporal,
+    targetYear,
+    wantsFamous,
+    topicKeywords,
+  };
+}
+
+/**
+ * Computes an authority and intent score to rank the most famous, credible, and active channels first.
+ */
+function calculateChannelScore(c: YouTubeChannel, intent: SearchIntent): number {
+  let score = 0;
+
+  // 1. Subscriber Authority & Fame (0 to 60 points)
+  const subs = c.subscribers || 0;
+  if (subs >= 10_000_000) score += 60;
+  else if (subs >= 1_000_000) score += 50 + (subs / 10_000_000) * 10;
+  else if (subs >= 100_000) score += 35 + (subs / 1_000_000) * 15;
+  else if (subs >= 10_000) score += 20 + (subs / 100_000) * 15;
+  else if (subs >= 1_000) score += 10 + (subs / 10_000) * 10;
+  else score += Math.min(10, subs / 100);
+
+  // 2. Average Views / Channel Velocity (0 to 25 points)
+  const avgViews = c.activity?.avgViews || 0;
+  if (avgViews >= 1_000_000) score += 25;
+  else if (avgViews >= 100_000) score += 20;
+  else if (avgViews >= 10_000) score += 14;
+  else if (avgViews >= 1_000) score += 8;
+
+  // 3. Activity Recency & Currency (especially for 2026/current intent) (0 to 15 points)
+  if (c.activity?.status === "active") score += 15;
+  else if (c.activity?.status === "recent") score += 8;
+  else if (c.activity?.status === "inactive") score -= 10;
+
+  // 4. Topic & Keyword Relevance in Title & Description (0 to 20 points)
+  const titleLower = c.title.toLowerCase();
+  const descLower = (c.description || "").toLowerCase();
+  for (const kw of intent.topicKeywords) {
+    if (titleLower.includes(kw)) score += 15;
+    else if (descLower.includes(kw)) score += 5;
+  }
+
+  // 5. Regional Alignment
+  if (intent.regionCode === "IN" && (c.country === "IN" || (c.language && ["Hindi", "Tamil", "Telugu", "Bengali", "Marathi", "Kannada", "Malayalam", "Gujarati", "Punjabi"].includes(c.language)))) {
+    score += 10;
+  }
+
+  return score;
+}
+
 /** Finds channels for what the person typed. `limit` only matters for keyword searches. */
 export async function lookupChannels(input: ParsedInput, limit: number, pageToken?: string): Promise<{ channels: YouTubeChannel[]; cached: boolean; nextPageToken?: string | null }> {
   if (input.kind === "id") {
@@ -431,21 +546,41 @@ export async function lookupChannels(input: ParsedInput, limit: number, pageToke
     return { channels: [found[0]], cached: false };
   }
 
-  // Keyword search. Each page is 10 channels; `pageToken` asks for the next 10.
-  const key = `search:${input.value.toLowerCase()}:${pageToken || ""}`;
+  // Intelligent Keyword Search with intent extraction & authority ranking
+  const intent = analyzeSearchIntent(input.value);
+  const key = `search_v5:${intent.cleanQuery.toLowerCase()}:${intent.regionCode || ""}:${pageToken || ""}`;
   let page = cacheGet<{ ids: string[]; next: string | null }>(key);
   const wasCached = Boolean(page);
+
   if (!page) {
-    const params: Record<string, string> = { part: "snippet", type: "channel", q: input.value, maxResults: "10" };
+    const params: Record<string, string> = {
+      part: "snippet",
+      type: "channel",
+      q: intent.cleanQuery,
+      maxResults: "25", // Broad candidate pool so top famous creators are retrieved
+    };
+    if (intent.regionCode) params.regionCode = intent.regionCode;
+    if (intent.relevanceLanguage) params.relevanceLanguage = intent.relevanceLanguage;
     if (pageToken) params.pageToken = pageToken;
+
     const data = await callYouTube("search", params, 100);
+    const rawIds: string[] = (data.items || []).map((i: any) => i?.id?.channelId || i?.snippet?.channelId).filter(Boolean);
+
+    // Fetch full channel metrics and rank candidates by fame, authority & relevance
+    const fetchedCandidates = await channelsByIds(rawIds);
+    const ranked = [...fetchedCandidates].sort((a, b) => {
+      const scoreA = calculateChannelScore(a, intent);
+      const scoreB = calculateChannelScore(b, intent);
+      return scoreB - scoreA;
+    });
+
     page = {
-      ids: (data.items || []).map((i: any) => i?.id?.channelId || i?.snippet?.channelId).filter(Boolean),
+      ids: ranked.map(c => c.channelId),
       next: typeof data.nextPageToken === "string" ? data.nextPageToken : null,
     };
     cacheSet(key, page);
   }
+
   const wanted = page.ids.slice(0, Math.max(1, limit));
-  // if the person's records ran out part-way through the page, there is more left on this same page
   return { channels: await channelsByIds(wanted), cached: wasCached, nextPageToken: page.next };
 }

@@ -24,7 +24,7 @@ const csvCell = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
 const post = (url: string, body: unknown, method = "POST") => fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 const SORTS = [
-  { id: "default", label: "Best match" },
+  { id: "default", label: "Best match (Top creators first)" },
   { id: "subs", label: "Most subscribers" },
   { id: "engagement", label: "Highest engagement" },
   { id: "views", label: "Most average views" },
@@ -219,7 +219,21 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
       views: c => c.activity?.avgViews ?? -1,
       recent: c => (c.activity?.lastUploadAt ? new Date(c.activity.lastUploadAt).getTime() : -1),
     };
-    if (sort === "default" && Object.keys(fits).length > 0) return [...out].sort((a, b) => (fits[b.channelId]?.score ?? -1) - (fits[a.channelId]?.score ?? -1));
+    if (sort === "default") {
+      if (Object.keys(fits).length > 0) {
+        return [...out].sort((a, b) => (fits[b.channelId]?.score ?? -1) - (fits[a.channelId]?.score ?? -1));
+      }
+      // Intelligent ranking: prioritize most famous (subscribers) + view velocity + active
+      return [...out].sort((a, b) => {
+        const subsA = a.subscribers || 0;
+        const subsB = b.subscribers || 0;
+        const viewsA = a.activity?.avgViews || 0;
+        const viewsB = b.activity?.avgViews || 0;
+        const scoreA = subsA + viewsA * 3;
+        const scoreB = subsB + viewsB * 3;
+        return scoreB - scoreA;
+      });
+    }
     return sort in by ? [...out].sort((a, b) => by[sort](b) - by[sort](a)) : out;
   }, [results, needEmail, needPhone, onlyActive, country, language, minSubs, sort, fits]);
 
@@ -272,7 +286,7 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
                   type="text"
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder="Channel link, @handle, or keywords like “fitness creators India”"
+                  placeholder="Search creator topic, niche, or handle (e.g. “Indian gaming creators 2026”, “Tech reviewers”)"
                   maxLength={200}
                   className="w-full px-4 py-3 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
                 />
