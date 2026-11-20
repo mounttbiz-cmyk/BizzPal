@@ -54,11 +54,27 @@ const ROTATING_CREATOR_EXAMPLES = [
   "Automobile & EV reviewers India",
 ];
 
+const COUNT_PRESETS = [10, 25, 50, 100, 200];
+
 export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
   const [tab, setTab] = useState<"find" | "saved">("find");
   const [bulk, setBulk] = useState(false);
   const [query, setQuery] = useState("");
   const [exampleIndex, setExampleIndex] = useState(0);
+
+  // How many records / channels to fetch (like standard DataPal)
+  const [requestedCount, setRequestedCount] = useState<number>(10);
+  const [customCountInput, setCustomCountInput] = useState<string>("");
+  const isCustomCountActive = !COUNT_PRESETS.includes(requestedCount);
+
+  const handleCustomCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/[^0-9]/g, "");
+    setCustomCountInput(val);
+    const num = parseInt(val, 10);
+    if (!isNaN(num) && num > 0) {
+      setRequestedCount(Math.min(500, num));
+    }
+  };
 
   // Rotate placeholder examples dynamically like DataPal directory search
   useEffect(() => {
@@ -138,7 +154,7 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
     setFits({});
     setFitError("");
     try {
-      const res = await post("/api/datapal/youtube", bulk ? { queries: lines } : { query });
+      const res = await post("/api/datapal/youtube", bulk ? { queries: lines, count: requestedCount } : { query, count: requestedCount });
       const d = await res.json().catch(() => ({}));
       if (res.ok && d.success) {
         setResults(d.results);
@@ -167,7 +183,7 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
     setMoreBusy(true);
     setError("");
     try {
-      const res = await post("/api/datapal/youtube", { query: lastKeywords, pageToken: nextToken });
+      const res = await post("/api/datapal/youtube", { query: lastKeywords, count: requestedCount, pageToken: nextToken });
       const d = await res.json().catch(() => ({}));
       if (res.ok && d.success) {
         const fresh: YtChannel[] = d.results.filter((r: YtChannel) => !results.some(x => x.channelId === r.channelId));
@@ -330,6 +346,56 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
                   ))}
                 </div>
               )}
+              {/* Quantity Selector (Identical to DataPal Directory Search) */}
+              <div className="space-y-2 pt-1">
+                <div>
+                  <label className="text-sm font-medium text-text">How many records?</label>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    Pick an amount or enter your own.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  {COUNT_PRESETS.map(preset => {
+                    const isSelected = requestedCount === preset && !isCustomCountActive;
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          setCustomCountInput("");
+                          setRequestedCount(preset);
+                        }}
+                        className={`px-3.5 py-1.5 rounded-lg text-sm cursor-pointer transition-colors ${
+                          isSelected
+                            ? "bg-brass text-white font-medium shadow-xs"
+                            : "border border-line bg-surface text-text hover:bg-surface-2"
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    );
+                  })}
+
+                  <div
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-surface ${
+                      isCustomCountActive ? "border-brass ring-1 ring-brass/30" : "border-line"
+                    }`}
+                  >
+                    <span className="text-sm text-text-muted">Custom:</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="e.g. 30"
+                      value={customCountInput || (isCustomCountActive ? String(requestedCount) : "")}
+                      onChange={handleCustomCountChange}
+                      className="w-20 bg-transparent text-sm text-text focus:outline-hidden placeholder:text-text-muted/60"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
@@ -418,7 +484,7 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
               {nextToken && lastKeywords && (
                 <div className="text-center">
                   <button type="button" onClick={loadMore} disabled={moreBusy} className="px-5 py-2 rounded-lg border border-line bg-surface text-sm text-text hover:bg-surface-2 cursor-pointer inline-flex items-center gap-2 disabled:opacity-50">
-                    {moreBusy && <Loader2 className="w-4 h-4 animate-spin" />}Load 10 more channels
+                    {moreBusy && <Loader2 className="w-4 h-4 animate-spin" />}Load {requestedCount} more channels
                   </button>
                 </div>
               )}

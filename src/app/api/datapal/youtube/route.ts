@@ -27,6 +27,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}));
+  const requestedCount = Math.max(1, Math.min(Number(body?.count) || 10, 500));
   const bulk = Array.isArray(body?.queries);
   const rawList: string[] = bulk ? body.queries.map((q: unknown) => String(q || "").trim()).filter(Boolean).slice(0, MAX_BULK) : [String(body?.query || "")];
 
@@ -62,13 +63,14 @@ export async function POST(req: Request) {
     let nextPageToken: string | null = null;
     const pageToken = typeof body?.pageToken === "string" && body.pageToken.length < 300 ? body.pageToken : undefined;
     for (const input of inputs) {
-      if (found.length >= credits.remaining) break;
-      const r = await lookupChannels(input, Math.min(10, credits.remaining - found.length), input.kind === "search" ? pageToken : undefined);
+      if (found.length >= credits.remaining || found.length >= requestedCount) break;
+      const targetLimit = Math.min(requestedCount - found.length, credits.remaining - found.length);
+      const r = await lookupChannels(input, targetLimit, input.kind === "search" ? pageToken : undefined);
       cached = cached && r.cached;
       if (input.kind === "search") nextPageToken = r.nextPageToken ?? null;
       for (const c of r.channels) if (!found.some(f => f.channelId === c.channelId)) found.push(c);
     }
-    const results = found.slice(0, credits.remaining);
+    const results = found.slice(0, Math.min(requestedCount, credits.remaining));
     const after = consumeDataPalCredits(email, results.length);
     return NextResponse.json({
       success: true,

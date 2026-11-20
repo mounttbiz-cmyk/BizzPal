@@ -548,23 +548,36 @@ export async function lookupChannels(input: ParsedInput, limit: number, pageToke
 
   // Intelligent Keyword Search with intent extraction & authority ranking
   const intent = analyzeSearchIntent(input.value);
-  const key = `search_v5:${intent.cleanQuery.toLowerCase()}:${intent.regionCode || ""}:${pageToken || ""}`;
+  const key = `search_v6:${intent.cleanQuery.toLowerCase()}:${intent.regionCode || ""}:${limit}:${pageToken || ""}`;
   let page = cacheGet<{ ids: string[]; next: string | null }>(key);
   const wasCached = Boolean(page);
 
   if (!page) {
+    const candidateMax = Math.min(50, Math.max(25, limit + 5));
     const params: Record<string, string> = {
       part: "snippet",
       type: "channel",
       q: intent.cleanQuery,
-      maxResults: "25", // Broad candidate pool so top famous creators are retrieved
+      maxResults: String(candidateMax), // Broad candidate pool so top famous creators are retrieved
     };
     if (intent.regionCode) params.regionCode = intent.regionCode;
     if (intent.relevanceLanguage) params.relevanceLanguage = intent.relevanceLanguage;
     if (pageToken) params.pageToken = pageToken;
 
     const data = await callYouTube("search", params, 100);
-    const rawIds: string[] = (data.items || []).map((i: any) => i?.id?.channelId || i?.snippet?.channelId).filter(Boolean);
+    let rawIds: string[] = (data.items || []).map((i: any) => i?.id?.channelId || i?.snippet?.channelId).filter(Boolean);
+    let currentNext: string | null = typeof data.nextPageToken === "string" ? data.nextPageToken : null;
+
+    // If user requested more than 25 channels (e.g. 50 or 100) and more pages exist, fetch second page
+    if (limit > 25 && currentNext && rawIds.length < limit) {
+      try {
+        const nextParams = { ...params, pageToken: currentNext };
+        const data2 = await callYouTube("search", nextParams, 100);
+        const nextIds = (data2.items || []).map((i: any) => i?.id?.channelId || i?.snippet?.channelId).filter(Boolean);
+        rawIds = Array.from(new Set([...rawIds, ...nextIds]));
+        currentNext = typeof data2.nextPageToken === "string" ? data2.nextPageToken : null;
+      } catch {}
+    }
 
     // Fetch full channel metrics and rank candidates by fame, authority & relevance
     const fetchedCandidates = await channelsByIds(rawIds);
@@ -576,7 +589,7 @@ export async function lookupChannels(input: ParsedInput, limit: number, pageToke
 
     page = {
       ids: ranked.map(c => c.channelId),
-      next: typeof data.nextPageToken === "string" ? data.nextPageToken : null,
+      next: currentNext,
     };
     cacheSet(key, page);
   }
