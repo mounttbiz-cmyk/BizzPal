@@ -39,10 +39,34 @@ const MIN_SUBS = [
   { id: 500_000, label: "500K+" },
 ];
 
+const ROTATING_CREATOR_EXAMPLES = [
+  "Indian gaming creators 2026",
+  "Tech reviewers in India",
+  "Finance & stock market influencers",
+  "Fitness & workout creators Mumbai",
+  "Comedy & roast channels Hindi",
+  "D2C beauty & lifestyle vloggers",
+  "SaaS & AI tool reviewers",
+  "Food vloggers Delhi NCR",
+  "Travel vloggers & moto vloggers",
+  "Business & startup podcast hosts",
+  "EdTech & coding mentors",
+  "Automobile & EV reviewers India",
+];
+
 export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
   const [tab, setTab] = useState<"find" | "saved">("find");
   const [bulk, setBulk] = useState(false);
   const [query, setQuery] = useState("");
+  const [exampleIndex, setExampleIndex] = useState(0);
+
+  // Rotate placeholder examples dynamically like DataPal directory search
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setExampleIndex(prev => (prev + 1) % ROTATING_CREATOR_EXAMPLES.length);
+    }, 1800);
+    return () => clearInterval(timer);
+  }, []);
   const [list, setList] = useState("");
   const [offer, setOffer] = useState("");
   const [busy, setBusy] = useState(false);
@@ -286,10 +310,25 @@ export function YouTubeSearch({ onCreditsChanged, onNeedCredits }: Props) {
                   type="text"
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder="Search creator topic, niche, or handle (e.g. “Indian gaming creators 2026”, “Tech reviewers”)"
+                  placeholder={`Search creator topic, niche, or handle (e.g. "${ROTATING_CREATOR_EXAMPLES[exampleIndex]}")`}
                   maxLength={200}
-                  className="w-full px-4 py-3 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass"
+                  className="w-full px-4 py-3 rounded-lg border border-line bg-surface text-sm text-text placeholder:text-text-muted focus:outline-hidden focus:border-brass transition-all duration-300"
                 />
+              )}
+              {!bulk && (
+                <div className="flex items-center gap-1.5 flex-wrap pt-1 text-xs text-text-muted">
+                  <span className="text-[11px] font-medium text-text-muted/80">Popular:</span>
+                  {["Indian gaming creators 2026", "Tech reviewers", "Finance & investing", "Fitness & workout", "Comedy channels"].map((tag, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setQuery(tag)}
+                      className="px-2 py-0.5 rounded-md bg-surface-2/60 hover:bg-surface-2 hover:text-brass border border-line text-[11px] cursor-pointer transition-colors"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
               )}
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
