@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, X } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
-import { runAutomation, timeAgo, RunLog } from "@/lib/automations/engine";
+import { timeAgo, RunLog } from "@/lib/automations/engine";
 
 interface AutomationItem {
   id: string;
@@ -15,7 +15,6 @@ interface AutomationItem {
   enabled: boolean;
 }
 
-const LOG_KEY = "bizzpal_automation_runs";
 
 export default function AutomationsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -36,21 +35,13 @@ export default function AutomationsPage() {
   const [loaded, setLoaded] = useState(false);
   const [logs, setLogs] = useState<RunLog[]>([]);
 
-  // Real run history for this browser's workspace
-  useEffect(() => {
-    try {
-      const cached = localStorage.getItem(LOG_KEY);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed)) setLogs(parsed);
-      }
-    } catch {}
-  }, []);
-
   const fetchAutomations = async () => {
     try {
       const res = await fetch("/api/automations");
       const data = await res.json();
+      if (data.success && Array.isArray(data.runs)) {
+        setLogs(data.runs.map((r: any) => ({ id: r.id, automationId: r.automationId, automationName: r.automationName, status: r.status, at: r.at, detail: r.detail })));
+      }
       if (data.success && Array.isArray(data.automations)) {
         setAutomations(
           data.automations.map((a: any) => ({
@@ -109,62 +100,30 @@ export default function AutomationsPage() {
   };
 
   const handleTestTrigger = async (automation: AutomationItem) => {
-    let profile: any = null;
     try {
-      const raw = localStorage.getItem("bizzpal_business_profile");
-      if (raw) profile = JSON.parse(raw);
-    } catch {}
-
-    let openTasks: number | null = null;
-    try {
-      const res = await fetch("/api/tasks");
-      const data = await res.json();
-      if (data.success && Array.isArray(data.tasks)) {
-        openTasks = data.tasks.filter((t: any) => t.status !== "done").length;
+      const res = await fetch("/api/automations/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: automation.id }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        notify(result.error || "Could not run this automation.");
+        return;
       }
-    } catch {}
-
-    const result = runAutomation(automation, { profile, openTasks });
-
-    const entry: RunLog = {
-      id: `run-${Date.now()}`,
-      automationId: automation.id,
-      automationName: automation.name,
-      status: result.status,
-      at: new Date().toISOString(),
-      detail: result.detail,
-    };
-    setLogs(prev => {
-      const updated = [entry, ...prev].slice(0, 100);
-      try {
-        localStorage.setItem(LOG_KEY, JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-
-    // Only create a real task when the rule's condition was actually met
-    if (result.task) {
-      try {
-        await fetch("/api/tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: `[Automation] ${result.task.title}`,
-            owner: "Founder",
-            priority: result.task.priority,
-            gap: result.task.gap,
-          }),
-        });
-      } catch {}
+      await fetchAutomations();
+      notify(
+        result.status === "triggered"
+          ? result.taskAdded
+            ? "Condition met. A task was added to your task list."
+            : "Condition met. There is already an open task for this, so no new one was added."
+          : result.status === "success"
+          ? "Checked. Nothing needs attention."
+          : "Run finished, but nothing could be measured. See the note on the right."
+      );
+    } catch {
+      notify("Could not run this automation.");
     }
-
-    notify(
-      result.status === "triggered"
-        ? "Condition met. A task was added to your task list."
-        : result.status === "success"
-        ? "Checked. Nothing needs attention."
-        : "Run finished, but nothing could be measured. See the note on the right."
-    );
   };
 
   const notify = (msg: string) => {

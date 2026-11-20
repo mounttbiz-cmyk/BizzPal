@@ -28,11 +28,8 @@ BizzPal runs on one Compute Engine VM with PM2. The database is a single SQLite 
    (crontab -l 2>/dev/null; echo "0 2 * * * cd /home/it/bizzpal && BIZZPAL_DATA_DIR=/home/it/bizzpal-data node scripts/backup-db.mjs >> /home/it/backup.log 2>&1") | crontab -
    ```
 
-6. Add the daily briefing job (7:30 every morning, India time). Use the same value as `CRON_TOKEN` in `.env`:
+6. Nothing to schedule. The app runs its own background jobs: every 6 hours it runs each business's switched-on automations and saves the monthly figures snapshot, and at 8:00 India time it sends the daily briefing (needs the email settings). Set `DISABLE_SCHEDULER=1` to turn this off. Do not also add a crontab entry for the briefing, or people would get it twice. The `/api/cron/daily-briefing` route remains for manual use.
 
-   ```bash
-   (crontab -l 2>/dev/null; echo '30 7 * * * curl -s -X POST -H "Authorization: Bearer YOUR_CRON_TOKEN" http://localhost:3000/api/cron/daily-briefing >> /home/it/briefing.log 2>&1') | crontab -
-   ```
 
    The VM's clock may be UTC. For 7:30 India time use `0 2 * * *`.
 

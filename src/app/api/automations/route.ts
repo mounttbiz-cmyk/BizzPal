@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
 import { getUserBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { getAutomationRuns } from "@/lib/scheduler";
 import {
   getBusinessAutomations,
   toggleBusinessAutomation,
@@ -22,6 +23,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       success: true,
       automations,
+      runs: getAutomationRuns(tenantId),
       connectedTools: integrations.filter(i => i.status === "connected").map(i => i.tool_key),
     });
   } catch (error: any) {

@@ -371,9 +371,9 @@ export default function ExecutivePlaybooksPage() {
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("your business");
-  const [runwayMonths, setRunwayMonths] = useState("0.0");
-  const [, setMonthlyBurn] = useState(0);
-  const [, setCashOnHand] = useState(0);
+  const [runwayMonths, setRunwayMonths] = useState<number | null>(null);
+  const [monthlyBurn, setMonthlyBurn] = useState(0);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
 
   // Custom Playbook Modal
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -401,13 +401,9 @@ export default function ExecutivePlaybooksPage() {
     if (p.name) setCompanyName(p.name);
     const cash = Number(p.cash || p.cash_on_hand || p.cashOnHand || 0);
     const burn = Number(p.burn || p.monthly_burn || p.monthlyBurn || 0);
-    setCashOnHand(cash);
     setMonthlyBurn(burn);
-    if (burn > 0) {
-      setRunwayMonths((cash / burn).toFixed(1));
-    } else if (cash > 0) {
-      setRunwayMonths("18+");
-    }
+    setMonthlyRevenue(Number(p.revenue || p.monthly_revenue || p.monthlyRevenue || 0));
+    setRunwayMonths(burn > 0 && cash > 0 ? Number((cash / burn).toFixed(1)) : null);
   };
 
   useEffect(() => {
@@ -527,6 +523,18 @@ export default function ExecutivePlaybooksPage() {
     setTimeout(() => setToastMessage(null), 5000);
   };
 
+  // A playbook applies when your own figures meet its trigger. Only runway and spending can be measured here.
+  const appliesNow = (pb: Playbook) => {
+    const t = pb.triggerCondition.toLowerCase();
+    if (t.includes("runway")) return runwayMonths !== null && runwayMonths < 8;
+    if (t.includes("burn") || t.includes("spending")) return monthlyRevenue > 0 && monthlyBurn > monthlyRevenue;
+    return false;
+  };
+  const goalFor = (pb: Playbook) =>
+    pb.triggerCondition.toLowerCase().includes("runway") && runwayMonths !== null && runwayMonths < 8
+      ? `Raise your runway from ${runwayMonths} months to at least 8 months`
+      : pb.impactTarget;
+
   const filteredPlaybooks = playbooks.filter(pb => {
     const matchesCategory =
       selectedCategory === "all" || pb.category.toLowerCase() === selectedCategory.toLowerCase();
@@ -535,7 +543,7 @@ export default function ExecutivePlaybooksPage() {
       pb.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pb.triggerCondition.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
-  });
+  }).sort((a, b) => Number(appliesNow(b)) - Number(appliesNow(a)));
 
   const inputClass =
     "w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
@@ -598,6 +606,12 @@ export default function ExecutivePlaybooksPage() {
         </div>
       )}
 
+      <p className="text-sm text-text-muted">
+        {runwayMonths !== null
+          ? `Based on your figures: ${runwayMonths} months of runway${monthlyRevenue > 0 ? `, spending ${monthlyBurn > monthlyRevenue ? "above" : "within"} revenue` : ""}. Playbooks that apply to you are listed first.`
+          : "Add your cash and monthly costs in Quick business input to see which playbooks apply to you. Until then they are listed as general guides."}
+      </p>
+
       <div className="inline-flex items-center p-1 rounded-xl bg-surface-2 overflow-x-auto max-w-full">
         {tabs.map(tab => (
           <button
@@ -619,7 +633,7 @@ export default function ExecutivePlaybooksPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredPlaybooks.map(pb => {
-          const isApplying = pb.triggerCondition.toLowerCase().includes("runway") && parseFloat(runwayMonths) <= 8.0;
+          const isApplying = appliesNow(pb);
 
           return (
             <div key={pb.id} className="rounded-2xl border border-line bg-surface shadow-sm p-6 flex flex-col">
@@ -639,8 +653,8 @@ export default function ExecutivePlaybooksPage() {
                   <p className="text-sm text-text mt-0.5">{pb.triggerCondition}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-text-muted">Goal</p>
-                  <p className="text-sm text-text mt-0.5">{pb.impactTarget}</p>
+                  <p className="text-xs text-text-muted">{isApplying ? "Your goal" : "Suggested goal"}</p>
+                  <p className="text-sm text-text mt-0.5">{goalFor(pb)}</p>
                 </div>
               </div>
 
