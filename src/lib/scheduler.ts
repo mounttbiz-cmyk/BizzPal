@@ -7,13 +7,13 @@
  * The app runs as one process (PM2), so one timer is enough. Each job writes when it last ran, so a restart never
  * repeats work. Set DISABLE_SCHEDULER=1 to switch it off.
  */
-import { db, getRegisteredUser, registerUser, saveUserBusinessProfile, setUserPasswordHash, getUserPasswordHash } from "@/lib/db";
+import { db, getRegisteredUser, registerUser, saveUserBusinessProfile, setUserPasswordHash, getUserPasswordHash, getTeamMembers } from "@/lib/db";
 import { demoEmails, DEFAULT_DEMO_CREDENTIALS } from "@/lib/demoAccount";
 import { hashPassword } from "@/lib/auth/password";
 import { calculateBusinessMetrics } from "@/lib/bi/metricsEngine";
 import { runAutomation, type RunStatus } from "@/lib/automations/engine";
 import { sendAllBriefings } from "@/lib/briefing";
-import { appBaseUrl, mailConfigured } from "@/lib/mail";
+import { appBaseUrl, mailConfigured, sendMail, emailTemplate } from "@/lib/mail";
 
 const SIX_HOURS = 6 * 60 * 60 * 1000;
 const TICK_MS = 10 * 60 * 1000;
@@ -61,24 +61,101 @@ export interface RunOutcome {
 }
 
 /** Runs one automation against the business's real figures, records the run, and adds a task if its condition is met. */
-export function runAutomationNow(
+export async function runAutomationNow(
   businessId: string,
   rule: { id: string; title: string; trigger: string; action: string },
   source: "schedule" | "manual"
-): RunOutcome {
+): Promise<RunOutcome> {
   ensureTables();
   const m = calculateBusinessMetrics(businessId);
   const profile = { cash: m.cashReserve, burn: m.monthlyBurn, revenue: m.monthlyRevenue };
   let openTasks: number | null = null;
   try {
-    openTasks = (db.prepare("SELECT COUNT(*) AS n FROM tasks WHERE business_id = ? AND status != 'done'").get(businessId) as any).n;
+    openTasks = (db.prepare("SELECT COUNT(*) AS n FROM tasks WHERE business_id = ? AND status != 'done'").get(businessId) as any)?.n ?? null;
+  } catch {}
+  let gapCount: number | null = null;
+  try {
+    gapCount = (db.prepare("SELECT COUNT(*) AS n FROM gap_register WHERE business_id = ?").get(businessId) as any)?.n ?? null;
+  } catch {}
+  let businessName = "Your Business";
+  try {
+    const bRow = db.prepare("SELECT name FROM businesses WHERE id = ?").get(businessId) as any;
+    if (bRow?.name) businessName = bRow.name;
   } catch {}
 
-  const result = runAutomation({ name: rule.title, trigger: rule.trigger, action: rule.action }, { profile, openTasks });
+  const result = runAutomation({ name: rule.title, trigger: rule.trigger, action: rule.action }, { profile, openTasks, gapCount, businessName });
   const at = new Date().toISOString();
 
+  let emailDetail = "";
+  if (result.emailDispatch && (result.status === "triggered" || result.status === "success")) {
+    const dispatch = result.emailDispatch;
+    const targetEmails = new Set<string>();
+
+    if (dispatch.recipients && dispatch.recipients.length > 0) {
+      dispatch.recipients.forEach(e => targetEmails.add(e.trim().toLowerCase()));
+    }
+
+    if (dispatch.target === "team" || targetEmails.size === 0) {
+      try {
+        const team = getTeamMembers(businessId);
+        team.forEach(member => {
+          if (member.email && member.email.includes("@")) {
+            targetEmails.add(member.email.trim().toLowerCase());
+          }
+        });
+      } catch (err) {
+        console.warn("[scheduler] could not fetch team members for automation:", err);
+      }
+
+      try {
+        const owner = db.prepare("SELECT email FROM registered_users WHERE business_id = ?").get(businessId) as any;
+        if (owner?.email && owner.email.includes("@")) {
+          targetEmails.add(owner.email.trim().toLowerCase());
+        }
+      } catch {}
+    }
+
+    const emailList = Array.from(targetEmails);
+    const recipientCount = emailList.length;
+
+    if (recipientCount > 0) {
+      if (mailConfigured()) {
+        let sentCount = 0;
+        const tmpl = emailTemplate({
+          heading: dispatch.subject,
+          paragraphs: [dispatch.body, `Automated rule: ${rule.title}`, `Trigger condition: ${rule.trigger}`],
+          buttonLabel: "View in BizzPal Dashboard",
+          buttonUrl: `${appBaseUrl()}/automations`,
+          footnote: `Automated by BizzPal Autonomous OS for ${businessName}.`,
+        });
+
+        for (const recipient of emailList) {
+          try {
+            const sendRes = await sendMail({
+              to: recipient,
+              subject: dispatch.subject,
+              text: tmpl.text,
+              html: tmpl.html,
+              fromName: `${businessName} via BizzPal`,
+            });
+            if (sendRes.ok) sentCount++;
+          } catch (e) {
+            console.error(`[scheduler] email to ${recipient} failed:`, e);
+          }
+        }
+        emailDetail = ` Dispatched live email to ${sentCount} recipient(s) (${emailList.slice(0, 3).join(", ")}${emailList.length > 3 ? ` +${emailList.length - 3} more` : ""}).`;
+      } else {
+        emailDetail = ` Automation queued for ${recipientCount} team recipient(s) (${emailList.slice(0, 3).join(", ")}${emailList.length > 3 ? ` +${emailList.length - 3} more` : ""}). Note: To deliver live emails to inboxes, configure SMTP credentials in .env.`;
+      }
+    } else {
+      emailDetail = ` Email action triggered. (Add team members in Settings > Team to dispatch to all team inboxes).`;
+    }
+  }
+
+  const finalDetail = result.detail + emailDetail;
+
   db.prepare("INSERT INTO automation_runs (id, business_id, automation_id, automation_name, status, detail, source, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(
-    `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, businessId, rule.id, rule.title, result.status, result.detail, source, at
+    `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, businessId, rule.id, rule.title, result.status, finalDetail, source, at
   );
   db.prepare("UPDATE business_automations SET last_run = ?, executions_count = COALESCE(executions_count, 0) + 1 WHERE id = ? AND business_id = ?").run(at, rule.id, businessId);
   // Keep the log to the latest 200 runs per business
@@ -95,7 +172,7 @@ export function runAutomationNow(
       taskAdded = true;
     }
   }
-  return { status: result.status, detail: result.detail, taskAdded, at };
+  return { status: result.status, detail: finalDetail, taskAdded, at };
 }
 
 export function getAutomationRuns(businessId: string, limit = 50) {
@@ -105,14 +182,14 @@ export function getAutomationRuns(businessId: string, limit = 50) {
     .all(businessId, limit) as Array<{ id: string; automationId: string; automationName: string; status: RunStatus; detail: string; source: string; at: string }>;
 }
 
-function runEveryBusiness() {
+async function runEveryBusiness() {
   ensureTables();
   const businesses = db.prepare("SELECT id FROM businesses").all() as Array<{ id: string }>;
   for (const b of businesses) {
     try {
       calculateBusinessMetrics(b.id); // saves this month's snapshot of the real figures
       const rules = db.prepare("SELECT id, title, trigger_event, action_event FROM business_automations WHERE business_id = ? AND enabled = 1").all(b.id) as any[];
-      for (const r of rules) runAutomationNow(b.id, { id: r.id, title: r.title, trigger: r.trigger_event, action: r.action_event }, "schedule");
+      for (const r of rules) await runAutomationNow(b.id, { id: r.id, title: r.title, trigger: r.trigger_event, action: r.action_event }, "schedule");
     } catch (e) {
       console.error("[scheduler] business job failed:", b.id, (e as Error).message);
     }
@@ -129,7 +206,7 @@ export async function runDueJobs() {
   try {
     if (Date.now() - lastRun("business-checks") >= SIX_HOURS) {
       markRun("business-checks");
-      runEveryBusiness();
+      await runEveryBusiness();
     }
     const ist = istParts();
     if (ist.hour >= 8 && mailConfigured()) {

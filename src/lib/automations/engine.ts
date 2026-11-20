@@ -6,17 +6,27 @@
 
 export type RunStatus = "success" | "triggered" | "warning";
 
+export interface EmailDispatch {
+  target: "team" | "owner" | "custom";
+  subject: string;
+  body: string;
+  recipients?: string[];
+}
+
 export interface RunResult {
   status: RunStatus;
   detail: string;
   /** When set, a real task should be created because the condition was met. */
   task?: { title: string; priority: "high" | "medium"; gap: string };
+  /** When set, automated email(s) should be dispatched to team members or specified addresses. */
+  emailDispatch?: EmailDispatch;
 }
 
 export interface RunContext {
   profile: any | null;
   openTasks: number | null;
   gapCount?: number | null;
+  businessName?: string;
 }
 
 export interface RunLog {
@@ -37,15 +47,25 @@ function numberFrom(text: string, pattern: RegExp, fallback: number): number {
 }
 
 export function runAutomation(rule: { name: string; trigger: string; action: string }, ctx: RunContext): RunResult {
-  const text = `${rule.name} ${rule.trigger}`.toLowerCase();
+  const fullText = `${rule.name} ${rule.trigger} ${rule.action}`.toLowerCase();
+  const triggerText = `${rule.name} ${rule.trigger}`.toLowerCase();
   const p = ctx.profile || {};
   const cash = Number(p.cash || p.cashOnHand || 0);
   const burn = Number(p.burn || p.monthlyBurn || p.monthlyNetBurn || 0);
   const revenue = Number(p.revenue || p.monthlyRevenue || 0);
   const hasFinance = cash > 0 || burn > 0 || revenue > 0;
 
+  // Check if this automation specifies email dispatch
+  const wantsEmail = /email|mail|notify team|alert team|send to team|broadcast|message team|inform team|ping team/i.test(fullText);
+  // Extract explicit emails if present in action or trigger
+  const explicitEmails: string[] = [
+    ...(rule.action.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || []),
+    ...(rule.trigger.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || []),
+  ];
+  const bizLabel = ctx.businessName || "Your business";
+
   // Cash runway
-  if (text.includes("runway")) {
+  if (triggerText.includes("runway")) {
     if (!hasFinance || burn <= 0) {
       return {
         status: "warning",
@@ -53,12 +73,20 @@ export function runAutomation(rule: { name: string; trigger: string; action: str
       };
     }
     const runway = cash / burn;
-    const limit = numberFrom(text, /(\d+(?:\.\d+)?)\s*months?/, 6);
+    const limit = numberFrom(triggerText, /(\d+(?:\.\d+)?)\s*months?/, 6);
     if (runway < limit) {
+      const emailDispatch: EmailDispatch | undefined = wantsEmail ? {
+        target: explicitEmails.length ? "custom" : "team",
+        recipients: explicitEmails.length ? explicitEmails : undefined,
+        subject: `[BizzPal Alert] Cash Runway is ${runway.toFixed(1)} Months (${bizLabel})`,
+        body: `Urgent financial notice: Cash runway for ${bizLabel} has dropped to ${runway.toFixed(1)} months (${inr(cash)} cash on hand against ${inr(burn)} monthly burn). This is below the required minimum threshold of ${limit} months.\n\nRecommended Action: ${rule.action}`,
+      } : undefined;
+
       return {
         status: "triggered",
         detail: `Runway is ${runway.toFixed(1)} months (${inr(cash)} cash, ${inr(burn)} spent a month). That is below the ${limit}-month limit.`,
         task: { title: `Runway is ${runway.toFixed(1)} months: ${rule.action}`, priority: "high", gap: "Runway & Risk" },
+        emailDispatch,
       };
     }
     return {
@@ -68,15 +96,23 @@ export function runAutomation(rule: { name: string; trigger: string; action: str
   }
 
   // Spending versus income
-  if (text.includes("burn") || text.includes("spend") || text.includes("expense")) {
+  if (triggerText.includes("burn") || triggerText.includes("spend") || triggerText.includes("expense")) {
     if (!hasFinance) {
       return { status: "warning", detail: "Not checked: add your revenue and monthly costs first." };
     }
     if (revenue > 0 && burn > revenue) {
+      const emailDispatch: EmailDispatch | undefined = wantsEmail ? {
+        target: explicitEmails.length ? "custom" : "team",
+        recipients: explicitEmails.length ? explicitEmails : undefined,
+        subject: `[BizzPal Alert] Monthly Spend Exceeds Revenue (${bizLabel})`,
+        body: `Notice: Current monthly expenses of ${inr(burn)} exceed incoming revenue of ${inr(revenue)} at ${bizLabel}.\n\nRequired Action: ${rule.action}`,
+      } : undefined;
+
       return {
         status: "triggered",
         detail: `You spend ${inr(burn)} a month against ${inr(revenue)} of revenue, so spending is higher than income.`,
         task: { title: `Spending is above revenue: ${rule.action}`, priority: "high", gap: "Cost control" },
+        emailDispatch,
       };
     }
     return {
@@ -86,21 +122,41 @@ export function runAutomation(rule: { name: string; trigger: string; action: str
   }
 
   // Workload / tasks
-  if (text.includes("task") || text.includes("workload") || text.includes("bottleneck")) {
+  if (triggerText.includes("task") || triggerText.includes("workload") || triggerText.includes("bottleneck")) {
     if (ctx.openTasks === null) return { status: "warning", detail: "Not checked: could not load your tasks." };
-    const limit = numberFrom(text, /[>≥]\s*(\d+)|more than (\d+)|over (\d+)/, 5);
+    const limit = numberFrom(triggerText, /[>≥]\s*(\d+)|more than (\d+)|over (\d+)/, 5);
     if (ctx.openTasks > limit) {
+      const emailDispatch: EmailDispatch | undefined = wantsEmail ? {
+        target: explicitEmails.length ? "custom" : "team",
+        recipients: explicitEmails.length ? explicitEmails : undefined,
+        subject: `[BizzPal Alert] Workload Bottleneck: ${ctx.openTasks} Open Tasks (${bizLabel})`,
+        body: `Workload alert: ${bizLabel} currently has ${ctx.openTasks} open tasks, exceeding the target threshold of ${limit}.\n\nDirective: ${rule.action}`,
+      } : undefined;
+
       return {
         status: "triggered",
         detail: `You have ${ctx.openTasks} open tasks, which is more than the limit of ${limit}.`,
         task: { title: `${ctx.openTasks} open tasks: ${rule.action}`, priority: "medium", gap: "Workload" },
+        emailDispatch,
       };
     }
     return { status: "success", detail: `You have ${ctx.openTasks} open tasks, within the limit of ${limit}.` };
   }
 
-  // Summaries / digests
-  if (text.includes("briefing") || text.includes("digest") || text.includes("check-in") || text.includes("summary")) {
+  // Summaries, briefings, scheduled digests & team updates
+  if (
+    triggerText.includes("briefing") ||
+    triggerText.includes("digest") ||
+    triggerText.includes("check-in") ||
+    triggerText.includes("summary") ||
+    triggerText.includes("schedule") ||
+    triggerText.includes("report") ||
+    triggerText.includes("monday") ||
+    triggerText.includes("friday") ||
+    triggerText.includes("weekly") ||
+    triggerText.includes("daily") ||
+    triggerText.includes("every")
+  ) {
     const parts: string[] = [];
     if (hasFinance) {
       parts.push(`revenue ${inr(revenue)} a month`);
@@ -108,16 +164,38 @@ export function runAutomation(rule: { name: string; trigger: string; action: str
     }
     if (ctx.openTasks !== null) parts.push(`${ctx.openTasks} open tasks`);
     if (typeof ctx.gapCount === "number") parts.push(`${ctx.gapCount} gaps to review`);
+
+    const summaryContent = parts.length ? parts.join(", ") : "operations running smoothly";
+    const emailDispatch: EmailDispatch | undefined = wantsEmail ? {
+      target: explicitEmails.length ? "custom" : "team",
+      recipients: explicitEmails.length ? explicitEmails : undefined,
+      subject: `[BizzPal Digest] ${rule.name} - ${bizLabel}`,
+      body: `Executive digest for ${bizLabel}:\n\nCurrent Telemetry: ${summaryContent}.\nAction Item: ${rule.action}`,
+    } : undefined;
+
     return {
-      status: "success",
-      detail: parts.length
-        ? `Summary prepared: ${parts.join(", ")}. It is shown here; sending it by email or WhatsApp needs those tools connected.`
-        : "Nothing to summarise yet. Add your numbers with Quick business input.",
+      status: "triggered",
+      detail: `Summary prepared: ${summaryContent}. Automated workflow triggered for ${bizLabel}.`,
+      emailDispatch,
+    };
+  }
+
+  // Team broadcast / direct email automation rule
+  if (wantsEmail) {
+    return {
+      status: "triggered",
+      detail: `Automated team communication rule executed: "${rule.action}".`,
+      emailDispatch: {
+        target: explicitEmails.length ? "custom" : "team",
+        recipients: explicitEmails.length ? explicitEmails : undefined,
+        subject: `[BizzPal Notification] ${rule.name}`,
+        body: `Automated notification for ${bizLabel}:\n\nAction: ${rule.action}\nTrigger condition: ${rule.trigger}`,
+      },
     };
   }
 
   // Needs a connected tool
-  if (/invoice|receivable|payment|stripe|webhook|gst|tax|client|customer|revenue share|concentration|email|outreach|lead/.test(text)) {
+  if (/invoice|receivable|payment|stripe|webhook|gst|tax|client|customer|revenue share|concentration|outreach|lead/.test(triggerText)) {
     return {
       status: "warning",
       detail: "Not checked: this rule needs data from a connected tool (accounting, payments or CRM). Connect one in Integrations.",

@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const { id } = await req.json();
     const rule = db.prepare("SELECT id, title, trigger_event, action_event FROM business_automations WHERE id = ? AND business_id = ?").get(String(id || ""), businessId) as any;
     if (!rule) return NextResponse.json({ success: false, error: "Automation not found." }, { status: 404 });
-    const outcome = runAutomationNow(businessId, { id: rule.id, title: rule.title, trigger: rule.trigger_event, action: rule.action_event }, "manual");
+    const outcome = await runAutomationNow(businessId, { id: rule.id, title: rule.title, trigger: rule.trigger_event, action: rule.action_event }, "manual");
     return NextResponse.json({ success: true, ...outcome });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
