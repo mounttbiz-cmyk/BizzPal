@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth/authContext";
+import { isDemoAccount } from "@/lib/demoAccount";
 
 export const PLAN_ORDER = ["free", "starter", "growth", "enterprise"] as const;
 export type PlanId = string;
@@ -73,6 +74,20 @@ export function usePlanAccess() {
     async function resolvePlan() {
       setLoading(true);
       const email = getCurrentUserEmail(user);
+
+      // Demo accounts are always granted the highest Enterprise plan
+      if (isDemoAccount(email)) {
+        if (!cancelled) {
+          setPlan("enterprise");
+          setHasActivated(true);
+          try {
+            localStorage.setItem("bizzpal_subscription_plan", "enterprise");
+            if (email) localStorage.setItem(`bizzpal_subscription_plan_${email}`, "enterprise");
+          } catch {}
+          setLoading(false);
+        }
+        return;
+      }
 
       try {
         if (user) {
@@ -162,14 +177,21 @@ export function usePlanAccess() {
 
   const hasPlanLevel = useCallback(
     (requiredPlan?: string | null) => {
+      const email = getCurrentUserEmail(user);
+      if (isDemoAccount(email)) return true;
       if (isLocalEnvironment()) return true;
       if (!requiredPlan) return true;
       return planRank(plan) >= planRank(requiredPlan);
     },
-    [plan]
+    [plan, user]
   );
 
-  const effectivePlan = isLocalEnvironment() && plan === "free" ? "enterprise" : plan;
+  const email = getCurrentUserEmail(user);
+  const effectivePlan = isDemoAccount(email)
+    ? "enterprise"
+    : isLocalEnvironment() && plan === "free"
+    ? "enterprise"
+    : plan;
 
-  return { plan: effectivePlan as PlanId, hasActivated: isLocalEnvironment() || hasActivated, loading, activatePlan, hasPlanLevel };
+  return { plan: effectivePlan as PlanId, hasActivated: isDemoAccount(email) || isLocalEnvironment() || hasActivated, loading, activatePlan, hasPlanLevel };
 }

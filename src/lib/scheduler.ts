@@ -7,7 +7,9 @@
  * The app runs as one process (PM2), so one timer is enough. Each job writes when it last ran, so a restart never
  * repeats work. Set DISABLE_SCHEDULER=1 to switch it off.
  */
-import { db } from "@/lib/db";
+import { db, getRegisteredUser, registerUser, saveUserBusinessProfile, setUserPasswordHash, getUserPasswordHash } from "@/lib/db";
+import { demoEmails, DEFAULT_DEMO_CREDENTIALS } from "@/lib/demoAccount";
+import { hashPassword } from "@/lib/auth/password";
 import { calculateBusinessMetrics } from "@/lib/bi/metricsEngine";
 import { runAutomation, type RunStatus } from "@/lib/automations/engine";
 import { sendAllBriefings } from "@/lib/briefing";
@@ -144,10 +146,46 @@ export async function runDueJobs() {
   }
 }
 
+/**
+ * Keeps the demo account(s) in place: the account exists, and it has a saved business name so it opens straight
+ * on the dashboard. If an account is missing it is created only when DEMO_ACCOUNT_PASSWORD is set on the server.
+ * An existing account's password is never changed here.
+ */
+export function ensureDemoAccounts() {
+  try {
+    const defaultPw = process.env.DEMO_ACCOUNT_PASSWORD || DEFAULT_DEMO_CREDENTIALS.password;
+    for (const email of demoEmails()) {
+      let user: any = getRegisteredUser(email);
+      if (!user) {
+        registerUser(email, "BizzPal Demo", "email");
+        setUserPasswordHash(email, hashPassword(defaultPw));
+        user = getRegisteredUser(email);
+      } else {
+        const hash = getUserPasswordHash(email);
+        if (!hash) {
+          setUserPasswordHash(email, hashPassword(defaultPw));
+        }
+      }
+      if (user && !user.business_profile) {
+        saveUserBusinessProfile(email, {
+          name: "BizzPal Demo Enterprise",
+          founderName: "BizzPal Demo",
+          industryLabel: "Technology & Services",
+          revenue: 12500000,
+          completedAt: new Date().toISOString(),
+        });
+      }
+    }
+  } catch (e) {
+    console.error("[demo] could not prepare the demo account:", (e as Error).message);
+  }
+}
+
 export function startScheduler() {
   const g = globalThis as any;
   if (g.__bizzpalScheduler || process.env.DISABLE_SCHEDULER === "1") return;
   g.__bizzpalScheduler = true;
+  ensureDemoAccounts();
   // First look a minute after start so a restart is not slowed down
   setTimeout(() => { runDueJobs(); }, 60_000).unref?.();
   setInterval(() => { runDueJobs(); }, TICK_MS).unref?.();

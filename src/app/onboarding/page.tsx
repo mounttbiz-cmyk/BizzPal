@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { BadgeCheck, Check, CircleDashed, Lock, MinusCircle, Pencil, ShieldCheck } from "lucide-react";
+import { isDemoAccount } from "@/lib/demoAccount";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { RealToolAuthModal } from "@/components/tools/RealToolAuthModal";
 import { BUSINESS_TYPES, INDUSTRY_PRIORITIES, TOOLS_OPTIONS, type Priority } from "@/lib/onboarding/data";
@@ -38,18 +39,28 @@ export default function OnboardingPage() {
       const params = new URLSearchParams(window.location.search);
       const isNewSignup = params.get("mode") === "new_signup" || params.get("signup") === "true";
 
-      if (isNewSignup) {
-        localStorage.removeItem("bizzpal_business_profile");
-        localStorage.removeItem("bizzpal_datapal_campaigns");
-        localStorage.setItem("bizzpal_subscription_plan", "free");
-      }
-
       const raw = localStorage.getItem("bizzpal_user_session");
       const sess = raw ? JSON.parse(raw) : null;
       const userEmail = (sess?.email || "").trim().toLowerCase();
       if (!userEmail) {
         router.replace("/login");
         return;
+      }
+
+      const isDemo = isDemoAccount(userEmail);
+
+      if (isDemo) {
+        // Demo accounts bypass onboarding straight to dashboard to see all enterprise features
+        localStorage.setItem("bizzpal_subscription_plan", "enterprise");
+        localStorage.setItem(`bizzpal_subscription_plan_${userEmail}`, "enterprise");
+        router.replace("/dashboard");
+        return;
+      }
+
+      if (isNewSignup) {
+        localStorage.removeItem("bizzpal_business_profile");
+        localStorage.removeItem("bizzpal_datapal_campaigns");
+        localStorage.setItem("bizzpal_subscription_plan", "free");
       }
 
       // An account that already finished setup goes straight to its dashboard (unless it is a new signup).

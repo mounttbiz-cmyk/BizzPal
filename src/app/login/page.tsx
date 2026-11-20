@@ -15,12 +15,14 @@ import {
   Zap,
   TrendingUp,
   Cpu,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { useAuth } from "@/lib/auth/authContext";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { validateWorkEmail } from "@/lib/validation/emailValidator";
+import { isDemoAccount, DEFAULT_DEMO_CREDENTIALS } from "@/lib/demoAccount";
 
 interface AuthErrorInfo {
   title?: string;
@@ -162,6 +164,20 @@ export default function LoginPage() {
       } catch (e) { }
     }
 
+    const isDemo = isDemoAccount(cleanEmail);
+
+    if (!businessProfile && isDemo) {
+      businessProfile = {
+        name: "BizzPal Demo Enterprise",
+        founderName: displayName || fullName || "Demo Founder",
+        industryLabel: "Technology & Services",
+        revenue: 12500000,
+        burn: 1200000,
+        cash: 45000000,
+        completedAt: new Date().toISOString(),
+      };
+    }
+
     // No business saved on this account yet: finish the setup instead of showing made-up details.
     if (!businessProfile) {
       const pendingSession = {
@@ -181,7 +197,7 @@ export default function LoginPage() {
     const userSession = {
       id: uid || `usr_${Date.now()}`,
       email: cleanEmail || "user@bizzpal.ai",
-      name: displayName || fullName || "Founder",
+      name: displayName || fullName || (isDemo ? "Demo Founder" : "Founder"),
       role: "owner",
       provider: "email",
       authenticatedAt: new Date().toISOString(),
@@ -192,9 +208,12 @@ export default function LoginPage() {
       localStorage.setItem(`bizzpal_user_business_${cleanEmail}`, JSON.stringify(businessProfile));
     }
 
-    // Restore user-specific plan or default to "free"
-    const userPlan = localStorage.getItem(`bizzpal_subscription_plan_${cleanEmail}`) || "free";
+    // Demo account always accesses highest "enterprise" plan, others restore saved or default to "free"
+    const userPlan = isDemo
+      ? "enterprise"
+      : (localStorage.getItem(`bizzpal_subscription_plan_${cleanEmail}`) || "free");
     localStorage.setItem("bizzpal_subscription_plan", userPlan);
+    localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, userPlan);
 
     // Instant UI feedback and guaranteed redirect without delay
     handleSuccessfulAuth("/dashboard", "Login successful! Loading your dashboard...");
@@ -382,9 +401,11 @@ export default function LoginPage() {
           }
         } catch (e) {}
 
+        const isDemo = isDemoAccount(cleanEmail);
+
         if (authMode === "register") {
-          // Rule 2: Cannot create account if email already exists
-          if (accountExists) {
+          // Rule 2: Cannot create account if email already exists (except demo account)
+          if (accountExists && !isDemo) {
             setAuthMode("signin");
             setErrorInfo({
               title: "Account Already Exists",
@@ -396,38 +417,55 @@ export default function LoginPage() {
           }
 
           if (!password || password.length < 8) {
-            setErrorInfo({
-              title: "Password Too Short",
-              message: "Password must be at least 8 characters long.",
-              type: "credentials",
-            });
-            setLoading(false);
-            return;
+            if (!isDemo) {
+              setErrorInfo({
+                title: "Password Too Short",
+                message: "Password must be at least 8 characters long.",
+                type: "credentials",
+              });
+              setLoading(false);
+              return;
+            }
           }
 
           let authUser: any = null;
           try {
-            authUser = await signUpWithEmail(cleanEmail, password, fullName);
+            authUser = await signUpWithEmail(cleanEmail, password || DEFAULT_DEMO_CREDENTIALS.password, fullName || (isDemo ? DEFAULT_DEMO_CREDENTIALS.name : ""));
           } catch (signUpErr: any) {
-            setLoading(false);
-            const parsed = parseAuthError(signUpErr);
-            setErrorInfo(parsed);
-            return;
+            if (isDemo) {
+              try {
+                authUser = await signInWithEmail(cleanEmail, password || DEFAULT_DEMO_CREDENTIALS.password);
+              } catch {
+                authUser = { uid: "usr_demo_enterprise", email: cleanEmail, displayName: fullName || DEFAULT_DEMO_CREDENTIALS.name };
+              }
+            } else {
+              setLoading(false);
+              const parsed = parseAuthError(signUpErr);
+              setErrorInfo(parsed);
+              return;
+            }
           }
 
           if (authUser) {
-            // Isolate new user: Clear previous user caches and reset plan to "free"
+            const assignedPlan = isDemo ? "enterprise" : "free";
+
+            // Isolate new user: Clear previous user caches and configure plan
             localStorage.removeItem("bizzpal_business_profile");
             localStorage.removeItem("bizzpal_onboarding_step");
             localStorage.removeItem("bizzpal_subscription_plan");
             localStorage.removeItem("bizzpal_datapal_campaigns");
-            localStorage.setItem("bizzpal_subscription_plan", "free");
-            localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, "free");
+            localStorage.setItem("bizzpal_subscription_plan", assignedPlan);
+            localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, assignedPlan);
 
             const initialProfile = {
-              name: businessName.trim() || `${fullName || 'Founder'}'s Enterprise`,
-              founderName: fullName || "Founder",
+              name: isDemo ? "BizzPal Demo Enterprise" : (businessName.trim() || `${fullName || 'Founder'}'s Enterprise`),
+              founderName: fullName || (isDemo ? "Demo Founder" : "Founder"),
               logoUrl: businessLogo || null,
+              industryLabel: isDemo ? "Technology & Services" : undefined,
+              revenue: isDemo ? 12500000 : undefined,
+              burn: isDemo ? 1200000 : undefined,
+              cash: isDemo ? 45000000 : undefined,
+              completedAt: isDemo ? new Date().toISOString() : undefined,
             };
             localStorage.setItem("bizzpal_business_profile", JSON.stringify(initialProfile));
             localStorage.setItem(`bizzpal_user_business_${cleanEmail}`, JSON.stringify(initialProfile));
@@ -435,7 +473,7 @@ export default function LoginPage() {
             const userSession = {
               id: authUser.uid,
               email: authUser.email || cleanEmail,
-              name: authUser.displayName || fullName || "Founder",
+              name: authUser.displayName || fullName || (isDemo ? "Demo Founder" : "Founder"),
               role: "owner",
               provider: "password",
               authenticatedAt: new Date().toISOString(),
@@ -448,21 +486,25 @@ export default function LoginPage() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 email: cleanEmail,
-                name: fullName || "Founder",
+                name: userSession.name,
                 provider: "email",
                 uid: authUser.uid,
                 businessProfile: initialProfile,
               }),
             }).catch(() => {});
 
-            handleSuccessfulAuth("/onboarding?mode=new_signup", "Account created successfully! Preparing workspace...");
+            if (isDemo) {
+              handleSuccessfulAuth("/dashboard", "Demo account created! Full Enterprise plan activated with all features unlocked...");
+            } else {
+              handleSuccessfulAuth("/onboarding?mode=new_signup", "Account created successfully! Preparing workspace...");
+            }
 
             return;
           }
         } else {
           // authMode === "signin"
-          // Rule 1: Cannot log in if account does not exist
-          if (!accountExists) {
+          // Rule 1: Cannot log in if account does not exist (except demo)
+          if (!accountExists && !isDemo) {
             setAuthMode("register");
             setErrorInfo({
               title: "Account Not Found",
@@ -473,7 +515,7 @@ export default function LoginPage() {
             return;
           }
 
-          if (!password) {
+          if (!password && !isDemo) {
             setErrorInfo({
               title: "Password Required",
               message: "Please enter your password.",
@@ -484,22 +526,35 @@ export default function LoginPage() {
           }
 
           try {
-            const authUser = await signInWithEmail(cleanEmail, password);
+            const authUser = await signInWithEmail(cleanEmail, password || DEFAULT_DEMO_CREDENTIALS.password);
             if (authUser) {
               const userSession = {
                 id: authUser.uid,
                 email: authUser.email || cleanEmail,
-                name: authUser.displayName || fullName || "Founder",
+                name: authUser.displayName || fullName || (isDemo ? "Demo Founder" : "Founder"),
                 role: "owner",
                 provider: "password",
                 authenticatedAt: new Date().toISOString(),
               };
               localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
 
-              await restoreAndNavigateOldUser(cleanEmail, authUser.displayName || fullName || "Founder", authUser.uid);
+              await restoreAndNavigateOldUser(cleanEmail, authUser.displayName || fullName || (isDemo ? "Demo Founder" : "Founder"), authUser.uid);
               return;
             }
           } catch (signInErr: any) {
+            if (isDemo) {
+              const userSession = {
+                id: "usr_demo_enterprise",
+                email: cleanEmail,
+                name: fullName || "Demo Founder",
+                role: "owner",
+                provider: "password",
+                authenticatedAt: new Date().toISOString(),
+              };
+              localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
+              await restoreAndNavigateOldUser(cleanEmail, "Demo Founder", "usr_demo_enterprise");
+              return;
+            }
             setLoading(false);
             const parsed = parseAuthError(signInErr);
             setErrorInfo(parsed);
@@ -515,6 +570,78 @@ export default function LoginPage() {
     }
   };
 
+  /**
+   * One-click demo access: Instantly logs in or registers demo account with Enterprise plan
+   */
+  const handleInstantDemoAccess = async () => {
+    setLoading(true);
+    setErrorInfo(null);
+    const cleanEmail = DEFAULT_DEMO_CREDENTIALS.email;
+    const demoName = DEFAULT_DEMO_CREDENTIALS.name;
+    const demoPw = DEFAULT_DEMO_CREDENTIALS.password;
+
+    setEmail(cleanEmail);
+    setFullName(demoName);
+    setPassword(demoPw);
+
+    try {
+      let authUser: any = null;
+      try {
+        authUser = await signUpWithEmail(cleanEmail, demoPw, demoName);
+      } catch {
+        try {
+          authUser = await signInWithEmail(cleanEmail, demoPw);
+        } catch {
+          authUser = { uid: "usr_demo_enterprise", email: cleanEmail, displayName: demoName };
+        }
+      }
+
+      const demoProfile = {
+        name: "BizzPal Demo Enterprise",
+        founderName: demoName,
+        industryLabel: "Technology & Services",
+        revenue: 12500000,
+        burn: 1200000,
+        cash: 45000000,
+        completedAt: new Date().toISOString(),
+      };
+
+      const userSession = {
+        id: authUser?.uid || "usr_demo_enterprise",
+        email: cleanEmail,
+        name: demoName,
+        role: "owner",
+        provider: "email",
+        authenticatedAt: new Date().toISOString(),
+      };
+
+      localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
+      localStorage.setItem("bizzpal_business_profile", JSON.stringify(demoProfile));
+      localStorage.setItem(`bizzpal_user_business_${cleanEmail}`, JSON.stringify(demoProfile));
+
+      // Always highest subscription plan for demo account to see all features
+      localStorage.setItem("bizzpal_subscription_plan", "enterprise");
+      localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, "enterprise");
+
+      fetch("/api/auth/account-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: cleanEmail,
+          name: demoName,
+          provider: "email",
+          uid: userSession.id,
+          businessProfile: demoProfile,
+        }),
+      }).catch(() => {});
+
+      handleSuccessfulAuth("/dashboard", "Demo account ready! Enterprise plan active with all features unlocked...");
+    } catch (err: any) {
+      setLoading(false);
+      setErrorInfo(parseAuthError(err));
+    }
+  };
+
   // Developer Superadmin Login handler
   const handleSuperadminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -525,7 +652,7 @@ export default function LoginPage() {
       const res = await fetch("/api/admin/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ passcode: adminPasscode }),
+        body: JSON.stringify({ passcode: adminPasscode.trim() }),
       });
       const data = await res.json();
 
@@ -817,6 +944,71 @@ export default function LoginPage() {
                             </button>
                           )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Demo Account Access - Always in Create Account */}
+                  {authMode === "register" && (
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-surface-2 border border-amber-500/30 text-xs space-y-2.5 shadow-sm">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-500 flex items-center justify-center shrink-0">
+                            <Sparkles className="w-4 h-4 text-amber-500" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-text text-xs">Demo Account</span>
+                              <span className="text-[10px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-md bg-amber-500 text-black leading-none">
+                                Enterprise Plan
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-text-muted leading-relaxed mt-0.5">
+                              Access all features with highest Enterprise subscription unlocked.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={handleInstantDemoAccess}
+                          disabled={loading || authSuccess}
+                          className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer"
+                        >
+                          <Zap className="w-3.5 h-3.5 fill-current" />
+                          <span>1-Click Demo Access →</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFullName(DEFAULT_DEMO_CREDENTIALS.name);
+                            setEmail(DEFAULT_DEMO_CREDENTIALS.email);
+                            setPassword(DEFAULT_DEMO_CREDENTIALS.password);
+                            setErrorInfo(null);
+                          }}
+                          className="py-2 px-3 rounded-xl border border-line bg-surface hover:bg-surface-2 text-text font-semibold text-xs transition-colors cursor-pointer text-center"
+                          title="Fill form with demo credentials"
+                        >
+                          Auto-fill Form
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {authMode === "signin" && (
+                    <div className="p-2.5 rounded-xl bg-surface-2 border border-line text-xs flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-text-muted text-[11px]">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Reviewer or Demo access?</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleInstantDemoAccess}
+                        className="text-amber-500 hover:underline font-bold text-[11px] cursor-pointer"
+                      >
+                        Launch Demo (Enterprise) →
+                      </button>
                     </div>
                   )}
 

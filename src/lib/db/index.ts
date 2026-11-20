@@ -1,6 +1,7 @@
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import { isDemoAccount, demoSubscription } from "@/lib/demoAccount";
 import {
   DEFAULT_SUBSCRIPTION_PLANS,
   DEFAULT_DASHBOARD_FEATURES,
@@ -1492,6 +1493,7 @@ export function getUserActiveSubscription(email: string) {
   if (!email) return null;
   try {
     const cleanEmail = email.trim().toLowerCase();
+    if (isDemoAccount(cleanEmail)) return demoSubscription(cleanEmail);
     const sub = db.prepare("SELECT * FROM subscriptions WHERE LOWER(user_email) = ? AND status = 'active'").get(cleanEmail);
     return sub || null;
   } catch (err) {
