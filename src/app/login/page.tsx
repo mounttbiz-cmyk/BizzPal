@@ -15,8 +15,7 @@ import {
   Zap,
   TrendingUp,
   Cpu,
-  RefreshCw,
-  Sparkles
+  RefreshCw
 } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { useAuth } from "@/lib/auth/authContext";
@@ -493,12 +492,7 @@ export default function LoginPage() {
               }),
             }).catch(() => {});
 
-            if (isDemo) {
-              handleSuccessfulAuth("/dashboard", "Demo account created! Full Enterprise plan activated with all features unlocked...");
-            } else {
-              handleSuccessfulAuth("/onboarding?mode=new_signup", "Account created successfully! Preparing workspace...");
-            }
-
+            handleSuccessfulAuth("/onboarding?mode=new_signup", "Account created successfully! Preparing workspace...");
             return;
           }
         } else {
@@ -567,78 +561,6 @@ export default function LoginPage() {
         setErrorInfo(parsed);
         return;
       }
-    }
-  };
-
-  /**
-   * One-click demo access: Instantly logs in or registers demo account with Enterprise plan
-   */
-  const handleInstantDemoAccess = async () => {
-    setLoading(true);
-    setErrorInfo(null);
-    const cleanEmail = DEFAULT_DEMO_CREDENTIALS.email;
-    const demoName = DEFAULT_DEMO_CREDENTIALS.name;
-    const demoPw = DEFAULT_DEMO_CREDENTIALS.password;
-
-    setEmail(cleanEmail);
-    setFullName(demoName);
-    setPassword(demoPw);
-
-    try {
-      let authUser: any = null;
-      try {
-        authUser = await signUpWithEmail(cleanEmail, demoPw, demoName);
-      } catch {
-        try {
-          authUser = await signInWithEmail(cleanEmail, demoPw);
-        } catch {
-          authUser = { uid: "usr_demo_enterprise", email: cleanEmail, displayName: demoName };
-        }
-      }
-
-      const demoProfile = {
-        name: "BizzPal Demo Enterprise",
-        founderName: demoName,
-        industryLabel: "Technology & Services",
-        revenue: 12500000,
-        burn: 1200000,
-        cash: 45000000,
-        completedAt: new Date().toISOString(),
-      };
-
-      const userSession = {
-        id: authUser?.uid || "usr_demo_enterprise",
-        email: cleanEmail,
-        name: demoName,
-        role: "owner",
-        provider: "email",
-        authenticatedAt: new Date().toISOString(),
-      };
-
-      localStorage.setItem("bizzpal_user_session", JSON.stringify(userSession));
-      localStorage.setItem("bizzpal_business_profile", JSON.stringify(demoProfile));
-      localStorage.setItem(`bizzpal_user_business_${cleanEmail}`, JSON.stringify(demoProfile));
-
-      // Always highest subscription plan for demo account to see all features
-      localStorage.setItem("bizzpal_subscription_plan", "enterprise");
-      localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, "enterprise");
-
-      fetch("/api/auth/account-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: cleanEmail,
-          name: demoName,
-          provider: "email",
-          uid: userSession.id,
-          businessProfile: demoProfile,
-        }),
-      }).catch(() => {});
-
-      handleSuccessfulAuth("/dashboard", "Demo account ready! Enterprise plan active with all features unlocked...");
-    } catch (err: any) {
-      setLoading(false);
-      setErrorInfo(parseAuthError(err));
     }
   };
 
@@ -944,71 +866,6 @@ export default function LoginPage() {
                             </button>
                           )}
                       </div>
-                    </div>
-                  )}
-
-                  {/* Demo Account Access - Always in Create Account */}
-                  {authMode === "register" && (
-                    <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-surface-2 border border-amber-500/30 text-xs space-y-2.5 shadow-sm">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-500 flex items-center justify-center shrink-0">
-                            <Sparkles className="w-4 h-4 text-amber-500" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-bold text-text text-xs">Demo Account</span>
-                              <span className="text-[10px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-md bg-amber-500 text-black leading-none">
-                                Enterprise Plan
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-text-muted leading-relaxed mt-0.5">
-                              Access all features with highest Enterprise subscription unlocked.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-0.5">
-                        <button
-                          type="button"
-                          onClick={handleInstantDemoAccess}
-                          disabled={loading || authSuccess}
-                          className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer"
-                        >
-                          <Zap className="w-3.5 h-3.5 fill-current" />
-                          <span>1-Click Demo Access →</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFullName(DEFAULT_DEMO_CREDENTIALS.name);
-                            setEmail(DEFAULT_DEMO_CREDENTIALS.email);
-                            setPassword(DEFAULT_DEMO_CREDENTIALS.password);
-                            setErrorInfo(null);
-                          }}
-                          className="py-2 px-3 rounded-xl border border-line bg-surface hover:bg-surface-2 text-text font-semibold text-xs transition-colors cursor-pointer text-center"
-                          title="Fill form with demo credentials"
-                        >
-                          Auto-fill Form
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {authMode === "signin" && (
-                    <div className="p-2.5 rounded-xl bg-surface-2 border border-line text-xs flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-text-muted text-[11px]">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Reviewer or Demo access?</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleInstantDemoAccess}
-                        className="text-amber-500 hover:underline font-bold text-[11px] cursor-pointer"
-                      >
-                        Launch Demo (Enterprise) →
-                      </button>
                     </div>
                   )}
 
