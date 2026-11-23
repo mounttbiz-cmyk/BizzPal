@@ -36,6 +36,7 @@ export default function SubscriptionPage() {
   const { plan: currentPlan, activatePlan } = usePlanAccess();
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   // Razorpay Modals State
@@ -130,6 +131,7 @@ export default function SubscriptionPage() {
     isSandboxMode: boolean;
   }) => {
     try {
+      setIsCheckoutOpen(false);
       setIsProcessing(true);
       const res = await fetch("/api/payments/razorpay/verify", {
         method: "POST",
@@ -300,6 +302,7 @@ export default function SubscriptionPage() {
         },
         modal: {
           ondismiss: () => {
+            setIsCheckoutOpen(false);
             setIsProcessing(false);
             setProcessingPlanId(null);
           },
@@ -308,10 +311,12 @@ export default function SubscriptionPage() {
 
       const rzpInstance = new (window as any).Razorpay(razorpayOptions);
       rzpInstance.on("payment.failed", (response: any) => {
+        setIsCheckoutOpen(false);
         setIsProcessing(false);
         setProcessingPlanId(null);
         notify(`Payment cancelled: ${response?.error?.description || "Transaction failed"}`);
       });
+      setIsCheckoutOpen(true);
       rzpInstance.open();
     } catch (err: any) {
       console.error("[Razorpay Checkout Exception]:", err);
@@ -405,7 +410,11 @@ export default function SubscriptionPage() {
   const compact = planCount >= 4;
 
   return (
-    <div className="min-h-screen bg-bg text-text p-4 sm:p-6 lg:p-8 flex flex-col">
+    <div
+      className={`min-h-screen bg-bg text-text p-4 sm:p-6 lg:p-8 flex flex-col transition-[filter,transform] duration-300 ease-out ${
+        isCheckoutOpen ? "filter blur-[10px] saturate-[140%] pointer-events-none select-none" : ""
+      }`}
+    >
       {toast && (
         <div className="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-lg bg-surface border border-line shadow-lg text-sm text-text">
           {toast}

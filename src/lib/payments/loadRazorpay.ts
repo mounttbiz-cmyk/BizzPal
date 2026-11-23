@@ -49,8 +49,29 @@ export function enableRazorpayBackdropBlur() {
         backdrop-filter: blur(14px) saturate(150%) !important;
         -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
       }
+      body.razorpay-modal-active main,
+      body.razorpay-modal-active header,
+      body.razorpay-modal-active #app-root,
+      body.razorpay-modal-active > div:not(.razorpay-container):not(#portal-root) {
+        filter: blur(10px) saturate(140%) !important;
+        transition: filter 0.25s ease-out !important;
+      }
     `;
     document.head.appendChild(style);
+  }
+
+  // Setup observer to add razorpay-modal-active on body as soon as Razorpay container appears
+  if (typeof window !== "undefined" && !(window as any).__rzpActiveObserverAttached) {
+    (window as any).__rzpActiveObserverAttached = true;
+    const observer = new MutationObserver(() => {
+      const container = document.querySelector(".razorpay-container");
+      if (container && container.childNodes.length > 0) {
+        document.body.classList.add("razorpay-modal-active");
+      } else {
+        document.body.classList.remove("razorpay-modal-active");
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: false });
   }
 }
 

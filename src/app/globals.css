@@ -415,5 +415,14 @@ iframe[src*="razorpay.com"] {
   -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
 }
 
+body.razorpay-modal-active main,
+body.razorpay-modal-active header,
+body.razorpay-modal-active #app-root,
+body.razorpay-modal-active > div:not(.razorpay-container):not(#portal-root) {
+  filter: blur(10px) saturate(140%) !important;
+  transition: filter 0.25s ease-out !important;
+}
+
+
 
 
