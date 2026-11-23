@@ -113,7 +113,12 @@ export function DataPalCreditsModal({ isOpen, onClose, status, onUpdated }: Data
               reject(e);
             }
           },
-          modal: { ondismiss: () => resolve() },
+          modal: {
+            backdropclose: true,
+            escape: true,
+            handleback: true,
+            ondismiss: () => resolve(),
+          },
         });
         rz.on("payment.failed", (r: any) => reject(new Error(r?.error?.description || "The payment did not go through.")));
         rz.open();
