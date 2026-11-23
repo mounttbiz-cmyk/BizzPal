@@ -1,7 +1,7 @@
 /**
  * Loads the official Razorpay Checkout SDK dynamically.
  * Guaranteed idempotent and returns true once window.Razorpay is available.
- * Injects translucent frosted-glass blur backdrop so the platform is softly visible behind the modal.
+ * Injects a light translucent liquid-glass blur backdrop (no dark overlay).
  */
 
 export function enableRazorpayBackdropBlur() {
@@ -24,9 +24,9 @@ export function enableRazorpayBackdropBlur() {
         margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
-        background-color: rgba(8, 9, 12, 0.75) !important;
-        backdrop-filter: blur(10px) !important;
-        -webkit-backdrop-filter: blur(10px) !important;
+        background-color: rgba(255, 255, 255, 0.12) !important;
+        backdrop-filter: blur(14px) saturate(150%) !important;
+        -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
       }
       .razorpay-container .razorpay-checkout-frame,
       iframe.razorpay-checkout-frame,
@@ -45,9 +45,9 @@ export function enableRazorpayBackdropBlur() {
         background: transparent !important;
       }
       .razorpay-backdrop {
-        background-color: rgba(8, 9, 12, 0.75) !important;
-        backdrop-filter: blur(10px) !important;
-        -webkit-backdrop-filter: blur(10px) !important;
+        background-color: rgba(255, 255, 255, 0.12) !important;
+        backdrop-filter: blur(14px) saturate(150%) !important;
+        -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
       }
     `;
     document.head.appendChild(style);

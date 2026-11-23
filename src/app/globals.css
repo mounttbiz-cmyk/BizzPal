@@ -387,9 +387,9 @@ select:-webkit-autofill {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: rgba(8, 9, 12, 0.75) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(14px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
 }
 
 .razorpay-container .razorpay-checkout-frame,
@@ -410,9 +410,9 @@ iframe[src*="razorpay.com"] {
 }
 
 .razorpay-backdrop {
-  background-color: rgba(8, 9, 12, 0.75) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(14px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
 }
 
 

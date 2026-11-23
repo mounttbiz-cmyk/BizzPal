@@ -283,7 +283,7 @@ export default function SubscriptionPage() {
         },
         theme: {
           color: "#B48C36", // Boardroom gold
-          backdrop_color: "rgba(8, 9, 12, 0.75)",
+          backdrop_color: "rgba(255, 255, 255, 0.12)",
         },
         handler: async (response: any) => {
           await verifyPaymentAndActivate({

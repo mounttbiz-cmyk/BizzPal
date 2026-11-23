@@ -104,7 +104,7 @@ export function DataPalCreditsModal({ isOpen, onClose, status, onUpdated }: Data
           image: "/logo.png",
           order_id: order.orderId,
           prefill: { name: buyer.name, email: buyer.email },
-          theme: { color: "#B48C36", backdrop_color: "rgba(8, 9, 12, 0.75)" },
+          theme: { color: "#B48C36", backdrop_color: "rgba(255, 255, 255, 0.12)" },
           handler: async (r: any) => {
             try {
               await finish(r.razorpay_order_id, r.razorpay_payment_id, r.razorpay_signature);
