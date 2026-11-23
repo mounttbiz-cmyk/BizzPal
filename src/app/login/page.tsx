@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Lock,
-  KeyRound, ExternalLink,
+  ExternalLink,
   Check,
   Copy,
   AlertTriangle,
@@ -35,7 +35,6 @@ export default function LoginPage() {
   const router = useRouter();
   const { signInWithEmail, signUpWithEmail } = useAuth();
   const [authMode, setAuthMode] = useState<"register" | "signin">("register");
-  const [isSuperadminMode, setIsSuperadminMode] = useState(false);
   const [showRedirectGuide, setShowRedirectGuide] = useState(false);
 
   // Close modals on Escape
@@ -47,7 +46,6 @@ export default function LoginPage() {
   const [businessLogo] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [adminPasscode, setAdminPasscode] = useState("");
   const [errorInfo, setErrorInfo] = useState<AuthErrorInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [authSuccess, setAuthSuccess] = useState(false);
@@ -564,47 +562,6 @@ export default function LoginPage() {
     }
   };
 
-  // Developer Superadmin Login handler
-  const handleSuperadminLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorInfo(null);
-
-    try {
-      const res = await fetch("/api/admin/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ passcode: adminPasscode.trim() }),
-      });
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        const adminSession = {
-          id: "adm_platform_developer",
-          role: "platform_admin",
-          mfaVerified: true,
-          authenticatedAt: new Date().toISOString(),
-        };
-        localStorage.setItem("bizzpal_admin_session", JSON.stringify(adminSession));
-        handleSuccessfulAuth("/admin", "Developer passcode verified! Accessing Superadmin...");
-      } else {
-        setLoading(false);
-        setErrorInfo({
-          title: "Developer Passcode Invalid",
-          message: data.error || "Incorrect developer passcode.",
-          type: "credentials",
-        });
-      }
-    } catch {
-      setLoading(false);
-      setErrorInfo({
-        title: "Authentication Error",
-        message: "Network error validating developer passcode.",
-        type: "credentials",
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-bg text-text relative flex flex-col justify-between overflow-x-hidden transition-colors duration-300">
       {/* Ambient Lighting & Atmosphere */}
@@ -731,8 +688,7 @@ export default function LoginPage() {
           {/* Right Column: Luxury Glassmorphism Auth Card */}
           <div className="w-full max-w-md mx-auto lg:col-span-6">
             <div className="p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-line-strong bg-surface/90 dark:bg-surface/80 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] space-y-5">
-              {!isSuperadminMode ? (
-                <>
+              <>
                   {/* Top Segmented Tab Switcher */}
                   <div className="flex items-center p-1 rounded-2xl bg-surface-2 border border-line">
                     <button
@@ -1006,99 +962,8 @@ export default function LoginPage() {
                       )}
                     </button>
                   </form>
-                </>
-              ) : (
-                /* Developer Superadmin Mode */
-                <form onSubmit={handleSuperadminLogin} className="space-y-4">
-                  <div className="space-y-1">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-wider">
-                      <KeyRound className="w-3 h-3" />
-                      <span>Platform Developer Control Plane</span>
-                    </div>
-                    <h2 className="text-base font-bold text-text">Developer Authorization</h2>
-                    <p className="text-xs text-text-muted leading-relaxed">
-                      Restricted to platform developers.
-                    </p>
-                  </div>
-
-                  {/* Superadmin Success Banner */}
-                  {authSuccess && (
-                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-fade-in shadow-xs">
-                      <Check className="w-4 h-4 shrink-0 text-emerald-500" />
-                      <span>{authSuccessMsg || "Passcode verified! Accessing Superadmin..."}</span>
-                    </div>
-                  )}
-
-                  {errorInfo && (
-                    <div className="p-3 rounded-xl bg-rust/10 border border-rust/30 text-rust text-xs font-medium">
-                      {errorInfo.message}
-                    </div>
-                  )}
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-text block">Developer Passcode</label>
-                    <div className="relative flex items-center">
-                      <Lock className="w-3.5 h-3.5 text-text-muted absolute left-3.5" />
-                      <input
-                        type="password"
-                        placeholder="Enter passcode"
-                        value={adminPasscode}
-                        onChange={e => setAdminPasscode(e.target.value)}
-                        className="w-full text-xs pl-9 pr-3.5 py-2.5 rounded-xl border border-line bg-surface-2 text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-2">
-                    <button
-                      type="submit"
-                      disabled={loading || authSuccess}
-                      className={`w-full py-2.5 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2 ${
-                        authSuccess
-                          ? "bg-emerald-600 text-white shadow-emerald-500/20 cursor-wait"
-                          : "bg-amber-500 text-black hover:brightness-110 cursor-pointer"
-                      }`}
-                    >
-                      {authSuccess ? (
-                        <>
-                          <Check className="w-4 h-4" />
-                          <span>Authorized! Redirecting to Superadmin...</span>
-                        </>
-                      ) : loading ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>Validating Passcode...</span>
-                        </>
-                      ) : (
-                        <span>Authorize as Developer →</span>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsSuperadminMode(false)}
-                      className="w-full py-1.5 text-xs font-semibold text-text-muted hover:text-text text-center transition-colors"
-                    >
-                      Return to Business Auth
-                    </button>
-                  </div>
-                </form>
-              )}
+              </>
             </div>
-
-            {/* Toggle to Developer Superadmin Portal */}
-            {!isSuperadminMode && (
-              <div className="text-center mt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsSuperadminMode(true)}
-                  className="text-[11px] text-text-muted hover:text-amber-500 transition-colors inline-flex items-center gap-1.5 font-medium"
-                >
-                  <KeyRound className="w-3 h-3" />
-                  <span>Platform Developer / Superadmin Portal</span>
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </main>
