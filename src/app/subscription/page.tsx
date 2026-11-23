@@ -298,9 +298,6 @@ export default function SubscriptionPage() {
           });
         },
         modal: {
-          backdropclose: true,
-          escape: true,
-          handleback: true,
           ondismiss: () => {
             setIsProcessing(false);
             setProcessingPlanId(null);
