@@ -56,7 +56,7 @@ export function BankStep({ state, ifsc, account, lookup, registeredName, onIfsc,
 
   return (
     <div className="space-y-6">
-      <StepHeader eyebrow="Step 3 · Bank account" title="Link your business bank account">
+      <StepHeader eyebrow="Step 2 · Bank account" title="Link your business bank account">
         Your bank confirms who the account belongs to, and that name must match your GST-registered business name. That is what proves the account is really yours.
       </StepHeader>
 

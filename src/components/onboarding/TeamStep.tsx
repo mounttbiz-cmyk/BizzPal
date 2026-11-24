@@ -231,7 +231,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
 
   return (
     <div className="space-y-6">
-      <StepHeader eyebrow="Step 5 · Your team & headcount" title="Add or sync your employee directory">
+      <StepHeader eyebrow="Step 4 · Your team & headcount" title="Add or sync your employee directory">
         Connect your HR system or CRM, upload a spreadsheet of your team, or invite people by email.
       </StepHeader>
 

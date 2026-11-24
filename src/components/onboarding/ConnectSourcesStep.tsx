@@ -22,7 +22,7 @@ export function ConnectSourcesStep({ auth, onConnect, onBack, onNext }: Props) {
 
   return (
     <div className="space-y-6">
-      <StepHeader eyebrow="Step 6 · Other tools" title="Connect your other tools">
+      <StepHeader eyebrow="Step 5 · Other tools" title="Connect your other tools">
         We only show a tool as connected when we have really verified the connection. More tools are on the way. You can also add records by uploading files on your dashboard.
       </StepHeader>
 

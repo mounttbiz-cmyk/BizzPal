@@ -10,7 +10,6 @@ import { RealToolAuthModal } from "@/components/tools/RealToolAuthModal";
 import { BUSINESS_TYPES, INDUSTRY_PRIORITIES, TOOLS_OPTIONS, type Priority } from "@/lib/onboarding/data";
 import { checkGstin } from "@/lib/verification/gstin";
 import { VerifyBusinessStep } from "@/components/onboarding/VerifyBusinessStep";
-import { VerifyWebsiteStep } from "@/components/onboarding/VerifyWebsiteStep";
 import { IndustryStep } from "@/components/onboarding/IndustryStep";
 import { ConnectSourcesStep, type ToolAuth } from "@/components/onboarding/ConnectSourcesStep";
 import { PrioritiesStep } from "@/components/onboarding/PrioritiesStep";
@@ -95,6 +94,7 @@ export default function OnboardingPage() {
   const [gstinInput, setGstinInput] = useState("");
   const [gst, setGst] = useState<GstState>({ phase: "idle" });
   const [domainInput, setDomainInput] = useState("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [domain, setDomain] = useState<DomainState>({ phase: "idle" });
 
   const [ifscInput, setIfscInput] = useState("");
@@ -364,32 +364,6 @@ export default function OnboardingPage() {
     }
   }, [email, gstinInput]);
 
-  // ---- step 2: website ----
-  const startDomain = useCallback(async () => {
-    setDomain({ phase: "working" });
-    try {
-      const { status, data } = await postJson("/api/verify/domain", { email, domain: domainInput, action: "challenge" });
-      if (status !== 200 || !data.ok) { setDomain({ phase: "error", message: data.error || "That website address doesn't look right." }); return; }
-      if (data.verified) setDomain({ phase: "verified", domain: data.domain, method: data.method, emailMatches: data.emailMatches });
-      else setDomain({ phase: "challenge", domain: data.domain, token: data.token, instructions: data.instructions, emailMatches: data.emailMatches });
-    } catch {
-      setDomain({ phase: "error", message: "Couldn't reach the server. Please try again." });
-    }
-  }, [email, domainInput]);
-
-  const checkDomain = useCallback(async () => {
-    if (domain.phase !== "challenge") return;
-    const cur = domain;
-    setDomain({ ...cur, checking: true });
-    try {
-      const { data } = await postJson("/api/verify/domain", { email, domain: cur.domain, action: "check" });
-      if (data.ok && data.verified) setDomain({ phase: "verified", domain: data.domain, method: data.method, emailMatches: data.emailMatches });
-      else setDomain({ ...cur, checking: false, tried: data.tried || [data.error || "We could not check your website. Please try again."] });
-    } catch {
-      setDomain({ ...cur, checking: false, tried: ["Couldn't reach the server. Please try again."] });
-    }
-  }, [email, domain]);
-
   // ---- step 3: bank ----
   const verifyBank = useCallback(async () => {
     setBank({ phase: "checking" });
@@ -448,7 +422,7 @@ export default function OnboardingPage() {
   }, [industries, customNeeds]);
 
   const goToPriorities = () => {
-    if (needs.length === 0) setNeeds(priorityOptions.filter((p) => p.recommended).map((p) => p.id));
+    // Nothing is pre-selected: the owner picks what matters to them
     go("priorities");
   };
 
@@ -474,6 +448,8 @@ export default function OnboardingPage() {
         founderName,
         industries,
         customIndustry: customIndustry.trim(),
+        website: domainInput.trim(),
+        logoUrl,
         connectedTools,
         needs: needTitles,
       });
@@ -499,8 +475,6 @@ export default function OnboardingPage() {
 
   // ---- trust checklist shown beside the form ----
   const registryOk = gst.phase === "verified";
-  const siteOk = domain.phase === "verified";
-  const emailOk = domain.phase === "verified" && domain.emailMatches;
   const displayName = companyNameInput.trim() || (registryOk ? gst.record.tradeName || gst.record.legalName : "");
   const bankOk = bank.phase === "verified";
   const liveSources = paySources.filter((x) => x.status === "connected");
@@ -614,8 +588,6 @@ export default function OnboardingPage() {
             {displayName && <div className="text-[13px] font-semibold text-text leading-snug">{displayName}</div>}
             <ul className="space-y-2 text-xs">
               <TrustRow ok={registryOk} label="Confirmed by GST registry" />
-              <TrustRow ok={siteOk} skipped={domain.phase === "skipped"} label="Controls company website" />
-              <TrustRow ok={emailOk} skipped={!siteOk} label="Sign-in email on that website" />
               <TrustRow ok={bankOk} skipped={bank.phase === "skipped"} label="Bank account matches GST name" />
               <TrustRow ok={liveSources.length > 0} label={payTotal ? `Revenue ${inr(payTotal.revenueInr)} from provider` : "Revenue from payment provider"} />
               <TrustRow ok={totalTeamCount > 0} label={teamLabel} />
@@ -638,7 +610,6 @@ export default function OnboardingPage() {
             </div>
             <ul className="inline-flex flex-col gap-2 text-left text-xs">
               <TrustRow ok={registryOk} label="Confirmed by GST registry" />
-              <TrustRow ok={siteOk} skipped={!siteOk} label="Controls company website" />
               <TrustRow ok={bankOk} skipped={!bankOk} label="Bank account matches GST name" />
               <TrustRow ok={liveSources.length > 0} skipped={liveSources.length === 0} label={liveSources.length ? `Revenue from ${liveSources.map((x) => x.provider === "razorpay" ? "Razorpay" : "Stripe").join(" + ")}` : "No payment provider connected yet"} />
               <TrustRow ok={totalTeamCount > 0} skipped={totalTeamCount === 0} label={totalTeamCount > 0 ? teamLabel : "No teammates or HRIS synced yet"} />
@@ -653,21 +624,12 @@ export default function OnboardingPage() {
               gstinInput={gstinInput}
               companyName={companyNameInput}
               onCompanyNameChange={setCompanyNameInput}
+              logoUrl={logoUrl}
+              onLogoChange={setLogoUrl}
+              website={domainInput}
+              onWebsiteChange={setDomainInput}
               onInput={(v) => { setGstinInput(v); if (gst.phase === "error" || gst.phase === "unavailable") setGst({ phase: "idle" }); }}
               onVerify={verifyGstin}
-              onNext={() => go("website")}
-            />
-          )}
-          {step === "website" && (
-            <VerifyWebsiteStep
-              state={domain}
-              domainInput={domainInput}
-              onInput={setDomainInput}
-              onStart={startDomain}
-              onCheck={checkDomain}
-              onSkip={() => setDomain({ phase: "skipped" })}
-              onReset={() => setDomain({ phase: "idle" })}
-              onBack={() => go("business")}
               onNext={() => go("bank")}
             />
           )}
@@ -682,9 +644,9 @@ export default function OnboardingPage() {
               onLookup={setIfscLookup}
               onAccount={(v) => { setAccountInput(v); if (bank.phase === "rejected" || bank.phase === "error") setBank({ phase: "idle" }); }}
               onVerify={verifyBank}
-              onSkip={() => setBank({ phase: "skipped" })}
+              onSkip={() => { setBank({ phase: "skipped" }); go("payments"); }}
               onReset={() => { setBank({ phase: "idle" }); setAccountInput(""); }}
-              onBack={() => go("website")}
+              onBack={() => go("business")}
               onNext={() => go("payments")}
             />
           )}
@@ -702,7 +664,7 @@ export default function OnboardingPage() {
           )}
           {step === "about" && (
             <AboutBusinessStep
-              website={domain.phase === "verified" ? domain.domain : domainInput.trim()}
+              website={domainInput.trim()}
               onBack={() => go("industry")}
               onNext={goToPriorities}
             />
@@ -712,7 +674,7 @@ export default function OnboardingPage() {
               options={priorityOptions}
               selected={needs}
               industryLabel={industryLabel}
-              summary={{ name: displayName || (domain.phase === "verified" ? domain.domain : "Your business"), verified: registryOk, website: domain.phase === "verified" ? domain.domain : null, tools: connectedTools.length }}
+              summary={{ name: displayName || "Your business", verified: registryOk, website: domainInput.trim() || null, tools: connectedTools.length }}
               submitting={submitting}
               error={submitError}
               onToggle={(id) => setNeeds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))}

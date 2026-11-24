@@ -82,7 +82,7 @@ export function PaymentsStep({ email, sources, total, onUpdate, onBack, onNext, 
 
   return (
     <div className="space-y-6">
-      <StepHeader eyebrow={standalone ? "Payments" : "Step 4 · Payments"} title="Connect your payment provider">
+      <StepHeader eyebrow={standalone ? "Payments" : "Step 3 · Payments"} title="Connect your payment provider">
         We read your real payments straight from Razorpay or Stripe, so your revenue is never typed in by anyone. We only ever read; we can&apos;t move money.
       </StepHeader>
 

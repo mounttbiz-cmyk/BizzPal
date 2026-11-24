@@ -89,7 +89,6 @@ export interface StepDef { id: StepId; label: string; hint: string; phase: "Veri
 
 export const STEPS: StepDef[] = [
   { id: "business", label: "Verify business", hint: "GSTIN check", phase: "Verify" },
-  { id: "website", label: "Verify website", hint: "Prove ownership", phase: "Verify" },
   { id: "bank", label: "Bank account", hint: "Name must match", phase: "Verify" },
   { id: "payments", label: "Payments", hint: "Real revenue", phase: "Connect" },
   { id: "team", label: "Your team", hint: "Confirmed by Google", phase: "Connect" },

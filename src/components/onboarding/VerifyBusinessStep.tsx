@@ -11,6 +11,8 @@ interface Props {
   gstinInput: string;
   companyName: string;
   logoUrl?: string | null;
+  website: string;
+  onWebsiteChange: (v: string) => void;
   onCompanyNameChange: (name: string) => void;
   onLogoChange?: (logo: string | null) => void;
   onInput: (v: string) => void;
@@ -18,8 +20,9 @@ interface Props {
   onNext: () => void;
 }
 
-export function VerifyBusinessStep({ state, gstinInput, companyName, logoUrl, onCompanyNameChange, onLogoChange, onInput, onVerify, onNext }: Props) {
+export function VerifyBusinessStep({ state, gstinInput, companyName, logoUrl, website, onWebsiteChange, onCompanyNameChange, onLogoChange, onInput, onVerify, onNext }: Props) {
   const [showWhy, setShowWhy] = useState(false);
+  const [logoError, setLogoError] = useState("");
   const local = useMemo(() => checkGstin(gstinInput), [gstinInput]);
   const typed = normalizeGstin(gstinInput).length > 0;
   const checking = state.phase === "checking";
@@ -51,6 +54,23 @@ export function VerifyBusinessStep({ state, gstinInput, companyName, logoUrl, on
         <p className="text-xs text-text-muted">
           This will be the official name shown across your executive dashboard, AI advisors, and team workspace.
         </p>
+      </div>
+
+      <div className="space-y-1.5 p-4 rounded-2xl border border-line bg-surface-2/30">
+        <label htmlFor="company-website" className="text-xs font-semibold text-text flex items-center justify-between">
+          <span>Website</span>
+          <span className="text-xs font-normal text-text-muted">Optional</span>
+        </label>
+        <input
+          id="company-website"
+          type="text"
+          inputMode="url"
+          value={website}
+          onChange={(e) => onWebsiteChange(e.target.value)}
+          placeholder="e.g. yourcompany.com"
+          className="w-full px-4 py-3 rounded-xl bg-surface border border-line text-sm text-text placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-brass transition-all"
+        />
+        <p className="text-xs text-text-muted">We use it to show your logo and to help describe your business later. Leave it empty if you don&apos;t have one.</p>
       </div>
 
       {/* Business Logo Upload */}
@@ -87,25 +107,23 @@ export function VerifyBusinessStep({ state, gstinInput, companyName, logoUrl, on
                 type="file"
                 accept="image/png,image/jpeg,image/svg+xml,image/webp"
                 className="hidden"
-                onChange={(e) => {
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
+                  e.target.value = "";
                   if (!file || !onLogoChange) return;
-                  if (file.size > 2 * 1024 * 1024) {
-                    alert("Please select an image under 2MB.");
-                    return;
+                  setLogoError("");
+                  try {
+                    onLogoChange(await shrinkLogo(file));
+                  } catch (err: any) {
+                    setLogoError(err?.message || "We couldn't use that image. Please try another one.");
                   }
-                  const reader = new FileReader();
-                  reader.onload = (ev) => {
-                    const res = ev.target?.result as string;
-                    if (res) onLogoChange(res);
-                  };
-                  reader.readAsDataURL(file);
                 }}
               />
             </label>
             <p className="text-xs text-text-muted">
-              Displayed prominently on your executive dashboard and reports. PNG, SVG, or JPG (max 2MB).
+              Displayed prominently on your executive dashboard and reports. PNG, SVG, JPG or WebP (max 5 MB).
             </p>
+            {logoError && <p className="text-xs text-rust">{logoError}</p>}
           </div>
         </div>
       </div>
@@ -217,4 +235,37 @@ export function VerifyBusinessStep({ state, gstinInput, companyName, logoUrl, on
       </div>
     </div>
   );
+}
+
+/**
+ * Makes a logo small enough to store and show quickly: at most 256 pixels on its longer side, as PNG (keeps
+ * transparency). Small SVGs are kept as they are.
+ */
+async function shrinkLogo(file: File): Promise<string> {
+  if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(file.type)) throw new Error("Please choose a PNG, JPG, WebP or SVG image.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("Please choose an image under 5 MB.");
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("We couldn't read that image."));
+    reader.readAsDataURL(file);
+  });
+  if (file.type === "image/svg+xml") {
+    if (file.size > 200 * 1024) throw new Error("That SVG is too large. Please use one under 200 KB, or a PNG.");
+    return dataUrl;
+  }
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("We couldn't open that image. Please try another one."));
+    el.src = dataUrl;
+  });
+  const scale = Math.min(1, 256 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/png");
 }

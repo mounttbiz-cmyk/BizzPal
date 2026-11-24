@@ -172,35 +172,40 @@ export function BusinessBriefEditor({
   const pct = Math.round((answeredNow / Math.max(1, data.fields.length)) * 100);
 
   return (
-    <div className={onboarding ? "space-y-6" : "max-w-3xl space-y-6 pb-24"}>
-      <div className={`flex flex-col sm:flex-row sm:items-end justify-between gap-4 ${onboarding ? "sm:justify-end" : ""}`}>
-        <div className={onboarding ? "hidden" : ""}>
+    <div className={onboarding ? "space-y-6" : "space-y-6 pb-24"}>
+      {!onboarding && (
+        <div>
           <h2 className="text-lg font-semibold text-text">Business brief</h2>
-          <p className="text-sm text-text-muted mt-1 max-w-xl">
+          <p className="text-sm text-text-muted mt-1 max-w-2xl">
             What {data.businessName || "your business"} does, in your words. Your AI advisors read this before every answer, so the more they know,
             the more useful they are.
           </p>
         </div>
-        <div className="sm:w-48 shrink-0">
-          <div className="flex items-center justify-between text-xs text-text-muted mb-1.5">
-            <span>Advisors know</span>
-            <span className="tabular-nums">
-              {answeredNow} of {data.fields.length}
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden">
-            <div className="h-full bg-brass rounded-full transition-all" style={{ width: `${pct}%` }} />
-          </div>
-        </div>
-      </div>
+      )}
 
       {!data.canEdit && (
         <p className="text-sm text-text-muted rounded-lg border border-line px-4 py-3">Only the account owner can change the business brief.</p>
       )}
 
-      {data.canEdit && <FillPanel hasGst={data.hasGst} defaultLink={defaultLink} onSuggestion={applySuggestion} />}
+      <div className={onboarding ? "space-y-6" : "grid gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-start"}>
+      {data.canEdit && (
+        <div className={onboarding ? "" : "xl:sticky xl:top-6"}>
+          <FillPanel hasGst={data.hasGst} defaultLink={defaultLink} onSuggestion={applySuggestion} />
+        </div>
+      )}
 
-      <section className="rounded-xl border border-line bg-surface divide-y divide-line">
+      <section className="rounded-xl border border-line bg-surface divide-y divide-line min-w-0">
+        <div className="px-4 sm:px-5 py-3.5 flex items-center justify-between gap-4">
+          <h3 className="text-sm font-semibold text-text">Your answers</h3>
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-xs text-text-muted tabular-nums">
+              {answeredNow} of {data.fields.length} answered
+            </span>
+            <span className="w-24 h-1.5 rounded-full bg-surface-2 overflow-hidden" aria-hidden>
+              <span className="block h-full bg-brass rounded-full transition-all" style={{ width: `${pct}%` }} />
+            </span>
+          </div>
+        </div>
         <BriefRow
           label="In one sentence"
           question="What does the business do, for whom, and where?"
@@ -247,6 +252,7 @@ export function BusinessBriefEditor({
           />
         ))}
       </section>
+      </div>
 
       {onboarding && (
         <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-2">
@@ -327,7 +333,7 @@ function BriefRow(props: {
 
   const id = `brief-${props.label.replace(/\W+/g, "-").toLowerCase()}`;
   return (
-    <div className="px-4 sm:px-5 py-4 grid gap-2 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-5">
+    <div className="px-4 sm:px-5 py-4 grid gap-2 md:grid-cols-[12rem_minmax(0,1fr)] md:gap-5">
       <label htmlFor={id} className="pt-1.5">
         <span className="block text-sm font-medium text-text">{props.label}</span>
         <span className="block text-xs text-text-muted mt-0.5">{props.question}</span>

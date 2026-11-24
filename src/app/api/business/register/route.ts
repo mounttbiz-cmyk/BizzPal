@@ -70,7 +70,9 @@ export async function POST(req: Request) {
   const founderName = str(body?.founderName, 100) || email.split("@")[0];
 
   const customCompanyName = str(body?.companyName, 120);
-  const logoUrl = typeof body?.logoUrl === "string" ? body.logoUrl : null;
+  const logoUrl = cleanLogo(body?.logoUrl);
+  // A verified website wins; otherwise the one the owner typed (not verified, only used for display and the brief)
+  const website = domain?.subject || cleanWebsite(body?.website);
   const legalName: string = rec.legalName || "";
   const tradeName: string = rec.tradeName || "";
   const name = customCompanyName || tradeName || legalName || (domain ? domainLabel(domain.subject) : `GSTIN ${gstinRow.subject}`);
@@ -80,7 +82,7 @@ export async function POST(req: Request) {
 
   const exists = db.prepare("SELECT id FROM businesses WHERE id = ?").get(bizId);
   const identity = [
-    name, selected[0], industryLabel, customIndustry || null, founderName, domain?.subject || null,
+    name, selected[0], industryLabel, customIndustry || null, founderName, website || null,
     JSON.stringify(tools), legalName || null, tradeName || null, gstinRow.subject, fmt.pan || null,
     rec.state || fmt.state || null, rec.address || null, rec.constitution || null, rec.status || null,
     rec.registrationDate || null, fmt.entityType || null, level, registryVerified ? now : null,
@@ -138,7 +140,7 @@ export async function POST(req: Request) {
     founderName,
     email,
     logoUrl: logoUrl || null,
-    website: domain?.subject || "",
+    website: website || "",
     industry: customIndustry || selected.map((s) => INDUSTRIES[s]).join(", "),
     industryLabel,
     industryKey: selected[0],
@@ -182,4 +184,24 @@ export async function POST(req: Request) {
   db.prepare("UPDATE registered_users SET business_profile = ? WHERE LOWER(email) = ?").run(JSON.stringify(profile), email);
 
   return NextResponse.json({ success: true, businessId: bizId, profile });
+}
+
+/** A logo the browser prepared (a small image as a data URL) or a normal web address. Anything else is dropped. */
+function cleanLogo(v: unknown): string | null {
+  if (typeof v !== "string" || !v) return null;
+  if (/^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(v) && v.length <= 700_000) return v;
+  if (/^https:\/\/[^\s"'<>]{4,500}$/.test(v)) return v;
+  return null;
+}
+
+/** "Example.com/", "https://www.example.com" -> "example.com". Empty when it doesn't look like a website. */
+function cleanWebsite(v: unknown): string {
+  const raw = typeof v === "string" ? v.trim() : "";
+  if (!raw || raw.length > 200) return "";
+  try {
+    const u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+    return u.hostname.includes(".") ? u.hostname.replace(/^www\./, "").toLowerCase() : "";
+  } catch {
+    return "";
+  }
 }

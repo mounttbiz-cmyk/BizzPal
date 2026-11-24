@@ -30,7 +30,7 @@ interface Props {
 export function IndustryStep({ selected, custom, error, onToggle, onCustom, onBack, onNext }: Props) {
   return (
     <div className="space-y-6">
-      <StepHeader eyebrow="Step 7 · Your industry" title="What does your business do?">
+      <StepHeader eyebrow="Step 6 · Your industry" title="What does your business do?">
         Pick every area that fits. This only decides which benchmarks and specialist AI advisers we set up for you.
       </StepHeader>
 
