@@ -83,16 +83,12 @@ export default function SubscriptionPage() {
         }
       } catch {}
 
-      // Tell server database to record this active subscription so it persists across reloads and navigation
+      // Record the choice on the server for the signed-in account (free plans only; paid plans are saved by the
+      // verified payment itself)
       await fetch("/api/payments/activate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId,
-          planName,
-          userEmail,
-          userName,
-        }),
+        body: JSON.stringify({ planId }),
       }).catch(() => {});
 
       // Guarantee user session is active so AuthGuard always admits the user to dashboard

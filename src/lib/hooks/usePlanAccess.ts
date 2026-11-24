@@ -170,15 +170,12 @@ export function usePlanAccess() {
         if (email) {
           localStorage.setItem(`bizzpal_subscription_plan_${email}`, planId);
         }
-        // Sync with backend database so active subscription is persisted server-side
+        // Record it on the server for the signed-in account. Paid plans are only accepted once a verified payment
+        // has switched them on; the server checks that.
         fetch("/api/payments/activate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            planId,
-            planName,
-            userEmail: email,
-          }),
+          body: JSON.stringify({ planId }),
         }).catch(() => {});
       } catch {
         // ignore
