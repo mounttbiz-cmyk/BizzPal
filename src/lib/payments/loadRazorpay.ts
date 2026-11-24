@@ -59,14 +59,25 @@ export function enableRazorpayBackdropBlur() {
 
   // Blur the page only while Razorpay's window is actually on screen. Razorpay keeps its container in the page
   // after closing (just hidden), so whether it exists says nothing; whether it is shown does.
+  //
+  // Only two things are watched, so nothing here can trigger itself: the page's direct children (to notice the
+  // container being added) and the container's own style (to notice it being shown or hidden). The page's own
+  // class is never watched, because this code changes it.
   if (typeof window !== "undefined" && !(window as any).__rzpActiveObserverAttached) {
     (window as any).__rzpActiveObserverAttached = true;
-    const sync = () => {
-      if (razorpayVisible()) document.body.classList.add("razorpay-modal-active");
-      else document.body.classList.remove("razorpay-modal-active");
+    let watched: Element | null = null;
+    const containerObserver = new MutationObserver(syncRazorpayBackdrop);
+    const watchContainer = () => {
+      const container = document.querySelector(".razorpay-container");
+      if (container && container !== watched) {
+        containerObserver.disconnect();
+        containerObserver.observe(container, { attributes: true, attributeFilter: ["style", "class"] });
+        watched = container;
+      }
+      syncRazorpayBackdrop();
     };
-    const observer = new MutationObserver(sync);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] });
+    new MutationObserver(watchContainer).observe(document.body, { childList: true });
+    watchContainer();
   }
 }
 
@@ -75,7 +86,17 @@ function razorpayVisible(): boolean {
   const container = document.querySelector(".razorpay-container") as HTMLElement | null;
   if (!container) return false;
   const style = window.getComputedStyle(container);
-  return style.display !== "none" && style.visibility !== "hidden" && container.offsetParent !== null;
+  if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
+  const box = container.getBoundingClientRect();
+  return box.width > 0 && box.height > 0;
+}
+
+/** Adds or removes the page blur to match Razorpay's window, and only touches the page when that changes. */
+function syncRazorpayBackdrop() {
+  const shouldBlur = razorpayVisible();
+  if (document.body.classList.contains("razorpay-modal-active") !== shouldBlur) {
+    document.body.classList.toggle("razorpay-modal-active", shouldBlur);
+  }
 }
 
 /**
@@ -85,9 +106,7 @@ function razorpayVisible(): boolean {
 export function clearRazorpayBackdrop() {
   if (typeof document === "undefined") return;
   document.body.classList.remove("razorpay-modal-active");
-  window.setTimeout(() => {
-    if (!razorpayVisible()) document.body.classList.remove("razorpay-modal-active");
-  }, 400);
+  window.setTimeout(syncRazorpayBackdrop, 400);
 }
 
 export function loadRazorpaySDK(): Promise<boolean> {
