@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId, getUserBusiness } from "@/lib/db";
+import { getGroupBusinessId, getUserBusiness } from "@/lib/db";
 import { NextResponse } from "next/server";
 import {
   getTeamMembers,
@@ -12,7 +12,7 @@ import {
 export async function GET(req: Request) {
   const auth = requireUser(req);
   if (auth instanceof NextResponse) return auth;
-  const tenantId = getUserBusinessId(auth.email);
+  const tenantId = getGroupBusinessId(auth.email);
 
   try {
     const activeBiz = getUserBusiness(auth.email);
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = requireUser(req);
   if (auth instanceof NextResponse) return auth;
-  const tenantId = getUserBusinessId(auth.email);
+  const tenantId = getGroupBusinessId(auth.email);
 
   try {
     const body = await req.json();
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   const auth = requireUser(req);
   if (auth instanceof NextResponse) return auth;
-  const tenantId = getUserBusinessId(auth.email);
+  const tenantId = getGroupBusinessId(auth.email);
 
   try {
     const body = await req.json();
@@ -84,7 +84,7 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   const auth = requireUser(req);
   if (auth instanceof NextResponse) return auth;
-  const tenantId = getUserBusinessId(auth.email);
+  const tenantId = getGroupBusinessId(auth.email);
 
   try {
     const { searchParams } = new URL(req.url);

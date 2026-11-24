@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionEmail, sessionClearCookie } from "@/lib/userSession";
-import { getRegisteredUser, getTeamMembership } from "@/lib/db";
+import { getGroupBusinessId, getRegisteredUser, getTeamMembership, getUserBusinessId } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
   const membership = getTeamMembership(email);
+  const activeId = getUserBusinessId(email);
   return NextResponse.json({
     authenticated: true,
     email,
@@ -20,6 +21,8 @@ export async function GET(req: Request) {
     // The role comes from the server, never from the browser
     role: membership ? membership.role : "Owner",
     isOwner: !membership,
+    // The group company this person switched to, or null while they work in their own (or the owner's) business
+    activeBusinessId: activeId !== getGroupBusinessId(email) ? activeId : null,
   });
 }
 

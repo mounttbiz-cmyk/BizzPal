@@ -13,6 +13,7 @@ import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 import { usePlanName } from "@/lib/hooks/usePlanName";
 import { UpgradeModal } from "./UpgradeModal";
 import { forgetBrowserOwner } from "@/lib/auth/localData";
+import { CompanySwitcher } from "@/components/companies/CompanySwitcher";
 
 interface DesktopRailProps {
   navItems: NavItem[];
@@ -113,12 +114,12 @@ export function DesktopRail({
               <span className="bizzpal-brand-pal">Pal</span>
               <span className="text-xs font-bold text-gold/80 ml-0.5">™</span>
             </div>
-            <p className="text-xs text-text-muted truncate mt-1">{companyName}</p>
           </div>
         </Link>
       </div>
 
-      <div className="px-3 pt-3">
+      <div className="px-3 pt-3 space-y-2">
+        <CompanySwitcher fallbackName={companyName} />
         <button
           type="button"
           onClick={onOpenSearch}

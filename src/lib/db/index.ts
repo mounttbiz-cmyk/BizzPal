@@ -630,6 +630,35 @@ try {
   } catch (e) {
     // column already exists
   }
+
+  // Groups of companies. An account's own business is the group; the companies it adds point to it with group_id.
+  // parent_id nests a company under another company of the same group; segment_id is the category the group defined.
+  for (const column of ["group_id TEXT", "parent_id TEXT", "segment_id TEXT", "sort_order INTEGER DEFAULT 0"]) {
+    try {
+      db.exec(`ALTER TABLE businesses ADD COLUMN ${column}`);
+    } catch (e) {
+      // column already exists
+    }
+  }
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_businesses_group ON businesses (group_id);
+
+    CREATE TABLE IF NOT EXISTS business_segments (
+      id TEXT PRIMARY KEY,
+      group_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_business_segments_group ON business_segments (group_id, sort_order);
+
+    -- The company each person is working in right now. Checked against their group on every request.
+    CREATE TABLE IF NOT EXISTS active_business (
+      email TEXT PRIMARY KEY,
+      business_id TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
 } catch (err) {
   console.warn("[SQLite] Schema initialization handled safely:", err);
 }
@@ -682,15 +711,22 @@ export function saveUserBusinessProfile(email: string, profile: any): boolean {
   try {
     const cleanEmail = email.trim().toLowerCase();
     const profileJson = typeof profile === "string" ? profile : JSON.stringify(profile);
-    const result = db.prepare(`
+    const now = new Date().toISOString();
+    const p = typeof profile === "object" ? profile : JSON.parse(profileJson);
+
+    // Working in one of the group's companies: the profile being saved is that company's. The account's own
+    // profile and the group's record stay as they are.
+    const activeId = getUserBusinessId(cleanEmail);
+    const companySelected = activeId !== getGroupBusinessId(cleanEmail);
+    const bizId = companySelected ? activeId : businessIdFor(cleanEmail);
+
+    const result = companySelected
+      ? { changes: 1 }
+      : db.prepare(`
       UPDATE registered_users
       SET business_profile = ?
       WHERE LOWER(email) = ?
     `).run(profileJson, cleanEmail);
-
-    const now = new Date().toISOString();
-    const p = typeof profile === "object" ? profile : JSON.parse(profileJson);
-    const bizId = `biz_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
     // Upsert into businesses table
     const bizExisting = db.prepare("SELECT id FROM businesses WHERE id = ?").get(bizId);
@@ -777,6 +813,26 @@ const EMAIL_KEYED: Array<[string, string]> = [
   ["outreach_log", "user_email"],
 ];
 
+/** Removes businesses and every row saved for them (tasks, documents, connections, team, per-business settings). */
+export function deleteBusinessData(businessIds: string[]): void {
+  const ids = businessIds.filter(Boolean);
+  if (ids.length === 0) return;
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as any[];
+  for (const { name } of tables) {
+    if (KEPT_AFTER_DELETE.has(name)) continue;
+    try {
+      const cols = (db.prepare(`PRAGMA table_info("${name}")`).all() as any[]).map(c => c.name);
+      if (!cols.includes("business_id")) continue;
+      for (const id of ids) db.prepare(`DELETE FROM "${name}" WHERE business_id = ?`).run(id);
+    } catch {}
+  }
+  for (const id of ids) {
+    try { db.prepare("DELETE FROM businesses WHERE id = ?").run(id); } catch {}
+    // Settings stored per business (permissions, daily briefing). Exact suffix match: "_" in an id is a LIKE wildcard.
+    try { db.prepare("DELETE FROM platform_config WHERE substr(config_key, -length(?)) = ?").run(`:${id}`, `:${id}`); } catch {}
+  }
+}
+
 /** Deletes the account and everything stored for its business (tasks, documents, connections, team, settings). */
 export function deleteRegisteredUser(email: string): boolean {
   if (!email) return false;
@@ -785,18 +841,14 @@ export function deleteRegisteredUser(email: string): boolean {
     const bizId = businessIdFor(cleanEmail);
     const result = db.prepare("DELETE FROM registered_users WHERE LOWER(email) = ?").run(cleanEmail);
 
-    // Everything saved for the business
-    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as any[];
-    for (const { name } of tables) {
-      if (KEPT_AFTER_DELETE.has(name)) continue;
-      try {
-        const cols = (db.prepare(`PRAGMA table_info("${name}")`).all() as any[]).map(c => c.name);
-        if (cols.includes("business_id")) db.prepare(`DELETE FROM "${name}" WHERE business_id = ?`).run(bizId);
-      } catch {}
-    }
-    try { db.prepare("DELETE FROM businesses WHERE id = ?").run(bizId); } catch {}
-    // Settings stored per business (permissions, daily briefing)
-    try { db.prepare("DELETE FROM platform_config WHERE config_key LIKE ?").run(`%:${bizId}`); } catch {}
+    // The business and every company in its group, with everything saved for them
+    let companyIds: string[] = [];
+    try {
+      companyIds = (db.prepare("SELECT id FROM businesses WHERE group_id = ?").all(bizId) as any[]).map(r => r.id);
+    } catch {}
+    deleteBusinessData([bizId, ...companyIds]);
+    try { db.prepare("DELETE FROM business_segments WHERE group_id = ?").run(bizId); } catch {}
+    try { db.prepare("DELETE FROM active_business WHERE email = ?").run(cleanEmail); } catch {}
     // Records keyed by the person's email
     for (const [table, col] of EMAIL_KEYED) {
       try { db.prepare(`DELETE FROM "${table}" WHERE LOWER(${col}) = ?`).run(cleanEmail); } catch {}
@@ -862,6 +914,8 @@ export function registerUser(email: string, name?: string, provider?: string, ui
     const bizExisting = db.prepare("SELECT id FROM businesses WHERE id = ?").get(bizId);
 
     if (bizExisting) {
+      // Only a name that was actually given replaces the saved one. Recording a sign-in sends no profile, and must
+      // never reset the business to a made-up "<name>'s Enterprise".
       db.prepare(`
         UPDATE businesses SET
           name = COALESCE(?, name),
@@ -869,7 +923,7 @@ export function registerUser(email: string, name?: string, provider?: string, ui
           last_login_at = COALESCE(?, last_login_at),
           updated_at = ?
         WHERE id = ?
-      `).run(bizName, founder, now, now, bizId);
+      `).run(p.name || null, name || p.founderName || null, now, now, bizId);
     } else {
       db.prepare(`
         INSERT INTO businesses (
@@ -1705,10 +1759,50 @@ export function getTeamMembership(email: string): TeamMembership | null {
   }
 }
 
-/** The business a person works in: their own, or the owner's when they have joined a team. */
-export function getUserBusinessId(email: string): string {
+/** The group a person belongs to: their own account's business, or the owner's when they have joined a team. */
+export function getGroupBusinessId(email: string): string {
   const membership = getTeamMembership(email);
   return businessIdFor(membership ? membership.ownerEmail : email);
+}
+
+/**
+ * The business a person is working in right now: the group itself, or one of the group's companies they switched to.
+ * The saved choice is checked against the group every time, so a company that was removed (or belongs to someone
+ * else) can never be opened through it.
+ */
+export function getUserBusinessId(email: string): string {
+  const groupId = getGroupBusinessId(email);
+  try {
+    const row = db
+      .prepare(
+        `SELECT b.id FROM active_business a JOIN businesses b ON b.id = a.business_id
+         WHERE a.email = ? AND b.group_id = ?`
+      )
+      .get(String(email || "").trim().toLowerCase(), groupId) as any;
+    if (row?.id) return row.id;
+  } catch {}
+  return groupId;
+}
+
+/** Switches the company a person works in. Only the group itself or one of its companies is accepted. */
+export function setActiveBusiness(email: string, businessId: string): boolean {
+  const who = String(email || "").trim().toLowerCase();
+  const groupId = getGroupBusinessId(who);
+  try {
+    if (businessId === groupId) {
+      db.prepare("DELETE FROM active_business WHERE email = ?").run(who);
+      return true;
+    }
+    const ok = db.prepare("SELECT id FROM businesses WHERE id = ? AND group_id = ?").get(businessId, groupId);
+    if (!ok) return false;
+    db.prepare(
+      `INSERT INTO active_business (email, business_id, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(email) DO UPDATE SET business_id = excluded.business_id, updated_at = excluded.updated_at`
+    ).run(who, businessId, new Date().toISOString());
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function getUserBusiness(email: string) {
@@ -1751,6 +1845,39 @@ try {
         db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'dashboard_nav'").run(JSON.stringify(cleaned), new Date().toISOString());
       }
     }
+  }
+} catch {}
+
+// Recording a sign-in used to rename each business to "<name>'s Enterprise". Put back the name the customer saved.
+try {
+  const rows = db
+    .prepare(
+      `SELECT b.id, b.name AS current, u.business_profile FROM businesses b
+       JOIN registered_users u ON b.id = 'biz_' || REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(u.email), '@', '_'), '.', '_'), '-', '_'), '+', '_'), '''', '_')
+       WHERE b.name LIKE '%''s Enterprise' AND u.business_profile IS NOT NULL`
+    )
+    .all() as any[];
+  for (const r of rows) {
+    let saved = "";
+    try { saved = String(JSON.parse(r.business_profile)?.name || "").trim(); } catch {}
+    if (saved && saved !== r.current && !/'s Enterprise$/.test(saved)) {
+      db.prepare("UPDATE businesses SET name = ? WHERE id = ?").run(saved, r.id);
+    }
+  }
+} catch {}
+
+// The saved menu never gains new default items on its own (so the admin's removals stick). Add the Group & Companies
+// item once; after that the admin can rename, move or remove it like any other item.
+try {
+  const done = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'nav_added_group'").get() as any;
+  const navRow = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'dashboard_nav'").get() as any;
+  if (!done && navRow && typeof navRow.config_value === "string") {
+    const nav = JSON.parse(navRow.config_value);
+    if (Array.isArray(nav) && !nav.some((i: any) => i?.id === "nav_group" || i?.href === "/group")) {
+      nav.push({ id: "nav_group", label: "Group & Companies", href: "/group", icon: "Network", order: 13, mobileTab: false, group: "system", enabled: true });
+      db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'dashboard_nav'").run(JSON.stringify(nav), new Date().toISOString());
+    }
+    db.prepare("INSERT OR REPLACE INTO platform_config (config_key, config_value, updated_at) VALUES ('nav_added_group', 'true', ?)").run(new Date().toISOString());
   }
 } catch {}
 

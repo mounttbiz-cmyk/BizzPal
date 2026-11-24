@@ -35,10 +35,13 @@ export function clearWorkspaceData() {
   } catch {}
 }
 
-/** Call once the server has confirmed who is signed in. Clears the old data when it belonged to someone else. */
-export function claimBrowserFor(email: string) {
+/**
+ * Call once the server has confirmed who is signed in. Clears the old data when it belonged to someone else, or to
+ * another company of the same group (the saved copy describes one company at a time).
+ */
+export function claimBrowserFor(email: string, businessId?: string | null) {
   try {
-    const who = email.trim().toLowerCase();
+    const who = businessId ? `${email.trim().toLowerCase()}#${businessId}` : email.trim().toLowerCase();
     const owner = localStorage.getItem(OWNER_KEY);
     if (owner !== who) {
       clearWorkspaceData();

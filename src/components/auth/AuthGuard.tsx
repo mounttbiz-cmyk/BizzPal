@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getServerSessionEmail } from "@/lib/auth/authContext";
+import { getServerSession } from "@/lib/auth/authContext";
 import { claimBrowserFor } from "@/lib/auth/localData";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -21,7 +21,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
 
         // The server has to agree that this browser is signed in. The copy in local storage proves nothing.
-        const serverEmail = await getServerSessionEmail();
+        const server = await getServerSession();
+        const serverEmail = server?.email || null;
         if (cancelled) return;
         if (!serverEmail) {
           localStorage.removeItem("bizzpal_user_session");
@@ -30,7 +31,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
 
         // Anything saved in this browser for a different account is thrown away before the app reads it
-        claimBrowserFor(serverEmail);
+        claimBrowserFor(serverEmail, server?.activeBusinessId);
         setChecked(true);
         const email = serverEmail;
         if (email) {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Sun, Moon, BrainCircuit, Search } from "lucide-react";
 import { useTheme } from "@/lib/theme/ThemeProvider";
+import { CompanySwitcher } from "@/components/companies/CompanySwitcher";
 
 interface MobileHeaderProps {
   companyName?: string;
@@ -20,8 +21,8 @@ export function MobileHeader({
 
   return (
     <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 h-14 bg-surface/95 backdrop-blur-xl border-b border-line pt-[env(safe-area-inset-top)]">
-      <Link href="/dashboard" className="flex items-center gap-2.5">
-        <div className="w-8 h-8 flex items-center justify-center shrink-0">
+      <div className="flex items-center gap-2.5">
+        <Link href="/dashboard" className="w-8 h-8 flex items-center justify-center shrink-0" aria-label="Dashboard">
           <Image
             src="/logo-icon.png"
             alt="BizzPal Logo"
@@ -29,7 +30,7 @@ export function MobileHeader({
             height={26}
             className="object-contain drop-shadow"
           />
-        </div>
+        </Link>
         <div className="flex flex-col">
           <span className="font-black text-sm tracking-tight text-text leading-tight font-sans flex items-center">
             <span>Bizz</span>
@@ -38,11 +39,9 @@ export function MobileHeader({
             </span>
             <span className="text-[9px] text-gold/80 font-bold ml-0.5 -mt-1">™</span>
           </span>
-          <span className="text-[10px] text-text-muted leading-tight truncate max-w-[120px]">
-            {companyName}
-          </span>
+          <CompanySwitcher variant="compact" fallbackName={companyName} />
         </div>
-      </Link>
+      </div>
 
       <div className="flex items-center gap-2">
         {onOpenSearch && (

@@ -5,7 +5,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const businesses = db.prepare("SELECT * FROM businesses ORDER BY updated_at DESC").all() as any[];
+    // Customers only: companies a group added to itself are part of that customer, not separate accounts.
+    const businesses = db.prepare("SELECT * FROM businesses WHERE group_id IS NULL OR group_id = '' ORDER BY updated_at DESC").all() as any[];
     const users = db.prepare("SELECT id, email, name, provider, business_profile, last_login_at, created_at FROM registered_users ORDER BY created_at DESC").all() as any[];
 
     // Ensure every registered user has a corresponding enterprise in businesses

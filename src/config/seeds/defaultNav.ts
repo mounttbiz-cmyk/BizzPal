@@ -143,6 +143,16 @@ export const defaultNavItems: NavItem[] = [
 
   // 4. PLATFORM
   {
+    id: "nav_group",
+    label: "Group & Companies",
+    href: "/group",
+    icon: "Network",
+    order: 13,
+    mobileTab: false,
+    group: "system",
+    enabled: true,
+  },
+  {
     id: "nav_integrations",
     label: "Integrations",
     href: "/integrations",

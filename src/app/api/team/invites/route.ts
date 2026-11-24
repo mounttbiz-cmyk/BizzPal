@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/requireUser";
 import { createInvite, getInviteByToken, inviterBusinessName, listInvites, revokeInvite, setInviteRole, ROLES, type Role } from "@/lib/team/invites";
-import { addTeamAuditLog, getUserBusinessId } from "@/lib/db";
+import { addTeamAuditLog, getGroupBusinessId } from "@/lib/db";
 import { maskEmail } from "@/lib/team/decide";
 import { rateLimited } from "@/lib/verification/store";
 import { appBaseUrl, emailTemplate, mailConfigured, sendMail } from "@/lib/mail";
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     buttonUrl: link,
   });
   const sent = await sendMail({ to: r.invite.email, subject: `${business} invited you to BizzPal`, text: mail.text, html: mail.html });
-  addTeamAuditLog({ businessId: getUserBusinessId(owner), action: `Invited ${r.invite.email} as ${r.invite.role}`, userName: owner });
+  addTeamAuditLog({ businessId: getGroupBusinessId(owner), action: `Invited ${r.invite.email} as ${r.invite.role}`, userName: owner });
   return NextResponse.json({ ok: true, invite: r.invite, invites: listInvites(owner), emailed: sent.ok, emailConfigured: mailConfigured() });
 }
 
@@ -63,7 +63,7 @@ export async function DELETE(req: Request) {
   const owner = auth.email;
   const target = listInvites(owner).find(i => i.id === String(b?.id || ""));
   revokeInvite(owner, String(b?.id || ""));
-  if (target) addTeamAuditLog({ businessId: getUserBusinessId(owner), action: `Removed ${target.email} from the team`, userName: owner });
+  if (target) addTeamAuditLog({ businessId: getGroupBusinessId(owner), action: `Removed ${target.email} from the team`, userName: owner });
   return NextResponse.json({ ok: true, invites: listInvites(owner) });
 }
 
@@ -94,6 +94,6 @@ export async function PUT(req: Request) {
 
   if (!(ROLES as readonly string[]).includes(b?.role)) return NextResponse.json({ ok: false, error: "Unknown role." }, { status: 400 });
   setInviteRole(owner, id, b.role as Role);
-  addTeamAuditLog({ businessId: getUserBusinessId(owner), action: `Changed ${target.email} from ${target.role} to ${b.role}`, userName: owner });
+  addTeamAuditLog({ businessId: getGroupBusinessId(owner), action: `Changed ${target.email} from ${target.role} to ${b.role}`, userName: owner });
   return NextResponse.json({ ok: true, invites: listInvites(owner) });
 }

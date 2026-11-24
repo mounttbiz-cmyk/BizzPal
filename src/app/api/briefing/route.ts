@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId } from "@/lib/db";
+import { getGroupBusinessId } from "@/lib/db";
 import { getBriefingSetting, sendBriefingTo, setBriefingSetting } from "@/lib/briefing";
 import { appBaseUrl, mailConfigured } from "@/lib/mail";
 import { rateLimit } from "@/lib/rateLimit";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const auth = requireUser(req);
   if (auth instanceof NextResponse) return auth;
-  const setting = getBriefingSetting(getUserBusinessId(auth.email));
+  const setting = getBriefingSetting(getGroupBusinessId(auth.email));
   return NextResponse.json({ success: true, enabled: setting.enabled, email: setting.email || auth.email, emailConfigured: mailConfigured() });
 }
 
@@ -24,7 +24,7 @@ export async function PUT(req: Request) {
   if (enabled && !mailConfigured()) {
     return NextResponse.json({ success: false, error: "Email isn't set up on this server yet, so the briefing can't be sent." }, { status: 503 });
   }
-  setBriefingSetting(getUserBusinessId(auth.email), { enabled, email: auth.email });
+  setBriefingSetting(getGroupBusinessId(auth.email), { enabled, email: auth.email });
   return NextResponse.json({ success: true, enabled });
 }
 

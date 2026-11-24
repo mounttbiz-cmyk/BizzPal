@@ -1,4 +1,4 @@
-import { db, getPlatformConfig, setPlatformConfig, clearMemoryConfigCache, getUserBusinessId } from "@/lib/db";
+import { db, getPlatformConfig, setPlatformConfig, clearMemoryConfigCache, getGroupBusinessId } from "@/lib/db";
 import { emailTemplate, sendMail, type MailResult } from "@/lib/mail";
 
 /**
@@ -63,7 +63,7 @@ export function buildBriefing(businessId: string): { subject: string; heading: s
 }
 
 export async function sendBriefingTo(email: string, baseUrl: string): Promise<MailResult> {
-  const content = buildBriefing(getUserBusinessId(email));
+  const content = buildBriefing(getGroupBusinessId(email));
   const mail = emailTemplate({
     heading: content.heading,
     paragraphs: content.paragraphs,

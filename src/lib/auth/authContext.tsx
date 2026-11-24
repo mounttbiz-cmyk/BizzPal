@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(d => {
         if (cancelled) return;
         if (d?.authenticated) {
-          claimBrowserFor(d.email);
+          claimBrowserFor(d.email, d.activeBusinessId);
           const u = toUser(d.email, d.name);
           setUser(u);
           rememberSession(u, d.provider || "email");
@@ -135,16 +135,21 @@ export async function hasServerSession(): Promise<boolean> {
   }
 }
 
-/** The email the server says is signed in, or null when nobody is. */
-export async function getServerSessionEmail(): Promise<string | null> {
+/** Who the server says is signed in, and which company they are working in. Null when nobody is. */
+export async function getServerSession(): Promise<{ email: string; activeBusinessId: string | null } | null> {
   try {
     const res = await fetch("/api/auth/session", { cache: "no-store" });
     if (!res.ok) return null;
     const d = await res.json();
-    return d?.authenticated && d.email ? String(d.email) : null;
+    return d?.authenticated && d.email ? { email: String(d.email), activeBusinessId: d.activeBusinessId || null } : null;
   } catch {
     return null;
   }
+}
+
+/** The email the server says is signed in, or null when nobody is. */
+export async function getServerSessionEmail(): Promise<string | null> {
+  return (await getServerSession())?.email ?? null;
 }
 
 export async function endServerSession(): Promise<void> {

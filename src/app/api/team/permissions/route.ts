@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { addTeamAuditLog, getUserBusinessId } from "@/lib/db";
+import { addTeamAuditLog, getGroupBusinessId } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getPlatformConfig, setPlatformConfig, clearMemoryConfigCache } from "@/lib/db";
 import { DEFAULT_MATRIX, sanitizeMatrix } from "@/lib/permissions";
@@ -11,7 +11,7 @@ const keyFor = (businessId: string) => `team_permissions:${businessId}`;
 export async function GET(req: Request) {
   const auth = requireUser(req);
   if (auth instanceof NextResponse) return auth;
-  const tenantId = getUserBusinessId(auth.email);
+  const tenantId = getGroupBusinessId(auth.email);
 
   try {
     const saved = getPlatformConfig<any>(keyFor(tenantId), DEFAULT_MATRIX);
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 export async function PUT(req: Request) {
   const auth = requireUser(req);
   if (auth instanceof NextResponse) return auth;
-  const tenantId = getUserBusinessId(auth.email);
+  const tenantId = getGroupBusinessId(auth.email);
 
   try {
     const body = await req.json();

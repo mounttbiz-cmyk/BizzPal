@@ -22,7 +22,9 @@ const AREA_BY_PREFIX: Array<[string, string]> = [
 // Only the owner may use these at all.
 const OWNER_ONLY_PREFIXES = ["/api/team/invites", "/api/team/hris", "/api/payments", "/api/verify", "/api/business/register"];
 // Owner-only when changing something; teammates may read.
-const OWNER_ONLY_WRITES = ["/api/team", "/api/business", "/api/briefing"];
+const OWNER_ONLY_WRITES = ["/api/team", "/api/business", "/api/briefing", "/api/companies"];
+// Changes that are about the person's own view, so teammates may make them.
+const TEAMMATE_WRITES = ["/api/team/permissions", "/api/companies/active"];
 
 // These use POST only to carry a question; they do not change data, so "Read only" still allows them.
 const READ_ONLY_POSTS = ["/api/ai/chat", "/api/knowledge/query", "/api/knowledge/search", "/api/bi/evaluate", "/api/bi/forecast"];
@@ -43,7 +45,7 @@ export function checkTeamAccess(req: Request, membership: TeamMembership, ownerB
   if (OWNER_ONLY_PREFIXES.some(p => startsWith(path, p))) return forbidden("Only the account owner can do this.");
   // Account removal and the owner's own profile
   if (startsWith(path, "/api/auth/account-status") && method === "DELETE") return forbidden("Only the account owner can do this.");
-  if (!isRead && path !== "/api/team/permissions" && OWNER_ONLY_WRITES.some(p => startsWith(path, p))) return forbidden("Only the account owner can change this.");
+  if (!isRead && !TEAMMATE_WRITES.includes(path) && OWNER_ONLY_WRITES.some(p => startsWith(path, p))) return forbidden("Only the account owner can change this.");
   if (!isRead && startsWith(path, "/api/team/permissions")) return forbidden("Only the account owner can change permissions.");
 
   const area = AREA_BY_PREFIX.find(([p]) => startsWith(path, p))?.[1];
