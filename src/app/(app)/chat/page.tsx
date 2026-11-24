@@ -522,6 +522,21 @@ function ChatWorkspaceContent() {
     }
   };
 
+  /** A plain note in the conversation when no answer came back. It is not sent back to the AI as history. */
+  const showChatError = (agentId: string, agent: AgentMeta, text: string) => {
+    const note: ChatMessage = {
+      id: `agt_err_${Date.now()}`,
+      sender: "agent",
+      agentId,
+      agentName: agent.name,
+      avatar: agent.avatar,
+      timestamp: "Just now",
+      content: text,
+      isError: true,
+    };
+    setConversations(prev => ({ ...prev, [agentId]: [...(prev[agentId] || []), note] }));
+  };
+
   const handleSendMessage = async (textToSend?: string, attachmentsToSend?: ChatAttachment[], agentIdOverride?: string) => {
     const targetAgentId = agentIdOverride || activeAgentId;
     const targetAgent = effectiveAgents.find(a => a.id === targetAgentId) || activeAgent;
@@ -558,7 +573,7 @@ function ChatWorkspaceContent() {
 
     // The last few turns of this conversation, so the advisor can follow it (the greeting is left out)
     const history = (conversations[targetAgentId] || [])
-      .filter(m => !m.id.startsWith("msg_init_") && m.content)
+      .filter(m => !m.id.startsWith("msg_init_") && !m.isError && m.content)
       .slice(-12)
       .map(m => ({ role: m.sender === "user" ? "user" : "assistant", text: m.content }));
 
@@ -611,30 +626,16 @@ function ChatWorkspaceContent() {
           ...prev,
           [targetAgentId]: [...(prev[targetAgentId] || []), agentMsg],
         }));
+      } else {
+        showChatError(targetAgentId, targetAgent, data.error || "The advisor couldn't answer right now. Please try again in a moment.");
       }
     } catch (err: any) {
       if (err.name === "AbortError" || err.message?.includes("aborted")) {
         // User deliberately clicked Stop - do not inject error message
         return;
       }
-      const fallbackMsg: ChatMessage = {
-        id: `agt_err_${Date.now()}`,
-        sender: "agent",
-        agentId: targetAgentId,
-        agentName: targetAgent.name,
-        avatar: targetAgent.avatar,
-        timestamp: "Just now",
-        content: `Acknowledged for ${companyProfile?.name || "your enterprise"}.${
-          companyProfile?.cash
-            ? ` Based on current financial reserves (₹${Number(companyProfile.cash).toLocaleString("en-IN")}),`
-            : ""
-        } I recommend maintaining strict capital discipline while executing on this initiative.`,
-        provider: "bizzpal-ai",
-      };
-      setConversations(prev => ({
-        ...prev,
-        [targetAgentId]: [...(prev[targetAgentId] || []), fallbackMsg],
-      }));
+      // Never invent an answer: say plainly that none came back
+      showChatError(targetAgentId, targetAgent, "The advisor didn't answer in time. Please check your connection and try again.");
     } finally {
       abortControllerRef.current = null;
       setIsTyping(false);

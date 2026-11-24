@@ -43,6 +43,8 @@ export interface ChatMessage {
   handoff?: { agentId: string; question: string } | null;
   /** Something the founder said that the advisor offers to save in the business brief */
   briefSuggestion?: { key: string; label: string; value: string } | null;
+  /** A note that no answer came back (shown, never sent to the AI) */
+  isError?: boolean;
 }
 
 export interface CompanyProfile {

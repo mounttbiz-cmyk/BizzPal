@@ -106,6 +106,14 @@ export function MessageBubble({
     );
   }
 
+  if (message.isError) {
+    return (
+      <div id={message.id} className="w-full">
+        <p className="inline-block rounded-lg border border-rust/30 bg-rust/5 px-3.5 py-2 text-sm text-rust">{message.content}</p>
+      </div>
+    );
+  }
+
   return (
     <div id={message.id} className="group scroll-mt-6 w-full">
       <div className="text-[15px] leading-7 text-text">

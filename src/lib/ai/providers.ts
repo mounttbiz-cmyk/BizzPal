@@ -36,9 +36,10 @@ const listFromEnv = (value: string | undefined, fallback: string[]) => {
   return items.length > 0 ? items : fallback;
 };
 const GEMINI_MODELS: Record<AiTier, () => string[]> = {
-  top: () => listFromEnv(process.env.GEMINI_MODELS_TOP, ["gemini-pro-latest", "gemini-3-pro-preview", "gemini-2.5-pro"]),
-  paid: () => listFromEnv(process.env.GEMINI_MODELS_PAID, ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-pro"]),
-  free: () => listFromEnv(process.env.GEMINI_MODELS_FREE, ["gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-flash-latest"]),
+  // Top plan: Gemini Pro, with Gemini Flash (same paid key) only if Pro cannot answer in time
+  top: () => listFromEnv(process.env.GEMINI_MODELS_TOP, ["gemini-2.5-pro", "gemini-2.5-flash"]),
+  paid: () => listFromEnv(process.env.GEMINI_MODELS_PAID, ["gemini-2.5-flash", "gemini-flash-latest"]),
+  free: () => listFromEnv(process.env.GEMINI_MODELS_FREE, ["gemini-2.5-flash-lite", "gemini-flash-lite-latest"]),
 };
 
 /** Paid plans in the order the platform offers them (the admin can change them), lowest first. */
@@ -72,7 +73,18 @@ export function hasPaidPlan(email: string): boolean {
 
 // ---------------------------------------------------------------- providers
 
-async function callGemini(apiKey: string, req: ChatRequest, models: string[], maxOutputTokens: number): Promise<string | null> {
+// The live server's proxy gives a request about 60 seconds, so every answer has to arrive well within that
+const TOTAL_BUDGET_MS = 50_000;
+
+/** How long a model may think before answering. Less thinking answers faster; the thinking still counts as output. */
+function thinkingFor(model: string, tier: AiTier): Record<string, unknown> | undefined {
+  if (/^gemini-3/.test(model)) return { thinkingLevel: "low" };
+  if (/^gemini-2\.5-pro/.test(model)) return { thinkingBudget: 2048 };
+  if (/^gemini-2\.5-flash/.test(model)) return { thinkingBudget: tier === "top" ? 1024 : 0 };
+  return undefined; // aliases such as gemini-flash-latest decide for themselves
+}
+
+async function callGemini(apiKey: string, req: ChatRequest, models: string[], tier: AiTier): Promise<string | null> {
   const contents = [
     ...(req.history || []).map(t => ({ role: t.role === "assistant" ? "model" : "user", parts: [{ text: t.text }] })),
     {
@@ -80,31 +92,55 @@ async function callGemini(apiKey: string, req: ChatRequest, models: string[], ma
       parts: [...(req.files || []).map(f => ({ inline_data: { mime_type: f.mimeType, data: f.base64 } })), { text: req.message }],
     },
   ];
-  for (const model of models) {
+  const deadline = Date.now() + TOTAL_BUDGET_MS;
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i];
+    const left = deadline - Date.now();
+    if (left < 5_000) {
+      console.warn(`[ai] Gemini: out of time before trying ${model}`);
+      break;
+    }
+    // The first (strongest) model may use most of the time, but leaves room for a faster one behind it
+    const timeout = i < models.length - 1 ? Math.min(left - 12_000, 38_000) : left;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), Math.max(timeout, 5_000));
+    const started = Date.now();
     try {
+      const thinking = thinkingFor(model, tier);
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: req.system }] },
           contents,
-          // Pro models think before answering and that thinking counts against the limit, so leave them room
-          generationConfig: { temperature: req.json ? 0.2 : 0.6, maxOutputTokens, ...(req.json ? { responseMimeType: "application/json" } : {}) },
+          generationConfig: {
+            temperature: req.json ? 0.2 : 0.6,
+            maxOutputTokens: 8192,
+            ...(thinking ? { thinkingConfig: thinking } : {}),
+            ...(req.json ? { responseMimeType: "application/json" } : {}),
+          },
         }),
       });
       if (!resp.ok) {
-        if (resp.status !== 404) console.warn(`[ai] Gemini ${model} answered ${resp.status}`);
+        const detail = (await resp.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 300);
+        console.warn(`[ai] Gemini ${model} answered ${resp.status}: ${detail}`);
         continue;
       }
       const data = await resp.json();
-      const text = (data.candidates?.[0]?.content?.parts || [])
+      const candidate = data.candidates?.[0];
+      const text = (candidate?.content?.parts || [])
         .filter((p: any) => typeof p?.text === "string" && !p.thought)
         .map((p: any) => p.text)
         .join("")
         .trim();
       if (text) return text;
+      console.warn(`[ai] Gemini ${model} gave no text (finish reason ${candidate?.finishReason || data.promptFeedback?.blockReason || "unknown"})`);
     } catch (err: any) {
-      console.warn(`[ai] Gemini ${model} failed:`, err?.message);
+      const aborted = err?.name === "AbortError";
+      console.warn(`[ai] Gemini ${model} ${aborted ? `took longer than ${Math.round((Date.now() - started) / 1000)}s` : `failed: ${err?.message}`}`);
+    } finally {
+      clearTimeout(timer);
     }
   }
   return null;
@@ -155,7 +191,7 @@ async function callCohere(apiKey: string, req: ChatRequest): Promise<string | nu
 export async function generateChat(req: ChatRequest, tier: AiTier): Promise<string | null> {
   const env = process.env;
   const gemini = () =>
-    env.GEMINI_API_KEY ? callGemini(env.GEMINI_API_KEY, req, GEMINI_MODELS[tier](), tier === "top" ? 16384 : 6000) : Promise.resolve(null);
+    env.GEMINI_API_KEY ? callGemini(env.GEMINI_API_KEY, req, GEMINI_MODELS[tier](), tier) : Promise.resolve(null);
 
   // The top plan is answered by Gemini Pro and nothing else. Files can only be read by Gemini.
   const chain: Array<() => Promise<string | null>> =
