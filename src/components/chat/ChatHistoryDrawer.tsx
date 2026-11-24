@@ -87,10 +87,10 @@ export function ChatHistoryPanel({ messages, activeAgent, onSelectMessage, onClo
   return (
     <aside
       aria-label="Chat history"
-      className="hidden xl:flex w-80 shrink-0 bg-surface border border-line rounded-2xl shadow-sm flex-col overflow-hidden select-none"
+      className="hidden xl:flex w-72 h-full shrink-0 bg-surface border-l border-line flex-col overflow-hidden select-none"
     >
-      <div className="px-5 pt-5 pb-3 flex items-center justify-between shrink-0">
-        <h3 className="text-base font-semibold text-text">History</h3>
+      <div className="h-14 px-4 border-b border-line flex items-center justify-between shrink-0">
+        <h3 className="text-sm font-semibold text-text">History</h3>
         <button
           type="button"
           onClick={onClose}

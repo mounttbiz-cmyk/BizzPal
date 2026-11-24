@@ -34,7 +34,7 @@ export function ChatThread({
       role="log"
       aria-live="polite"
       aria-label="Conversation stream"
-      className={`flex-1 overflow-y-auto min-h-0 px-4 sm:px-7 py-8 ${className}`}
+      className={`flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 py-6 sm:py-8 ${className}`}
     >
       <div className="w-full max-w-3xl mx-auto space-y-8">
         {messages.map(message => (

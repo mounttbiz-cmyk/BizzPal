@@ -26,22 +26,43 @@ function tintFor(name: string) {
 }
 
 const SIZES = {
-  xs: "w-5 h-5 text-[9px] rounded",
-  sm: "w-7 h-7 text-[11px] rounded-md",
-  md: "w-9 h-9 text-xs rounded-lg",
-  lg: "w-11 h-11 text-sm rounded-xl",
+  xs: { box: "w-5 h-5 rounded", text: "text-[9px]", pad: "p-[2px]" },
+  sm: { box: "w-7 h-7 rounded-md", text: "text-[11px]", pad: "p-1" },
+  md: { box: "w-9 h-9 rounded-lg", text: "text-xs", pad: "p-1.5" },
+  lg: { box: "w-11 h-11 rounded-xl", text: "text-sm", pad: "p-2" },
 } as const;
 
-export function CompanyAvatar({ name, logoUrl, size = "md" }: { name: string; logoUrl?: string | null; size?: keyof typeof SIZES }) {
-  if (logoUrl) {
+/**
+ * A company's mark: its uploaded logo, else the icon from its own website, else its initials on a soft tint.
+ * Pass `id` and `website` to let it look up the website icon.
+ */
+export function CompanyAvatar({
+  name,
+  logoUrl,
+  id,
+  website,
+  size = "md",
+}: {
+  name: string;
+  logoUrl?: string | null;
+  id?: string;
+  website?: string;
+  size?: keyof typeof SIZES;
+}) {
+  const src = logoUrl || (id && website ? `/api/companies/icon?id=${encodeURIComponent(id)}` : null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+  const s = SIZES[size];
+
+  if (src && !failed) {
     return (
-      <span className={`${SIZES[size]} border border-line bg-white p-0.5 shrink-0 flex items-center justify-center overflow-hidden`}>
-        <img src={logoUrl} alt="" className="w-full h-full object-contain" />
+      <span className={`${s.box} ${s.pad} bg-white border border-line shrink-0 flex items-center justify-center overflow-hidden`}>
+        <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} className="w-full h-full object-contain" />
       </span>
     );
   }
   return (
-    <span className={`${SIZES[size]} ${tintFor(name)} font-semibold shrink-0 flex items-center justify-center select-none`} aria-hidden>
+    <span className={`${s.box} ${s.text} ${tintFor(name)} font-semibold shrink-0 flex items-center justify-center select-none`} aria-hidden>
       {initialsOf(name)}
     </span>
   );
@@ -71,15 +92,19 @@ export function CompanySwitcher({ variant = "rail", fallbackName = "" }: Props) 
   }, [open, variant]);
 
   const active = data && data.activeBusinessId !== data.group.id ? data.companies.find(c => c.id === data.activeBusinessId) || null : null;
-  const name = active?.name || data?.group.name || fallbackName || "Your business";
-  const logo = active ? active.logoUrl : data?.group.logoUrl;
+  const current = active || (data ? { ...data.group } : null);
+  const name = current?.name || fallbackName || "Your business";
   const detail = !data
     ? ""
     : active
-      ? data.group.name
+      ? `in ${data.group.name}`
       : data.companies.length > 0
-        ? `${data.companies.length} ${data.companies.length === 1 ? "company" : "companies"}`
+        ? `Group · ${data.companies.length} ${data.companies.length === 1 ? "company" : "companies"}`
         : data.group.industryLabel || "";
+
+  const avatar = (size: "md" | "sm") => (
+    <CompanyAvatar name={name} logoUrl={current?.logoUrl} id={current?.id} website={current?.website} size={size} />
+  );
 
   if (variant === "compact") {
     return (
@@ -87,7 +112,7 @@ export function CompanySwitcher({ variant = "rail", fallbackName = "" }: Props) 
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex items-center gap-1 text-[11px] text-text-muted leading-tight max-w-[160px] cursor-pointer"
+          className="flex items-center gap-1 text-[11px] text-text-muted leading-tight max-w-[170px] cursor-pointer"
           aria-label={`Switch company. Now in ${name}`}
         >
           <span className="truncate">{name}</span>
@@ -99,8 +124,8 @@ export function CompanySwitcher({ variant = "rail", fallbackName = "" }: Props) 
           backdropClassName="fixed inset-0 z-[9999] bg-slate-950/50 dark:bg-black/70 flex items-end justify-center animate-fade-in"
         >
           <div className="w-screen max-h-[85vh] flex flex-col rounded-t-2xl bg-surface border-t border-line pb-[env(safe-area-inset-bottom)]">
-            <div className="mx-auto mt-2 mb-1 h-1 w-10 rounded-full bg-line-strong" aria-hidden />
-            <div className="px-4 pt-2 pb-3 flex items-center justify-between">
+            <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-line-strong" aria-hidden />
+            <div className="px-4 pt-3 pb-2 flex items-center justify-between">
               <span className="text-base font-semibold text-text">Switch company</span>
               <button type="button" onClick={() => setOpen(false)} className="text-sm text-text-muted px-2 py-1 cursor-pointer">
                 Done
@@ -120,24 +145,24 @@ export function CompanySwitcher({ variant = "rail", fallbackName = "" }: Props) 
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label={`Switch company. Now in ${name}`}
-        className={`group w-full flex items-center gap-2.5 p-2 -mx-0 rounded-lg text-left cursor-pointer transition-colors ${
-          open ? "bg-surface-2" : "hover:bg-surface-2"
+        title={name}
+        className={`group w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl border text-left cursor-pointer transition-colors ${
+          open ? "border-line-strong bg-surface-2" : "border-line bg-surface hover:bg-surface-2"
         }`}
       >
-        <CompanyAvatar name={name} logoUrl={logo} size="md" />
+        {avatar("md")}
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-text truncate leading-5">{name}</span>
-          {detail && <span className="block text-xs text-text-muted truncate leading-4">{detail}</span>}
+          <span className="block text-[13px] font-semibold text-text leading-[1.25] line-clamp-2 break-words">{name}</span>
+          {detail && <span className="block text-[11px] text-text-muted truncate mt-0.5">{detail}</span>}
         </span>
-        <ChevronsUpDown className="w-4 h-4 text-text-muted group-hover:text-text shrink-0" />
+        <ChevronsUpDown className="w-3.5 h-3.5 text-text-muted group-hover:text-text shrink-0" />
       </button>
 
       {open && (
         <div
           role="dialog"
           aria-label="Switch company"
-          className="absolute left-0 top-full mt-1 z-50 w-[19rem] rounded-xl border border-line bg-surface shadow-xl overflow-hidden flex flex-col max-h-[min(36rem,75vh)]"
+          className="absolute left-0 top-full mt-1.5 z-50 w-[20rem] rounded-xl border border-line bg-surface shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25)] overflow-hidden flex flex-col max-h-[min(36rem,75vh)]"
         >
           {data ? <Panel data={data} onDone={() => setOpen(false)} /> : <PanelLoading />}
         </div>
@@ -154,7 +179,7 @@ function PanelLoading() {
   );
 }
 
-/** The list inside the switcher: the group, then each category folded open or closed. */
+/** The list inside the switcher: the group, then each category (folded away when there are many companies). */
 function Panel({ data, onDone }: { data: GroupData; onDone: () => void }) {
   const [query, setQuery] = useState("");
   const [switching, setSwitching] = useState<string | null>(null);
@@ -166,14 +191,16 @@ function Panel({ data, onDone }: { data: GroupData; onDone: () => void }) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(activeSection ? [activeSection] : []));
 
   const sections = useMemo(() => {
-    const list = data.segments.map(s => ({ key: s.id, label: s.name, companies: data.companies.filter(c => c.segmentId === s.id) }));
+    const list = data.segments
+      .map(s => ({ key: s.id, label: s.name, companies: data.companies.filter(c => c.segmentId === s.id) }))
+      .filter(s => s.companies.length > 0);
     const rest = data.companies.filter(c => !c.segmentId || !known.has(c.segmentId));
-    if (rest.length) list.push({ key: "none", label: data.segments.length ? "Not in a category" : "Companies", companies: rest });
+    if (rest.length) list.push({ key: "none", label: list.length ? "Other companies" : "Companies", companies: rest });
     return list;
   }, [data, known]);
 
-  // Few companies: no need to fold anything away
-  const alwaysOpen = data.companies.length <= 8 || sections.length <= 1;
+  // Few companies: show everything, nothing to fold away
+  const alwaysOpen = data.companies.length <= 10 || sections.length <= 1;
 
   const q = query.trim().toLowerCase();
   const results = q ? data.companies.filter(c => c.name.toLowerCase().includes(q) || c.industryLabel.toLowerCase().includes(q)) : [];
@@ -198,7 +225,12 @@ function Panel({ data, onDone }: { data: GroupData; onDone: () => void }) {
       return next;
     });
 
-  const item = (c: { id: string; name: string; logoUrl?: string | null }, detail: string, depth = 0) => {
+  const item = (
+    c: { id: string; name: string; logoUrl?: string | null; website?: string },
+    detail: string,
+    opts: { depth?: number; badge?: string } = {}
+  ) => {
+    const depth = opts.depth || 0;
     const isActive = c.id === data.activeBusinessId;
     return (
       <button
@@ -206,15 +238,20 @@ function Panel({ data, onDone }: { data: GroupData; onDone: () => void }) {
         type="button"
         disabled={Boolean(switching)}
         onClick={() => open(c.id)}
-        style={{ paddingLeft: 10 + depth * 14 }}
-        className={`w-full flex items-center gap-2.5 pr-2.5 py-1.5 rounded-md text-left cursor-pointer disabled:cursor-wait ${
-          isActive ? "bg-surface-2" : "hover:bg-surface-2"
+        style={{ paddingLeft: 8 + depth * 16 }}
+        className={`w-full flex items-center gap-2.5 pr-2.5 py-2 rounded-lg text-left cursor-pointer disabled:cursor-wait transition-colors ${
+          isActive ? "bg-surface-2" : "hover:bg-surface-2/70"
         }`}
       >
-        <CompanyAvatar name={c.name} logoUrl={c.logoUrl} size={depth > 0 ? "xs" : "sm"} />
+        <CompanyAvatar name={c.name} logoUrl={c.logoUrl} id={c.id} website={c.website} size={depth > 0 ? "xs" : "sm"} />
         <span className="min-w-0 flex-1">
-          <span className={`block text-sm truncate ${isActive ? "font-medium text-text" : "text-text"}`}>{c.name}</span>
-          {detail && <span className="block text-xs text-text-muted truncate">{detail}</span>}
+          <span className="flex items-center gap-1.5">
+            <span className={`text-[13px] leading-snug text-text line-clamp-2 break-words ${isActive ? "font-semibold" : "font-medium"}`}>{c.name}</span>
+            {opts.badge && (
+              <span className="shrink-0 text-[10px] font-medium px-1.5 py-px rounded border border-line text-text-muted">{opts.badge}</span>
+            )}
+          </span>
+          {detail && <span className="block text-[11px] text-text-muted truncate">{detail}</span>}
         </span>
         {switching === c.id ? (
           <Loader2 className="w-3.5 h-3.5 text-text-muted animate-spin shrink-0" />
@@ -225,11 +262,15 @@ function Panel({ data, onDone }: { data: GroupData; onDone: () => void }) {
     );
   };
 
+  const heading = (label: string) => (
+    <p className="px-2.5 pt-3 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-text-muted">{label}</p>
+  );
+
   return (
     <>
       {data.companies.length > 6 && (
         <div className="p-2 border-b border-line">
-          <label className="flex items-center gap-2 px-2.5 h-8 rounded-md bg-surface-2">
+          <label className="flex items-center gap-2 px-2.5 h-8 rounded-lg bg-surface-2 focus-within:ring-1 focus-within:ring-brass/40">
             <Search className="w-3.5 h-3.5 text-text-muted shrink-0" />
             <input
               autoFocus
@@ -252,9 +293,7 @@ function Panel({ data, onDone }: { data: GroupData; onDone: () => void }) {
           )
         ) : (
           <>
-            {item(data.group, data.companies.length ? "Whole group" : data.group.industryLabel)}
-
-            {sections.length > 0 && <div className="mx-2 my-1.5 border-t border-line" />}
+            {item(data.group, data.group.industryLabel, { badge: data.companies.length ? "Group" : undefined })}
 
             {sections.map(section => {
               const isOpen = alwaysOpen || expanded.has(section.key);
@@ -262,22 +301,22 @@ function Panel({ data, onDone }: { data: GroupData; onDone: () => void }) {
               return (
                 <div key={section.key}>
                   {alwaysOpen ? (
-                    sections.length > 1 && <p className="px-2.5 pt-2 pb-1 text-xs font-medium text-text-muted">{section.label}</p>
+                    heading(section.label)
                   ) : (
                     <button
                       type="button"
                       onClick={() => toggle(section.key)}
                       aria-expanded={isOpen}
-                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-sm text-text hover:bg-surface-2 cursor-pointer"
+                      className="w-full flex items-center gap-2 px-2.5 py-2 mt-0.5 rounded-lg text-left text-[13px] font-medium text-text hover:bg-surface-2/70 cursor-pointer"
                     >
                       <ChevronRight className={`w-3.5 h-3.5 text-text-muted shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`} />
                       <span className="flex-1 truncate">{section.label}</span>
-                      <span className="text-xs text-text-muted tabular-nums">{section.companies.length}</span>
+                      <span className="text-[11px] text-text-muted tabular-nums">{section.companies.length}</span>
                     </button>
                   )}
                   {isOpen && (
-                    <div className={alwaysOpen ? "" : "pl-3"}>
-                      {rows.map(({ company, depth }) => item(company, depth === 0 ? company.industryLabel : "", depth))}
+                    <div className={alwaysOpen ? "" : "pl-2"}>
+                      {rows.map(({ company, depth }) => item(company, depth === 0 ? company.industryLabel : "", { depth }))}
                     </div>
                   )}
                 </div>
@@ -285,8 +324,8 @@ function Panel({ data, onDone }: { data: GroupData; onDone: () => void }) {
             })}
 
             {data.companies.length === 0 && (
-              <p className="px-2.5 py-2 text-xs text-text-muted leading-relaxed">
-                Run more than one company? Add them here to see the whole group in one place.
+              <p className="px-2.5 pt-2 pb-1 text-xs text-text-muted leading-relaxed">
+                Run more than one company? Add them to see the whole group in one place.
               </p>
             )}
           </>
@@ -295,16 +334,26 @@ function Panel({ data, onDone }: { data: GroupData; onDone: () => void }) {
 
       {error && <p className="px-3 py-2 text-xs text-rust border-t border-line">{error}</p>}
 
-      <div className="border-t border-line p-1.5">
-        <Link href="/group" onClick={onDone} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-text hover:bg-surface-2">
-          <LayoutGrid className="w-4 h-4 text-text-muted" />
-          {data.companies.length ? "Group overview" : "Set up your group"}
+      <div className="border-t border-line p-1.5 grid grid-cols-2 gap-1">
+        <Link
+          href="/group"
+          onClick={onDone}
+          className="flex items-center justify-center gap-2 h-8 rounded-lg text-[13px] text-text hover:bg-surface-2 col-span-1"
+        >
+          <LayoutGrid className="w-3.5 h-3.5 text-text-muted" />
+          {data.companies.length ? "Overview" : "Set up group"}
         </Link>
-        {data.canManage && (
-          <Link href="/group?add=company" onClick={onDone} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-text hover:bg-surface-2">
-            <Plus className="w-4 h-4 text-text-muted" />
-            Add a company
+        {data.canManage ? (
+          <Link
+            href="/group?add=company"
+            onClick={onDone}
+            className="flex items-center justify-center gap-2 h-8 rounded-lg text-[13px] text-text hover:bg-surface-2"
+          >
+            <Plus className="w-3.5 h-3.5 text-text-muted" />
+            Add company
           </Link>
+        ) : (
+          <span />
         )}
       </div>
     </>

@@ -19,7 +19,7 @@ export function MobileAdvisorStrip({
   return (
     <nav
       aria-label="Advisors"
-      className={`md:hidden flex items-center gap-2 overflow-x-auto overflow-y-hidden pb-1 no-scrollbar shrink-0 select-none ${className}`}
+      className={`md:hidden flex items-center gap-1.5 overflow-x-auto overflow-y-hidden px-3 py-2 border-b border-line no-scrollbar shrink-0 select-none ${className}`}
     >
       {agents.map(agent => {
         const isActive = agent.id === activeAgentId;
@@ -31,7 +31,7 @@ export function MobileAdvisorStrip({
             onClick={() => onSelectAgent(agent.id)}
             aria-label={`${agent.name}, ${agent.role}`}
             aria-current={isActive ? "true" : undefined}
-            className={`flex items-center gap-2 shrink-0 px-3.5 py-2 rounded-xl text-sm cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-lg text-sm cursor-pointer whitespace-nowrap ${
               isActive ? "bg-surface-2 text-text font-medium" : "text-text-muted hover:text-text hover:bg-surface-2/60"
             }`}
           >

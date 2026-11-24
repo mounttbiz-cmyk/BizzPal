@@ -128,7 +128,7 @@ export default function GroupPage() {
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5 min-w-0">
-          <CompanyAvatar name={data.group.name} logoUrl={data.group.logoUrl} size="lg" />
+          <CompanyAvatar name={data.group.name} logoUrl={data.group.logoUrl} id={data.group.id} website={data.group.website} size="lg" />
           <div className="min-w-0">
             <h1 className="text-xl font-semibold text-text truncate leading-tight">{data.group.name}</h1>
             <p className="text-sm text-text-muted mt-0.5">
@@ -593,7 +593,7 @@ function CompanyCard({
           className="flex items-start gap-3 min-w-0 flex-1 text-left cursor-pointer disabled:cursor-default"
           title={isActive ? "You are working in this company" : `Open ${company.name}`}
         >
-          <CompanyAvatar name={company.name} logoUrl={company.logoUrl} size="md" />
+          <CompanyAvatar name={company.name} logoUrl={company.logoUrl} id={company.id} website={company.website} size="md" />
           <span className="min-w-0 flex-1 pt-px">
             <span className="flex items-center gap-2">
               <span className="text-sm font-semibold text-text truncate">{company.name}</span>
@@ -646,7 +646,7 @@ function CompanyCard({
                     className="flex items-center gap-2 min-w-0 flex-1 px-2 py-1.5 text-left cursor-pointer disabled:cursor-default"
                     title={childActive ? "You are working in this company" : `Open ${child.name}`}
                   >
-                    <CompanyAvatar name={child.name} logoUrl={child.logoUrl} size="xs" />
+                    <CompanyAvatar name={child.name} logoUrl={child.logoUrl} id={child.id} website={child.website} size="xs" />
                     <span className="text-sm text-text truncate">{child.name}</span>
                     {opening === child.id && <Loader2 className="w-3 h-3 text-text-muted animate-spin shrink-0" />}
                     {childActive && <span className="text-[10px] font-medium text-brass shrink-0">Current</span>}

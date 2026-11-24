@@ -30,7 +30,7 @@ export interface Company {
 }
 
 export interface GroupData {
-  group: { id: string; name: string; industryLabel: string; logoUrl: string | null };
+  group: { id: string; name: string; industryLabel: string; logoUrl: string | null; website: string };
   segments: Segment[];
   companies: Company[];
   activeBusinessId: string;

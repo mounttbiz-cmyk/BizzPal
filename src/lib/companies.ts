@@ -56,7 +56,7 @@ export interface Segment {
 }
 
 export interface GroupOverview {
-  group: { id: string; name: string; industryLabel: string; logoUrl: string | null };
+  group: { id: string; name: string; industryLabel: string; logoUrl: string | null; website: string };
   segments: Segment[];
   companies: Company[];
 }
@@ -162,7 +162,7 @@ function checkParent(groupId: string, parentId: string, movingId?: string): { se
 }
 
 export function getGroupOverview(groupId: string): GroupOverview {
-  const g = db.prepare("SELECT id, name, industry_label, logo_url FROM businesses WHERE id = ?").get(groupId) as any;
+  const g = db.prepare("SELECT id, name, industry_label, logo_url, website FROM businesses WHERE id = ?").get(groupId) as any;
   const segments = (db
     .prepare("SELECT id, name, sort_order FROM business_segments WHERE group_id = ? ORDER BY sort_order, created_at")
     .all(groupId) as any[]).map(s => ({ id: s.id, name: s.name, sortOrder: Number(s.sort_order || 0) }));
@@ -191,6 +191,7 @@ export function getGroupOverview(groupId: string): GroupOverview {
       name: g?.name || "Your group",
       industryLabel: g?.industry_label || "",
       logoUrl: g?.logo_url || null,
+      website: g?.website || "",
     },
     segments,
     companies: rows.map(r => ({

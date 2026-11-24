@@ -16,7 +16,7 @@ const MAX_REDIRECTS = 3;
 const USER_AGENT = "BizzPalBot/1.0 (+https://bizzpal.ai)";
 
 // Tests point the reader at a pretend website on this computer. Never set this on the live server.
-const allowLocal = () => process.env.DATAPAL_FETCH_ALLOW_LOCAL === "1";
+export const allowLocal = () => process.env.DATAPAL_FETCH_ALLOW_LOCAL === "1";
 
 // ---------------------------------------------------------------- keeping it away from private networks
 
@@ -45,7 +45,7 @@ export function isPrivateAddress(ip: string): boolean {
 }
 
 /** Looks the name up and refuses private answers, at the moment of connecting (so the answer cannot change afterwards). */
-function guardedLookup(hostname: string, options: any, callback: any) {
+export function guardedLookup(hostname: string, options: any, callback: any) {
   dns.lookup(hostname, { all: true }, (err, addresses) => {
     if (err) return callback(err);
     const allowed = addresses.filter(a => allowLocal() || !isPrivateAddress(a.address));

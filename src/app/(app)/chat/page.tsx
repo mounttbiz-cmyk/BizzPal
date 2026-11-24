@@ -655,33 +655,11 @@ function ChatWorkspaceContent() {
 
 
   return (
-    <div className="h-[calc(100dvh-5.5rem)] md:h-[calc(100vh-5.5rem)] flex flex-col space-y-3 sm:space-y-4 relative overflow-x-hidden">
-      {/* ============================================================ */}
-      {/* 1. TOP PAGE HEADER BAR (DESKTOP & MOBILE COMPACT) */}
-      {/* ============================================================ */}
-      <header aria-label="Page header" className="flex items-center justify-between shrink-0 gap-2 pb-1">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold text-text truncate">Executive advisory</h1>
-          <p className="text-sm text-text-muted mt-0.5 hidden sm:block">
-            Talk to your AI team about strategy, cash, growth and hiring.
-          </p>
-        </div>
-      </header>
-
-      {/* ============================================================ */}
-      {/* 2. MOBILE HORIZONTAL ADVISOR STRIP (< 768px) */}
-      {/* ============================================================ */}
-      <MobileAdvisorStrip
-        agents={effectiveAgents}
-        activeAgentId={activeAgentId}
-        onSelectAgent={setActiveAgentId}
-      />
-
-      {/* ============================================================ */}
-      {/* 3. MAIN WORKSPACE CONTAINER */}
-      {/* ============================================================ */}
-      <div className="flex-1 flex gap-3 min-h-0 overflow-hidden">
-        {/* Desktop / Tablet Roster (2-Pane Desktop, Rail Tablet) */}
+    // Full-height workspace: it fills the page edge to edge (cancelling the page padding) so the conversation gets
+    // the room, like a normal chat app.
+    <div className="-m-3 sm:-m-6 lg:-m-8 h-[calc(100dvh-3.5rem-4.5rem-env(safe-area-inset-bottom,0px))] md:h-[100dvh] flex flex-col bg-surface overflow-hidden min-[1824px]:border-x min-[1824px]:border-line">
+      <div className="flex-1 flex min-h-0">
+        {/* Advisor list (desktop and tablet) */}
         <div className="hidden md:flex shrink-0">
           <AdvisorRoster
             agents={effectiveAgents}
@@ -695,10 +673,7 @@ function ChatWorkspaceContent() {
         </div>
 
         {/* Center Main Chat Panel */}
-        <main
-          aria-label="Active Conversation Stream"
-          className="flex-1 flex flex-col bg-surface border border-line rounded-2xl overflow-hidden min-w-0"
-        >
+        <main aria-label="Conversation" className="flex-1 flex flex-col min-w-0">
           {/* Active Advisor Clean Header Row */}
           <AdvisorHeader
             activeAgent={activeAgent}
@@ -708,6 +683,9 @@ function ChatWorkspaceContent() {
             isHistoryOpen={isHistoryOpen}
             historyCount={currentMessages.length}
           />
+
+          {/* Phone: advisors as a row of chips */}
+          <MobileAdvisorStrip agents={effectiveAgents} activeAgentId={activeAgentId} onSelectAgent={setActiveAgentId} />
 
           {/* Active Tool Context Banner */}
           {activeToolContext && (

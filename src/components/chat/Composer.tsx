@@ -73,14 +73,14 @@ export function Composer({
   };
 
   return (
-    <div className={`px-4 sm:px-7 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] shrink-0 ${className}`}>
+    <div className={`px-3 sm:px-6 pt-1 pb-3 shrink-0 ${className}`}>
       <div className="w-full max-w-3xl mx-auto">
         <form
           onSubmit={e => {
             e.preventDefault();
             handleTriggerSend();
           }}
-          className="bg-surface border border-line-strong rounded-3xl px-4 pt-3 pb-2.5 shadow-sm focus-within:border-text-muted transition-colors"
+          className="bg-surface border border-line-strong rounded-2xl px-3.5 pt-3 pb-2 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.08)] focus-within:border-text-muted transition-colors"
         >
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
@@ -133,9 +133,9 @@ export function Composer({
               onClick={() => fileInputRef.current?.click()}
               aria-label="Attach files"
               title="Attach files"
-              className="p-2 rounded-full text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
+              className="p-1.5 -ml-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
             >
-              <Paperclip className="w-5 h-5" />
+              <Paperclip className="w-4 h-4" />
             </button>
 
             {isTyping ? (
@@ -144,7 +144,7 @@ export function Composer({
                 onClick={onStop}
                 aria-label="Stop generating"
                 title="Stop"
-                className="w-9 h-9 rounded-full bg-text text-bg flex items-center justify-center cursor-pointer hover:opacity-85"
+                className="w-8 h-8 rounded-lg bg-text text-bg flex items-center justify-center cursor-pointer hover:opacity-85"
               >
                 <Square className="w-3.5 h-3.5 fill-current" />
               </button>
@@ -153,15 +153,15 @@ export function Composer({
                 type="submit"
                 disabled={!canSend}
                 aria-label="Send message"
-                className="w-9 h-9 rounded-full bg-brass text-white flex items-center justify-center cursor-pointer hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-8 h-8 rounded-lg bg-brass text-white flex items-center justify-center cursor-pointer hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                <ArrowUp className="w-5 h-5" />
+                <ArrowUp className="w-4 h-4" />
               </button>
             )}
           </div>
         </form>
 
-        <p className="text-xs text-text-muted text-center select-none pt-2">
+        <p className="text-[11px] text-text-muted text-center select-none pt-1.5">
           AI can make mistakes. Please check important business and financial decisions.
         </p>
       </div>
