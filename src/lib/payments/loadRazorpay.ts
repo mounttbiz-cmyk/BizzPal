@@ -18,9 +18,6 @@ export function enableRazorpayBackdropBlur() {
         width: 100vw !important;
         height: 100vh !important;
         z-index: 2147483647 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
@@ -60,19 +57,37 @@ export function enableRazorpayBackdropBlur() {
     document.head.appendChild(style);
   }
 
-  // Setup observer to add razorpay-modal-active on body as soon as Razorpay container appears
+  // Blur the page only while Razorpay's window is actually on screen. Razorpay keeps its container in the page
+  // after closing (just hidden), so whether it exists says nothing; whether it is shown does.
   if (typeof window !== "undefined" && !(window as any).__rzpActiveObserverAttached) {
     (window as any).__rzpActiveObserverAttached = true;
-    const observer = new MutationObserver(() => {
-      const container = document.querySelector(".razorpay-container");
-      if (container && container.childNodes.length > 0) {
-        document.body.classList.add("razorpay-modal-active");
-      } else {
-        document.body.classList.remove("razorpay-modal-active");
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: false });
+    const sync = () => {
+      if (razorpayVisible()) document.body.classList.add("razorpay-modal-active");
+      else document.body.classList.remove("razorpay-modal-active");
+    };
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] });
   }
+}
+
+/** True while Razorpay's checkout window is shown. */
+function razorpayVisible(): boolean {
+  const container = document.querySelector(".razorpay-container") as HTMLElement | null;
+  if (!container) return false;
+  const style = window.getComputedStyle(container);
+  return style.display !== "none" && style.visibility !== "hidden" && container.offsetParent !== null;
+}
+
+/**
+ * Removes the page blur after checkout closes (paid, failed or dismissed). Razorpay hides its window with a short
+ * animation, so it is checked again a moment later as well.
+ */
+export function clearRazorpayBackdrop() {
+  if (typeof document === "undefined") return;
+  document.body.classList.remove("razorpay-modal-active");
+  window.setTimeout(() => {
+    if (!razorpayVisible()) document.body.classList.remove("razorpay-modal-active");
+  }, 400);
 }
 
 export function loadRazorpaySDK(): Promise<boolean> {

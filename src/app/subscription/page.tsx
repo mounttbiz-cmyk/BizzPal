@@ -8,7 +8,7 @@ import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 import { PortalModal } from "@/components/ui/PortalModal";
-import { loadRazorpaySDK } from "@/lib/payments/loadRazorpay";
+import { clearRazorpayBackdrop, loadRazorpaySDK } from "@/lib/payments/loadRazorpay";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
 
 interface PlanTier {
@@ -308,6 +308,8 @@ export default function SubscriptionPage() {
           backdrop_color: "rgba(255, 255, 255, 0.12)",
         },
         handler: async (response: any) => {
+          clearRazorpayBackdrop();
+          setIsCheckoutOpen(false);
           await verifyPaymentAndActivate({
             razorpay_order_id: response.razorpay_order_id,
             razorpay_payment_id: response.razorpay_payment_id,
@@ -322,6 +324,7 @@ export default function SubscriptionPage() {
         },
         modal: {
           ondismiss: () => {
+            clearRazorpayBackdrop();
             setIsCheckoutOpen(false);
             setIsProcessing(false);
             setProcessingPlanId(null);
@@ -331,6 +334,7 @@ export default function SubscriptionPage() {
 
       const rzpInstance = new (window as any).Razorpay(razorpayOptions);
       rzpInstance.on("payment.failed", (response: any) => {
+        clearRazorpayBackdrop();
         setIsCheckoutOpen(false);
         setIsProcessing(false);
         setProcessingPlanId(null);

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { DataPalCreditStatus, getAccountKey } from "@/lib/datapal/credits";
 import { DATAPAL_PACKS, CUSTOM_PACK_MIN, CUSTOM_PACK_MAX, customPackPrice } from "@/lib/datapal/plans";
-import { loadRazorpaySDK } from "@/lib/payments/loadRazorpay";
+import { clearRazorpayBackdrop, loadRazorpaySDK } from "@/lib/payments/loadRazorpay";
 import { PortalModal } from "@/components/ui/PortalModal";
 
 interface DataPalCreditsModalProps {
@@ -106,6 +106,7 @@ export function DataPalCreditsModal({ isOpen, onClose, status, onUpdated }: Data
           prefill: { name: buyer.name, email: buyer.email },
           theme: { color: "#B48C36", backdrop_color: "rgba(255, 255, 255, 0.12)" },
           handler: async (r: any) => {
+            clearRazorpayBackdrop();
             try {
               await finish(r.razorpay_order_id, r.razorpay_payment_id, r.razorpay_signature);
               resolve();
@@ -113,9 +114,17 @@ export function DataPalCreditsModal({ isOpen, onClose, status, onUpdated }: Data
               reject(e);
             }
           },
-          modal: { ondismiss: () => resolve() },
+          modal: {
+            ondismiss: () => {
+              clearRazorpayBackdrop();
+              resolve();
+            },
+          },
         });
-        rz.on("payment.failed", (r: any) => reject(new Error(r?.error?.description || "The payment did not go through.")));
+        rz.on("payment.failed", (r: any) => {
+          clearRazorpayBackdrop();
+          reject(new Error(r?.error?.description || "The payment did not go through."));
+        });
         rz.open();
       });
     } catch (err: any) {
