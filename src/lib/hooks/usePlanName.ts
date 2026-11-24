@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 
 const FALLBACK_NAMES: Record<string, string> = {
-  free: "Starter Free",
-  starter: "Starter OS",
-  growth: "Growth Plan",
-  enterprise: "Enterprise",
+  free: "BizzPal Free",
+  starter: "Starter Business OS",
+  growth: "Growth Scale",
+  enterprise: "Enterprise Custom",
 };
 
 /** The display name of the signed-in business's current plan, read from the plans set up in Admin → Pricing. */

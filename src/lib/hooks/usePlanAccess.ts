@@ -97,7 +97,9 @@ export function usePlanAccess() {
             const res = await fetch("/api/payments/transactions", { cache: "no-store" });
             if (res.ok) {
               const d = await res.json();
-              remotePlan = d?.activeSubscription?.plan_id || "free";
+              if (d?.activeSubscription?.plan_id) {
+                remotePlan = d.activeSubscription.plan_id;
+              }
             }
           } catch {}
           if (!cancelled && remotePlan) {
@@ -159,7 +161,7 @@ export function usePlanAccess() {
   }, [user]);
 
   const activatePlan = useCallback(
-    async (planId: string) => {
+    async (planId: string, planName?: string) => {
       setPlan(planId);
       setHasActivated(planId !== "free");
       const email = getCurrentUserEmail(user);
@@ -168,6 +170,16 @@ export function usePlanAccess() {
         if (email) {
           localStorage.setItem(`bizzpal_subscription_plan_${email}`, planId);
         }
+        // Sync with backend database so active subscription is persisted server-side
+        fetch("/api/payments/activate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId,
+            planName,
+            userEmail: email,
+          }),
+        }).catch(() => {});
       } catch {
         // ignore
       }

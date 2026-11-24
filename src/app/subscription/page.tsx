@@ -67,9 +67,33 @@ export default function SubscriptionPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const ensureSessionAndOpenDashboard = (planId: string, planName: string) => {
+  const ensureSessionAndOpenDashboard = async (planId: string, planName: string) => {
     try {
-      activatePlan(planId);
+      activatePlan(planId, planName);
+
+      // Extract user details to sync with backend database
+      let userEmail = "";
+      let userName = "Founder";
+      try {
+        const sessStr = localStorage.getItem("bizzpal_user_session");
+        if (sessStr) {
+          const sess = JSON.parse(sessStr);
+          if (sess.email) userEmail = sess.email.trim().toLowerCase();
+          if (sess.name) userName = sess.name;
+        }
+      } catch {}
+
+      // Tell server database to record this active subscription so it persists across reloads and navigation
+      await fetch("/api/payments/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId,
+          planName,
+          userEmail,
+          userName,
+        }),
+      }).catch(() => {});
 
       // Guarantee user session is active so AuthGuard always admits the user to dashboard
       let session = localStorage.getItem("bizzpal_user_session");
@@ -78,8 +102,8 @@ export default function SubscriptionPage() {
         const profile = profileStr ? JSON.parse(profileStr) : null;
         const userSession = {
           id: `usr_${Date.now()}`,
-          email: profile?.website ? `founder@${profile.website.replace(/^https?:\/\//, "")}` : "founder@mycompany.in",
-          name: profile?.founderName || "Founder",
+          email: profile?.website ? `founder@${profile.website.replace(/^https?:\/\//, "")}` : (userEmail || "founder@mycompany.in"),
+          name: profile?.founderName || userName,
           role: "owner",
           provider: "email",
           authenticatedAt: new Date().toISOString(),
@@ -206,7 +230,7 @@ export default function SubscriptionPage() {
 
     // Free plan direct activation
     if (plan.id === "free" || plan.price === "₹0" || plan.price === "0") {
-      ensureSessionAndOpenDashboard(plan.id, plan.name);
+      await ensureSessionAndOpenDashboard(plan.id, plan.name);
       return;
     }
 
@@ -239,7 +263,7 @@ export default function SubscriptionPage() {
 
       // Check if order is free
       if (orderData.isFreePlan) {
-        ensureSessionAndOpenDashboard(plan.id, plan.name);
+        await ensureSessionAndOpenDashboard(plan.id, plan.name);
         setIsProcessing(false);
         setProcessingPlanId(null);
         return;
