@@ -84,7 +84,7 @@ export interface HrisSyncData {
   }>;
 }
 
-export type StepId = "business" | "website" | "bank" | "payments" | "team" | "sources" | "industry" | "priorities";
+export type StepId = "business" | "website" | "bank" | "payments" | "team" | "sources" | "industry" | "about" | "priorities";
 export interface StepDef { id: StepId; label: string; hint: string; phase: "Verify" | "Connect" | "Tailor" }
 
 export const STEPS: StepDef[] = [
@@ -94,7 +94,8 @@ export const STEPS: StepDef[] = [
   { id: "payments", label: "Payments", hint: "Real revenue", phase: "Connect" },
   { id: "team", label: "Your team", hint: "Confirmed by Google", phase: "Connect" },
   { id: "sources", label: "Other tools", hint: "Google & more", phase: "Connect" },
-  { id: "industry", label: "Industry", hint: "What you do", phase: "Tailor" },
+  { id: "industry", label: "Industry", hint: "Your sector", phase: "Tailor" },
+  { id: "about", label: "About your business", hint: "What you do", phase: "Tailor" },
   { id: "priorities", label: "Priorities", hint: "Where to focus", phase: "Tailor" },
 ];
 

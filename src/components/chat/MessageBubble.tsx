@@ -5,6 +5,8 @@ import { ChatMessage, AgentMeta, CompanyProfile } from "./types";
 import { ChatMarkdown } from "@/components/shell/ChatMarkdown";
 import { PlaybookActions } from "./PlaybookActions";
 import { getAdvisorGreeting } from "@/lib/advisors";
+import { ArrowRight, Check, Loader2, NotebookPen } from "lucide-react";
+import { AgentAvatarIcon } from "./CustomizeAdvisorModal";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -13,6 +15,9 @@ interface MessageBubbleProps {
   onCommitRecord?: (record: any, msgId: string) => void;
   onSelectPlaybook?: (playbook: string) => void;
   isTyping?: boolean;
+  /** The colleague this advisor passed the question to */
+  handoffAgent?: AgentMeta;
+  onHandoff?: (agentId: string, question: string) => void;
 }
 
 export function MessageBubble({
@@ -22,6 +27,8 @@ export function MessageBubble({
   onCommitRecord,
   onSelectPlaybook,
   isTyping = false,
+  handoffAgent,
+  onHandoff,
 }: MessageBubbleProps) {
   const isUser = message.sender === "user";
 
@@ -41,6 +48,27 @@ export function MessageBubble({
     : rawContent.replace(/^[ \t]*•[ \t]*/gm, "- ").replace(/([^\n])\n- /, "$1\n\n- ");
 
   const [copied, setCopied] = useState(false);
+  const [briefState, setBriefState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [briefError, setBriefError] = useState("");
+
+  const saveToBrief = async () => {
+    if (!message.briefSuggestion) return;
+    setBriefState("saving");
+    setBriefError("");
+    try {
+      const res = await fetch("/api/business/brief/learn", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: message.briefSuggestion.key, value: message.briefSuggestion.value }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.success) throw new Error(d.error || "Could not save it.");
+      setBriefState("saved");
+    } catch (e: any) {
+      setBriefError(e.message || "Could not save it.");
+      setBriefState("error");
+    }
+  };
 
   const handleCopy = async () => {
     try {
@@ -83,6 +111,46 @@ export function MessageBubble({
       <div className="text-[15px] leading-7 text-text">
         <ChatMarkdown content={displayContent} />
       </div>
+
+      {message.briefSuggestion && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-line bg-surface-2/50 px-3 py-2 text-sm">
+          <NotebookPen className="w-4 h-4 text-text-muted shrink-0" />
+          <span className="min-w-0 flex-1 text-text">
+            <span className="text-text-muted">{message.briefSuggestion.label}:</span> {message.briefSuggestion.value}
+          </span>
+          {briefState === "saved" ? (
+            <span className="inline-flex items-center gap-1 text-xs text-text-muted">
+              <Check className="w-3.5 h-3.5 text-brass" /> Saved to your business brief
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={saveToBrief}
+              disabled={briefState === "saving"}
+              className="h-7 px-2.5 rounded-md border border-line bg-surface text-xs font-medium text-text hover:bg-surface-2 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+            >
+              {briefState === "saving" && <Loader2 className="w-3 h-3 animate-spin" />}
+              Save to business brief
+            </button>
+          )}
+          {briefState === "error" && <span className="w-full text-xs text-rust">{briefError}</span>}
+        </div>
+      )}
+
+      {handoffAgent && message.handoff && onHandoff && (
+        <button
+          type="button"
+          disabled={isTyping}
+          onClick={() => onHandoff(handoffAgent.id, message.handoff!.question)}
+          className="mt-3 inline-flex items-center gap-2 h-9 pl-2 pr-3.5 rounded-lg border border-line bg-surface text-sm text-text hover:bg-surface-2 cursor-pointer disabled:opacity-50"
+        >
+          <span className="w-6 h-6 rounded-md bg-surface-2 text-brass flex items-center justify-center">
+            <AgentAvatarIcon iconName={handoffAgent.avatar} className="w-3.5 h-3.5" />
+          </span>
+          Ask {handoffAgent.name}
+          <ArrowRight className="w-3.5 h-3.5 text-text-muted" />
+        </button>
+      )}
 
       {message.structuredRecord && (
         <div className="mt-4 p-4 rounded-xl border border-line text-left space-y-3">

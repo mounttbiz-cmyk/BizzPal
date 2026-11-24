@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/requireUser";
-import { hasPaidPlan } from "@/lib/ai/providers";
+import { aiTierFor } from "@/lib/ai/providers";
 import { rateLimit } from "@/lib/rateLimit";
 import { channelsByIds, youtubeConfigured, YouTubeError } from "@/lib/datapal/youtube";
 import { draftOutreach, scoreFit } from "@/lib/datapal/youtubeFit";
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const offer = String(body?.offer || "").trim();
   if (offer.length < 3) return NextResponse.json({ success: false, error: "Say what you are promoting first, for example “protein supplements for gym-goers”." }, { status: 400 });
-  const paid = hasPaidPlan(auth.email);
+  const paid = aiTierFor(auth.email);
 
   try {
     if (body?.mode === "draft") {

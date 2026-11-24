@@ -1,4 +1,4 @@
-import { generateText } from "@/lib/ai/providers";
+import { generateText, type AiTier } from "@/lib/ai/providers";
 import type { YouTubeChannel } from "@/lib/datapal/youtube";
 
 /**
@@ -39,7 +39,7 @@ function parseJson(text: string | null, open: "[" | "{"): any {
 }
 
 /** A 0 to 100 fit score and a one-line reason for each channel, for what the person is promoting. */
-export async function scoreFit(offer: string, channels: YouTubeChannel[], paid: boolean): Promise<Array<{ channelId: string; score: number; reason: string }> | null> {
+export async function scoreFit(offer: string, channels: YouTubeChannel[], paid: AiTier): Promise<Array<{ channelId: string; score: number; reason: string }> | null> {
   const prompt = `A business wants to promote: "${clean(offer, 300)}".
 For each YouTube channel below, rate from 0 to 100 how well it suits promoting that, and give a reason of at most 20 words.
 Think about: does the topic match, is the creator active, is the engagement healthy for the size, and does the creator already do brand work.
@@ -58,7 +58,7 @@ Return ONLY a JSON array, for example [{"id":"<channel id>","score":72,"reason":
 }
 
 /** A short email and a short WhatsApp message to open the conversation with one creator. */
-export async function draftOutreach(offer: string, channel: YouTubeChannel, paid: boolean): Promise<{ subject: string; email: string; whatsapp: string } | null> {
+export async function draftOutreach(offer: string, channel: YouTubeChannel, paid: AiTier): Promise<{ subject: string; email: string; whatsapp: string } | null> {
   const prompt = `Write a first message from a business to a YouTube creator, to start a collaboration about: "${clean(offer, 300)}".
 Mention something specific that is in the facts (their topic or a recent video title). Do not claim to have watched anything that is not in the facts. Do not state any numbers about their channel.
 Sign off with the placeholders [Your name] and [Your company]. Email: under 110 words. WhatsApp: under 55 words, friendly.

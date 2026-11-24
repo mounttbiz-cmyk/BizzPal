@@ -1,7 +1,4 @@
-import http from "node:http";
-import https from "node:https";
-import net from "node:net";
-import { allowLocal, guardedLookup, isPrivateAddress } from "@/lib/datapal/contactPages";
+import { safeGet as get } from "@/lib/safeFetch";
 
 /**
  * Finds the small icon (favicon) a company's own website shows in the browser tab, so the company list can show its
@@ -9,12 +6,9 @@ import { allowLocal, guardedLookup, isPrivateAddress } from "@/lib/datapal/conta
  * results are kept for a day so each site is asked at most once a day.
  */
 
-const TIMEOUT_MS = 5_000;
 const MAX_HTML = 300_000;
 const MAX_IMAGE = 256_000;
-const MAX_REDIRECTS = 3;
 const DAY = 24 * 60 * 60 * 1000;
-const USER_AGENT = "BizzPalBot/1.0 (+https://bizzpal.ai)";
 
 export interface Icon {
   type: string;
@@ -23,76 +17,6 @@ export interface Icon {
 
 const cache = new Map<string, { icon: Icon | null; at: number }>();
 const pending = new Map<string, Promise<Icon | null>>();
-
-function get(rawUrl: string, accept: "html" | "image", limit: number, redirects = 0): Promise<{ url: URL; type: string; body: Buffer } | null> {
-  let url: URL;
-  try {
-    url = new URL(rawUrl);
-  } catch {
-    return Promise.resolve(null);
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:") return Promise.resolve(null);
-  if (!allowLocal() && url.port && url.port !== "80" && url.port !== "443") return Promise.resolve(null);
-  const bareHost = url.hostname.replace(/^\[|\]$/g, "");
-  if (net.isIP(bareHost) && !allowLocal() && isPrivateAddress(bareHost)) return Promise.resolve(null);
-
-  const lib = url.protocol === "https:" ? https : http;
-  return new Promise(resolve => {
-    let settled = false;
-    const done = (v: { url: URL; type: string; body: Buffer } | null) => {
-      if (!settled) {
-        settled = true;
-        resolve(v);
-      }
-    };
-    const req = lib.request(
-      {
-        hostname: bareHost,
-        port: url.port || undefined,
-        path: url.pathname + url.search,
-        method: "GET",
-        headers: { "User-Agent": USER_AGENT, Accept: accept === "html" ? "text/html" : "image/*" },
-        lookup: guardedLookup as any,
-        timeout: TIMEOUT_MS,
-      },
-      res => {
-        const status = res.statusCode || 0;
-        if (status >= 300 && status < 400 && res.headers.location) {
-          res.resume();
-          if (redirects >= MAX_REDIRECTS) return done(null);
-          let next = "";
-          try {
-            next = new URL(res.headers.location, url).toString();
-          } catch {
-            return done(null);
-          }
-          return get(next, accept, limit, redirects + 1).then(done);
-        }
-        const type = String(res.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
-        const okType = accept === "html" ? /html/.test(type) : /^image\//.test(type) || type === "application/octet-stream";
-        if (status !== 200 || !okType) {
-          res.resume();
-          return done(null);
-        }
-        const chunks: Buffer[] = [];
-        let size = 0;
-        res.on("data", (c: Buffer) => {
-          size += c.length;
-          if (size > limit) {
-            req.destroy();
-            return done(accept === "html" ? { url, type, body: Buffer.concat(chunks) } : null);
-          }
-          chunks.push(c);
-        });
-        res.on("end", () => done({ url, type, body: Buffer.concat(chunks) }));
-        res.on("error", () => done(null));
-      }
-    );
-    req.on("timeout", () => req.destroy());
-    req.on("error", () => done(null));
-    req.end();
-  });
-}
 
 /** Icon links in the page head, best first: large touch icons, then sized icons, then any icon. */
 function iconLinks(html: string, base: URL): string[] {

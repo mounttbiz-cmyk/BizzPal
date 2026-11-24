@@ -28,7 +28,7 @@ export function PrioritiesStep({ options, selected, industryLabel, summary, subm
 
   return (
     <div className="space-y-6">
-      <StepHeader eyebrow="Step 8 · Priorities" title="Where should we focus first?">
+      <StepHeader eyebrow="Step 9 · Priorities" title="Where should we focus first?">
         Tailored for <strong className="text-text">{industryLabel}</strong>. Recommended items are pre-selected. These are goals, not facts, so there are no wrong answers.
       </StepHeader>
 

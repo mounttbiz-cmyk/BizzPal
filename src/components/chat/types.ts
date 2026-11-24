@@ -39,6 +39,10 @@ export interface ChatMessage {
   recordCommitted?: boolean;
   nextSteps?: string[];
   attachments?: ChatAttachment[];
+  /** Set when this advisor passed the question to a colleague */
+  handoff?: { agentId: string; question: string } | null;
+  /** Something the founder said that the advisor offers to save in the business brief */
+  briefSuggestion?: { key: string; label: string; value: string } | null;
 }
 
 export interface CompanyProfile {

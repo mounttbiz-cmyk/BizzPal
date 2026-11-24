@@ -12,6 +12,7 @@ import { QuickBusinessInputModal } from "@/components/intake/QuickBusinessInputM
 import { useBusinessDataSync } from "@/lib/upload/events";
 import { usePlanName } from "@/lib/hooks/usePlanName";
 import { computeHealth } from "@/lib/health/score";
+import { BriefPromptCard } from "@/components/widgets/BriefPromptCard";
 
 const formatIndustryName = (ind: string) => {
   const map: Record<string, string> = {
@@ -397,6 +398,8 @@ function DashboardContent() {
           ))}
         </div>
       </div>
+
+      <BriefPromptCard />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-max grid-flow-row-dense">
         {activeWidgets

@@ -11,6 +11,8 @@ interface ChatThreadProps {
   isTyping: boolean;
   onCommitRecord?: (record: any, msgId: string) => void;
   onSelectPlaybook?: (playbook: string) => void;
+  agents?: AgentMeta[];
+  onHandoff?: (agentId: string, question: string) => void;
   className?: string;
 }
 
@@ -21,6 +23,8 @@ export function ChatThread({
   isTyping,
   onCommitRecord,
   onSelectPlaybook,
+  agents = [],
+  onHandoff,
   className = "",
 }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -46,6 +50,8 @@ export function ChatThread({
             onCommitRecord={onCommitRecord}
             onSelectPlaybook={onSelectPlaybook}
             isTyping={isTyping}
+            handoffAgent={message.handoff ? agents.find(a => a.id === message.handoff!.agentId) : undefined}
+            onHandoff={onHandoff}
           />
         ))}
 

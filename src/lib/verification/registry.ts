@@ -24,6 +24,8 @@ export interface RegistryRecord {
   registrationDate: string;
   address: string;
   state: string;
+  /** What the registry lists as the business's activities, e.g. "Retail Business, Supplier of Services" */
+  activities?: string;
 }
 
 export type RegistryResult =
@@ -38,6 +40,19 @@ export function registryConfigured(): boolean {
 function pick(obj: any, keys: string[]): string {
   for (const k of keys) {
     const v = obj?.[k];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
+
+/** A list field providers send either as an array or as text. */
+function listOf(obj: any, keys: string[]): string {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (Array.isArray(v)) {
+      const items = v.filter(x => typeof x === "string" && x.trim()).map(x => x.trim());
+      if (items.length) return items.join(", ");
+    }
     if (typeof v === "string" && v.trim()) return v.trim();
   }
   return "";
@@ -67,6 +82,7 @@ export function mapSurepassGstin(gstin: string, data: any): RegistryRecord {
     registrationDate: pick(data, ["date_of_registration", "rgdt"]),
     address: flattenAddress(data?.address) || flattenAddress(data?.principal_address) || pick(data, ["address_details", "adr"]),
     state: pick(data, ["state_jurisdiction", "state"]),
+    activities: listOf(data, ["nature_bus_activities", "nature_of_business_activities", "nba"]),
   };
 }
 

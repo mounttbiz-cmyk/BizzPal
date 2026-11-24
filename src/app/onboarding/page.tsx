@@ -14,6 +14,7 @@ import { VerifyWebsiteStep } from "@/components/onboarding/VerifyWebsiteStep";
 import { IndustryStep } from "@/components/onboarding/IndustryStep";
 import { ConnectSourcesStep, type ToolAuth } from "@/components/onboarding/ConnectSourcesStep";
 import { PrioritiesStep } from "@/components/onboarding/PrioritiesStep";
+import { AboutBusinessStep } from "@/components/onboarding/AboutBusinessStep";
 import { BankStep } from "@/components/onboarding/BankStep";
 import { PaymentsStep } from "@/components/onboarding/PaymentsStep";
 import { TeamStep } from "@/components/onboarding/TeamStep";
@@ -412,7 +413,7 @@ export default function OnboardingPage() {
   const industryNext = () => {
     if (industries.length === 0) return setIndustryError("Pick at least one industry to continue.");
     if (industries.includes("other") && !customIndustry.trim()) return setIndustryError("Tell us which industry you are in.");
-    goToPriorities();
+    go("about");
   };
 
   // ---- step 6: other tools ----
@@ -699,6 +700,13 @@ export default function OnboardingPage() {
           {step === "industry" && (
             <IndustryStep selected={industries} custom={customIndustry} error={industryError} onToggle={toggleIndustry} onCustom={(v) => { setCustomIndustry(v); setIndustryError(""); }} onBack={() => go("sources")} onNext={industryNext} />
           )}
+          {step === "about" && (
+            <AboutBusinessStep
+              website={domain.phase === "verified" ? domain.domain : domainInput.trim()}
+              onBack={() => go("industry")}
+              onNext={goToPriorities}
+            />
+          )}
           {step === "priorities" && (
             <PrioritiesStep
               options={priorityOptions}
@@ -713,7 +721,7 @@ export default function OnboardingPage() {
                 setCustomNeeds((p) => [...p, { id, title: text, detail: "Added by you.", category: "Custom" }]);
                 setNeeds((p) => [...p, id]);
               }}
-              onBack={() => go("industry")}
+              onBack={() => go("about")}
               onFinish={finish}
             />
           )}

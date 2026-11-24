@@ -556,6 +556,12 @@ function ChatWorkspaceContent() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    // The last few turns of this conversation, so the advisor can follow it (the greeting is left out)
+    const history = (conversations[targetAgentId] || [])
+      .filter(m => !m.id.startsWith("msg_init_") && m.content)
+      .slice(-12)
+      .map(m => ({ role: m.sender === "user" ? "user" : "assistant", text: m.content }));
+
     const attachmentContext =
       attachmentsToSend && attachmentsToSend.length > 0
         ? `\n\n[User attached ${attachmentsToSend.length} file(s): ${attachmentsToSend.map(a => `${a.name} (${a.type})`).join(", ")}]`
@@ -571,14 +577,13 @@ function ChatWorkspaceContent() {
           agentId: targetAgentId,
           agentName: targetAgent.name,
           agentRole: targetAgent.role,
-          companyProfile,
+          history,
           toolContext: activeToolContext ? {
             name: activeToolContext.name,
             id: activeToolContext.id,
             category: activeToolContext.category,
             badge: activeToolContext.badge,
           } : undefined,
-          email: (() => { try { return JSON.parse(localStorage.getItem("bizzpal_user_session") || "{}")?.email || ""; } catch { return ""; } })(),
         }),
       });
 
@@ -598,6 +603,8 @@ function ChatWorkspaceContent() {
           timestamp: "Just now",
           content: responseContent,
           provider: data.provider,
+          handoff: data.handoff ? { agentId: String(data.handoff), question: message } : null,
+          briefSuggestion: data.briefSuggestion || null,
         };
 
         setConversations(prev => ({
@@ -737,6 +744,12 @@ function ChatWorkspaceContent() {
             isTyping={isTyping}
             onCommitRecord={handleCommitRecordFromChat}
             onSelectPlaybook={handleSendMessage}
+            agents={effectiveAgents}
+            onHandoff={(agentId, question) => {
+              // Open the right advisor and ask them the same question, in their own conversation
+              setActiveAgentId(agentId);
+              handleSendMessage(question, undefined, agentId);
+            }}
           />
 
           {/* Composer (Sticky bottom dock with safe area padding & stop support) */}
