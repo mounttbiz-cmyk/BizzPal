@@ -27,6 +27,35 @@ const TOOLS: Tool[] = [
   { id: "slack", logo: "slack", name: "Slack", tagline: "Post updates and alerts to a Slack channel you choose." },
 ];
 
+// Our own products. Their accounts are linked to BizzPal by our team for now, so Connect explains how.
+interface OwnProduct {
+  id: string;
+  name: string;
+  logo?: string;
+  badge: string;
+  tagline: string;
+  about: string;
+  site?: string;
+}
+const OWN_PRODUCTS: OwnProduct[] = [
+  {
+    id: "salespal",
+    name: "SalesPal",
+    logo: "/integrations/salespal.png",
+    badge: "SP",
+    tagline: "AI voice calls and WhatsApp conversations with your leads, with outcomes sent back to BizzPal.",
+    about: "SalesPal by Mountt Sense calls and messages your leads on WhatsApp and reports what happened.",
+    site: "https://salespal.in/",
+  },
+  {
+    id: "assistpal",
+    name: "AssistPal",
+    badge: "AP",
+    tagline: "Your AI assistant's activity and results, so your advisors work from what it has done.",
+    about: "AssistPal is your AI assistant from the same family as BizzPal and SalesPal.",
+  },
+];
+
 const inputClass =
   "w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
 
@@ -38,6 +67,7 @@ export default function IntegrationsPage() {
   const [companyName, setCompanyName] = useState("");
 
   const [authTool, setAuthTool] = useState<Tool | null>(null);
+  const [ownProduct, setOwnProduct] = useState<OwnProduct | null>(null);
   const [payOpen, setPayOpen] = useState(false);
   const [paySources, setPaySources] = useState<PaySource[]>([]);
   const [payTotal, setPayTotal] = useState<PayTotal | null>(null);
@@ -179,8 +209,80 @@ export default function IntegrationsPage() {
               </div>
             );
           })}
+          {OWN_PRODUCTS.map(item => (
+            <div key={item.id} className="p-5 rounded-xl border border-line bg-surface flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                {item.logo ? (
+                  <div className="w-10 h-10 rounded-lg bg-white border border-line flex items-center justify-center p-1.5 shrink-0">
+                    <img src={item.logo} alt="" className="w-full h-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-brass/10 border border-brass/20 text-brass text-xs font-bold flex items-center justify-center shrink-0">
+                    {item.badge}
+                  </div>
+                )}
+                <h2 className="text-sm font-medium text-text">{item.name}</h2>
+              </div>
+              <p className="text-sm text-text-muted leading-relaxed">{item.tagline}</p>
+              <div className="mt-auto pt-4 border-t border-line flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 text-xs text-text-muted">
+                  <span className="w-1.5 h-1.5 rounded-full bg-line-strong" />
+                  Not connected
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setOwnProduct(item)}
+                  className="px-3.5 py-1.5 rounded-lg text-sm cursor-pointer bg-brass text-white font-medium hover:brightness-110"
+                >
+                  Connect
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
+
+      {/* SalesPal and AssistPal: linked by our team for now */}
+      <PortalModal isOpen={Boolean(ownProduct)} onClose={() => setOwnProduct(null)}>
+        {ownProduct && (
+          <div className="w-[28rem] max-w-[calc(100vw-2rem)] rounded-2xl bg-surface border border-line shadow-lg">
+            <div className="px-6 pt-6 pb-4 flex items-center gap-3">
+              {ownProduct.logo ? (
+                <div className="w-10 h-10 rounded-lg bg-white border border-line flex items-center justify-center p-1.5 shrink-0">
+                  <img src={ownProduct.logo} alt="" className="w-full h-full object-contain" />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-brass/10 border border-brass/20 text-brass text-xs font-bold flex items-center justify-center shrink-0">
+                  {ownProduct.badge}
+                </div>
+              )}
+              <h3 className="text-lg font-semibold text-text">Connect {ownProduct.name}</h3>
+            </div>
+            <div className="px-6 pb-5 space-y-3 text-sm text-text-muted leading-relaxed">
+              <p>{ownProduct.about}</p>
+              <p>
+                Your {ownProduct.name} account is linked to BizzPal by our team, so your advisors can use its activity. Use {ownProduct.name} with the
+                same email you use here ({email || "your BizzPal email"}) and we&apos;ll connect the two for you.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-line bg-surface-2/40 rounded-b-2xl flex items-center justify-end gap-2">
+              <button type="button" onClick={() => setOwnProduct(null)} className="px-3.5 py-2 rounded-lg text-sm text-text-muted hover:text-text cursor-pointer">
+                Close
+              </button>
+              {ownProduct.site && (
+                <a
+                  href={ownProduct.site}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110"
+                >
+                  Open {ownProduct.name}
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+      </PortalModal>
 
       {/* Google Drive and OneDrive: sign in with the provider */}
       <RealToolAuthModal
