@@ -151,6 +151,17 @@ export const defaultNavItems: NavItem[] = [
     enabled: true,
   },
 
+  {
+    id: "nav_agents",
+    label: "AI Agents",
+    href: "/agents",
+    icon: "Bot",
+    order: 12.5,
+    mobileTab: false,
+    group: "management",
+    enabled: true,
+  },
+
   // 4. PLATFORM
   {
     id: "nav_group",

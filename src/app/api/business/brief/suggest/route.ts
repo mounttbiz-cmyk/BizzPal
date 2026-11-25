@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth/requireUser";
 import { aiTierFor } from "@/lib/ai/providers";
 import { activeBusiness, BriefError, gstFacts, MAX_FILE_BYTES, prepareFile, readLink, suggestBrief } from "@/lib/brief";
 import { rateLimit } from "@/lib/rateLimit";
+import { BudgetError, checkDailyAiLimit } from "@/lib/platform/usage";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -57,10 +58,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Describe the business, paste a link or upload a file first." }, { status: 400 });
     }
 
-    const suggestion = await suggestBrief(sources, biz.name, aiTierFor(auth.email));
+    checkDailyAiLimit(auth.email);
+    const suggestion = await suggestBrief(sources, biz.name, aiTierFor(auth.email), { businessId: biz.id, feature: "brief" });
     return NextResponse.json({ success: true, ...suggestion, used });
   } catch (err) {
-    if (err instanceof BriefError) return NextResponse.json({ success: false, error: err.message }, { status: err.status });
+    if (err instanceof BriefError || err instanceof BudgetError) return NextResponse.json({ success: false, error: err.message }, { status: err.status });
     console.error("[brief/suggest]", err);
     return NextResponse.json({ success: false, error: "Something went wrong. Please try again." }, { status: 500 });
   }

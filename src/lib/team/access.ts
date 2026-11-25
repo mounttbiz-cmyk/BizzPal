@@ -22,7 +22,8 @@ const AREA_BY_PREFIX: Array<[string, string]> = [
 // Only the owner may use these at all.
 const OWNER_ONLY_PREFIXES = ["/api/team/invites", "/api/team/hris", "/api/payments", "/api/verify", "/api/business/register"];
 // Owner-only when changing something; teammates may read.
-const OWNER_ONLY_WRITES = ["/api/team", "/api/business", "/api/briefing", "/api/companies"];
+// Agents, approvals and credits change money and outside systems, so only the owner may change them.
+const OWNER_ONLY_WRITES = ["/api/team", "/api/business", "/api/briefing", "/api/companies", "/api/agents", "/api/approvals", "/api/credits"];
 // Changes that are about the person's own view, so teammates may make them.
 const TEAMMATE_WRITES = ["/api/team/permissions", "/api/companies/active"];
 

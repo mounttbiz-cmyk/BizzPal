@@ -1,4 +1,5 @@
 import { DEFAULT_SUBSCRIPTION_PLANS, getPlatformConfig, getTeamMembership, getUserActiveSubscription } from "@/lib/db";
+import { recordAiUsage } from "@/lib/platform/usage";
 
 /**
  * Sends a conversation to the AI providers. Used by the AI chat and by DataPal.
@@ -29,7 +30,20 @@ export interface ChatRequest {
   json?: boolean;
   /** 0 for extraction and classification work that must be repeatable */
   temperature?: number;
+  /** When set, the tokens and cost of the answer are recorded for this business and feature */
+  meter?: { businessId: string; feature: string; traceId?: string | null };
 }
+
+/** An answer with what it cost: which provider and model answered, and the tokens used. */
+export interface Answer {
+  text: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+const tokens = (v: unknown) => (Number.isFinite(Number(v)) ? Math.max(0, Math.round(Number(v))) : 0);
 
 // Gemini models per tier, tried in order so a retired name falls through to the next one. Change them without a
 // deploy by setting GEMINI_MODELS_TOP / GEMINI_MODELS_PAID / GEMINI_MODELS_FREE (comma separated) on the server.
@@ -86,7 +100,7 @@ function thinkingFor(model: string, tier: AiTier): Record<string, unknown> | und
   return undefined; // aliases such as gemini-flash-latest decide for themselves
 }
 
-async function callGemini(apiKey: string, req: ChatRequest, models: string[], tier: AiTier): Promise<string | null> {
+async function callGemini(apiKey: string, req: ChatRequest, models: string[], tier: AiTier): Promise<Answer | null> {
   const contents = [
     ...(req.history || []).map(t => ({ role: t.role === "assistant" ? "model" : "user", parts: [{ text: t.text }] })),
     {
@@ -136,7 +150,11 @@ async function callGemini(apiKey: string, req: ChatRequest, models: string[], ti
         .map((p: any) => p.text)
         .join("")
         .trim();
-      if (text) return text;
+      if (text) {
+        const u = data.usageMetadata || {};
+        // Thinking is billed as output
+        return { text, provider: "gemini", model, inputTokens: tokens(u.promptTokenCount), outputTokens: tokens(u.candidatesTokenCount) + tokens(u.thoughtsTokenCount) };
+      }
       console.warn(`[ai] Gemini ${model} gave no text (finish reason ${candidate?.finishReason || data.promptFeedback?.blockReason || "unknown"})`);
     } catch (err: any) {
       const aborted = err?.name === "AbortError";
@@ -149,7 +167,7 @@ async function callGemini(apiKey: string, req: ChatRequest, models: string[], ti
 }
 
 /** OpenAI-style chat APIs (Groq, OpenRouter, Mistral). */
-async function callOpenAiStyle(url: string, apiKey: string, models: string[], req: ChatRequest): Promise<string | null> {
+async function callOpenAiStyle(provider: string, url: string, apiKey: string, models: string[], req: ChatRequest): Promise<Answer | null> {
   const messages = [
     { role: "system", content: req.system },
     ...(req.history || []).map(t => ({ role: t.role, content: t.text })),
@@ -165,13 +183,13 @@ async function callOpenAiStyle(url: string, apiKey: string, models: string[], re
       if (!resp.ok) continue;
       const data = await resp.json();
       const text = data.choices?.[0]?.message?.content;
-      if (text) return text;
+      if (text) return { text, provider, model: String(data.model || model), inputTokens: tokens(data.usage?.prompt_tokens), outputTokens: tokens(data.usage?.completion_tokens) };
     } catch {}
   }
   return null;
 }
 
-async function callCohere(apiKey: string, req: ChatRequest): Promise<string | null> {
+async function callCohere(apiKey: string, req: ChatRequest): Promise<Answer | null> {
   const resp = await fetch("https://api.cohere.com/v1/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
@@ -186,28 +204,36 @@ async function callCohere(apiKey: string, req: ChatRequest): Promise<string | nu
   });
   if (!resp.ok) return null;
   const data = await resp.json();
-  return data.text || null;
+  if (!data.text) return null;
+  const billed = data.meta?.billed_units || {};
+  return { text: data.text, provider: "cohere", model: "command-a-03-2025", inputTokens: tokens(billed.input_tokens), outputTokens: tokens(billed.output_tokens) };
 }
 
 /** The answer to a conversation, or null when no provider allowed for this tier can answer. */
 export async function generateChat(req: ChatRequest, tier: AiTier): Promise<string | null> {
+  return (await generateChatDetailed(req, tier))?.text ?? null;
+}
+
+/** Like generateChat, with the provider, model and tokens used. Records the usage when `req.meter` is set. */
+export async function generateChatDetailed(req: ChatRequest, tier: AiTier): Promise<Answer | null> {
   const env = process.env;
   const gemini = () =>
     env.GEMINI_API_KEY ? callGemini(env.GEMINI_API_KEY, req, GEMINI_MODELS[tier](), tier) : Promise.resolve(null);
 
   // The top plan is answered by Gemini Pro and nothing else. Files can only be read by Gemini.
-  const chain: Array<() => Promise<string | null>> =
+  const chain: Array<() => Promise<Answer | null>> =
     tier === "top" || (req.files && req.files.length > 0)
       ? [gemini]
       : [
           gemini,
           () =>
             env.GROQ_API_KEY
-              ? callOpenAiStyle("https://api.groq.com/openai/v1/chat/completions", env.GROQ_API_KEY, ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"], req)
+              ? callOpenAiStyle("groq", "https://api.groq.com/openai/v1/chat/completions", env.GROQ_API_KEY, ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"], req)
               : Promise.resolve(null),
           () =>
             env.OPENROUTER_API_KEY
               ? callOpenAiStyle(
+                  "openrouter",
                   "https://openrouter.ai/api/v1/chat/completions",
                   env.OPENROUTER_API_KEY,
                   ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen-2.5-72b-instruct"],
@@ -216,15 +242,24 @@ export async function generateChat(req: ChatRequest, tier: AiTier): Promise<stri
               : Promise.resolve(null),
           () =>
             env.MISTRAL_API_KEY
-              ? callOpenAiStyle("https://api.mistral.ai/v1/chat/completions", env.MISTRAL_API_KEY, ["mistral-small-latest"], req)
+              ? callOpenAiStyle("mistral", "https://api.mistral.ai/v1/chat/completions", env.MISTRAL_API_KEY, ["mistral-small-latest"], req)
               : Promise.resolve(null),
           () => (env.COHERE_API_KEY ? callCohere(env.COHERE_API_KEY, req) : Promise.resolve(null)),
         ];
 
   for (const attempt of chain) {
     try {
-      const text = await attempt();
-      if (text) return text;
+      const answer = await attempt();
+      if (answer) {
+        if (req.meter) {
+          try {
+            recordAiUsage({ ...req.meter, provider: answer.provider, model: answer.model, inputTokens: answer.inputTokens, outputTokens: answer.outputTokens });
+          } catch (err) {
+            console.warn("[ai] could not record usage:", (err as Error)?.message);
+          }
+        }
+        return answer;
+      }
     } catch {
       // try the next provider
     }
@@ -233,7 +268,7 @@ export async function generateChat(req: ChatRequest, tier: AiTier): Promise<stri
 }
 
 /** A single prompt with no conversation around it (DataPal scoring and drafts). */
-export async function generateText(prompt: string, paid: boolean | AiTier): Promise<string | null> {
+export async function generateText(prompt: string, paid: boolean | AiTier, meter?: ChatRequest["meter"]): Promise<string | null> {
   const tier: AiTier = typeof paid === "string" ? paid : paid ? "paid" : "free";
-  return generateChat({ system: "You are a careful assistant. Follow the instructions exactly.", message: prompt }, tier);
+  return generateChat({ system: "You are a careful assistant. Follow the instructions exactly.", message: prompt, meter }, tier);
 }

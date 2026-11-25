@@ -3,6 +3,8 @@ import { aiTierFor, generateChat, type ChatTurn } from "@/lib/ai/providers";
 import { buildBusinessContext } from "@/lib/ai/businessContext";
 import { briefFields } from "@/lib/brief";
 import { requireUser } from "@/lib/auth/requireUser";
+import { getUserBusinessId } from "@/lib/db";
+import { BudgetError, checkDailyAiLimit } from "@/lib/platform/usage";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 
 export const maxDuration = 120;
@@ -195,8 +197,17 @@ export async function POST(req: NextRequest) {
       toolName: typeof toolContext?.name === "string" ? toolContext.name.slice(0, 80) : undefined,
     });
 
+    try {
+      checkDailyAiLimit(auth.email);
+    } catch (err) {
+      if (err instanceof BudgetError) return NextResponse.json({ success: false, error: err.message }, { status: err.status });
+      throw err;
+    }
     const tier = aiTierFor(auth.email);
-    const answer = await generateChat({ system, history: cleanHistory(body.history), message: message.trim() }, tier);
+    const answer = await generateChat(
+      { system, history: cleanHistory(body.history), message: message.trim(), meter: { businessId: getUserBusinessId(auth.email), feature: "chat" } },
+      tier
+    );
     if (answer) {
       // A hand-over to another advisor comes as a marker line; turn it into a button for the app
       const marker = /\[\[\s*handoff\s*:\s*([a-z]+)\s*\]\]/i.exec(answer);

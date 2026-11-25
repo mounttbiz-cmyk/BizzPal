@@ -300,7 +300,8 @@ function parseJsonObject(text: string | null): any {
 export async function suggestBrief(
   sources: { description?: string; link?: { url: string; text: string }; fileText?: string; file?: { mimeType: string; base64: string }; gst?: string },
   businessName: string,
-  tier: AiTier
+  tier: AiTier,
+  meter?: { businessId: string; feature: string }
 ): Promise<{ summary: string; values: Record<string, string> }> {
   const fields = briefFields();
   const material: string[] = [];
@@ -333,7 +334,7 @@ ${JSON.stringify(
   2
 )}`;
 
-  const reply = await generateChat({ system, message, files: sources.file ? [sources.file] : undefined, json: true }, tier);
+  const reply = await generateChat({ system, message, files: sources.file ? [sources.file] : undefined, json: true, meter }, tier);
   const parsed = parseJsonObject(reply);
   if (!parsed) {
     throw new BriefError(

@@ -515,23 +515,7 @@ function Report({ xray, canCorrect }: { xray: XRay; canCorrect: boolean }) {
                   </dd>
                 </div>
               </dl>
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  disabled
-                  className="h-9 px-4 rounded-lg bg-brass text-white text-sm font-medium opacity-50 cursor-not-allowed"
-                  title="Agents can be switched on once SalesPal and your CRM are connected"
-                >
-                  Activate this agent
-                </button>
-                <span className="text-xs text-text-muted">
-                  Coming next: agents switch on once SalesPal and your systems are connected in{" "}
-                  <Link href="/integrations" className="underline hover:text-text">
-                    Integrations
-                  </Link>
-                  .
-                </span>
-              </div>
+              <ActivateAgent agentId={agent.agent.id} canActivate={canCorrect} />
             </section>
           )}
         </div>
@@ -699,5 +683,43 @@ function ProfileCard({
         })}
       </dl>
     </section>
+  );
+}
+
+/** Adds the recommended agent as a draft and opens it, where its checks show what is needed before it can work. */
+function ActivateAgent({ agentId, canActivate }: { agentId: string; canActivate: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const start = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.success) throw new Error(d.error || "Could not add the agent.");
+      window.location.assign(`/agents?agent=${encodeURIComponent(d.agent.id)}`);
+    } catch (e: any) {
+      setError(e.message);
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-5 flex flex-wrap items-center gap-3">
+      {canActivate ? (
+        <button
+          type="button"
+          onClick={start}
+          disabled={busy}
+          className="h-9 px-4 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+          Activate this agent
+        </button>
+      ) : (
+        <span className="text-xs text-text-muted">The account owner can activate agents.</span>
+      )}
+      <span className="text-xs text-text-muted">It starts as a draft. It works only after its checks pass and you switch it on.</span>
+      {error && <span className="w-full text-sm text-rust">{error}</span>}
+    </div>
   );
 }

@@ -132,7 +132,8 @@ export async function analyseWebsite(
   snapshot: CrawlSnapshot,
   ownerFacts: string[],
   businessName: string,
-  tier: AiTier
+  tier: AiTier,
+  meter?: { businessId: string; feature: string; traceId?: string | null }
 ): Promise<XRayResult> {
   const pageTexts = new Map<string, string>(snapshot.pages.map(p => [p.id, p.text]));
   if (ownerFacts.length) pageTexts.set("brief", ownerFacts.join("\n"));
@@ -155,7 +156,7 @@ ${material}
 Fill this format:
 ${outputTemplate()}`;
 
-  const reply = await generateChat({ system: SYSTEM, message, json: true, temperature: 0 }, tier);
+  const reply = await generateChat({ system: SYSTEM, message, json: true, temperature: 0, meter }, tier);
   const raw = parseJsonObject(reply);
   if (!raw) throw new AnalysisError("The analysis could not be completed right now. Please try again in a moment.");
   return validate(raw, pageTexts, snapshot);

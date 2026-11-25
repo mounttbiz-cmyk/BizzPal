@@ -802,7 +802,8 @@ export function saveUserBusinessProfile(email: string, profile: any): boolean {
  * Delete a registered user from SQLite
  */
 // Kept after an account is deleted because tax and accounting law requires payment records.
-const KEPT_AFTER_DELETE = new Set(["payment_transactions", "subscriptions", "datapal_usage_log"]);
+// Credit ledgers and audit events are financial and security records, kept for their legal retention period.
+const KEPT_AFTER_DELETE = new Set(["payment_transactions", "subscriptions", "datapal_usage_log", "credit_ledger", "credit_reservations", "audit_events", "ai_usage"]);
 // Tables keyed by the person's email instead of by business: [table, column]
 const EMAIL_KEYED: Array<[string, string]> = [
   ["password_resets", "email"],
@@ -1892,6 +1893,20 @@ try {
       db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'dashboard_nav'").run(JSON.stringify(nav), new Date().toISOString());
     }
     db.prepare("INSERT OR REPLACE INTO platform_config (config_key, config_value, updated_at) VALUES ('nav_added_xray', 'true', ?)").run(new Date().toISOString());
+  }
+} catch {}
+
+// Add the AI Agents item to the saved menu once.
+try {
+  const done = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'nav_added_agents'").get() as any;
+  const navRow = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'dashboard_nav'").get() as any;
+  if (!done && navRow && typeof navRow.config_value === "string") {
+    const nav = JSON.parse(navRow.config_value);
+    if (Array.isArray(nav) && !nav.some((i: any) => i?.id === "nav_agents" || i?.href === "/agents")) {
+      nav.push({ id: "nav_agents", label: "AI Agents", href: "/agents", icon: "Bot", order: 12.5, mobileTab: false, group: "management", enabled: true });
+      db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'dashboard_nav'").run(JSON.stringify(nav), new Date().toISOString());
+    }
+    db.prepare("INSERT OR REPLACE INTO platform_config (config_key, config_value, updated_at) VALUES ('nav_added_agents', 'true', ?)").run(new Date().toISOString());
   }
 } catch {}
 

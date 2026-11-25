@@ -22,6 +22,10 @@ export interface AgentDefinition {
   approvals: string;
   /** The kinds of leak it addresses */
   fixes: LeakType[];
+  /** Connections that must be live before it can be activated (integration keys) */
+  requires: string[];
+  /** The only actions it may ask for (see lib/platform/policy.ts) */
+  tools: string[];
 }
 
 export interface IndustryPack {
@@ -40,6 +44,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
     agents: [
       {
         id: "re_lead_qualifier",
+        requires: ["salespal", "crm", "calendar"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "crm.read_lead", "crm.update_lead", "calendar.book_slot", "whatsapp.send_template", "salespal.start_call"],
         name: "AI Lead Qualifier & Site-Visit Booker",
         job: "Qualifies property enquiries (budget, location, timeline) and books site visits.",
         needs: ["SalesPal (voice and WhatsApp)", "CRM", "Calendar"],
@@ -50,6 +56,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
       },
       {
         id: "re_rera_listing_qa",
+        requires: ["documents"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal"],
         name: "RERA Compliance & Listing QA",
         job: "Checks listings against your project facts and your RERA checklist.",
         needs: ["Brain Drive documents", "Listing source"],
@@ -60,6 +68,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
       },
       {
         id: "re_broker_payout",
+        requires: ["accounting", "crm", "documents"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "crm.read_lead"],
         name: "Broker Payout Reconciler",
         job: "Matches closed deals, brokerage terms, invoices and payout records.",
         needs: ["Accounting / ERP", "CRM", "Brokerage agreements"],
@@ -70,6 +80,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
       },
       {
         id: "re_property_ops",
+        requires: ["whatsapp", "tickets"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "whatsapp.send_template"],
         name: "Property Operations Coordinator",
         job: "Sorts maintenance requests, assigns them and tracks the response time.",
         needs: ["WhatsApp", "Ticket or property system"],
@@ -87,6 +99,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
     agents: [
       {
         id: "fs_lead_closer",
+        requires: ["salespal", "crm", "calendar"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "crm.read_lead", "crm.update_lead", "calendar.book_slot", "whatsapp.send_template", "salespal.start_call"],
         name: "AI Lead Closer & Appointment Setter",
         job: "Responds to opted-in enquiries, qualifies interest and books an advisor callback.",
         needs: ["SalesPal (voice and WhatsApp)", "CRM", "Calendar"],
@@ -97,6 +111,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
       },
       {
         id: "fs_commission_reconciler",
+        requires: ["accounting", "crm", "documents"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "crm.read_lead"],
         name: "Broker Payout & Commission Reconciler",
         job: "Matches commission statements with ledger entries.",
         needs: ["Accounting", "CRM / ERP", "Commission statements"],
@@ -107,6 +123,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
       },
       {
         id: "fs_kyc_checker",
+        requires: ["documents", "crm"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "crm.read_lead"],
         name: "KYC Document Completeness Checker",
         job: "Checks KYC documents are present, legible and consistent.",
         needs: ["Secure document storage", "CRM"],
@@ -117,6 +135,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
       },
       {
         id: "fs_renewal_followup",
+        requires: ["crm", "whatsapp", "calendar"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "crm.read_lead", "whatsapp.send_template", "calendar.book_slot"],
         name: "Renewal & Service Follow-up Agent",
         job: "Tracks renewal dates and sends approved reminders.",
         needs: ["CRM", "WhatsApp", "Calendar"],
@@ -134,6 +154,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
     agents: [
       {
         id: "saas_lead_closer",
+        requires: ["salespal", "crm", "calendar"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "crm.read_lead", "crm.update_lead", "calendar.book_slot", "whatsapp.send_template", "salespal.start_call"],
         name: "AI Lead Closer",
         job: "Qualifies inbound leads, answers approved FAQs, books demos and updates the CRM.",
         needs: ["SalesPal (voice and WhatsApp)", "CRM", "Calendar"],
@@ -144,6 +166,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
       },
       {
         id: "saas_campaign_analyst",
+        requires: ["crm", "analytics"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "crm.read_lead"],
         name: "Campaign Performance Analyst",
         job: "Summarises funnel and channel performance and flags anomalies.",
         needs: ["CRM", "Analytics", "Brain Drive"],
@@ -154,6 +178,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
       },
       {
         id: "saas_delivery_coordinator",
+        requires: ["project", "email", "crm"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "crm.read_lead"],
         name: "Client Delivery & SLA Coordinator",
         job: "Tracks milestones, collects client inputs and drafts status updates.",
         needs: ["Project tool", "Email", "CRM"],
@@ -164,6 +190,8 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
       },
       {
         id: "saas_proposal_assistant",
+        requires: ["documents", "crm"],
+        tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "crm.read_lead"],
         name: "Proposal & Scope Assistant",
         job: "Drafts proposals from your approved rate cards and discovery notes.",
         needs: ["Brain Drive (rate cards)", "CRM", "Documents"],
@@ -194,3 +222,17 @@ export function agentById(id: string): { agent: AgentDefinition; pack: IndustryP
   }
   return null;
 }
+
+/** What each connection key means, for people. */
+export const REQUIREMENT_LABELS: Record<string, string> = {
+  salespal: "SalesPal",
+  crm: "CRM",
+  calendar: "Calendar",
+  whatsapp: "WhatsApp Business",
+  accounting: "Accounting / ERP",
+  documents: "Documents in the Knowledge Hub",
+  tickets: "Ticket or property system",
+  project: "Project tool",
+  email: "Email",
+  analytics: "Analytics",
+};

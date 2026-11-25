@@ -4,6 +4,7 @@ import { db, getUserBusinessId } from "@/lib/db";
 import { rateLimit } from "@/lib/rateLimit";
 import { CrawlError, normaliseStart } from "@/lib/xray/crawl";
 import { getXRay, listXRays, startXRay } from "@/lib/xray/store";
+import { BudgetError, checkDailyAiLimit } from "@/lib/platform/usage";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,12 @@ export async function POST(req: Request) {
   }
   if (!rateLimit(`xray:${auth.email}`, 10, 60 * 60 * 1000).ok) {
     return NextResponse.json({ success: false, error: "You have run several X-Rays in the last hour. Please try again a little later." }, { status: 429 });
+  }
+  try {
+    checkDailyAiLimit(auth.email);
+  } catch (err) {
+    if (err instanceof BudgetError) return NextResponse.json({ success: false, error: err.message }, { status: err.status });
+    throw err;
   }
   const { id, alreadyRunning } = startXRay({ businessId: biz.id, businessName: biz.name, url, email: auth.email });
   return NextResponse.json({ success: true, id, alreadyRunning }, { status: 202 });

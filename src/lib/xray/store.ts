@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { aiTierFor } from "@/lib/ai/providers";
 import { briefForAdvisors } from "@/lib/brief";
+import { newTraceId, recordAudit } from "@/lib/platform/audit";
 import { crawlWebsite, CrawlError, type CrawlSnapshot } from "./crawl";
 import { analyseWebsite, AnalysisError, XRAY_PROMPT_VERSION, XRAY_SCHEMA_VERSION, type XRayResult } from "./analyze";
 
@@ -50,10 +51,15 @@ try {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       finished_at TEXT,
-      duration_ms INTEGER
+      duration_ms INTEGER,
+      trace_id TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_business_xrays_business ON business_xrays (business_id, created_at DESC);
   `);
+} catch {}
+// Existing databases: add the trace column
+try {
+  db.exec("ALTER TABLE business_xrays ADD COLUMN trace_id TEXT");
 } catch {}
 
 const parse = (s: unknown) => {
@@ -122,18 +128,21 @@ export function startXRay(opts: { businessId: string; businessName: string; url:
   if (running && toRecord(running).status !== "failed") return { id: running.id, alreadyRunning: true };
 
   const id = `xray_${randomBytes(10).toString("hex")}`;
+  const traceId = newTraceId();
   const now = new Date().toISOString();
   db.prepare(
     `INSERT INTO business_xrays (id, business_id, url, status, progress, schema_version, prompt_version, created_by, created_at, updated_at)
      VALUES (?, ?, ?, 'reading', ?, ?, ?, ?, ?, ?)`
   ).run(id, opts.businessId, opts.url, JSON.stringify({ read: 0, total: 1 }), XRAY_SCHEMA_VERSION, XRAY_PROMPT_VERSION, opts.email, now, now);
+  update(id, { trace_id: traceId });
+  recordAudit({ businessId: opts.businessId, traceId, actor: opts.email, action: "xray.started", resource: id, detail: { url: opts.url } });
 
   // The work continues after the request has answered; the page checks its progress
-  void run(id, opts);
+  void run(id, { ...opts, traceId });
   return { id, alreadyRunning: false };
 }
 
-async function run(id: string, opts: { businessId: string; businessName: string; url: string; email: string }) {
+async function run(id: string, opts: { businessId: string; businessName: string; url: string; email: string; traceId: string }) {
   const started = Date.now();
   try {
     const snapshot = await crawlWebsite(opts.url, (read, total) => update(id, { progress: JSON.stringify({ read, total }) }));
@@ -142,12 +151,14 @@ async function run(id: string, opts: { businessId: string; businessName: string;
     update(id, { status: "analysing", snapshot: JSON.stringify(storedSnapshot), url: snapshot.finalUrl });
 
     const owner = briefForAdvisors(opts.businessId).lines;
-    const result = await analyseWebsite(snapshot, owner, opts.businessName, aiTierFor(opts.email));
+    const result = await analyseWebsite(snapshot, owner, opts.businessName, aiTierFor(opts.email), { businessId: opts.businessId, feature: "xray", traceId: opts.traceId });
     update(id, { status: "done", result: JSON.stringify(result), finished_at: new Date().toISOString(), duration_ms: Date.now() - started });
+    recordAudit({ businessId: opts.businessId, traceId: opts.traceId, actor: "system", action: "xray.done", resource: id, detail: { pages: snapshot.pages.length, problems: result.opportunities.length } });
   } catch (err) {
     const message =
       err instanceof CrawlError || err instanceof AnalysisError ? err.message : "Something went wrong while running the X-Ray. Please try again.";
     if (!(err instanceof CrawlError || err instanceof AnalysisError)) console.error("[xray]", err);
     update(id, { status: "failed", error: message, finished_at: new Date().toISOString(), duration_ms: Date.now() - started });
+    recordAudit({ businessId: opts.businessId, traceId: opts.traceId, actor: "system", action: "xray.failed", resource: id, detail: { error: message } });
   }
 }
