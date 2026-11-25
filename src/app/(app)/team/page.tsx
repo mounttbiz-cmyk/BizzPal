@@ -7,6 +7,7 @@ import { UserPlus, Trash2, RotateCw } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
 
+import { askConfirm } from "@/components/ui/dialogs";
 interface Teammate {
   id: string;
   name: string;
@@ -114,7 +115,7 @@ export default function TeamPage() {
   };
 
   const handleRemove = async (t: Teammate) => {
-    if (!confirm(`Remove ${t.name || t.email} from your team? They will lose access straight away.`)) return;
+    if (!(await askConfirm({ title: `Remove ${t.name || t.email}?`, message: "They will lose access to this business straight away.", confirmLabel: "Remove", danger: true }))) return;
     await fetch("/api/team/invites", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },

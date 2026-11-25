@@ -262,7 +262,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-5 rounded-2xl bg-surface border border-line space-y-4 shadow-sm">
-            <h3 className="text-xs font-semibold text-text uppercase tracking-wider font-mono flex items-center gap-2">
+            <h3 className="text-xs font-semibold text-text font-mono flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-brass" />
               Brand Logo & Identity
             </h3>
@@ -273,7 +273,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                 <img
                   src={nav.logoUrl || "/logo-icon.png"}
                   alt={nav.brand || "BizzPal"}
-                  className="w-9 h-8 object-contain drop-shadow-[0_0_8px_rgba(217,180,74,0.45)]"
+                  className="w-9 h-8 object-contain drop-"
                 />
                 <span className="font-semibold text-base tracking-tight text-white">
                   {nav.brand || "BizzPal"}
@@ -323,7 +323,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                           nav: { ...nav, logoUrl: "/logo-icon.png" },
                         })
                       }
-                      className="px-2 py-1.5 rounded-lg text-xs text-text-muted hover:text-rose-500 border border-line bg-surface-2 flex items-center gap-1 cursor-pointer"
+                      className="px-2 py-1.5 rounded-lg text-xs text-text-muted hover:text-rust border border-line bg-surface-2 flex items-center gap-1 cursor-pointer"
                       title="Reset to default 3D gold icon"
                     >
                       <RotateCcw className="w-3 h-3" />
@@ -393,7 +393,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                       })
                     }
                     className={`px-2 py-0.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${nav.ctaEnabled !== false
-                        ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                        ? "bg-jade/15 border-jade/30 text-jade"
                         : "bg-surface-2 border-line text-text-muted"
                       }`}
                   >
@@ -438,7 +438,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
           {/* Navbar Menu Links with Reorder and Active Toggles */}
           <div className="p-5 rounded-2xl bg-surface border border-line space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-text uppercase tracking-wider font-mono">Navbar Menu Links</h3>
+              <h3 className="text-xs font-semibold text-text font-mono">Navbar Menu Links</h3>
               <span className="text-xs text-text-muted font-mono">{(nav.links || []).length} Items</span>
             </div>
 
@@ -463,7 +463,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                       className="p-1 rounded text-text-muted hover:text-text cursor-pointer"
                       title={link.enabled !== false ? "Hide link" : "Show link"}
                     >
-                      {link.enabled !== false ? <Eye className="w-3.5 h-3.5 text-emerald-500" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      {link.enabled !== false ? <Eye className="w-3.5 h-3.5 text-jade" /> : <EyeOff className="w-3.5 h-3.5" />}
                     </button>
                     <button
                       type="button"
@@ -486,7 +486,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                     <button
                       type="button"
                       onClick={() => handleDeleteNavLink(i)}
-                      className="p-1 rounded text-text-muted hover:text-rose-500 cursor-pointer"
+                      className="p-1 rounded text-text-muted hover:text-rust cursor-pointer"
                       title="Delete link"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -542,7 +542,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all  self-start sm:self-auto cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{saving ? "Saving..." : "Save Vision Words"}</span>
@@ -566,7 +566,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
           </div>
 
           <div className="space-y-2 pt-2">
-            <label className="text-xs font-semibold text-text uppercase tracking-wider font-mono block">
+            <label className="text-xs font-semibold text-text font-mono block">
               Sequential Animated Words ({(vision.words || []).length} Words)
             </label>
             <div className="space-y-2">
@@ -604,7 +604,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                     <button
                       type="button"
                       onClick={() => handleDeleteVisionWord(i)}
-                      className="p-1 rounded text-text-muted hover:text-rose-500 cursor-pointer"
+                      className="p-1 rounded text-text-muted hover:text-rust cursor-pointer"
                       title="Delete word"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -654,7 +654,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all  self-start sm:self-auto cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{saving ? "Saving..." : "Save Stats Metrics"}</span>
@@ -664,7 +664,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-5 rounded-2xl bg-surface border border-line space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-text uppercase tracking-wider font-mono">Current Impact Stats</h3>
+              <h3 className="text-xs font-semibold text-text font-mono">Current Impact Stats</h3>
               <span className="text-xs text-text-muted font-mono">{(stats.items || []).length} Metrics</span>
             </div>
 
@@ -675,7 +675,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                   className="flex items-center justify-between gap-2 p-3 rounded-xl bg-surface-2 border border-line text-sm"
                 >
                   <div>
-                    <div className="text-base font-semibold text-gold font-mono">{item.num}</div>
+                    <div className="text-base font-semibold text-brass font-mono">{item.num}</div>
                     <div className="text-text font-semibold">{item.label}</div>
                   </div>
 
@@ -701,7 +701,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                     <button
                       type="button"
                       onClick={() => handleDeleteStat(i)}
-                      className="p-1 rounded text-text-muted hover:text-rose-500 cursor-pointer"
+                      className="p-1 rounded text-text-muted hover:text-rust cursor-pointer"
                       title="Delete stat"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -741,7 +741,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
 
           {/* Live Preview Box */}
           <div className="p-5 rounded-2xl bg-surface border border-line space-y-4 shadow-sm">
-            <h3 className="text-xs font-semibold text-text uppercase tracking-wider font-mono">Live Website Preview</h3>
+            <h3 className="text-xs font-semibold text-text font-mono">Live Website Preview</h3>
             <div className="p-6 rounded-2xl bg-[#08070A] border border-[#D6B46A]/25 grid grid-cols-2 gap-4">
               {(stats.items || []).map((s: any, idx: number) => (
                 <div key={idx} className="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
@@ -773,7 +773,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all  self-start sm:self-auto cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{saving ? "Saving..." : "Save Footer"}</span>
@@ -782,7 +782,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-5 rounded-2xl bg-surface border border-line space-y-4 shadow-sm">
-            <h3 className="text-xs font-semibold text-text uppercase tracking-wider font-mono">Footer Copy</h3>
+            <h3 className="text-xs font-semibold text-text font-mono">Footer Copy</h3>
             <div className="space-y-3 text-xs">
               <div className="space-y-1">
                 <label className="font-semibold text-text">Footer Brand Wordmark</label>
@@ -832,7 +832,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
           </div>
 
           <div className="p-5 rounded-2xl bg-surface border border-line space-y-4 shadow-sm">
-            <h3 className="text-xs font-semibold text-text uppercase tracking-wider font-mono">Footer Legal & Policy Links</h3>
+            <h3 className="text-xs font-semibold text-text font-mono">Footer Legal & Policy Links</h3>
             <div className="space-y-2">
               {(footer.legalLinks || []).map((ll: any, idx: number) => (
                 <div
@@ -846,7 +846,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
                   <button
                     type="button"
                     onClick={() => handleDeleteLegalLink(idx)}
-                    className="p-1 rounded text-text-muted hover:text-rose-500 cursor-pointer"
+                    className="p-1 rounded text-text-muted hover:text-rust cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -899,7 +899,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
           type="button"
           onClick={onSave}
           disabled={saving}
-          className="px-4 py-2 rounded-xl text-xs font-semibold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all  self-start sm:self-auto cursor-pointer"
+          className="px-4 py-2 rounded-xl text-xs font-semibold bg-brass hover:brightness-110 text-white flex items-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer"
         >
           <Save className="w-3.5 h-3.5" />
           <span>{saving ? "Saving..." : "Save Announcement"}</span>
@@ -924,7 +924,7 @@ export function WebsiteCmsExtra({ config, onChange, onSave, saving, subTab }: We
               })
             }
             className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${announcement.enabled
-                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                ? "bg-jade/15 border-jade/30 text-jade"
                 : "bg-surface-2 border-line text-text-muted"
               }`}
           >

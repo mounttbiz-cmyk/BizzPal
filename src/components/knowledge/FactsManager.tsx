@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { ShieldCheck, Trash2, CheckCircle2, RefreshCw, Tag, Scale, Landmark, Building2, Zap, Target, Bookmark, X, Search } from "lucide-react";
 
+import { askConfirm, showNotice } from "@/components/ui/dialogs";
 interface BusinessFact {
   id: string;
   category: string;
@@ -117,14 +118,14 @@ export function FactsManager() {
         fetchFacts();
       }
     } catch {
-      alert("Failed to record fact");
+      showNotice("Could not save the fact. Please try again.", "error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeactivate = async (id: string, key: string) => {
-    if (!confirm(`Deactivate corporate truth "${key}"?`)) return;
+    if (!(await askConfirm({ title: `Stop using "${key}"?`, message: "The AI will no longer rely on this fact.", confirmLabel: "Stop using it", danger: true }))) return;
     try {
       const res = await fetch(`/api/knowledge/facts?id=${id}`, { method: "DELETE" });
       const data = await res.json();
@@ -134,7 +135,7 @@ export function FactsManager() {
         fetchFacts();
       }
     } catch {
-      alert("Failed to deactivate fact");
+      showNotice("Could not update the fact. Please try again.", "error");
     }
   };
 

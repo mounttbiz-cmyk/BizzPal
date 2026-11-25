@@ -9,6 +9,7 @@ import { BUSINESS_DATA_UPDATED_EVENT } from "@/lib/upload/events";
 import { BUSINESS_TYPES } from "@/lib/onboarding/data";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
+import { askConfirm, showNotice } from "@/components/ui/dialogs";
 export default function BusinessProfileSettingsPage() {
   const router = useRouter();
   const { logout } = useAuth();
@@ -219,7 +220,7 @@ export default function BusinessProfileSettingsPage() {
 
   // Handle Logout
   const handleLogout = async () => {
-    if (!confirm("Are you sure you want to log out of BizzPal Business OS?")) return;
+    if (!(await askConfirm({ title: "Sign out of BizzPal?", confirmLabel: "Sign out" }))) return;
     setIsLoggingOut(true);
     try {
       await logout();
@@ -260,7 +261,7 @@ export default function BusinessProfileSettingsPage() {
       }
 
       // 4. Redirect to login
-      alert("Your account and business data have been permanently deleted.");
+      showNotice("Your account and business data have been permanently deleted.", "success");
       router.push("/login?signup=true");
     } catch (err: any) {
       setDeleteError(err.message || "Failed to delete account. Please try again.");
@@ -320,7 +321,7 @@ export default function BusinessProfileSettingsPage() {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   if (file.size > 2 * 1024 * 1024) {
-                    alert("Please choose an image under 2MB.");
+                    showNotice("Please choose an image under 2 MB.", "error");
                     return;
                   }
                   const reader = new FileReader();

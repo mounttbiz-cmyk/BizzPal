@@ -1,20 +1,29 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+import React, { useMemo, useState } from "react";
+import { ArrowUpRight, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import {
-  Building2, DollarSign,
-  TrendingUp,
-  Search,
-  Plus,
-  Edit2,
-  Trash2,
-  ExternalLink, Zap, ShieldCheck,
-  X,
-  Save,
-  RotateCcw
-} from "lucide-react";
+  AdminModal,
+  Avatar,
+  EmptyState,
+  Panel,
+  PanelToolbar,
+  SearchInput,
+  StatCard,
+  dangerIconButton,
+  formatInr,
+  formatLoginTime,
+  formatWhen,
+  iconButton,
+  inputClass,
+  labelClass,
+  primaryButton,
+  secondaryButton,
+  td,
+  th,
+} from "./ui";
 
+import { askConfirm } from "@/components/ui/dialogs";
 interface Tenant {
   id: string;
   name: string;
@@ -46,81 +55,49 @@ interface TenantsManagerProps {
   notify: (msg: string) => void;
 }
 
-const formatDateTime = (dateStr?: string | null) => {
-  if (!dateStr) return "Never";
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleString("en-US", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  } catch {
-    return dateStr;
-  }
+const INDUSTRIES: Record<string, string> = {
+  saas: "B2B SaaS & Tech",
+  it_services: "IT & Technology Services",
+  agency: "Digital & Creative Agency",
+  ecommerce: "D2C & E-Commerce",
+  manufacturing: "Manufacturing & Supply Chain",
+  consulting: "Professional Consulting",
 };
 
-export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsManagerProps) {
+const EMPTY_FORM = {
+  name: "",
+  founderName: "",
+  industry: "saas",
+  industryLabel: INDUSTRIES.saas,
+  annualRevenue: 0,
+  monthlyRevenue: 0,
+  monthlyBurn: 0,
+  cashOnHand: 0,
+  teamSize: 1,
+  website: "",
+  logoUrl: "",
+};
+
+/** Runway only means something when both cash and monthly spending are known */
+function runwayOf(t: Tenant): number | null {
+  if (!(t.cashOnHand > 0) || !(t.monthlyBurn > 0)) return null;
+  return t.cashOnHand / t.monthlyBurn;
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+
+export function TenantsManager({ tenants, onRefresh, notify }: TenantsManagerProps) {
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [saving, setSaving] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Prevent background scroll and support ESC key to close modal
-  useEffect(() => {
-    if (!isModalOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsModalOpen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isModalOpen]);
-
-  const [form, setForm] = useState({
-    name: "",
-    founderName: "",
-    industry: "saas",
-    industryLabel: "B2B SaaS & Tech",
-    annualRevenue: 1200000,
-    monthlyRevenue: 100000,
-    monthlyBurn: 150000,
-    cashOnHand: 1200000,
-    teamSize: 5,
-    website: "",
-    logoUrl: "",
-  });
+  const [refreshing, setRefreshing] = useState(false);
+  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [viewing, setViewing] = useState<Tenant | null>(null);
 
   const openCreateModal = () => {
     setEditingTenant(null);
-    setForm({
-      name: "",
-      founderName: "Founder",
-      industry: "saas",
-      industryLabel: "B2B SaaS & Tech",
-      annualRevenue: 2400000,
-      monthlyRevenue: 200000,
-      monthlyBurn: 120000,
-      cashOnHand: 1800000,
-      teamSize: 6,
-      website: "https://",
-      logoUrl: "",
-    });
+    setForm({ ...EMPTY_FORM });
     setIsModalOpen(true);
   };
 
@@ -142,530 +119,454 @@ export function TenantsManager({ tenants, stats, onRefresh, notify }: TenantsMan
     setIsModalOpen(true);
   };
 
+  const refresh = async () => {
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
-
     try {
       setSaving(true);
-      if (editingTenant) {
-        const res = await fetch("/api/admin/tenants", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ ...form, id: editingTenant.id }),
-        });
-        if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          throw new Error(`HTTP ${res.status}: ${text.slice(0, 80)}`);
-        }
-        const data = await res.json();
-        if (data.success) {
-          notify(`Enterprise "${form.name}" updated successfully.`);
-          await onRefresh();
-          setIsModalOpen(false);
-        } else {
-          notify(`Error: ${data.error}`);
-        }
-      } else {
-        const res = await fetch("/api/admin/tenants", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify(form),
-        });
-        if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          throw new Error(`HTTP ${res.status}: ${text.slice(0, 80)}`);
-        }
-        const data = await res.json();
-        if (data.success) {
-          notify(`New enterprise "${form.name}" created.`);
-          await onRefresh();
-          setIsModalOpen(false);
-        } else {
-          notify(`Error: ${data.error}`);
-        }
-      }
+      const res = await fetch("/api/admin/tenants", {
+        method: editingTenant ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(editingTenant ? { ...form, id: editingTenant.id } : form),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+      notify(editingTenant ? `Saved "${form.name}".` : `Added "${form.name}".`);
+      await onRefresh();
+      setIsModalOpen(false);
     } catch (err: any) {
-      notify(`Failed: ${err.message}`);
+      notify(`Save failed: ${err.message}`);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSwitchActive = async (t: Tenant) => {
+  const handleOpenDashboard = async (t: Tenant) => {
     try {
-      setSaving(true);
       const res = await fetch("/api/admin/tenants", {
         method: "PUT",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ id: t.id, setActive: true }),
       });
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`HTTP ${res.status}: ${text.slice(0, 80)}`);
-      }
-      const data = await res.json();
-      if (data.success) {
-        localStorage.setItem("bizzpal_business_profile", JSON.stringify(t));
-        notify(`Switched active enterprise to "${t.name}". Opening app...`);
-        setTimeout(() => {
-          window.open("/dashboard", "_blank");
-        }, 400);
-      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+      localStorage.setItem("bizzpal_business_profile", JSON.stringify(t));
+      window.open("/dashboard", "_blank");
     } catch (err: any) {
-      notify(`Failed to switch active tenant: ${err.message}`);
-    } finally {
-      setSaving(false);
+      notify(`Could not open the dashboard: ${err.message}`);
     }
   };
 
   const handleDelete = async (t: Tenant) => {
-    if (!window.confirm(`Permanently delete enterprise "${t.name}" and all associated data from SQLite?`)) {
-      return;
-    }
+    if (!(await askConfirm({ title: `Delete ${t.name}?`, message: "The business and all of its data will be removed. This cannot be undone.", confirmLabel: "Delete business", danger: true }))) return;
     try {
       const res = await fetch(`/api/admin/tenants?businessId=${encodeURIComponent(t.id)}`, {
         method: "DELETE",
         headers: { Accept: "application/json" },
       });
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`HTTP ${res.status}: ${text.slice(0, 80)}`);
-      }
-      const data = await res.json();
-      if (data.success) {
-        notify(`Enterprise "${t.name}" deleted.`);
-        await onRefresh();
-      } else {
-        notify(`Delete failed: ${data.error}`);
-      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+      notify(`Deleted "${t.name}".`);
+      await onRefresh();
     } catch (err: any) {
-      notify(`Error: ${err.message}`);
+      notify(`Delete failed: ${err.message}`);
     }
   };
 
-  const filtered = tenants.filter(
-    (t) =>
-      t.name.toLowerCase().includes(search.toLowerCase()) ||
-      t.founderName.toLowerCase().includes(search.toLowerCase()) ||
-      t.industryLabel.toLowerCase().includes(search.toLowerCase()) ||
-      (t.ownerEmail && t.ownerEmail.toLowerCase().includes(search.toLowerCase()))
+  const q = search.trim().toLowerCase();
+  const filtered = useMemo(
+    () =>
+      tenants.filter(
+        (t) =>
+          !q ||
+          [t.name, t.founderName, t.industryLabel, t.ownerEmail || ""].some((v) => String(v).toLowerCase().includes(q)),
+      ),
+    [tenants, q],
   );
 
-  const lakh = (n: number) => `₹${((n || 0) / 100000).toFixed(1)}L`;
-  const kpis = [
-    { label: "Registered enterprises", value: String(stats.totalBusinesses || tenants.length), note: "Across the platform", Icon: Building2 },
-    { label: "Total annual revenue", value: lakh(stats.totalAnnualRevenue), note: "Reported by enterprises", Icon: DollarSign },
-    { label: "Monthly spending", value: lakh(stats.totalMonthlyBurn), note: "Combined monthly costs", Icon: TrendingUp },
-    { label: "Cash in the bank", value: lakh(stats.totalCashReserves), note: "Combined cash balance", Icon: ShieldCheck },
-  ];
+  const kpis = useMemo(() => {
+    const now = Date.now();
+    const active = tenants.filter((t) => t.lastLoginAt && now - new Date(t.lastLoginAt).getTime() < 7 * DAY).length;
+    const newThisMonth = tenants.filter((t) => t.createdAt && now - new Date(t.createdAt).getTime() < 30 * DAY).length;
+    const reporting = tenants.filter((t) => t.monthlyRevenue > 0);
+    const revenue = reporting.reduce((s, t) => s + t.monthlyRevenue, 0);
+    const lowRunway = tenants.filter((t) => {
+      const r = runwayOf(t);
+      return r !== null && r < 6;
+    }).length;
+    return { active, newThisMonth, reporting: reporting.length, revenue, lowRunway };
+  }, [tenants]);
+
+  const setNum = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm({ ...form, [key]: Math.max(0, Number(e.target.value) || 0) });
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map(k => (
-          <div key={k.label} className="p-5 rounded-2xl bg-surface border border-line shadow-sm">
-            <div className="flex items-center justify-between text-sm text-text-muted">
-              <span>{k.label}</span>
-              <k.Icon className="w-4 h-4" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Businesses"
+          value={tenants.length}
+          note={kpis.newThisMonth ? `${kpis.newThisMonth} joined in the last 30 days` : "None joined in the last 30 days"}
+        />
+        <StatCard label="Active this week" value={kpis.active} note="Signed in during the last 7 days" />
+        <StatCard
+          label="Monthly revenue reported"
+          value={formatInr(kpis.revenue)}
+          note={`${kpis.reporting} of ${tenants.length} businesses have entered it`}
+        />
+        <StatCard label="Low on cash" value={kpis.lowRunway} note="Less than 6 months of runway" />
+      </div>
+
+      <Panel>
+        <PanelToolbar>
+          <SearchInput value={search} onChange={setSearch} placeholder="Search by business, founder, email or industry" className="sm:w-96" />
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <button type="button" onClick={refresh} className={iconButton} title="Refresh" aria-label="Refresh" disabled={refreshing}>
+              <RotateCcw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+            </button>
+            <button type="button" onClick={openCreateModal} className={primaryButton}>
+              <Plus className="w-4 h-4" /> Add business
+            </button>
+          </div>
+        </PanelToolbar>
+
+        {filtered.length === 0 ? (
+          q ? (
+            <EmptyState title={`No businesses match "${search}"`} text="Try a different name, email or industry." />
+          ) : (
+            <EmptyState title="No businesses yet" text="Businesses appear here as soon as someone signs up." />
+          )
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead>
+                <tr className="border-b border-line">
+                  <th className={th}>Business</th>
+                  <th className={th}>Industry</th>
+                  <th className={th}>Last active</th>
+                  <th className={`${th} text-right`}>
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {filtered.map((t) => {
+                  return (
+                    <tr
+                      key={t.id}
+                      onClick={() => setViewing(t)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && e.target === e.currentTarget) setViewing(t);
+                      }}
+                      tabIndex={0}
+                      className="hover:bg-surface-2/40 cursor-pointer focus:outline-none focus-visible:bg-surface-2/60"
+                      title="Show all details"
+                    >
+                      <td className={td}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar name={t.name} src={t.logoUrl} />
+                          <div className="min-w-0">
+                            <p className="font-medium text-text truncate max-w-[280px]">{t.name}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className={`${td} text-text-muted`}>
+                        <span className="block truncate max-w-[200px]">{t.industryLabel}</span>
+                      </td>
+                      <td className={`${td} text-text-muted whitespace-nowrap`} title={t.lastLoginAt ? new Date(t.lastLoginAt).toLocaleString("en-IN") : undefined}>
+                        {formatLoginTime(t.lastLoginAt)}
+                      </td>
+                      <td className={`${td} text-right`} onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDashboard(t)}
+                            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg text-sm text-text hover:bg-surface-2 cursor-pointer whitespace-nowrap"
+                            title="Open this business's dashboard in a new tab"
+                          >
+                            Open <ArrowUpRight className="w-3.5 h-3.5" />
+                          </button>
+                          <button type="button" onClick={() => openEditModal(t)} className={iconButton} title="Edit" aria-label={`Edit ${t.name}`}>
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button type="button" onClick={() => handleDelete(t)} className={dangerIconButton} title="Delete" aria-label={`Delete ${t.name}`}>
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {filtered.length > 0 && (
+          <div className="px-4 py-2.5 border-t border-line text-xs text-text-muted">
+            Showing {filtered.length} of {tenants.length}
+          </div>
+        )}
+      </Panel>
+
+      <AdminModal
+        open={Boolean(viewing)}
+        onClose={() => setViewing(null)}
+        title={viewing?.name || ""}
+        subtitle={viewing ? viewing.industryLabel : undefined}
+        width="max-w-2xl"
+        footer={
+          viewing && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  const t = viewing;
+                  setViewing(null);
+                  handleDelete(t);
+                }}
+                className="mr-auto inline-flex items-center gap-1.5 h-10 px-3 rounded-lg text-sm text-text-muted hover:text-rust hover:bg-rust/10 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const t = viewing;
+                  setViewing(null);
+                  openEditModal(t);
+                }}
+                className={secondaryButton}
+              >
+                <Pencil className="w-4 h-4" /> Edit
+              </button>
+              <button type="button" onClick={() => handleOpenDashboard(viewing)} className={primaryButton}>
+                Open dashboard <ArrowUpRight className="w-4 h-4" />
+              </button>
+            </>
+          )
+        }
+      >
+        {viewing && <TenantDetails t={viewing} />}
+      </AdminModal>
+
+      <AdminModal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingTenant ? "Edit business" : "Add business"}
+        subtitle={editingTenant ? editingTenant.name : "Create a business account by hand."}
+        footer={
+          <>
+            <button type="button" onClick={() => setIsModalOpen(false)} className={secondaryButton}>
+              Cancel
+            </button>
+            <button type="submit" form="tenant-form" disabled={saving || !form.name.trim()} className={primaryButton}>
+              {saving ? "Saving…" : editingTenant ? "Save changes" : "Add business"}
+            </button>
+          </>
+        }
+      >
+        <form id="tenant-form" onSubmit={handleSave} className="space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Business name</label>
+              <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder="e.g. Nexa Systems" />
             </div>
-            <div className="text-2xl font-semibold text-text mt-2">{k.value}</div>
-            <div className="text-xs text-text-muted mt-1">{k.note}</div>
+            <div>
+              <label className={labelClass}>Founder</label>
+              <input value={form.founderName} onChange={(e) => setForm({ ...form, founderName: e.target.value })} className={inputClass} placeholder="Full name" />
+            </div>
+            <div>
+              <label className={labelClass}>Industry</label>
+              <select
+                value={form.industry}
+                onChange={(e) => setForm({ ...form, industry: e.target.value, industryLabel: INDUSTRIES[e.target.value] || form.industryLabel })}
+                className={`${inputClass} cursor-pointer`}
+              >
+                {!INDUSTRIES[form.industry] && <option value={form.industry}>{form.industryLabel}</option>}
+                {Object.entries(INDUSTRIES).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Team size</label>
+              <input type="number" min={1} value={form.teamSize} onChange={(e) => setForm({ ...form, teamSize: Math.max(1, Number(e.target.value) || 1) })} className={inputClass} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Website</label>
+              <input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className={inputClass} placeholder="https://company.in" />
+            </div>
+          </div>
+
+          <div>
+            <p className={labelClass}>Logo</p>
+            <div className="flex items-center gap-3">
+              <Avatar name={form.name} src={form.logoUrl || null} size={44} />
+              <label className={`${secondaryButton} h-9`}>
+                Upload image
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 2 * 1024 * 1024) {
+                      notify("Please choose an image under 2 MB.");
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      const res = ev.target?.result as string;
+                      if (res) setForm((f) => ({ ...f, logoUrl: res }));
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </label>
+              {form.logoUrl && (
+                <button type="button" onClick={() => setForm({ ...form, logoUrl: "" })} className="text-sm text-text-muted hover:text-rust cursor-pointer">
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-line">
+            <p className="text-sm font-medium text-text">Business numbers</p>
+            <p className="text-xs text-text-muted mt-0.5 mb-3">In rupees. Leave at 0 if you don&apos;t know them.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Monthly revenue</label>
+                <input type="number" min={0} value={form.monthlyRevenue} onChange={setNum("monthlyRevenue")} className={`${inputClass} tabular-nums`} />
+              </div>
+              <div>
+                <label className={labelClass}>Yearly revenue</label>
+                <input type="number" min={0} value={form.annualRevenue} onChange={setNum("annualRevenue")} className={`${inputClass} tabular-nums`} />
+              </div>
+              <div>
+                <label className={labelClass}>Monthly spending</label>
+                <input type="number" min={0} value={form.monthlyBurn} onChange={setNum("monthlyBurn")} className={`${inputClass} tabular-nums`} />
+              </div>
+              <div>
+                <label className={labelClass}>Cash in the bank</label>
+                <input type="number" min={0} value={form.cashOnHand} onChange={setNum("cashOnHand")} className={`${inputClass} tabular-nums`} />
+              </div>
+            </div>
+          </div>
+        </form>
+      </AdminModal>
+    </div>
+  );
+}
+
+function DetailGroup({ title, rows }: { title: string; rows: [string, React.ReactNode][] }) {
+  return (
+    <section>
+      <h3 className="text-xs font-medium text-text-muted mb-2">{title}</h3>
+      <dl className="rounded-xl border border-line divide-y divide-line">
+        {rows.map(([k, v]) => (
+          <div key={k} className="px-4 py-2.5 grid grid-cols-[150px_1fr] gap-4 text-sm">
+            <dt className="text-text-muted">{k}</dt>
+            <dd className="text-text min-w-0 break-words">{v}</dd>
           </div>
         ))}
-      </div>
+      </dl>
+    </section>
+  );
+}
 
-      <div className="p-4 rounded-2xl bg-surface border border-line shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-96">
-          <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search by name, founder or industry"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2.5 text-sm rounded-xl bg-surface border border-line text-text placeholder:text-text-muted focus:outline-none focus:border-brass"
-          />
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <button
-            type="button"
-            onClick={() => onRefresh()}
-            className="p-2.5 rounded-xl border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
-            title="Refresh"
-            aria-label="Refresh"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="px-4 py-2.5 rounded-xl text-sm font-medium bg-brass hover:brightness-110 text-white flex items-center gap-1.5 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New enterprise</span>
-          </button>
+const PROVIDER_LABEL: Record<string, string> = { google: "Google", password: "Email and password", email: "Email link" };
+const fullDate = (d?: string | null) =>
+  d && !isNaN(new Date(d).getTime())
+    ? new Date(d).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })
+    : "—";
+const notSet = <span className="text-text-muted">Not added</span>;
+
+function TenantDetails({ t }: { t: Tenant }) {
+  const runway = runwayOf(t);
+  const money = (n: number) => (n > 0 ? `₹${n.toLocaleString("en-IN")}` : notSet);
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <Avatar name={t.name} src={t.logoUrl} size={48} />
+        <div className="min-w-0">
+          <p className="text-base font-semibold text-text truncate">{t.name}</p>
+          <p className="text-sm text-text-muted">
+            Joined {formatWhen(t.createdAt)} · last active {formatLoginTime(t.lastLoginAt)}
+          </p>
         </div>
       </div>
 
-      <div className="bg-surface rounded-2xl border border-line divide-y divide-line overflow-hidden shadow-sm">
-        {filtered.length === 0 ? (
-          <div className="p-12 text-center text-sm text-text-muted">No enterprises match &ldquo;{search}&rdquo;.</div>
-        ) : (
-          filtered.map((t) => {
-            const runway = Number(t.runwayMonths);
-            const initials = t.name.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "EP";
-            return (
-              <div key={t.id} className="p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
-                <div className="flex items-start gap-3.5 min-w-0">
-                  {t.logoUrl ? (
-                    <img src={t.logoUrl} alt={t.name} className="w-10 h-10 rounded-xl object-contain shrink-0 border border-line" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-xl bg-surface-2 text-text-muted text-xs font-semibold flex items-center justify-center shrink-0 border border-line">
-                      {initials}
-                    </div>
-                  )}
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-base font-semibold text-text">{t.name}</span>
-                      <span className="text-xs text-text-muted">{t.isRegisteredUser ? "User account" : "Enterprise"}</span>
-                    </div>
-                    <p className="text-sm text-text-muted truncate">
-                      {t.founderName}
-                      {t.ownerEmail ? ` · ${t.ownerEmail}` : ""}
-                    </p>
-                    <p className="text-sm text-text-muted">
-                      {t.industryLabel} · {t.teamSize} {t.teamSize === 1 ? "member" : "members"}
-                      {t.authProvider ? ` · Signs in with ${t.authProvider}` : ""}
-                    </p>
-                    <p className="text-xs text-text-muted">
-                      Last login {formatDateTime(t.lastLoginAt || t.updatedAt || t.createdAt)}
-                      {t.connectedTools && t.connectedTools.length > 0 ? ` · Connected: ${t.connectedTools.join(", ")}` : ""}
-                      {t.website && (
-                        <>
-                          {" · "}
-                          <a href={t.website} target="_blank" rel="noreferrer" className="text-brass hover:underline inline-flex items-center gap-0.5">
-                            {t.website.replace(/^https?:\/\//, "")}
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        </>
-                      )}
-                    </p>
-                  </div>
-                </div>
+      <DetailGroup
+        title="Owner"
+        rows={[
+          ["Name", t.ownerName || (t.founderName && t.founderName !== "Founder" ? t.founderName : notSet)],
+          [
+            "Email",
+            t.ownerEmail ? (
+              <a href={`mailto:${t.ownerEmail}`} className="text-brass hover:underline">
+                {t.ownerEmail}
+              </a>
+            ) : (
+              <span className="text-text-muted">No sign-in account linked</span>
+            ),
+          ],
+          ["Signs in with", t.authProvider ? PROVIDER_LABEL[t.authProvider] || t.authProvider : <span className="text-text-muted">—</span>],
+          ["Last active", formatLoginTime(t.lastLoginAt)],
+        ]}
+      />
 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 xl:gap-6 shrink-0">
-                  <dl className="grid grid-cols-2 min-[460px]:grid-cols-4 gap-x-6 gap-y-2">
-                    {[
-                      { k: "Revenue / mo", v: `₹${(t.monthlyRevenue / 1000).toFixed(0)}k`, c: "text-text" },
-                      { k: "Spending / mo", v: `₹${(t.monthlyBurn / 1000).toFixed(0)}k`, c: "text-text" },
-                      { k: "Cash", v: `₹${(t.cashOnHand / 1000).toFixed(0)}k`, c: "text-text" },
-                      { k: "Runway", v: `${t.runwayMonths} mo`, c: runway <= 6 ? "text-rust" : "text-text" },
-                    ].map(m => (
-                      <div key={m.k}>
-                        <dt className="text-xs text-text-muted">{m.k}</dt>
-                        <dd className={`text-sm font-semibold mt-0.5 ${m.c}`}>{m.v}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <div className="flex items-center gap-2 justify-end">
-                    <button
-                      type="button"
-                      onClick={() => handleSwitchActive(t)}
-                      className="px-3.5 py-2 rounded-xl text-sm text-text border border-line hover:bg-surface-2 flex items-center gap-1.5 cursor-pointer"
-                      title="Open this business in the dashboard"
-                    >
-                      <Zap className="w-4 h-4" />
-                      <span>Open dashboard</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(t)}
-                      className="p-2.5 rounded-xl border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
-                      title="Edit"
-                      aria-label="Edit"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(t)}
-                      className="p-2.5 rounded-xl border border-line hover:bg-rust/10 text-text-muted hover:text-rust cursor-pointer"
-                      title="Delete"
-                      aria-label="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+      <DetailGroup
+        title="Business"
+        rows={[
+          ["Industry", t.industryLabel || notSet],
+          ["Team size", `${t.teamSize} ${t.teamSize === 1 ? "person" : "people"}`],
+          [
+            "Website",
+            t.website && t.website !== "https://" ? (
+              <a href={t.website} target="_blank" rel="noreferrer" className="text-brass hover:underline">
+                {t.website.replace(/^https?:\/\//, "")}
+              </a>
+            ) : (
+              notSet
+            ),
+          ],
+          ["Connected tools", t.connectedTools?.length ? t.connectedTools.join(", ") : <span className="text-text-muted">None</span>],
+          ["Created", fullDate(t.createdAt)],
+          ["Last updated", fullDate(t.updatedAt)],
+          ["Account ID", <span className="text-text-muted text-xs">{t.id}</span>],
+        ]}
+      />
 
-      {/* MODAL: ADD / EDIT TENANT */}
-      {mounted && isModalOpen && createPortal(
-        <div
-          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsModalOpen(false);
-          }}
-        >
-          <div className="relative w-full max-w-xl max-h-[88vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-surface shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-gold">
-                  <Building2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-text">
-                    {editingTenant ? `Edit Enterprise: ${editingTenant.name}` : "Create New Enterprise Profile"}
-                  </h3>
-                  <p className="text-xs text-text-muted">Multi-tenant profile & financial telemetry</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer transition-colors"
-                aria-label="Close modal"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Scrollable Form Body */}
-            <form id="tenant-modal-form" onSubmit={handleSave} className="overflow-y-auto px-6 py-4 space-y-4 text-xs flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-semibold text-text">Company / Brand Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Nexa Systems"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold font-semibold"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-semibold text-text">Founder / CEO Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Founder Name"
-                    value={form.founderName}
-                    onChange={(e) => setForm({ ...form, founderName: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text focus:outline-none focus:border-gold"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-semibold text-text">Industry Key</label>
-                  <select
-                    value={form.industry}
-                    onChange={(e) => {
-                      const ind = e.target.value;
-                      const labels: Record<string, string> = {
-                        saas: "B2B SaaS & Tech",
-                        it_services: "IT & Technology Services",
-                        agency: "Digital & Creative Agency",
-                        ecommerce: "D2C & E-Commerce",
-                        manufacturing: "Manufacturing & Supply Chain",
-                        consulting: "Professional Consulting",
-                      };
-                      setForm({
-                        ...form,
-                        industry: ind,
-                        industryLabel: labels[ind] || "Enterprise Business",
-                      });
-                    }}
-                    className="w-full px-2.5 py-2 rounded-xl bg-surface-2 border border-line text-text"
-                  >
-                    <option value="saas">B2B SaaS</option>
-                    <option value="it_services">IT Services</option>
-                    <option value="agency">Agency</option>
-                    <option value="ecommerce">E-Commerce</option>
-                    <option value="manufacturing">Manufacturing</option>
-                    <option value="consulting">Consulting</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-semibold text-text">Team Size</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={form.teamSize}
-                    onChange={(e) => setForm({ ...form, teamSize: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-semibold text-text">Website URL</label>
-                <input
-                  type="text"
-                  placeholder="https://company.in"
-                  value={form.website}
-                  onChange={(e) => setForm({ ...form, website: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-text font-mono text-xs"
-                />
-              </div>
-
-              {/* Business Logo Upload & Live Preview */}
-              <div className="p-3.5 rounded-xl bg-surface-2/50 border border-line space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-text">Enterprise Brand Logo</label>
-                  {form.logoUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, logoUrl: "" })}
-                      className="text-xs text-rust hover:underline cursor-pointer font-medium"
-                    >
-                      Remove Logo
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  {form.logoUrl ? (
-                    <div className="w-12 h-12 shrink-0 flex items-center justify-center">
-                      <img src={form.logoUrl} alt="Logo preview" className="w-full h-full object-contain" />
-                    </div>
-                  ) : (
-                    <div className="w-12 h-12 rounded-xl bg-surface border border-dashed border-line text-text-muted text-xs flex items-center justify-center text-center p-1 shrink-0">
-                      No Logo
-                    </div>
-                  )}
-                  <div className="flex-1 space-y-1.5">
-                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-line hover:bg-surface-2 text-xs font-semibold text-text cursor-pointer transition-colors shadow-2xs">
-                      <span>Upload Logo File (PNG/JPG/SVG)</span>
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          if (file.size > 2 * 1024 * 1024) {
-                            alert("File is too large. Please select an image under 2MB.");
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            const res = ev.target?.result as string;
-                            if (res) setForm({ ...form, logoUrl: res });
-                          };
-                          reader.readAsDataURL(file);
-                        }}
-                      />
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Or paste direct image URL (https://...)"
-                      value={form.logoUrl}
-                      onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-                      className="w-full px-2.5 py-1 text-xs font-mono rounded-lg bg-surface border border-line text-text placeholder:text-text-muted/60"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Financial Inputs */}
-              <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-3">
-                <span className="text-xs font-bold text-text uppercase tracking-wider block">
-                  Financial Baseline & Health Metrics (₹)
-                </span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs text-text-muted">Monthly Revenue (₹)</label>
-                    <input
-                      type="number"
-                      step="1000"
-                      value={form.monthlyRevenue}
-                      onChange={(e) => setForm({ ...form, monthlyRevenue: Number(e.target.value) })}
-                      className="w-full px-3 py-1.5 rounded-lg bg-surface border border-line text-text font-mono"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-text-muted">Annual Revenue (₹)</label>
-                    <input
-                      type="number"
-                      step="10000"
-                      value={form.annualRevenue}
-                      onChange={(e) => setForm({ ...form, annualRevenue: Number(e.target.value) })}
-                      className="w-full px-3 py-1.5 rounded-lg bg-surface border border-line text-text font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs text-text-muted">Monthly Burn Rate (₹)</label>
-                    <input
-                      type="number"
-                      step="1000"
-                      value={form.monthlyBurn}
-                      onChange={(e) => setForm({ ...form, monthlyBurn: Number(e.target.value) })}
-                      className="w-full px-3 py-1.5 rounded-lg bg-surface border border-line text-rose-400 font-mono font-bold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-text-muted">Liquid Cash Reserves (₹)</label>
-                    <input
-                      type="number"
-                      step="10000"
-                      value={form.cashOnHand}
-                      onChange={(e) => setForm({ ...form, cashOnHand: Number(e.target.value) })}
-                      className="w-full px-3 py-1.5 rounded-lg bg-surface border border-line text-emerald-400 font-mono font-bold"
-                    />
-                  </div>
-                </div>
-              </div>
-            </form>
-
-            {/* Sticky Footer */}
-            <div className="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-line bg-surface-2/60 shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 rounded-xl border border-line text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer font-semibold transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="tenant-modal-form"
-                disabled={saving}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all shadow-md shadow-[0_8px_20px_-6px_var(--gold-glow)] flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {saving ? (
-                  <>
-                    <div className="w-3.5 h-3.5 rounded-full border-2 border-[#1a1206] border-t-transparent animate-spin" />
-                    <span>Saving...</span>
-                  </>
-                ) : editingTenant ? (
-                  <>
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Save Changes</span>
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Create Enterprise</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <DetailGroup
+        title="Numbers"
+        rows={[
+          ["Monthly revenue", money(t.monthlyRevenue)],
+          ["Yearly revenue", money(t.annualRevenue)],
+          ["Monthly spending", money(t.monthlyBurn)],
+          ["Cash in the bank", money(t.cashOnHand)],
+          [
+            "Runway",
+            runway === null ? (
+              <span className="text-text-muted">Needs cash and monthly spending</span>
+            ) : (
+              <span className={runway < 6 ? "text-rust font-medium" : ""}>{runway >= 100 ? "99+" : runway.toFixed(1)} months</span>
+            ),
+          ],
+        ]}
+      />
     </div>
   );
 }

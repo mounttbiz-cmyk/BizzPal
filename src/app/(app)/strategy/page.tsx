@@ -5,6 +5,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
 
+import { askConfirm } from "@/components/ui/dialogs";
 export interface GrowthVector {
   id: string;
   title: string;
@@ -234,9 +235,9 @@ export default function GrowthStrategyPage() {
     setIsModalOpen(false);
   };
 
-  const handleDeleteVector = (vectorId: string) => {
+  const handleDeleteVector = async (vectorId: string) => {
     const target = vectors.find(v => v.id === vectorId);
-    if (!confirm(`Delete "${target?.title || "this initiative"}"?`)) {
+    if (!(await askConfirm({ title: `Delete "${target?.title || "this initiative"}"?`, message: "Its steps and progress will be removed.", confirmLabel: "Delete", danger: true }))) {
       return;
     }
 

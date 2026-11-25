@@ -19,16 +19,27 @@ import {
   Trash2,
   Save,
   RotateCcw, X,
-  Film,
-  Type,
-  Eye, MessageSquare, Menu,
+  Menu,
   ArrowLeft,
   LogOut,
   Building2,
   Users,
   CreditCard,
-  Megaphone
+  ArrowUpRight,
 } from "lucide-react";
+import {
+  EmptyState,
+  Panel,
+  PanelToolbar,
+  StatusToggle,
+  Switch,
+  dangerIconButton,
+  iconButton,
+  primaryButton,
+  secondaryButton,
+  td,
+  th,
+} from "./components/ui";
 import { NavItem } from "@/config/schemas/nav";
 import { WidgetDef } from "@/config/schemas/widget";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
@@ -47,12 +58,12 @@ import {
   DEFAULT_DASHBOARD_FEATURES,
 } from "@/config/seeds/defaultCatalog";
 import { DEFAULT_WEBSITE_STATE } from "@/website/hooks/useWebsiteConfig";
-import { motion, AnimatePresence } from "framer-motion";
+
+import { askConfirm } from "@/components/ui/dialogs";
+type AdminTab = "website" | "navigation" | "features" | "widgets" | "tools" | "tenants" | "users" | "plans" | "audit" | "datapal" | "backup";
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<
-    "website" | "navigation" | "features" | "widgets" | "tools" | "tenants" | "users" | "plans" | "audit" | "datapal"
-  >("tenants");
+  const [activeTab, setActiveTab] = useState<AdminTab>("tenants");
   const [subWebTab, setSubWebTab] = useState<
     "sections" | "hero" | "scenes" | "about_solutions" | "stats" | "contact" | "nav_brand" | "vision_words" | "announcement" | "footer"
   >("sections");
@@ -349,9 +360,12 @@ export default function AdminPage() {
 
   // Factory Reset
   const handleFactoryReset = async () => {
-    const ok = window.confirm(
-      "Are you sure you want to restore all website and dashboard settings to default factory values? This cannot be undone."
-    );
+    const ok = await askConfirm({
+      title: "Reset every setting to the defaults?",
+      message: "Website content, app sidebar, widgets, tools, feature switches and plans go back to how BizzPal shipped. Businesses and users are not touched. This cannot be undone.",
+      confirmLabel: "Reset everything",
+      danger: true,
+    });
     if (!ok) return;
 
     try {
@@ -476,7 +490,7 @@ export default function AdminPage() {
   };
 
   const handleDeleteNavItem = async (id: string, label: string) => {
-    if (!window.confirm(`Delete navigation button "${label}"?`)) return;
+    if (!(await askConfirm({ title: `Delete the "${label}" link?`, message: "It will disappear from the customer app's sidebar.", confirmLabel: "Delete", danger: true }))) return;
     const updatedList = navItems.filter((n) => n.id !== id);
     setNavItems(updatedList);
     await saveSection("nav", updatedList, `Removed nav button "${label}"`);
@@ -570,7 +584,7 @@ export default function AdminPage() {
   };
 
   const handleDeleteWidget = async (id: string, title: string) => {
-    if (!window.confirm(`Delete widget "${title}"?`)) return;
+    if (!(await askConfirm({ title: `Delete the "${title}" widget?`, message: "It will disappear from the customer dashboard.", confirmLabel: "Delete", danger: true }))) return;
     const updatedList = widgets.filter((w) => w.id !== id);
     setWidgets(updatedList);
     await saveSection("widgets", updatedList, `Removed widget "${title}"`);
@@ -643,7 +657,7 @@ export default function AdminPage() {
   };
 
   const handleDeleteTool = async (id: string, name: string) => {
-    if (!window.confirm(`Delete tool "${name}"?`)) return;
+    if (!(await askConfirm({ title: `Delete the "${name}" tool?`, message: "Customers will no longer see it on the Tools page.", confirmLabel: "Delete", danger: true }))) return;
     const updatedList = tools.filter((t) => t.id !== id);
     setTools(updatedList);
     await saveSection("tools", updatedList, `Removed tool "${name}"`);
@@ -721,50 +735,71 @@ export default function AdminPage() {
     e.target.value = "";
   };
 
-  const breadcrumb = (() => {
-    switch (activeTab) {
-      case "website":
-        return {
-          group: "Marketing & CMS",
-          current:
-            subWebTab === "sections"
-              ? "Section Visibility & Toggles"
-              : subWebTab === "hero"
-              ? "Hero Copy & Primary Buttons"
-              : subWebTab === "scenes"
-              ? "Story Scenes (01 - 07)"
-              : subWebTab === "about_solutions"
-              ? "About & Solutions Cards"
-              : subWebTab === "contact"
-              ? "Contact Info & Channels"
-              : subWebTab === "nav_brand"
-              ? "Navbar Links & Brand"
-              : subWebTab === "vision_words"
-              ? "Vision Rotating Words"
-              : "Announcement Banner",
-        };
-      case "tenants":
-        return { group: "Multi-Tenant Platform", current: "Registered Enterprises & Businesses" };
-      case "users":
-        return { group: "Multi-Tenant Platform", current: "User Accounts Ledger" };
-      case "plans":
-        return { group: "Monetization & Commercial", current: "Pricing & Subscription Tiers" };
-      case "navigation":
-        return { group: "Executive Dashboard", current: "Navigation Buttons" };
-      case "features":
-        return { group: "Executive Dashboard", current: "Platform Feature Toggles" };
-      case "widgets":
-        return { group: "Executive Dashboard", current: "Dashboard Widgets" };
-      case "tools":
-        return { group: "Specialist Engines", current: "Tools Catalog & Calculators" };
-      case "datapal":
-        return { group: "Specialist Engines", current: "DataPal Usage" };
-      case "audit":
-        return { group: "Governance & Security", current: "Audit Ledger & Version History" };
-      default:
-        return { group: "Superadmin", current: "Overview" };
-    }
-  })();
+  const NAV_GROUPS: { label: string; items: { tab: AdminTab; label: string; icon: any }[] }[] = [
+    {
+      label: "Customers",
+      items: [
+        { tab: "tenants", label: "Businesses", icon: Building2 },
+        { tab: "users", label: "Users", icon: Users },
+      ],
+    },
+    {
+      label: "Revenue",
+      items: [
+        { tab: "plans", label: "Plans & pricing", icon: CreditCard },
+        { tab: "datapal", label: "DataPal usage", icon: Database },
+      ],
+    },
+    {
+      label: "Customer app",
+      items: [
+        { tab: "navigation", label: "App sidebar", icon: Compass },
+        { tab: "widgets", label: "Dashboard widgets", icon: Layers },
+        { tab: "features", label: "Feature switches", icon: Sliders },
+        { tab: "tools", label: "Tools", icon: Wrench },
+      ],
+    },
+    {
+      label: "Website",
+      items: [{ tab: "website", label: "Website content", icon: Globe }],
+    },
+    {
+      label: "Settings",
+      items: [
+        { tab: "audit", label: "Change history", icon: History },
+        { tab: "backup", label: "Backup & restore", icon: Save },
+      ],
+    },
+  ];
+
+  const PAGE_META: Record<AdminTab, { title: string; description: string }> = {
+    tenants: { title: "Businesses", description: "Every business on BizzPal, how it is doing and when it was last used." },
+    users: { title: "Users", description: "Everyone who can sign in, how they sign in and when they were last active." },
+    plans: { title: "Plans & pricing", description: "The plans customers can buy, their prices and what each one includes." },
+    datapal: { title: "DataPal usage", description: "What DataPal searches cost in Google Cloud, in total and for each account." },
+    website: { title: "Website content", description: "Edit the public website. Changes go live as soon as you save." },
+    navigation: { title: "App sidebar", description: "The links in the customer app's sidebar, their groups and order." },
+    widgets: { title: "Dashboard widgets", description: "The blocks on the customer dashboard, how wide they are and their order." },
+    features: { title: "Feature switches", description: "Turn features on or off for every customer account." },
+    tools: { title: "Tools", description: "The tools and calculators customers can open from the Tools page." },
+    audit: { title: "Change history", description: "Every change made in this console, newest first." },
+    backup: { title: "Backup & restore", description: "Download the console settings, restore them from a file, or go back to the defaults." },
+  };
+
+  const WEB_TABS: { id: typeof subWebTab; label: string }[] = [
+    { id: "sections", label: "Sections" },
+    { id: "hero", label: "Hero" },
+    { id: "scenes", label: "Story scenes" },
+    { id: "about_solutions", label: "About & solutions" },
+    { id: "stats", label: "Stats" },
+    { id: "contact", label: "Contact" },
+    { id: "nav_brand", label: "Navbar & brand" },
+    { id: "vision_words", label: "Vision words" },
+    { id: "announcement", label: "Announcement" },
+    { id: "footer", label: "Footer" },
+  ];
+
+  const page = PAGE_META[activeTab];
 
   const handleAdminLogout = async () => {
     try {
@@ -774,464 +809,173 @@ export default function AdminPage() {
     window.location.href = "/admin/login";
   };
 
-  return (
-    <div className="admin-shell min-h-screen bg-bg text-text flex flex-col lg:flex-row relative selection:bg-gold/30 selection:text-gold overflow-x-clip">
-      {/* Ambient background radiant aura mesh matching 3D Gold Logo */}
-      <div className="fixed top-[-10%] left-[20%] w-[650px] h-[350px] bg-gradient-to-br from-gold/10 via-gold/5 to-transparent blur-[120px] pointer-events-none -z-10" />
-      <div className="fixed bottom-[-10%] right-[15%] w-[550px] h-[350px] bg-gradient-to-tl from-gold/10 via-gold/5 to-transparent blur-[120px] pointer-events-none -z-10" />
+  const go = (tab: AdminTab) => {
+    setActiveTab(tab);
+    setIsMobileMenuOpen(false);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+  };
 
-      {/* Toast Notification */}
+  const isError = (m: string) => /error|failed|could not|not /i.test(m);
+
+  return (
+    <div className="admin-shell min-h-screen bg-bg text-text flex">
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-[1000] px-4 py-3 rounded-xl bg-surface/95 text-text border border-gold/30 shadow-2xl shadow-[0_16px_40px_-10px_var(--gold-glow)] flex items-center gap-2.5 text-xs font-semibold animate-fade-in backdrop-blur-md">
-          {toastMessage.toLowerCase().includes("error") || toastMessage.toLowerCase().includes("failed") ? (
-            <AlertCircle className="w-4 h-4 text-rust shrink-0" />
+        <div
+          role="status"
+          className="fixed bottom-6 right-6 z-[1100] max-w-sm px-4 py-3 rounded-xl bg-surface text-text border border-line shadow-lg flex items-start gap-2.5 text-sm"
+        >
+          {isError(toastMessage) ? (
+            <AlertCircle className="w-4 h-4 text-rust shrink-0 mt-0.5" />
           ) : (
-            <CheckCircle2 className="w-4 h-4 text-jade shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-jade shrink-0 mt-0.5" />
           )}
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Mobile Drawer Backdrop */}
       {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-bg/70 backdrop-blur-sm lg:hidden"
+        <button
+          type="button"
+          aria-label="Close menu"
+          className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden cursor-default"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* ========================================================================= */}
-      {/* PERSISTENT MODERN LEFT SIDEBAR                                            */}
-      {/* ========================================================================= */}
+      {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-surface border-r border-line flex flex-col justify-between transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:self-start lg:h-screen lg:translate-x-0 shrink-0 shadow-2xl lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-line flex flex-col transition-transform duration-200 lg:translate-x-0 ${
           isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         }`}
       >
-        {/* Sidebar Brand & Status Header */}
-        <div className="h-16 px-4 border-b border-line flex items-center shrink-0">
-          <div className="w-full flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 flex items-center justify-center shrink-0">
-                <Image
-                  src="/logo-icon.png"
-                  alt="BizzPal Logo"
-                  width={34}
-                  height={34}
-                  className="object-contain drop-shadow"
-                />
-              </div>
-              <div>
-                <h1 className="text-sm font-semibold text-text tracking-tight flex items-center gap-1.5">
-                  <span className="font-semibold text-base flex items-center leading-none">
-                    <span>Bizz</span>
-                    <span className="font-semibold ml-0.5 bizzpal-brand-pal">
-                      Pal
-                    </span>
-                  </span>
-                  
-                </h1>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs text-text-muted">Admin console</span>
-                </div>
-              </div>
+        <div className="h-16 px-5 flex items-center justify-between border-b border-line shrink-0">
+          <div className="flex items-center gap-2.5">
+            <Image src="/logo-icon.png" alt="" width={28} height={28} className="object-contain" />
+            <div className="leading-tight">
+              <p className="text-sm font-semibold text-text">
+                Bizz<span className="bizzpal-brand-pal">Pal</span>
+              </p>
+              <p className="text-xs text-text-muted">Admin console</p>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="lg:hidden p-1.5 rounded-lg hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-label="Close menu"
+            className="lg:hidden p-1.5 rounded-lg hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Sidebar Categorized Navigation */}
-        <div className="p-3 flex-1 overflow-y-auto space-y-5 text-sm">
-          {/* GROUP 0: MULTI-TENANT PLATFORM */}
-          <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
-              Multi-Tenant Platform
-            </div>
-            {[
-              { id: "tenants", tab: "tenants", label: "Registered Enterprises", icon: Building2, badge: `${tenants.length}` },
-              { id: "users", tab: "users", label: "User Accounts Ledger", icon: Users, badge: `${usersList.length}` },
-            ].map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.tab;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveTab(item.tab as any);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
-                    isActive
-                      ? "bg-surface-2 text-text font-medium"
-                      : "text-text-muted hover:text-text hover:bg-surface-2/60"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="text-xs text-text-muted">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* GROUP 1: MONETIZATION & COMMERCIAL */}
-          <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
-              Commercial & Pricing
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("plans");
-                setIsMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
-                activeTab === "plans"
-                  ? "bg-surface-2 text-text font-medium"
-                  : "text-text-muted hover:text-text hover:bg-surface-2/60"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <CreditCard className="w-4 h-4" />
-                <span>Subscription Plans</span>
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5" aria-label="Admin sections">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="px-3 pb-1.5 text-xs font-medium text-text-muted">{group.label}</p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.tab;
+                  return (
+                    <button
+                      key={item.tab}
+                      type="button"
+                      onClick={() => go(item.tab)}
+                      aria-current={isActive ? "page" : undefined}
+                      className={`w-full flex items-center gap-2.5 h-9 px-3 rounded-lg text-sm transition-colors cursor-pointer ${
+                        isActive ? "bg-surface-2 text-text font-medium" : "text-text-muted hover:text-text hover:bg-surface-2/60"
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-brass" : ""}`} />
+                      <span className="flex-1 text-left truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <span className="text-xs text-text-muted">
-                {plans.length}
-              </span>
-            </button>
-          </div>
-
-          {/* GROUP 2: MARKETING & CMS */}
-          <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
-              Marketing & Website CMS
             </div>
-            {[
-              { id: "website_sections", tab: "website", sub: "sections", label: "Section Visibility", icon: Eye, badge: "14" },
-              { id: "website_hero", tab: "website", sub: "hero", label: "Hero Copy & CTAs", icon: Globe },
-              { id: "website_scenes", tab: "website", sub: "scenes", label: "Story Scenes (01-07)", icon: Film, badge: "7" },
-              { id: "website_about", tab: "website", sub: "about_solutions", label: "About & Solutions", icon: Layers },
-              { id: "website_stats", tab: "website", sub: "stats", label: "Impact & Stats", icon: Layers },
-              { id: "website_contact", tab: "website", sub: "contact", label: "Contact & Channels", icon: MessageSquare },
-              { id: "website_nav", tab: "website", sub: "nav_brand", label: "Navbar & Brand", icon: Globe },
-              { id: "website_vision", tab: "website", sub: "vision_words", label: "Vision Kinetic Words", icon: Type },
-              { id: "website_announcement", tab: "website", sub: "announcement", label: "Announcement Bar", icon: Megaphone },
-              { id: "website_footer", tab: "website", sub: "footer", label: "Site Footer & Legal", icon: Globe },
-            ].map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.tab && subWebTab === item.sub;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveTab(item.tab as any);
-                    setSubWebTab(item.sub as any);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
-                    isActive
-                      ? "bg-surface-2 text-text font-medium"
-                      : "text-text-muted hover:text-text hover:bg-surface-2/60"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="text-xs text-text-muted">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          ))}
+        </nav>
 
-          {/* GROUP 2: EXECUTIVE DASHBOARD */}
-          <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
-              Executive Dashboard
-            </div>
-            {[
-              { id: "navigation", tab: "navigation", label: "Navigation Buttons", icon: Compass, badge: `${navItems.length}` },
-              { id: "widgets", tab: "widgets", label: "Dashboard Widgets", icon: Layers, badge: `${widgets.length}` },
-              { id: "features", tab: "features", label: "Feature Toggles", icon: Sliders, badge: `${featuresConfig ? Object.values(featuresConfig).filter(Boolean).length : 0}` },
-            ].map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.tab;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveTab(item.tab as any);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
-                    isActive
-                      ? "bg-surface-2 text-text font-medium"
-                      : "text-text-muted hover:text-text hover:bg-surface-2/60"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="text-xs text-text-muted">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* GROUP 3: SPECIALIST ENGINES */}
-          <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
-              Specialist Engines
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("tools");
-                setIsMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
-                activeTab === "tools"
-                  ? "bg-surface-2 text-text font-medium"
-                  : "text-text-muted hover:text-text hover:bg-surface-2/60"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Wrench className="w-4 h-4" />
-                <span>Tools & Calculators</span>
-              </div>
-              <span className="text-xs text-text-muted">
-                {tools.length}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("datapal");
-                setIsMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
-                activeTab === "datapal"
-                  ? "bg-surface-2 text-text font-medium"
-                  : "text-text-muted hover:text-text hover:bg-surface-2/60"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Database className="w-4 h-4" />
-                <span>DataPal Usage</span>
-              </div>
-            </button>
-          </div>
-
-          {/* GROUP 4: GOVERNANCE & SECURITY */}
-          <div className="space-y-1">
-            <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
-              Governance & Security
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("audit");
-                setIsMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer ${
-                activeTab === "audit"
-                  ? "bg-surface-2 text-text font-medium"
-                  : "text-text-muted hover:text-text hover:bg-surface-2/60"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <History className="w-4 h-4" />
-                <span>Audit Ledger</span>
-              </div>
-              <span className="text-xs text-text-muted">
-                {auditLogs.length}
-              </span>
-            </button>
-
-            
-            <div className="pt-2 border-t border-line space-y-1.5">
-              <div className="px-2.5 pb-1 text-xs font-medium text-text-muted">
-                Config Backup & Sync
-              </div>
-              <button
-                type="button"
-                onClick={handleExportConfig}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-text-muted hover:text-text hover:bg-surface-2 transition-colors font-semibold cursor-pointer text-xs"
-              >
-                <Save className="w-3.5 h-3.5 text-brass" />
-                <span>Export Config (JSON)</span>
-              </button>
-
-              <label className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-text-muted hover:text-text hover:bg-surface-2 transition-colors font-semibold cursor-pointer text-xs">
-                <Compass className="w-3.5 h-3.5 text-brass" />
-                <span>Import Config (JSON)</span>
-                <input
-                  type="file"
-                  accept="application/json"
-                  onChange={handleImportConfig}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleFactoryReset}
-              disabled={saving}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors font-semibold cursor-pointer"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Factory Reset</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Sidebar Footer */}
-        <div className="p-3.5 border-t border-line space-y-2.5 bg-surface-2/40">
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href="/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-xl text-xs font-semibold bg-surface border border-line hover:border-gold/40 text-text hover:text-gold flex items-center justify-center gap-1.5 transition-all "
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>Website ↗</span>
-            </a>
-            <a
-              href="/dashboard"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-xl text-xs font-semibold bg-surface border border-line hover:border-gold/40 text-text hover:text-gold flex items-center justify-center gap-1.5 transition-all "
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>App ↗</span>
-            </a>
-          </div>
-
-          <div className="flex items-center justify-between pt-1">
+        <div className="p-3 border-t border-line space-y-1 shrink-0">
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 h-9 px-3 rounded-lg text-sm text-text-muted hover:text-text hover:bg-surface-2/60"
+          >
+            <Globe className="w-4 h-4" />
+            <span className="flex-1">View website</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </a>
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2.5 h-9 px-3 rounded-lg text-sm text-text-muted hover:text-text hover:bg-surface-2/60"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="flex-1">Back to the app</span>
+          </Link>
+          <div className="flex items-center justify-between gap-2 pt-2">
             <div className="w-28">
               <ThemeSwitch compact />
             </div>
             <button
               type="button"
               onClick={handleAdminLogout}
-              className="text-xs text-text-muted hover:text-rose-500 p-1.5 rounded-lg border border-line hover:bg-rose-500/10 transition-colors flex items-center gap-1.5 font-semibold cursor-pointer"
-              title="Sign Out"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-sm text-text-muted hover:text-rust hover:bg-rust/10 cursor-pointer"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Logout</span>
+              <LogOut className="w-4 h-4" />
+              Sign out
             </button>
           </div>
         </div>
       </aside>
 
-      {/* ========================================================================= */}
-      {/* MAIN WORKSPACE CANVAS                                                     */}
-      {/* ========================================================================= */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
-        {/* Sticky Workspace Top Bar */}
-        <header className="sticky top-0 z-30 h-16 bg-surface/75 backdrop-blur-xl border-b border-line px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-xl bg-surface-2 border border-line text-text-muted hover:text-text cursor-pointer"
-            >
-              <Menu className="w-4 h-4" />
-            </button>
-
-            {/* Breadcrumb Navigation */}
-            <div className="flex items-center gap-2 text-sm min-w-0">
-              <span className="text-text-muted/70 hidden sm:inline">{breadcrumb.group}</span>
-              <span className="text-text-muted/50 hidden sm:inline">/</span>
-              <span className="text-text font-medium truncate">{breadcrumb.current}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Live System Pulse Indicator */}
-
-            <Link
-              href="/dashboard"
-              className="hidden md:flex items-center gap-1.5 text-sm text-text hover:bg-surface-2 px-3.5 py-2 rounded-xl border border-line"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Exit to App</span>
-            </Link>
-
-            {/* Contextual Quick Actions */}
-            {activeTab === "navigation" && (
-              <button
-                type="button"
-                onClick={() => handleOpenNavModal()}
-                className="px-3.5 py-1.5 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 flex items-center gap-1.5 cursor-pointer shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Nav Button</span>
-              </button>
-            )}
-
-            {activeTab === "widgets" && (
-              <button
-                type="button"
-                onClick={() => handleOpenWidgetModal()}
-                className="px-3.5 py-1.5 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 flex items-center gap-1.5 cursor-pointer shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Widget</span>
-              </button>
-            )}
-
-      {activeTab === "tools" && (
-              <button
-                type="button"
-                onClick={() => handleOpenToolModal()}
-                className="px-3.5 py-1.5 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 flex items-center gap-1.5 cursor-pointer shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Tool</span>
-              </button>
-            )}
-          </div>
+      {/* Main */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen lg:pl-64">
+        <header className="lg:hidden sticky top-0 z-30 h-14 bg-surface border-b border-line px-4 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label="Open menu"
+            className="p-2 -ml-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <span className="text-sm font-medium text-text truncate">{page.title}</span>
         </header>
 
-        {/* Main Workspace Body */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full relative z-10">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab + (activeTab === "website" ? subWebTab : "")}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              className="space-y-6"
-            >
+        <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-6 lg:py-8 space-y-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-text">{page.title}</h1>
+            <p className="text-sm text-text-muted mt-1">{page.description}</p>
+          </div>
+
+          {activeTab === "website" && (
+            <div className="border-b border-line overflow-x-auto">
+              <div role="tablist" aria-label="Website content" className="flex gap-6 min-w-max">
+                {WEB_TABS.map((t) => {
+                  const on = subWebTab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={on}
+                      onClick={() => setSubWebTab(t.id)}
+                      className={`relative pb-3 text-sm whitespace-nowrap cursor-pointer transition-colors ${
+                        on ? "text-text" : "text-text-muted hover:text-text"
+                      }`}
+                    >
+                      {t.label}
+                      {on && <span className="absolute left-0 right-0 bottom-0 h-0.5 rounded-full bg-brass" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-6">
 
       {/* ============================================================= */}
       {/* TAB: MULTI-TENANT ENTERPRISES & USERS                         */}
@@ -1272,34 +1016,6 @@ export default function AdminPage() {
       {/* ============================================================= */}
       {activeTab === "website" && (
         <div className="space-y-6">
-          {/* Website Subtabs */}
-          <div className="lg:hidden flex items-center gap-1 border-b border-line pb-2 text-sm overflow-x-auto">
-            {[
-              { id: "sections", label: "1. Section Toggles" },
-              { id: "hero", label: "2. Hero Copy & CTAs" },
-              { id: "scenes", label: "3. Story Scenes (01 - 07)" },
-              { id: "about_solutions", label: "4. About & Solutions" },
-              { id: "stats", label: "5. Impact & Stats" },
-              { id: "contact", label: "6. Contact Info & Socials" },
-              { id: "nav_brand", label: "7. Navbar Links & Brand" },
-              { id: "vision_words", label: "8. Vision Kinetic Words" },
-              { id: "announcement", label: "9. Announcement Banner" },
-              { id: "footer", label: "10. Site Footer & Legal" },
-            ].map((st) => (
-              <button
-                key={st.id}
-                type="button"
-                onClick={() => setSubWebTab(st.id as any)}
-                className={`px-3 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap ${
-                  subWebTab === st.id
-                    ? "bg-surface-2 text-text font-medium"
-                    : "text-text-muted hover:text-text"
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
-          </div>
 
           {/* Subtab: Section Visibility Switches */}
           {subWebTab === "sections" && (
@@ -1517,7 +1233,7 @@ export default function AdminPage() {
                   {/* Primary CTA Button */}
                   <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-gold block">
+                      <span className="text-xs font-semibold text-brass block">
                         Primary CTA Button (Solid Glow)
                       </span>
                       <button
@@ -1533,7 +1249,7 @@ export default function AdminPage() {
                         }
                         className={`px-2 py-0.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
                           websiteConfig.hero?.primaryCtaEnabled !== false
-                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                            ? "bg-jade/15 border-jade/30 text-jade"
                             : "bg-surface border-line text-text-muted"
                         }`}
                       >
@@ -1590,7 +1306,7 @@ export default function AdminPage() {
                         }
                         className={`px-2 py-0.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
                           websiteConfig.hero?.secondaryCtaEnabled !== false
-                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                            ? "bg-jade/15 border-jade/30 text-jade"
                             : "bg-surface border-line text-text-muted"
                         }`}
                       >
@@ -1632,10 +1348,10 @@ export default function AdminPage() {
 
               {/* Live Visual Card Preview */}
               <div className="p-6 rounded-2xl bg-[#08070A] border border-[#D6B46A]/25 text-center space-y-3">
-                <span className="text-xs font-mono text-[#D6B46A] uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D6B46A]/10 border border-[#D6B46A]/20">
+                <span className="text-xs font-mono text-[#D6B46A] px-2.5 py-0.5 rounded-full bg-[#D6B46A]/10 border border-[#D6B46A]/20">
                   Live Landing Page Hero Preview
                 </span>
-                <p className="text-xs text-white/60 tracking-widest uppercase font-mono mt-2">
+                <p className="text-xs text-white/60 tracking-widest font-mono mt-2">
                   {websiteConfig.hero?.eyebrow || "Artificial Intelligence · For Business"}
                 </p>
                 <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight py-1 font-sans">
@@ -1708,7 +1424,7 @@ export default function AdminPage() {
                           }
                           className={`px-2 py-0.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
                             s.enabled !== false
-                              ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                              ? "bg-jade/15 border-jade/30 text-jade"
                               : "bg-surface border-line text-text-muted"
                           }`}
                         >
@@ -1786,7 +1502,7 @@ export default function AdminPage() {
                       }
                       className={`px-2 py-0.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
                         websiteConfig.scenes?.s07?.enabled !== false
-                          ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                          ? "bg-jade/15 border-jade/30 text-jade"
                           : "bg-surface border-line text-text-muted"
                       }`}
                     >
@@ -1989,7 +1705,7 @@ export default function AdminPage() {
                             about: { ...websiteConfig.about, approach: list },
                           });
                         }}
-                        className="w-12 px-2 py-1 rounded-lg bg-surface-2 border border-line text-sm font-mono font-semibold text-gold text-center"
+                        className="w-12 px-2 py-1 rounded-lg bg-surface-2 border border-line text-sm font-mono font-semibold text-brass text-center"
                       />
                       <input
                         type="text"
@@ -2013,7 +1729,7 @@ export default function AdminPage() {
                             about: { ...websiteConfig.about, approach: list },
                           });
                         }}
-                        className="p-1 rounded text-text-muted hover:text-rose-500 cursor-pointer"
+                        className="p-1 rounded text-text-muted hover:text-rust cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -2067,7 +1783,7 @@ export default function AdminPage() {
                                 solutions: { ...websiteConfig.solutions, cards: updatedCards },
                               });
                             }}
-                            className="w-10 px-1.5 py-0.5 rounded bg-surface border border-line font-mono font-semibold text-xs text-gold text-center"
+                            className="w-10 px-1.5 py-0.5 rounded bg-surface border border-line font-mono font-semibold text-xs text-brass text-center"
                           />
                           <select
                             value={card.fx || "ai"}
@@ -2102,7 +1818,7 @@ export default function AdminPage() {
                             }}
                             className={`px-2 py-0.5 rounded text-xs font-semibold border cursor-pointer ${
                               card.enabled !== false
-                                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+                                ? "bg-jade/15 border-jade/30 text-jade"
                                 : "bg-surface border-line text-text-muted"
                             }`}
                           >
@@ -2110,15 +1826,15 @@ export default function AdminPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              if (!window.confirm(`Delete card "${card.title}"?`)) return;
+                            onClick={async () => {
+                              if (!(await askConfirm({ title: `Delete the "${card.title}" card?`, confirmLabel: "Delete", danger: true }))) return;
                               const updatedCards = (websiteConfig.solutions?.cards || []).filter((_: any, i: number) => i !== idx);
                               setWebsiteConfig({
                                 ...websiteConfig,
                                 solutions: { ...websiteConfig.solutions, cards: updatedCards },
                               });
                             }}
-                            className="p-1 rounded text-text-muted hover:text-rose-500 cursor-pointer"
+                            className="p-1 rounded text-text-muted hover:text-rust cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -2339,223 +2055,57 @@ export default function AdminPage() {
       )}
 
       {/* ============================================================= */}
-      {/* TAB 2: DASHBOARD NAVIGATION BUTTONS                           */}
+      {/* CUSTOMER APP: SIDEBAR LINKS                                   */}
       {/* ============================================================= */}
       {activeTab === "navigation" && (
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-surface border border-line shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold text-text">Navigation buttons</h2>
-              <p className="text-sm text-text-muted mt-0.5">
-                Add, edit, reorder or remove the links in the customer sidebar.
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-surface rounded-2xl border border-line overflow-hidden shadow-sm">
-            <div className="overflow-x-auto touch-scroll">
-              <table className="w-full min-w-[640px] text-left text-sm border-collapse">
+        <Panel>
+          <PanelToolbar>
+            <p className="text-sm text-text-muted">
+              {navItems.filter((n) => n.enabled !== false).length} of {navItems.length} links shown
+            </p>
+            <button type="button" onClick={() => handleOpenNavModal()} className={`${primaryButton} sm:ml-auto`}>
+              <Plus className="w-4 h-4" /> Add link
+            </button>
+          </PanelToolbar>
+          {navItems.length === 0 ? (
+            <EmptyState title="No links yet" text="Add the first link of the customer sidebar." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-sm">
                 <thead>
-                  <tr className="border-b border-line text-text-muted font-medium">
-                    <th className="p-3 pl-4">Order</th>
-                    <th className="p-3">Button Label</th>
-                    <th className="p-3">Route / URL</th>
-                    <th className="p-3">Icon</th>
-                    <th className="p-3">Group</th>
-                    <th className="p-3">Badge</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3 pr-4 text-right">Actions</th>
+                  <tr className="border-b border-line">
+                    <th className={`${th} w-16`}>Order</th>
+                    <th className={th}>Link</th>
+                    <th className={th}>Group</th>
+                    <th className={th}>Icon</th>
+                    <th className={th}>Status</th>
+                    <th className={`${th} text-right`}><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
-                  {navItems
+                  {[...navItems]
                     .sort((a, b) => a.order - b.order)
                     .map((item) => (
-                      <tr key={item.id} className="hover:bg-surface-2/40 transition-colors">
-                        <td className="p-3 pl-4 text-text-muted">{item.order}</td>
-                        <td className="p-3 font-medium text-text">{item.label}</td>
-                        <td className="p-3 text-text-muted">{item.href}</td>
-                        <td className="p-3 font-mono text-text-muted">{item.icon}</td>
-                        <td className="p-3 text-text-muted capitalize">{item.group || "core"}</td>
-                        <td className="p-3">
-                          {item.badge ? (
-                            <span className="text-text">
-                              {item.badge}
-                            </span>
-                          ) : (
-                            <span className="text-text-muted">—</span>
-                          )}
+                      <tr key={item.id} className="hover:bg-surface-2/40">
+                        <td className={`${td} text-text-muted tabular-nums`}>{item.order}</td>
+                        <td className={td}>
+                          <p className="font-medium text-text">
+                            {item.label}
+                            {item.badge ? <span className="ml-2 text-xs font-normal text-text-muted">{item.badge}</span> : null}
+                          </p>
+                          <p className="text-xs text-text-muted">{item.href}</p>
                         </td>
-                        <td className="p-3">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleNavItem(item)}
-                            className={`px-2.5 py-1 rounded-lg text-sm border cursor-pointer ${
-                              item.enabled !== false
-                                ? "border-line text-jade hover:bg-surface-2"
-                                : "border-line text-text-muted hover:bg-surface-2"
-                            }`}
-                          >
-                            {item.enabled !== false ? "Active" : "Hidden"}
-                          </button>
+                        <td className={`${td} text-text-muted capitalize`}>{item.group || "core"}</td>
+                        <td className={`${td} text-text-muted`}>{item.icon}</td>
+                        <td className={td}>
+                          <StatusToggle on={item.enabled !== false} onClick={() => handleToggleNavItem(item)} />
                         </td>
-                        <td className="p-3 pr-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenNavModal(item)}
-                              className="p-2 rounded-lg border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
-                              title="Edit button"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteNavItem(item.id, item.label)}
-                              className="p-2 rounded-lg border border-line hover:bg-rust/10 text-text-muted hover:text-rust cursor-pointer"
-                              title="Delete button"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ============================================================= */}
-      {/* TAB 3: PLATFORM FEATURE TOGGLES                               */}
-      {/* ============================================================= */}
-      {activeTab === "features" && featuresConfig && (
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-surface border border-line shadow-sm">
-            <h2 className="text-base font-semibold text-text">Feature switches</h2>
-            <p className="text-sm text-text-muted mt-0.5">
-              Turn tools and integrations on or off for every customer account.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-line bg-surface shadow-sm divide-y divide-line overflow-hidden">
-            {[
-              {
-                key: "enableAiCopilot",
-                title: "Ask Executive AI Floating Launcher",
-                desc: "Floating 24/7 AI Workspace launcher button in the bottom right corner of tenant pages.",
-              },
-              {
-                key: "enableDailyCheckin",
-                title: "Daily Executive Pulse Check Ribbon",
-                desc: "60-second operational telemetry collection modal and ribbon on the top of the dashboard.",
-              },
-              {
-                key: "enableCommandPalette",
-                title: "Universal Command Palette (⌘K / Ctrl+K)",
-                desc: "Spotlight search modal for finding metrics, tools, and execution tasks with quick jump.",
-              },
-              {
-                key: "enableWhatsApp",
-                title: "Daily email briefing",
-                desc: "Lets customers turn on a short daily email with their numbers and open tasks.",
-              },
-              {
-                key: "enableToolsCatalog",
-                title: "Specialist Tools & Calculators Module",
-                desc: "Interactive financial modeling, break-even simulation, and CAC/LTV calculations catalog.",
-              },
-            ].map((feat) => {
-              const isEnabled = featuresConfig[feat.key] !== false;
-              return (
-                <div key={feat.key} className="px-5 py-4 flex items-start justify-between gap-6">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-medium text-text">{feat.title}</h3>
-                    <p className="text-sm text-text-muted mt-0.5 leading-relaxed max-w-2xl">{feat.desc}</p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={isEnabled}
-                    aria-label={feat.title}
-                    onClick={() => handleToggleFeature(feat.key)}
-                    className={`relative w-10 h-6 rounded-full shrink-0 cursor-pointer transition-colors ${isEnabled ? "bg-brass" : "bg-line-strong"}`}
-                  >
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${isEnabled ? "translate-x-4" : ""}`} />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* DataPal Extraction Engine Features */}
-          <DataPalFeatureFlagsSection />
-        </div>
-      )}
-
-      {/* ============================================================= */}
-      {/* TAB 4: DASHBOARD WIDGETS                                      */}
-      {/* ============================================================= */}
-      {activeTab === "widgets" && (
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-surface border border-line shadow-sm">
-            <h2 className="text-base font-semibold text-text">Dashboard widgets</h2>
-            <p className="text-sm text-text-muted mt-0.5">
-              Choose which blocks appear on the customer dashboard, how wide they are, and the order they show in.
-            </p>
-          </div>
-
-          <div className="bg-surface rounded-2xl border border-line overflow-hidden shadow-sm">
-            <div className="overflow-x-auto touch-scroll">
-              <table className="w-full min-w-[560px] text-left text-sm border-collapse">
-                <thead>
-                  <tr className="border-b border-line text-text-muted font-medium">
-                    <th className="p-3 pl-5">Widget</th>
-                    <th className="p-3">Width</th>
-                    <th className="p-3">Order</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3 pr-5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {[...widgets]
-                    .sort((x, y) => y.priority - x.priority)
-                    .map((widget) => (
-                      <tr key={widget.id} className={widget.enabled !== false ? "" : "opacity-60"}>
-                        <td className="p-3 pl-5 font-medium text-text">{widget.title}</td>
-                        <td className="p-3 text-text-muted">{widget.defaultSpan >= 4 ? "Full width" : widget.defaultSpan === 2 ? "Half width" : `${widget.defaultSpan} of 4 columns`}</td>
-                        <td className="p-3 text-text-muted">{widget.priority}</td>
-                        <td className="p-3">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleWidget(widget)}
-                            className={`px-2.5 py-1 rounded-lg text-sm border border-line cursor-pointer hover:bg-surface-2 ${
-                              widget.enabled !== false ? "text-jade" : "text-text-muted"
-                            }`}
-                          >
-                            {widget.enabled !== false ? "Shown" : "Hidden"}
-                          </button>
-                        </td>
-                        <td className="p-3 pr-5">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenWidgetModal(widget)}
-                              className="p-2 rounded-lg border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
-                              title="Edit"
-                              aria-label="Edit"
-                            >
+                        <td className={`${td} text-right`}>
+                          <div className="flex items-center justify-end gap-1">
+                            <button type="button" onClick={() => handleOpenNavModal(item)} className={iconButton} title="Edit" aria-label={`Edit ${item.label}`}>
                               <Edit2 className="w-4 h-4" />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteWidget(widget.id, widget.title)}
-                              className="p-2 rounded-lg border border-line hover:bg-rust/10 text-text-muted hover:text-rust cursor-pointer"
-                              title="Delete"
-                              aria-label="Delete"
-                            >
+                            <button type="button" onClick={() => handleDeleteNavItem(item.id, item.label)} className={dangerIconButton} title="Delete" aria-label={`Delete ${item.label}`}>
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -2565,76 +2115,151 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          )}
+        </Panel>
+      )}
+
+      {/* ============================================================= */}
+      {/* CUSTOMER APP: FEATURE SWITCHES                                */}
+      {/* ============================================================= */}
+      {activeTab === "features" && featuresConfig && (
+        <div className="space-y-6">
+          <Panel>
+            <div className="px-5 py-3.5 border-b border-line">
+              <h2 className="text-sm font-semibold text-text">Customer app</h2>
+            </div>
+            <div className="divide-y divide-line">
+              {[
+                { key: "enableAiCopilot", title: "Ask AI button", desc: "The floating button that opens the AI advisor on every page." },
+                { key: "enableDailyCheckin", title: "Daily check-in", desc: "The short daily check-in at the top of the dashboard." },
+                { key: "enableCommandPalette", title: "Quick search (Ctrl + K)", desc: "Search to jump to any page, number or task." },
+                { key: "enableWhatsApp", title: "Daily email briefing", desc: "Lets customers turn on a short daily email with their numbers and open tasks." },
+                { key: "enableToolsCatalog", title: "Tools page", desc: "Calculators such as break-even, pricing and customer acquisition cost." },
+              ].map((feat) => {
+                const isEnabled = featuresConfig[feat.key] !== false;
+                return (
+                  <div key={feat.key} className="px-5 py-4 flex items-center justify-between gap-6">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-medium text-text">{feat.title}</h3>
+                      <p className="text-sm text-text-muted mt-0.5">{feat.desc}</p>
+                    </div>
+                    <Switch on={isEnabled} onChange={() => handleToggleFeature(feat.key)} label={feat.title} />
+                  </div>
+                );
+              })}
+            </div>
+          </Panel>
+
+          <DataPalFeatureFlagsSection />
         </div>
       )}
 
       {/* ============================================================= */}
-      {/* TAB 5: SPECIALIST TOOLS CATALOG                               */}
+      {/* CUSTOMER APP: DASHBOARD WIDGETS                               */}
       {/* ============================================================= */}
+      {activeTab === "widgets" && (
+        <Panel>
+          <PanelToolbar>
+            <p className="text-sm text-text-muted">
+              {widgets.filter((w) => w.enabled !== false).length} of {widgets.length} widgets shown · higher order shows first
+            </p>
+            <button type="button" onClick={() => handleOpenWidgetModal()} className={`${primaryButton} sm:ml-auto`}>
+              <Plus className="w-4 h-4" /> Add widget
+            </button>
+          </PanelToolbar>
+          {widgets.length === 0 ? (
+            <EmptyState title="No widgets yet" text="Add the first block of the customer dashboard." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px] text-sm">
+                <thead>
+                  <tr className="border-b border-line">
+                    <th className={th}>Widget</th>
+                    <th className={th}>Width</th>
+                    <th className={th}>Order</th>
+                    <th className={th}>Status</th>
+                    <th className={`${th} text-right`}><span className="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {[...widgets]
+                    .sort((x, y) => y.priority - x.priority)
+                    .map((widget) => (
+                      <tr key={widget.id} className="hover:bg-surface-2/40">
+                        <td className={`${td} font-medium text-text`}>{widget.title}</td>
+                        <td className={`${td} text-text-muted`}>
+                          {widget.defaultSpan >= 4 ? "Full width" : widget.defaultSpan === 2 ? "Half width" : `${widget.defaultSpan} of 4 columns`}
+                        </td>
+                        <td className={`${td} text-text-muted tabular-nums`}>{widget.priority}</td>
+                        <td className={td}>
+                          <StatusToggle on={widget.enabled !== false} onClick={() => handleToggleWidget(widget)} />
+                        </td>
+                        <td className={`${td} text-right`}>
+                          <div className="flex items-center justify-end gap-1">
+                            <button type="button" onClick={() => handleOpenWidgetModal(widget)} className={iconButton} title="Edit" aria-label={`Edit ${widget.title}`}>
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button type="button" onClick={() => handleDeleteWidget(widget.id, widget.title)} className={dangerIconButton} title="Delete" aria-label={`Delete ${widget.title}`}>
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
+      )}
+
       {activeTab === "datapal" && <DataPalUsageManager />}
 
+      {/* ============================================================= */}
+      {/* CUSTOMER APP: TOOLS                                           */}
+      {/* ============================================================= */}
       {activeTab === "tools" && (
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-surface border border-line shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold text-text">Tools and calculators ({tools.length})</h2>
-              <p className="text-sm text-text-muted mt-0.5">
-                The tools founders can open from the Tools page.
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-surface rounded-2xl border border-line overflow-hidden shadow-sm">
-            <div className="overflow-x-auto touch-scroll">
-              <table className="w-full min-w-[640px] text-left text-sm border-collapse">
+        <Panel>
+          <PanelToolbar>
+            <p className="text-sm text-text-muted">
+              {tools.filter((t) => t.enabled !== false).length} of {tools.length} tools shown
+            </p>
+            <button type="button" onClick={() => handleOpenToolModal()} className={`${primaryButton} sm:ml-auto`}>
+              <Plus className="w-4 h-4" /> Add tool
+            </button>
+          </PanelToolbar>
+          {tools.length === 0 ? (
+            <EmptyState title="No tools yet" text="Add the first tool customers can open." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-sm">
                 <thead>
-                  <tr className="border-b border-line text-text-muted font-medium">
-                    <th className="p-3 pl-5">Tool</th>
-                    <th className="p-3">Category</th>
-                    <th className="p-3">Plan</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3 pr-5 text-right">Actions</th>
+                  <tr className="border-b border-line">
+                    <th className={th}>Tool</th>
+                    <th className={th}>Category</th>
+                    <th className={th}>Plan</th>
+                    <th className={th}>Status</th>
+                    <th className={`${th} text-right`}><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {tools.map((t) => (
-                    <tr key={t.id} className={t.enabled !== false ? "" : "opacity-60"}>
-                      <td className="p-3 pl-5">
-                        <div className="font-medium text-text">{t.name}</div>
-                        <div className="text-xs text-text-muted mt-0.5 max-w-md">{t.description}</div>
+                    <tr key={t.id} className="hover:bg-surface-2/40">
+                      <td className={td}>
+                        <p className="font-medium text-text">{t.name}</p>
+                        <p className="text-xs text-text-muted mt-0.5 max-w-lg line-clamp-1">{t.description}</p>
                       </td>
-                      <td className="p-3 text-text-muted">{t.category}</td>
-                      <td className="p-3 text-text-muted capitalize">{t.requiredPlan}</td>
-                      <td className="p-3">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleTool(t)}
-                          className={`px-2.5 py-1 rounded-lg text-sm border border-line cursor-pointer hover:bg-surface-2 ${
-                            t.enabled !== false ? "text-jade" : "text-text-muted"
-                          }`}
-                        >
-                          {t.enabled !== false ? "Shown" : "Hidden"}
-                        </button>
+                      <td className={`${td} text-text-muted capitalize`}>{t.category}</td>
+                      <td className={`${td} text-text-muted capitalize`}>{t.requiredPlan}</td>
+                      <td className={td}>
+                        <StatusToggle on={t.enabled !== false} onClick={() => handleToggleTool(t)} />
                       </td>
-                      <td className="p-3 pr-5">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenToolModal(t)}
-                            className="p-2 rounded-lg border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
-                            title="Edit"
-                            aria-label="Edit"
-                          >
+                      <td className={`${td} text-right`}>
+                        <div className="flex items-center justify-end gap-1">
+                          <button type="button" onClick={() => handleOpenToolModal(t)} className={iconButton} title="Edit" aria-label={`Edit ${t.name}`}>
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteTool(t.id, t.name)}
-                            className="p-2 rounded-lg border border-line hover:bg-rust/10 text-text-muted hover:text-rust cursor-pointer"
-                            title="Delete"
-                            aria-label="Delete"
-                          >
+                          <button type="button" onClick={() => handleDeleteTool(t.id, t.name)} className={dangerIconButton} title="Delete" aria-label={`Delete ${t.name}`}>
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -2644,43 +2269,94 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
+          )}
+        </Panel>
       )}
 
       {/* ============================================================= */}
-      {/* TAB 6: AUDIT LOG                                              */}
+      {/* SETTINGS: CHANGE HISTORY                                      */}
       {/* ============================================================= */}
       {activeTab === "audit" && (
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-surface border border-line shadow-sm">
-            <h2 className="text-base font-semibold text-text">Change history</h2>
-            <p className="text-sm text-text-muted mt-0.5">
-              Every change made to the website, navigation, widgets and feature switches.
-            </p>
-          </div>
+        <Panel>
+          {auditLogs.length === 0 ? (
+            <EmptyState title="No changes yet" text="Every change saved in this console will be listed here." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr className="border-b border-line">
+                    <th className={th}>Change</th>
+                    <th className={th}>Area</th>
+                    <th className={th}>When</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {auditLogs.map((log) => (
+                    <tr key={log.id}>
+                      <td className={`${td} text-text`}>{log.note || log.action}</td>
+                      <td className={`${td} text-text-muted capitalize`}>{log.entityType || "—"}</td>
+                      <td className={`${td} text-text-muted whitespace-nowrap`}>
+                        {new Date(log.timestamp).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
+      )}
 
-          <div className="bg-surface rounded-2xl border border-line divide-y divide-line overflow-hidden shadow-sm">
-            {auditLogs.length === 0 ? (
-              <div className="p-10 text-center text-sm text-text-muted">No changes recorded yet.</div>
-            ) : (
-              auditLogs.map((log) => (
-                <div key={log.id} className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-6">
-                  <p className="text-sm text-text">
-                    {log.note || log.action}
-                    {log.entityType ? <span className="text-text-muted"> · {String(log.entityType).charAt(0).toUpperCase() + String(log.entityType).slice(1)}</span> : null}
+      {/* ============================================================= */}
+      {/* SETTINGS: BACKUP & RESTORE                                    */}
+      {/* ============================================================= */}
+      {activeTab === "backup" && (
+        <div className="space-y-4 max-w-3xl">
+          <Panel>
+            <div className="divide-y divide-line">
+              <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-text">Download a backup</h3>
+                  <p className="text-sm text-text-muted mt-0.5">
+                    Website content, app sidebar, widgets, tools, feature switches and plans, as one JSON file. Settings version {version}.
                   </p>
-                  <span className="text-sm text-text-muted shrink-0">
-                    {new Date(log.timestamp).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}
-                  </span>
                 </div>
-              ))
-            )}
+                <button type="button" onClick={handleExportConfig} className={secondaryButton}>
+                  Download
+                </button>
+              </div>
+              <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-text">Restore from a backup</h3>
+                  <p className="text-sm text-text-muted mt-0.5">Replace the current settings with the ones in a backup file.</p>
+                </div>
+                <label className={secondaryButton}>
+                  Choose file
+                  <input type="file" accept="application/json" onChange={handleImportConfig} className="hidden" />
+                </label>
+              </div>
+            </div>
+          </Panel>
+
+          <div className="rounded-xl border border-rust/30 bg-surface px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-medium text-rust">Reset to defaults</h3>
+              <p className="text-sm text-text-muted mt-0.5">
+                Put every setting back to how BizzPal shipped. Businesses and users are not touched. This cannot be undone.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleFactoryReset}
+              disabled={saving}
+              className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-rust/40 text-sm text-rust hover:bg-rust/10 cursor-pointer disabled:opacity-50 whitespace-nowrap"
+            >
+              <RotateCcw className="w-4 h-4" /> Reset
+            </button>
           </div>
         </div>
       )}
-            </motion.div>
-          </AnimatePresence>
+          </div>
         </main>
       </div>
 
@@ -2689,7 +2365,7 @@ export default function AdminPage() {
       {/* ============================================================= */}
       {!loading && isNavModalOpen && createPortal(
         <div
-          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+          className="fixed inset-0 z-[9999] bg-slate-950/40 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsNavModalOpen(false);
           }}
@@ -2697,7 +2373,7 @@ export default function AdminPage() {
           <div className="relative w-full max-w-lg max-h-[88vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-line bg-surface shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-surface-2 border border-line flex items-center justify-center text-gold">
+                <div className="w-8 h-8 rounded-lg bg-surface-2 border border-line flex items-center justify-center text-brass">
                   <Compass className="w-4 h-4" />
                 </div>
                 <div>
@@ -2817,7 +2493,7 @@ export default function AdminPage() {
                 type="submit"
                 form="nav-modal-form"
                 disabled={saving}
-                className="px-5 py-2 rounded-xl text-sm font-medium text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all  shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
+                className="px-5 py-2 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 cursor-pointer transition-all text-center"
               >
                 {saving ? "Saving..." : "Save Navigation Button"}
               </button>
@@ -2832,7 +2508,7 @@ export default function AdminPage() {
       {/* ============================================================= */}
       {!loading && isWidgetModalOpen && createPortal(
         <div
-          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+          className="fixed inset-0 z-[9999] bg-slate-950/40 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsWidgetModalOpen(false);
           }}
@@ -2840,7 +2516,7 @@ export default function AdminPage() {
           <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-line bg-surface shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-surface-2 border border-line flex items-center justify-center text-gold shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-surface-2 border border-line flex items-center justify-center text-brass shrink-0">
                   <Layers className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -2930,7 +2606,7 @@ export default function AdminPage() {
                 type="submit"
                 form="widget-modal-form"
                 disabled={saving}
-                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl text-sm font-medium text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all  shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
+                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 cursor-pointer transition-all text-center"
               >
                 {saving ? "Saving..." : "Save Widget"}
               </button>
@@ -2945,7 +2621,7 @@ export default function AdminPage() {
       {/* ============================================================= */}
       {!loading && isToolModalOpen && createPortal(
         <div
-          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+          className="fixed inset-0 z-[9999] bg-slate-950/40 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsToolModalOpen(false);
           }}
@@ -2953,7 +2629,7 @@ export default function AdminPage() {
           <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-line bg-surface shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-surface-2 border border-line flex items-center justify-center text-gold shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-surface-2 border border-line flex items-center justify-center text-brass shrink-0">
                   <Wrench className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -3041,12 +2717,12 @@ export default function AdminPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <label className="inline-flex items-center gap-2 cursor-pointer p-2.5 rounded-xl bg-surface-2/60 border border-line hover:border-gold/50 transition-colors">
+                <label className="inline-flex items-center gap-2 cursor-pointer p-2.5 rounded-xl bg-surface-2/60 border border-line hover:border-brass/50 transition-colors">
                   <input
                     type="checkbox"
                     checked={toolForm.enabled}
                     onChange={(e) => setToolForm({ ...toolForm, enabled: e.target.checked })}
-                    className="rounded border-line text-gold focus:ring-0"
+                    className="rounded border-line text-brass focus:ring-0"
                   />
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-text">Tool Active</span>
@@ -3054,12 +2730,12 @@ export default function AdminPage() {
                   </div>
                 </label>
 
-                <label className="inline-flex items-center gap-2 cursor-pointer p-2.5 rounded-xl bg-surface-2/60 border border-line hover:border-gold/50 transition-colors">
+                <label className="inline-flex items-center gap-2 cursor-pointer p-2.5 rounded-xl bg-surface-2/60 border border-line hover:border-brass/50 transition-colors">
                   <input
                     type="checkbox"
                     checked={toolForm.hasInteractiveCalculator}
                     onChange={(e) => setToolForm({ ...toolForm, hasInteractiveCalculator: e.target.checked })}
-                    className="rounded border-line text-gold focus:ring-0"
+                    className="rounded border-line text-brass focus:ring-0"
                   />
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-text">Has Calculator</span>
@@ -3081,7 +2757,7 @@ export default function AdminPage() {
                 type="submit"
                 form="tool-modal-form"
                 disabled={saving}
-                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl text-sm font-medium text-[#1a1206] btn-gold-gradient hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all  shadow-[0_8px_20px_-6px_var(--gold-glow)] text-center"
+                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 cursor-pointer transition-all text-center"
               >
                 {saving ? "Saving..." : "Save Tool"}
               </button>

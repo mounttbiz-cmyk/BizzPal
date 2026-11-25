@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
 
+import { askConfirm } from "@/components/ui/dialogs";
 export interface PlanTier {
   id: string;
   name: string;
@@ -244,7 +245,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
   };
 
   const handleDelete = async (planId: string, name: string) => {
-    if (!window.confirm(`Delete pricing tier "${name}"?`)) return;
+    if (!(await askConfirm({ title: `Delete the "${name}" plan?`, message: "It will disappear from the pricing page. Current subscribers keep their plan.", confirmLabel: "Delete", danger: true }))) return;
     const updated = planList.filter((p) => p.id !== planId);
     setPlanList(updated);
     broadcastLiveSync(updated);
@@ -284,7 +285,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
   };
 
   const handleResetDefaults = async () => {
-    if (!window.confirm("Reset all subscription pricing tiers to factory defaults?")) return;
+    if (!(await askConfirm({ title: "Reset the plans to the defaults?", message: "Your changes to plan names, prices and features will be replaced.", confirmLabel: "Reset", danger: true }))) return;
     const defaults = DEFAULT_SUBSCRIPTION_PLANS as PlanTier[];
     setPlanList(defaults);
     broadcastLiveSync(defaults);
@@ -294,74 +295,68 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
 
   return (
     <div className="space-y-6">
-      {/* Header Bar */}
-      <div className="p-5 rounded-2xl bg-surface border border-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-        <div>
-          <h2 className="text-base font-semibold text-text">Subscription plans</h2>
-          <p className="text-sm text-text-muted mt-0.5 max-w-2xl">
-            Edit plan names, prices, badges and features. Changes show on the pricing page and the dashboard straight away.
-          </p>
+      {/* Tabs and actions */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-line">
+        <div role="tablist" aria-label="Plans and payments" className="flex gap-6">
+          {([
+            { id: "tiers", label: "Plans", count: planList.length },
+            { id: "gateway", label: "Payments", count: transactions.length },
+          ] as const).map(t => {
+            const on = subTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => {
+                  setSubTab(t.id);
+                  if (t.id === "gateway") fetchTransactions();
+                }}
+                className={`relative pb-3 text-sm cursor-pointer whitespace-nowrap ${on ? "text-text" : "text-text-muted hover:text-text"}`}
+              >
+                {t.label}
+                {t.count > 0 && <span className="ml-1.5 text-xs text-text-muted tabular-nums">{t.count}</span>}
+                {on && <span className="absolute left-0 right-0 bottom-0 h-0.5 rounded-full bg-brass" />}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-center">
+        <div className="flex items-center gap-2 pb-3">
           {subTab === "tiers" && (
             <>
               <button
                 type="button"
                 onClick={handleResetDefaults}
                 disabled={saving}
-                className="px-3.5 py-2.5 rounded-xl text-sm border border-line text-text hover:bg-surface-2 flex items-center gap-1.5 cursor-pointer"
-                title="Reset to default tiers"
+                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg text-sm border border-line text-text hover:bg-surface-2 cursor-pointer disabled:opacity-50"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-4 h-4" />
                 <span className="hidden sm:inline">Reset to defaults</span>
               </button>
-
               <button
                 type="button"
                 onClick={openCreateModal}
-                className="px-4 py-2.5 rounded-xl text-sm font-medium bg-brass hover:brightness-110 text-white flex items-center gap-1.5 cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg text-sm font-medium bg-brass hover:brightness-110 text-white cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>New plan</span>
+                <Plus className="w-4 h-4" />
+                New plan
               </button>
             </>
           )}
-
           {subTab === "gateway" && (
             <button
               type="button"
               onClick={fetchTransactions}
               disabled={loadingTransactions}
-              className="px-4 py-2.5 rounded-xl text-sm border border-line text-text hover:bg-surface-2 flex items-center gap-1.5 cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg text-sm border border-line text-text hover:bg-surface-2 cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingTransactions ? "animate-spin" : ""}`} />
-              <span>Refresh</span>
+              <RefreshCw className={`w-4 h-4 ${loadingTransactions ? "animate-spin" : ""}`} />
+              Refresh
             </button>
           )}
         </div>
-      </div>
-
-      {/* Sub-tab switch */}
-      <div className="inline-flex p-1 rounded-xl bg-surface-2 border border-line">
-        {([
-          { id: "tiers", label: `Plans (${planList.length})` },
-          { id: "gateway", label: `Payments${transactions.length > 0 ? ` (${transactions.length})` : ""}` },
-        ] as const).map(t => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => {
-              setSubTab(t.id);
-              if (t.id === "gateway") fetchTransactions();
-            }}
-            className={`px-4 py-2 rounded-lg text-sm cursor-pointer ${
-              subTab === t.id ? "bg-surface text-text font-medium shadow-sm" : "text-text-muted hover:text-text"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
       </div>
 
       {/* VIEW 1: Pricing Tiers Grid */}
@@ -478,7 +473,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                     onClick={() => handleToggleEnabled(plan.id)}
                     className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${isEnabled
                         ? "border-line text-text-muted hover:text-text hover:bg-surface-2"
-                        : "bg-rose-500/10 border-rose-500/30 text-rose-500"
+                        : "bg-rust/10 border-rust/30 text-rust"
                       }`}
                     title={isEnabled ? "Disable Plan" : "Enable Plan"}
                   >
@@ -497,7 +492,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                   <button
                     type="button"
                     onClick={() => handleDelete(plan.id, plan.name)}
-                    className="p-1.5 rounded-lg border border-line hover:bg-rose-500/10 text-text-muted hover:text-rose-500 cursor-pointer transition-colors"
+                    className="p-1.5 rounded-lg border border-line hover:bg-rust/10 text-text-muted hover:text-rust cursor-pointer transition-colors"
                     title="Delete Plan"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -516,16 +511,16 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
           {/* Gateway Status Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 rounded-xl bg-surface border border-line space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+              <span className="text-xs font-semibold text-text-muted">
                 Gateway Operational Mode
               </span>
               <div className="flex items-center gap-2">
                 <div
                   className={`w-3 h-3 rounded-full ${
-                    gatewayStatus?.isLive ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                    gatewayStatus?.isLive ? "bg-jade animate-pulse" : "bg-amber-500"
                   }`}
                 />
-                <span className="text-sm font-bold text-text">
+                <span className="text-sm font-semibold text-text">
                   {gatewayStatus?.mode || "Sandbox Simulation"}
                 </span>
               </div>
@@ -537,16 +532,16 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
             </div>
 
             <div className="p-4 rounded-xl bg-surface border border-line space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+              <span className="text-xs font-semibold text-text-muted">
                 Key ID Status
               </span>
               <div className="flex items-center gap-2">
                 <ShieldCheck
                   className={`w-4 h-4 ${
-                    gatewayStatus?.keyConfigured ? "text-emerald-500" : "text-amber-500"
+                    gatewayStatus?.keyConfigured ? "text-jade" : "text-amber-500"
                   }`}
                 />
-                <span className="text-sm font-bold text-text font-mono">
+                <span className="text-sm font-semibold text-text font-mono">
                   {gatewayStatus?.keyPrefix || "Placeholder Mode"}
                 </span>
               </div>
@@ -556,7 +551,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
             </div>
 
             <div className="p-4 rounded-xl bg-surface border border-line space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+              <span className="text-xs font-semibold text-text-muted">
                 Webhook Listener Endpoint
               </span>
               <div className="text-xs font-mono text-text bg-surface-2 p-1.5 rounded border border-line truncate select-all">
@@ -572,12 +567,12 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
           <div className="p-5 rounded-2xl bg-surface border border-line space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-line">
               <div>
-                <h3 className="text-sm font-bold text-text">Payment Transactions & Subscriptions Ledger</h3>
+                <h3 className="text-sm font-semibold text-text">Payment Transactions & Subscriptions Ledger</h3>
                 <p className="text-xs text-text-muted">
                   Audit log of orders created, signatures verified, and subscription activations.
                 </p>
               </div>
-              <span className="text-xs font-bold text-text-muted">
+              <span className="text-xs font-semibold text-text-muted">
                 Total: {transactions.length} record{transactions.length === 1 ? "" : "s"}
               </span>
             </div>
@@ -599,7 +594,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-line text-xs uppercase font-bold text-text-muted tracking-wider">
+                    <tr className="border-b border-line text-xs font-semibold text-text-muted">
                       <th className="py-2.5 px-3">Order / Payment ID</th>
                       <th className="py-2.5 px-3">Customer Email</th>
                       <th className="py-2.5 px-3">Plan Tier</th>
@@ -612,32 +607,32 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                     {transactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-surface-2/50 transition-colors">
                         <td className="py-3 px-3">
-                          <div className="font-bold text-text">{tx.order_id}</div>
+                          <div className="font-semibold text-text">{tx.order_id}</div>
                           <div className="text-xs text-text-muted">{tx.payment_id || "Awaiting Payment"}</div>
                         </td>
-                        <td className="py-3 px-3 font-sans text-text">{tx.user_email}</td>
+                        <td className="py-3 px-3 text-text">{tx.user_email}</td>
                         <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded-full bg-surface-2 text-text-muted font-bold uppercase text-xs">
+                          <span className="px-2 py-0.5 rounded-full bg-surface-2 text-text-muted font-semibold text-xs">
                             {tx.plan_id}
                           </span>
                         </td>
-                        <td className="py-3 px-3 font-bold text-text">
+                        <td className="py-3 px-3 font-semibold text-text">
                           ₹{((tx.amount || 0) / 100).toLocaleString("en-IN")}
                         </td>
                         <td className="py-3 px-3">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
+                            className={`px-2 py-0.5 rounded-full text-xs font-semibold  ${
                               tx.status === "success"
-                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                ? "bg-jade/15 text-emerald-600 dark:text-jade border border-jade/30"
                                 : tx.status === "created"
                                 ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
-                                : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+                                : "bg-rust/15 text-rose-600 dark:text-rust border border-rust/30"
                             }`}
                           >
                             {tx.status}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-text-muted font-sans text-xs">
+                        <td className="py-3 px-3 text-text-muted text-xs">
                           {tx.created_at ? new Date(tx.created_at).toLocaleString() : "Recently"}
                         </td>
                       </tr>
@@ -653,7 +648,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
       {/* MODAL: ADD / EDIT PLAN */}
       {mounted && isModalOpen && createPortal(
         <div
-          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+          className="fixed inset-0 z-[9999] bg-slate-950/40 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsModalOpen(false);
           }}
@@ -666,7 +661,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                   <CreditCard className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-text">
+                  <h3 className="text-sm font-semibold text-text">
                     {editingPlan ? `Edit Tier: ${editingPlan.name}` : "Create New Pricing Tier"}
                   </h3>
                   <p className="text-xs text-text-muted">Subscription pricing, entitlements, badges & actions</p>
@@ -867,7 +862,7 @@ export function PricingManager({ plans, onSave, notify, saving }: PricingManager
                 type="submit"
                 form="pricing-modal-form"
                 disabled={saving}
-                className="px-5 py-2 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all  flex items-center gap-1.5 disabled:opacity-50"
+                className="px-5 py-2 rounded-xl text-sm font-medium text-white bg-brass hover:brightness-110 cursor-pointer transition-all flex items-center gap-1.5 disabled:opacity-50"
               >
                 {saving ? (
                   <>

@@ -28,6 +28,7 @@ import {
   CloudDriveFileResult,
 } from "@/components/integrations/CloudDrivePickerModal";
 
+import { askConfirm, showNotice } from "@/components/ui/dialogs";
 interface UploadDataModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -246,7 +247,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
       if (onSuccess) onSuccess(data.metrics);
       onClose();
     } catch (err: any) {
-      alert("Error saving metrics: " + err.message);
+      showNotice("Could not save the figures: " + err.message, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -254,7 +255,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
 
   // Remove the uploaded data
   const handleResetToDemo = async () => {
-    if (!confirm("Remove the uploaded data? The dashboard will go back to the figures you entered yourself.")) return;
+    if (!(await askConfirm({ title: "Remove the uploaded data?", message: "The dashboard will go back to the figures you entered yourself.", confirmLabel: "Remove", danger: true }))) return;
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/business/upload", { method: "DELETE" });
@@ -265,7 +266,7 @@ export function UploadDataModal({ isOpen, onClose, onSuccess }: UploadDataModalP
         onClose();
       }
     } catch (e: any) {
-      alert("Reset failed: " + e.message);
+      showNotice("Could not remove the data: " + e.message, "error");
     } finally {
       setIsSubmitting(false);
     }

@@ -9,6 +9,7 @@ import {
 import { PortalModal } from "@/components/ui/PortalModal";
 import { ToolLogo } from "@/components/tools/ToolLogo";
 
+import { askConfirm } from "@/components/ui/dialogs";
 interface RealToolAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -458,7 +459,7 @@ export function RealToolAuthModal({
   };
 
   const handleDisconnect = async () => {
-    if (!confirm(`Are you sure you want to disconnect ${toolName}?`)) return;
+    if (!(await askConfirm({ title: `Disconnect ${toolName}?`, message: "BizzPal will stop syncing data from it. You can connect it again later.", confirmLabel: "Disconnect", danger: true }))) return;
     setSubmitting(true);
     try {
       await fetch("/api/integrations", {

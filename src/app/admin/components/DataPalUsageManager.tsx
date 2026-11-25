@@ -108,28 +108,20 @@ export function DataPalUsageManager() {
 
   return (
     <div className="space-y-6">
-      <div className="p-5 rounded-2xl bg-surface border border-line shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-text">DataPal usage</h2>
-          <p className="text-sm text-text-muted mt-0.5 max-w-2xl">
-            How much Google Cloud spend each account has used through DataPal. Updates every 10 seconds.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-text-muted">
-          {updatedAt && <span>Updated {updatedAt.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", second: "2-digit" })}</span>}
-          <button
-            type="button"
-            onClick={load}
-            className="p-2.5 rounded-xl border border-line hover:bg-surface-2 text-text-muted hover:text-text cursor-pointer"
-            title="Refresh"
-            aria-label="Refresh"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        </div>
+      <div className="flex items-center justify-end gap-3 text-sm text-text-muted -mt-2">
+        {updatedAt && <span>Updated {updatedAt.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", second: "2-digit" })} · refreshes every 10 seconds</span>}
+        <button
+          type="button"
+          onClick={load}
+          className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-text-muted hover:text-text hover:bg-surface-2 cursor-pointer"
+          title="Refresh"
+          aria-label="Refresh"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </button>
       </div>
 
-      <div className="rounded-2xl border border-line bg-surface shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-line bg-surface overflow-hidden">
         <div className="px-5 py-4 border-b border-line">
           <h3 className="text-base font-semibold text-text">Google Cloud billing</h3>
           <p className="text-sm text-text-muted mt-0.5">What Google has actually charged this project, taken from your billing export.</p>
@@ -206,7 +198,7 @@ export function DataPalUsageManager() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {kpis.map(k => (
-              <div key={k.label} className="p-5 rounded-2xl bg-surface border border-line shadow-sm">
+              <div key={k.label} className="p-5 rounded-xl bg-surface border border-line">
                 <div className="text-sm text-text-muted">{k.label}</div>
                 <div className="text-2xl font-semibold text-text mt-2">{k.value}</div>
                 <div className="text-xs text-text-muted mt-1">{k.note}</div>
@@ -214,7 +206,7 @@ export function DataPalUsageManager() {
             ))}
           </div>
 
-          <div className="rounded-2xl border border-line bg-surface shadow-sm overflow-hidden">
+          <div className="rounded-xl border border-line bg-surface overflow-hidden">
             <div className="px-5 py-4 border-b border-line">
               <h3 className="text-base font-semibold text-text">By account <span className="font-normal text-text-muted">· estimated from searches</span></h3>
             </div>
@@ -257,7 +249,7 @@ export function DataPalUsageManager() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-line bg-surface shadow-sm overflow-hidden">
+          <div className="rounded-xl border border-line bg-surface overflow-hidden">
             <div className="px-5 py-4 border-b border-line">
               <h3 className="text-base font-semibold text-text">Latest searches</h3>
             </div>

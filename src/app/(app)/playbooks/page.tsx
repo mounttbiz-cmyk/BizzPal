@@ -7,6 +7,7 @@ import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { useCustomAdvisors } from "@/lib/advisors";
 
+import { askConfirm } from "@/components/ui/dialogs";
 interface Playbook {
   id: string;
   title: string;
@@ -484,8 +485,8 @@ export default function ExecutivePlaybooksPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleDeletePlaybook = (id: string, title: string) => {
-    if (!confirm(`Delete playbook '${title}'?`)) return;
+  const handleDeletePlaybook = async (id: string, title: string) => {
+    if (!(await askConfirm({ title: `Delete "${title}"?`, message: "This playbook will be removed.", confirmLabel: "Delete", danger: true }))) return;
     const updated = playbooks.filter(p => p.id !== id);
     setPlaybooks(updated);
     try {

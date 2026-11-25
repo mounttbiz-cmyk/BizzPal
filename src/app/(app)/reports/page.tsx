@@ -5,6 +5,7 @@ import { Trash2, X } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { buildBriefing, BriefingContent } from "@/lib/briefing/build";
 
+import { askConfirm } from "@/components/ui/dialogs";
 interface LeadershipDecision {
   id: string;
   title: string;
@@ -193,8 +194,8 @@ export default function ReportsPage() {
     notify("Decision added.");
   };
 
-  const handleDeleteDecision = (id: string, title: string) => {
-    if (!confirm(`Delete "${title}"?`)) return;
+  const handleDeleteDecision = async (id: string, title: string) => {
+    if (!(await askConfirm({ title: `Delete "${title}"?`, confirmLabel: "Delete", danger: true }))) return;
     saveDecisions(decisions.filter(d => d.id !== id));
     notify("Decision removed.");
   };

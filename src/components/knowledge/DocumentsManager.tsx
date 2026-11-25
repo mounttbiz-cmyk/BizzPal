@@ -10,6 +10,7 @@ import {
   CloudDriveFileResult,
 } from "@/components/integrations/CloudDrivePickerModal";
 
+import { askConfirm, showNotice } from "@/components/ui/dialogs";
 interface DocumentItem {
   id: string;
   businessId: string;
@@ -204,7 +205,7 @@ export function DocumentsManager() {
   };
 
   const handleDelete = async (docId: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}" and all its vector chunks?`)) return;
+    if (!(await askConfirm({ title: `Delete "${title}"?`, message: "The document and everything BizzPal learned from it will be removed.", confirmLabel: "Delete", danger: true }))) return;
 
     try {
       const res = await fetch(`/api/knowledge/documents/${docId}`, { method: "DELETE" });
@@ -215,7 +216,7 @@ export function DocumentsManager() {
         fetchDocuments();
       }
     } catch (e) {
-      alert("Failed to delete document");
+      showNotice("Could not delete the document. Please try again.", "error");
     }
   };
 
@@ -230,7 +231,7 @@ export function DocumentsManager() {
         fetchDocuments();
       }
     } catch {
-      alert("Failed to reprocess document");
+      showNotice("Could not reprocess the document. Please try again.", "error");
     }
   };
 
@@ -243,7 +244,7 @@ export function DocumentsManager() {
         setActiveDocForPreview({ doc, chunks: data.chunks || [] });
       }
     } catch {
-      alert("Failed to load chunks");
+      showNotice("Could not load the document's contents. Please try again.", "error");
     } finally {
       setIsLoadingChunks(false);
     }

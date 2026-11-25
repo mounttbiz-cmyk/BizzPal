@@ -17,6 +17,7 @@ import {
 import { parseUploadedContent, ParsedBusinessMetrics } from "@/lib/upload/dataParser";
 import { CloudFileItem } from "@/lib/integrations/googleDrive";
 
+import { askConfirm, showNotice } from "@/components/ui/dialogs";
 export interface CloudDriveFileResult {
   fileName: string;
   fileType: "csv" | "json" | "text";
@@ -170,7 +171,7 @@ export function CloudDrivePickerModal({
 
   // Disconnect handler
   const handleDisconnect = async () => {
-    if (!confirm(`Disconnect your ${provider === "google" ? "Google Drive" : "OneDrive"} account?`)) return;
+    if (!(await askConfirm({ title: `Disconnect ${provider === "google" ? "Google Drive" : "OneDrive"}?`, message: "BizzPal will stop reading files from it. You can connect it again later.", confirmLabel: "Disconnect", danger: true }))) return;
     setIsLoading(true);
     try {
       const endpoint =
@@ -182,7 +183,7 @@ export function CloudDrivePickerModal({
       setAccountInfo(null);
       setFiles([]);
     } catch (err: any) {
-      alert("Failed to disconnect: " + err.message);
+      showNotice("Could not disconnect: " + err.message, "error");
     } finally {
       setIsLoading(false);
     }

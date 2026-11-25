@@ -326,7 +326,20 @@ html, body {
   color: #1a1206;
 }
 
-/* Admin console: same plain, readable type as the rest of the app */
+/* Admin console: Geist, a crisp dashboard typeface, also for its dialogs (they render outside the shell) */
+body:has(.admin-shell),
+.admin-shell {
+  font-family: "Geist", var(--font-inter);
+  font-feature-settings: "tnum";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.005em;
+}
+body:has(.admin-shell) h1,
+body:has(.admin-shell) h2,
+body:has(.admin-shell) h3 {
+  letter-spacing: -0.02em;
+}
 .admin-shell .font-mono { font-family: inherit; }
 .admin-shell .uppercase { text-transform: none; letter-spacing: normal; }
 .admin-shell .tracking-wider, .admin-shell .tracking-widest { letter-spacing: normal; }

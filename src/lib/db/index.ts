@@ -812,6 +812,10 @@ const EMAIL_KEYED: Array<[string, string]> = [
   ["team_invites", "owner_email"],
   ["team_invites", "invite_email"],
   ["outreach_log", "user_email"],
+  // Their seat in other people's businesses, and the employee directory they connected
+  ["team_members", "email"],
+  ["hris_connections", "owner_email"],
+  ["hris_employees", "owner_email"],
 ];
 
 /** Removes businesses and every row saved for them (tasks, documents, connections, team, per-business settings). */

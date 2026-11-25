@@ -15,4 +15,12 @@ for (const f of files) {
   if (r.status !== 0) failed++;
 }
 console.log(failed ? `\n${failed} test file(s) failed` : "\nAll test files passed");
+
+// Leave no test accounts behind, so the admin console only lists real customers
+try {
+  const { cleanupTestData } = await import("./cleanup.mjs");
+  await cleanupTestData();
+} catch (err) {
+  console.log(`Cleanup of test data failed: ${err.message}`);
+}
 process.exit(failed ? 1 : 0);

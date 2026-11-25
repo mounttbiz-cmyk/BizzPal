@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 
+import { askConfirm } from "@/components/ui/dialogs";
 // ------------------------------------------------------------------ types (as the APIs return them)
 
 type State =
@@ -814,11 +815,14 @@ function AgentPanel({
               )}
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    window.confirm(
-                      `Retire ${a.name}? It will take no new work.`,
-                    )
+                    await askConfirm({
+                      title: `Retire ${a.name}?`,
+                      message: "It will stop taking new work. Its history stays.",
+                      confirmLabel: "Retire",
+                      danger: true,
+                    })
                   )
                     step("retire");
                 }}

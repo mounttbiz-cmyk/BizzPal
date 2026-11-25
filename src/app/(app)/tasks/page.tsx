@@ -5,6 +5,7 @@ import { Plus, Check, Trash2 } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
 
+import { askConfirm } from "@/components/ui/dialogs";
 interface TaskItem {
   id: string;
   title: string;
@@ -96,7 +97,7 @@ export default function TasksPage() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!confirm("Delete this task?")) return;
+    if (!(await askConfirm({ title: "Delete this task?", confirmLabel: "Delete", danger: true }))) return;
     setTasks(prev => prev.filter(t => t.id !== taskId));
     try {
       await fetch(`/api/tasks?id=${taskId}`, { method: "DELETE" });

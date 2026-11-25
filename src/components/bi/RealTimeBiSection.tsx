@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { RefreshCw, Check } from "lucide-react";
 
+import { showNotice } from "@/components/ui/dialogs";
 interface KpiItem {
   id: string;
   metricKey: string;
@@ -189,7 +190,7 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
         fetchInsights();
       }
     } catch {
-      alert("Failed to approve action");
+      showNotice("Could not approve the action. Please try again.", "error");
     } finally {
       setApprovingActionKey(null);
     }
@@ -207,7 +208,7 @@ export function RealTimeBiSection({ companyName = "Your Business" }: { companyNa
         fetchInsights();
       }
     } catch {
-      alert("Failed to update status");
+      showNotice("Could not update the status. Please try again.", "error");
     }
   };
 

@@ -44,6 +44,7 @@ import { AiMatcherDrawer } from "@/components/datapal/AiMatcherDrawer";
 import { DataPalCreditsModal } from "@/components/datapal/DataPalCreditsModal";
 import { ResultsView } from "@/components/datapal/ResultsView";
 
+import { askConfirm } from "@/components/ui/dialogs";
 export default function DataPalPage() {
   // Navigation tabs: 'search' | 'leads' | 'history'
   const [activeTab, setActiveTab] = useState<DataPalTab>("search");
@@ -371,9 +372,9 @@ export default function DataPalPage() {
   };
 
   // Delete a campaign
-  const handleDeleteCampaign = (e: React.MouseEvent, id: string) => {
+  const handleDeleteCampaign = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (confirm("Are you sure you want to delete this campaign?")) {
+    if (await askConfirm({ title: "Delete this campaign?", message: "Its records will be removed. This cannot be undone.", confirmLabel: "Delete", danger: true })) {
       const updated = deleteCampaign(id);
       setCampaigns(updated);
       if (activeCampaign?.id === id) {

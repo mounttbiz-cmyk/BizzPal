@@ -21,6 +21,7 @@ import {
 import type { HrisSyncData, InviteRow } from "./types";
 import { Callout, GhostButton, Pill, PrimaryButton, StepHeader } from "./ui";
 
+import { askConfirm } from "@/components/ui/dialogs";
 interface Props {
   email: string;
   businessName: string;
@@ -146,7 +147,7 @@ export function TeamStep({ email, businessName, invites, onUpdate, onBack, onNex
 
   // Disconnect HRIS / CRM / Excel
   const handleDisconnect = async () => {
-    if (!confirm("Are you sure you want to disconnect this employee directory record?")) return;
+    if (!(await askConfirm({ title: "Disconnect the employee directory?", confirmLabel: "Disconnect", danger: true }))) return;
     try {
       await fetch("/api/team/hris", {
         method: "DELETE",

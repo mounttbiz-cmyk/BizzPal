@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, setPlatformConfig } from "@/lib/db";
+import { db, deleteBusinessData, deleteRegisteredUser, setPlatformConfig } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -320,32 +320,26 @@ export async function DELETE(request: Request) {
     const userEmail = searchParams.get("userEmail");
 
     if (businessId) {
-      // Delete business and associated records
-      db.prepare("DELETE FROM businesses WHERE id = ?").run(businessId);
-      db.prepare("DELETE FROM integrations WHERE business_id = ?").run(businessId);
-      db.prepare("DELETE FROM tasks WHERE business_id = ?").run(businessId);
-      db.prepare("DELETE FROM daily_checkins WHERE business_id = ?").run(businessId);
+      // The business, every company in its group, and everything saved for them.
+      // Payments, subscriptions, credit history and the audit trail are kept (deleteBusinessData skips them).
+      const companyIds = (db.prepare("SELECT id FROM businesses WHERE group_id = ? OR parent_id = ?").all(businessId, businessId) as any[]).map(r => r.id);
+      deleteBusinessData([businessId, ...companyIds]);
+      try { db.prepare("DELETE FROM business_segments WHERE group_id = ?").run(businessId); } catch {}
+      try { db.prepare("DELETE FROM active_business WHERE business_id = ?").run(businessId); } catch {}
 
       return NextResponse.json({
         success: true,
-        message: `Business ${businessId} and its associated records purged.`,
+        removedCompanies: companyIds.length,
+        message: companyIds.length ? `Deleted the business and its ${companyIds.length} companies.` : "Business deleted.",
       });
     }
 
     if (userEmail) {
-      const cleanEmail = userEmail.trim().toLowerCase();
-      const bizId = `biz_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}`;
-
-      db.prepare("DELETE FROM registered_users WHERE LOWER(email) = ?").run(cleanEmail);
-      // The user's enterprise and everything hanging off it
-      for (const table of ["integrations", "tasks", "daily_checkins"]) {
-        try { db.prepare(`DELETE FROM ${table} WHERE business_id = ?`).run(bizId); } catch {}
-      }
-      db.prepare("DELETE FROM businesses WHERE id = ?").run(bizId);
-
+      const removed = deleteRegisteredUser(userEmail);
       return NextResponse.json({
         success: true,
-        message: `User ${userEmail} removed.`,
+        removed,
+        message: `Removed ${userEmail.trim().toLowerCase()}.`,
       });
     }
 
