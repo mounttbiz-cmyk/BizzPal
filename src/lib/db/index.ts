@@ -1881,6 +1881,20 @@ try {
   }
 } catch {}
 
+// Add the Business X-Ray item to the saved menu once; after that the admin can rename, move or remove it.
+try {
+  const done = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'nav_added_xray'").get() as any;
+  const navRow = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'dashboard_nav'").get() as any;
+  if (!done && navRow && typeof navRow.config_value === "string") {
+    const nav = JSON.parse(navRow.config_value);
+    if (Array.isArray(nav) && !nav.some((i: any) => i?.id === "nav_xray" || i?.href === "/xray")) {
+      nav.push({ id: "nav_xray", label: "Business X-Ray", href: "/xray", icon: "ScanSearch", order: 4.5, mobileTab: false, group: "intelligence", enabled: true });
+      db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'dashboard_nav'").run(JSON.stringify(nav), new Date().toISOString());
+    }
+    db.prepare("INSERT OR REPLACE INTO platform_config (config_key, config_value, updated_at) VALUES ('nav_added_xray', 'true', ?)").run(new Date().toISOString());
+  }
+} catch {}
+
 // Saved plans used to promise a WhatsApp briefing. The daily briefing now goes by email, so the plan text says that.
 try {
   const row = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'subscription_plans'").get() as any;

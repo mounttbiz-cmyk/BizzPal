@@ -113,7 +113,7 @@ async function fetchText(rawUrl: string, redirects = 0): Promise<{ url: string; 
 
 const robotsCache = new Map<string, { disallow: string[]; at: number }>();
 
-async function allowedByRobots(url: URL): Promise<boolean> {
+export async function allowedByRobots(url: URL): Promise<boolean> {
   const cached = robotsCache.get(url.origin);
   let rules = cached && Date.now() - cached.at < 3_600_000 ? cached.disallow : null;
   if (!rules) {

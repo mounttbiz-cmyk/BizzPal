@@ -27,6 +27,8 @@ export interface ChatRequest {
   files?: Array<{ mimeType: string; base64: string }>;
   /** Ask for a JSON answer */
   json?: boolean;
+  /** 0 for extraction and classification work that must be repeatable */
+  temperature?: number;
 }
 
 // Gemini models per tier, tried in order so a retired name falls through to the next one. Change them without a
@@ -115,7 +117,7 @@ async function callGemini(apiKey: string, req: ChatRequest, models: string[], ti
           systemInstruction: { parts: [{ text: req.system }] },
           contents,
           generationConfig: {
-            temperature: req.json ? 0.2 : 0.6,
+            temperature: req.temperature ?? (req.json ? 0.2 : 0.6),
             maxOutputTokens: 8192,
             ...(thinking ? { thinkingConfig: thinking } : {}),
             ...(req.json ? { responseMimeType: "application/json" } : {}),
@@ -158,7 +160,7 @@ async function callOpenAiStyle(url: string, apiKey: string, models: string[], re
       const resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model, messages, temperature: 0.6, max_tokens: 3500 }),
+        body: JSON.stringify({ model, messages, temperature: req.temperature ?? 0.6, max_tokens: 3500 }),
       });
       if (!resp.ok) continue;
       const data = await resp.json();
@@ -178,7 +180,7 @@ async function callCohere(apiKey: string, req: ChatRequest): Promise<string | nu
       preamble: req.system,
       chat_history: (req.history || []).map(t => ({ role: t.role === "assistant" ? "CHATBOT" : "USER", message: t.text })),
       message: req.message,
-      temperature: 0.6,
+      temperature: req.temperature ?? 0.6,
       max_tokens: 3500,
     }),
   });

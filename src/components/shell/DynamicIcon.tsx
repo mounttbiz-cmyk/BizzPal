@@ -29,6 +29,7 @@ import {
   Code,
   Share2,
   Briefcase,
+  ScanSearch,
   LucideProps,
 } from "lucide-react";
 
@@ -63,6 +64,7 @@ const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
   Code,
   Share2,
   Briefcase,
+  ScanSearch,
 };
 
 export function DynamicIcon({ name, ...props }: { name: string } & LucideProps) {

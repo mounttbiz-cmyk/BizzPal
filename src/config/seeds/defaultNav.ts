@@ -46,6 +46,16 @@ export const defaultNavItems: NavItem[] = [
 
   // 2. EXECUTIVE INTELLIGENCE
   {
+    id: "nav_xray",
+    label: "Business X-Ray",
+    href: "/xray",
+    icon: "ScanSearch",
+    order: 4.5,
+    mobileTab: false,
+    group: "intelligence",
+    enabled: true,
+  },
+  {
     id: "nav_gaps",
     label: "Gap Register",
     href: "/gaps",
