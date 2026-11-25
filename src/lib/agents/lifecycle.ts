@@ -4,6 +4,7 @@ import { agentById, REQUIREMENT_LABELS } from "@/lib/xray/packs";
 import { recordAudit, newTraceId } from "@/lib/platform/audit";
 import { walletBalance } from "@/lib/platform/wallet";
 import { actionById } from "@/lib/platform/policy";
+import { IN_APP_ACTIONS, qualityTest, safetyTest } from "./evaluation";
 
 /**
  * Agent lifecycle (PRD 7.1 and 12):
@@ -14,8 +15,9 @@ import { actionById } from "@/lib/platform/policy";
  *
  * Evaluation runs the gates in code:
  *   G0 configuration: the agent is a known one, every tool it may use is a known action, its budget is within limits
- *   G1 golden set and G2 red team: a passing evaluation run is on record for this agent version
- *   Connections: every system it needs is connected for this business
+ *   G1 quality and G2 safety: run by BizzPal on the spot (see evaluation.ts)
+ *   Connections: shown, but not blocking. Until a system is connected the agent works only inside BizzPal, and the
+ *     runtime refuses every action that needs that system.
  *   G3 budget: the per-task limits are set, and the wallet holds enough credits for one task
  * Activation is an explicit decision by the owner (G4). Any change to the budget of an active agent sends it back
  * for approval. Nothing here is decided by the AI.
@@ -46,6 +48,10 @@ export interface GateResult {
   label: string;
   passed: boolean;
   detail: string;
+  /** Passed, but with something the owner should know (for example: works only inside BizzPal for now) */
+  warning?: boolean;
+  /** Where the owner can fix it */
+  fix?: "brief" | "credits" | "integrations";
 }
 
 export interface AgentInstance {
@@ -200,56 +206,72 @@ export function connectionStatus(businessId: string, requires: string[]): Array<
   });
 }
 
-function latestSuite(agentId: string, version: string, suite: string) {
-  return db
-    .prepare("SELECT * FROM agent_evaluations WHERE agent_id = ? AND version = ? AND suite = ? ORDER BY created_at DESC LIMIT 1")
-    .get(agentId, version, suite) as any;
-}
-
-/** Runs the gates. Every one must pass for the agent to move to "approval required". */
-export function runGates(inst: AgentInstance, walletBusinessId: string): GateResult[] {
+/**
+ * The gates. Every one must pass for the agent to move to "approval required". The safety test writes to a sandbox,
+ * so it runs only when asked to (evaluate and activate), not every time the agent is looked at.
+ */
+export function runGates(inst: AgentInstance, walletBusinessId: string, opts: { runTests?: boolean } = {}): GateResult[] {
   const def = agentById(inst.agentId);
+  const tools = def?.agent.tools || [];
   const gates: GateResult[] = [];
 
-  const unknownTools = (def?.agent.tools || []).filter(t => !actionById(t));
+  const unknownTools = tools.filter(t => !actionById(t));
+  const highRisk = tools.filter(t => actionById(t)?.tier === "T3");
   gates.push({
     id: "G0",
-    label: "Configuration",
-    passed: Boolean(def) && unknownTools.length === 0,
-    detail: !def ? "Unknown agent." : unknownTools.length ? `Unknown actions: ${unknownTools.join(", ")}` : `Version ${inst.version}, ${def.agent.tools.length} allowed actions.`,
+    label: "Set-up",
+    passed: Boolean(def) && unknownTools.length === 0 && highRisk.length === 0,
+    detail: !def
+      ? "Unknown agent."
+      : unknownTools.length
+        ? `Unknown actions: ${unknownTools.join(", ")}`
+        : highRisk.length
+          ? "It is set up with an action no agent may take."
+          : `${tools.length} actions allowed, none of them high-risk.`,
   });
 
-  for (const [id, suite, label] of [
-    ["G1", "golden", "Golden-set test"],
-    ["G2", "redteam", "Red-team test"],
-  ] as const) {
-    const run = latestSuite(inst.agentId, inst.version, suite);
-    gates.push({
-      id,
-      label,
-      passed: Boolean(run?.passed),
-      detail: run ? (run.passed ? `Passed${run.score !== null ? ` (score ${run.score})` : ""} on ${run.created_at.slice(0, 10)}.` : "The last run did not pass.") : `No ${label.toLowerCase()} has been run for version ${inst.version} yet.`,
-    });
+  const previous = (id: string) => inst.evaluation?.gates.find(g => g.id === id);
+  if (opts.runTests) {
+    const q = qualityTest(tools, inst.businessId);
+    gates.push({ id: "G1", label: "Quality test", passed: q.passed, detail: q.detail, fix: q.fix });
+    const s = safetyTest(tools);
+    gates.push({ id: "G2", label: "Safety test", passed: s.passed, detail: s.detail });
+  } else {
+    // Shown from the last run. The quality test is cheap, so it always reflects the brief as it is now.
+    const q = qualityTest(tools, inst.businessId);
+    gates.push({ id: "G1", label: "Quality test", passed: q.passed, detail: q.detail, fix: q.fix });
+    const s = previous("G2");
+    gates.push(
+      s && s.label === "Safety test"
+        ? s
+        : { id: "G2", label: "Safety test", passed: false, detail: "Not run yet. Press Run checks and BizzPal will try to break the guardrails." }
+    );
   }
 
   const conns = connectionStatus(inst.businessId, def?.agent.requires || []);
   const missing = conns.filter(c => !c.connected);
+  const inApp = tools.filter(t => IN_APP_ACTIONS.includes(t)).length;
   gates.push({
     id: "connections",
-    label: "Required connections",
-    passed: missing.length === 0,
-    detail: missing.length ? `Connect ${missing.map(m => m.label).join(", ")}.` : `All connected: ${conns.map(c => c.label).join(", ") || "none needed"}.`,
+    label: "Connections",
+    passed: true,
+    warning: missing.length > 0,
+    fix: missing.length ? "integrations" : undefined,
+    detail: missing.length
+      ? `Until ${missing.map(m => m.label).join(", ")} ${missing.length === 1 ? "is" : "are"} connected, it works inside BizzPal only (${inApp} actions: drafting messages and creating follow-up tasks). Anything it would do in ${missing.length === 1 ? "that system" : "those systems"} is refused.`
+      : `All connected: ${conns.map(c => c.label).join(", ") || "none needed"}.`,
   });
 
   const w = walletBalance(walletBusinessId);
+  const enough = w.available >= inst.budget.maxCostInr;
   gates.push({
     id: "G3",
-    label: "Budget and credits",
-    passed: w.available >= inst.budget.maxCostInr,
-    detail:
-      w.available >= inst.budget.maxCostInr
-        ? `Up to ₹${inst.budget.maxCostInr} per task; ${w.available} credits available.`
-        : `Each task can cost up to ₹${inst.budget.maxCostInr}, but only ${w.available} credits are available.`,
+    label: "Credits",
+    passed: enough,
+    fix: enough ? undefined : "credits",
+    detail: enough
+      ? `Up to ₹${inst.budget.maxCostInr} per task; ${w.available.toLocaleString("en-IN")} credits available.`
+      : `A task can cost up to ₹${inst.budget.maxCostInr}, and ${w.available.toLocaleString("en-IN")} credits are available. Add credits, or lower the limit.`,
   });
   return gates;
 }
@@ -260,7 +282,11 @@ export function evaluateAgent(businessId: string, walletBusinessId: string, id: 
   if (!["draft", "paused", "approval_required"].includes(inst.state)) throw new AgentError(`An agent that is ${inst.state.replace("_", " ")} cannot be evaluated.`);
   const traceId = newTraceId();
   setState(inst, "evaluating", actor, {}, { traceId });
-  const gates = runGates(inst, walletBusinessId);
+  const gates = runGates(inst, walletBusinessId, { runTests: true });
+  for (const [id, suite] of [["G1", "golden"], ["G2", "redteam"]] as const) {
+    const g = gates.find(x => x.id === id);
+    if (g) recordEvaluation(inst.agentId, inst.version, suite, g.passed, null, `${inst.businessId}: ${g.detail}`);
+  }
   const passed = gates.every(g => g.passed);
   const evaluation = JSON.stringify({ at: new Date().toISOString(), gates, passed });
   setState({ ...inst, state: "evaluating" }, passed ? "approval_required" : "draft", actor, { evaluation, paused_reason: null }, { traceId, passed, failed: gates.filter(g => !g.passed).map(g => g.id) });
@@ -272,7 +298,7 @@ export function activateAgent(businessId: string, walletBusinessId: string, id: 
   const inst = getAgent(businessId, id);
   if (!inst) throw new AgentError("That agent was not found.", 404);
   if (inst.state !== "approval_required") throw new AgentError("Only an agent that passed evaluation can be activated. Evaluate it first.", 409);
-  const gates = runGates(inst, walletBusinessId);
+  const gates = runGates(inst, walletBusinessId, { runTests: true });
   if (!gates.every(g => g.passed)) {
     setState(inst, "draft", actor, { evaluation: JSON.stringify({ at: new Date().toISOString(), gates, passed: false }) }, { reason: "gates_changed" });
     throw new AgentError("Something changed since it was evaluated, so it is back in draft. See the checks.", 409);

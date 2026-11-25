@@ -3,10 +3,12 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import BuyCredits from "@/components/credits/BuyCredits";
 import {
   Bot,
   Check,
   CircleDashed,
+  Info,
   Loader2,
   Pause,
   Plus,
@@ -35,6 +37,8 @@ interface Gate {
   label: string;
   passed: boolean;
   detail: string;
+  warning?: boolean;
+  fix?: "brief" | "credits" | "integrations";
 }
 interface Agent {
   id: string;
@@ -75,6 +79,20 @@ interface Task {
   traceId: string;
   createdAt: string;
   finishedAt: string | null;
+  result: string | null;
+  output: JobOutput | null;
+}
+interface JobStep {
+  action: string;
+  label: string;
+  why: string;
+  status: "done" | "approval_required" | "refused";
+  result?: any;
+  reason?: string;
+}
+interface JobOutput {
+  summary: string;
+  steps: JobStep[];
 }
 
 const STATE_LABEL: Record<State, { label: string; cls: string }> = {
@@ -102,7 +120,7 @@ const STATE_LABEL: Record<State, { label: string; cls: string }> = {
 };
 const STEPS: Array<{ state: State; label: string }> = [
   { state: "draft", label: "Draft" },
-  { state: "approval_required", label: "Checks passed" },
+  { state: "approval_required", label: "Checked" },
   { state: "active", label: "Active" },
 ];
 const BUDGET_FIELDS: Array<{ key: keyof Budget; label: string; unit: string }> =
@@ -547,8 +565,13 @@ function AgentPanel({
     canManage: boolean;
   } | null>(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState<{
+    tone: "good" | "info";
+    text: string;
+  } | null>(null);
   const [busy, setBusy] = useState("");
   const [budget, setBudget] = useState<Record<string, string>>({});
+  const [buying, setBuying] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -575,12 +598,34 @@ function AgentPanel({
   const step = async (s: string, extra?: Record<string, unknown>) => {
     setBusy(s);
     setError("");
+    setNotice(null);
     try {
-      await send(
+      const r = await send(
         `/api/agents/${encodeURIComponent(id)}`,
         "PATCH",
         s === "budget" ? { budget: extra } : { step: s, ...(extra || {}) },
       );
+      if (s === "evaluate") {
+        const gates: Gate[] = r.agent?.evaluation?.gates || [];
+        const open = gates.filter((g) => !g.passed).length;
+        setNotice(
+          open === 0
+            ? {
+                tone: "good",
+                text: "Every check passed. Switch it on when you are ready.",
+              }
+            : {
+                tone: "info",
+                text: `${open} ${open === 1 ? "check needs" : "checks need"} your attention. Each one says what to do.`,
+              },
+        );
+      }
+      if (s === "activate")
+        setNotice({
+          tone: "good",
+          text: "It is on. Give it its first job below.",
+        });
+      if (s === "budget") setNotice({ tone: "info", text: "Limits saved." });
       await load();
       onChanged();
     } catch (e: any) {
@@ -604,6 +649,7 @@ function AgentPanel({
       </Modal>
     );
   }
+
   const a = d.agent;
   const stepIndex =
     a.state === "active" || a.state === "paused"
@@ -614,6 +660,7 @@ function AgentPanel({
   const budgetChanged = BUDGET_FIELDS.some(
     (f) => Number(budget[f.key]) !== a.budget[f.key],
   );
+  const ready = d.checks.every((g) => g.passed);
 
   return (
     <Modal
@@ -628,89 +675,124 @@ function AgentPanel({
       }
       onClose={onClose}
     >
+      {a.state !== "retired" && (
+        <ol className="flex items-center gap-3 max-w-xl" aria-label="Progress">
+          {STEPS.map((s, i) => {
+            const done = i < stepIndex || (i === 2 && a.state === "active");
+            return (
+              <li
+                key={s.state}
+                className="flex items-center gap-3 flex-1 last:flex-none"
+              >
+                <span className="flex items-center gap-2 shrink-0">
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                      done
+                        ? "bg-brass text-white"
+                        : i === stepIndex
+                          ? "border-2 border-brass text-brass"
+                          : "border border-line text-text-muted"
+                    }`}
+                  >
+                    {done ? <Check className="w-3.5 h-3.5" /> : i + 1}
+                  </span>
+                  <span className="text-sm text-text whitespace-nowrap">
+                    {s.label}
+                  </span>
+                </span>
+                {i < STEPS.length - 1 && (
+                  <span className="h-px flex-1 bg-line min-w-6" />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      {notice && (
+        <p
+          className={`text-sm rounded-lg px-4 py-2.5 ${notice.tone === "good" ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300" : "bg-surface-2 text-text"}`}
+        >
+          {notice.text}
+        </p>
+      )}
+      {error && <p className="text-sm text-rust">{error}</p>}
+
+      {a.state === "active" && d.canManage && (
+        <JobBox agentId={a.id} onDone={load} />
+      )}
+
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="space-y-6 min-w-0">
-          {a.state !== "retired" && (
-            <ol className="flex items-center gap-2" aria-label="Lifecycle">
-              {STEPS.map((s, i) => (
-                <li
-                  key={s.state}
-                  className="flex items-center gap-2 flex-1 min-w-0"
-                >
-                  <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 ${i < stepIndex || (i === 2 && a.state === "active") ? "bg-brass text-white" : i === stepIndex ? "border-2 border-brass text-brass" : "border border-line text-text-muted"}`}
-                  >
-                    {i < stepIndex || (i === 2 && a.state === "active") ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : (
-                      i + 1
-                    )}
-                  </span>
-                  <span className="text-xs text-text truncate">{s.label}</span>
-                  {i < STEPS.length - 1 && (
-                    <span className="h-px flex-1 bg-line" />
-                  )}
-                </li>
-              ))}
-            </ol>
-          )}
-
-          {error && <p className="text-sm text-rust">{error}</p>}
-
           <section>
-            <h3 className="text-sm font-semibold text-text mb-2">Checks</h3>
-            <ul className="space-y-1.5">
+            <h3 className="text-sm font-semibold text-text mb-3">Checks</h3>
+            <ul className="space-y-3">
               {d.checks.map((g) => (
-                <li key={g.id} className="flex items-start gap-2.5 text-sm">
-                  {g.passed ? (
+                <li key={g.id} className="flex items-start gap-3 text-sm">
+                  {g.passed && !g.warning ? (
                     <Check className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                  ) : g.passed ? (
+                    <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                   ) : (
                     <CircleDashed className="w-4 h-4 text-text-muted mt-0.5 shrink-0" />
                   )}
                   <span className="min-w-0">
                     <span className="text-text">{g.label}</span>
-                    <span className="block text-xs text-text-muted">
+                    <span className="block text-xs text-text-muted mt-0.5 leading-relaxed">
                       {g.detail}
                     </span>
+                    {g.fix === "brief" && !g.passed && (
+                      <Link
+                        href="/settings/brief"
+                        className="inline-block mt-1.5 text-xs font-medium text-brass hover:underline"
+                      >
+                        Fill in the business brief
+                      </Link>
+                    )}
+                    {g.fix === "credits" && d.canManage && (
+                      <button
+                        type="button"
+                        onClick={() => setBuying(true)}
+                        className="mt-1.5 text-xs font-medium text-brass hover:underline cursor-pointer"
+                      >
+                        Add credits
+                      </button>
+                    )}
+                    {g.fix === "integrations" && (
+                      <Link
+                        href="/integrations"
+                        className="inline-block mt-1.5 text-xs font-medium text-brass hover:underline"
+                      >
+                        See integrations
+                      </Link>
+                    )}
                   </span>
                 </li>
               ))}
             </ul>
-            {d.checks.some((g) => g.id === "connections" && !g.passed) && (
-              <p className="mt-2 text-xs text-text-muted">
-                Connect what it needs in{" "}
-                <Link
-                  href="/integrations"
-                  className="underline hover:text-text"
-                >
-                  Integrations
-                </Link>
-                .
-              </p>
-            )}
           </section>
 
           {d.canManage && a.state !== "retired" && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {(a.state === "draft" || a.state === "paused") && (
                 <button
                   type="button"
                   onClick={() => step("evaluate")}
                   disabled={Boolean(busy)}
-                  className="h-9 px-4 rounded-lg bg-text text-bg text-sm font-medium hover:opacity-90 cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
+                  className="h-10 px-4 rounded-lg bg-text text-bg text-sm font-medium hover:opacity-90 cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
                 >
                   {busy === "evaluate" && (
                     <Loader2 className="w-4 h-4 animate-spin" />
-                  )}{" "}
-                  Run checks
+                  )}
+                  {busy === "evaluate" ? "Running checks…" : "Run checks"}
                 </button>
               )}
               {a.state === "approval_required" && (
                 <button
                   type="button"
                   onClick={() => step("activate")}
-                  disabled={Boolean(busy)}
-                  className="h-9 px-4 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
+                  disabled={Boolean(busy) || !ready}
+                  className="h-10 px-4 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
                 >
                   {busy === "activate" && (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -725,7 +807,7 @@ function AgentPanel({
                     step("pause", { reason: "Paused by the owner" })
                   }
                   disabled={Boolean(busy)}
-                  className="h-9 px-4 rounded-lg border border-line text-sm text-text hover:bg-surface-2 cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
+                  className="h-10 px-4 rounded-lg border border-line text-sm text-text hover:bg-surface-2 cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
                 >
                   <Pause className="w-4 h-4" /> Pause
                 </button>
@@ -741,7 +823,7 @@ function AgentPanel({
                     step("retire");
                 }}
                 disabled={Boolean(busy)}
-                className="h-9 px-4 rounded-lg text-sm text-text-muted hover:text-rust cursor-pointer disabled:opacity-50"
+                className="h-10 px-4 rounded-lg text-sm text-text-muted hover:text-rust cursor-pointer disabled:opacity-50"
               >
                 Retire
               </button>
@@ -760,7 +842,6 @@ function AgentPanel({
               </div>
             </section>
           )}
-          <p className="text-xs text-text-muted">Version {a.version}</p>
         </div>
 
         <div className="space-y-6 min-w-0">
@@ -770,7 +851,7 @@ function AgentPanel({
             </h3>
             <p className="text-xs text-text-muted mt-0.5">
               A task stops as soon as it reaches any of these. Changing them on
-              an approved agent needs your approval again.
+              an approved agent needs the checks again.
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {BUDGET_FIELDS.map((f) => (
@@ -816,13 +897,17 @@ function AgentPanel({
 
           <section>
             <h3 className="text-sm font-semibold text-text mb-2">
-              Recent tasks
+              Recent jobs
             </h3>
             {d.tasks.length === 0 ? (
-              <p className="text-sm text-text-muted">No tasks yet.</p>
+              <p className="text-sm text-text-muted">
+                {a.state === "active"
+                  ? "No jobs yet. Give it one above."
+                  : "No jobs yet. Jobs can be given once it is switched on."}
+              </p>
             ) : (
               <ul className="divide-y divide-line rounded-lg border border-line">
-                {d.tasks.map((t) => (
+                {d.tasks.slice(0, 8).map((t) => (
                   <li
                     key={t.id}
                     className="px-3.5 py-2.5 text-sm flex items-center justify-between gap-3"
@@ -832,15 +917,15 @@ function AgentPanel({
                         {t.purpose}
                       </span>
                       <span className="block text-xs text-text-muted">
-                        {when(t.createdAt)} · {t.toolCalls} actions · ₹
-                        {t.costInr.toFixed(2)}
+                        {when(t.createdAt)} · {TASK_STATE[t.state] || t.state} ·
+                        ₹{t.costInr.toFixed(2)}
                       </span>
                     </span>
                     <Link
                       href={`/settings/audit?trace=${encodeURIComponent(t.traceId)}`}
                       className="text-xs text-text-muted hover:text-text shrink-0"
                     >
-                      {t.state.replace("_", " ")} · trace
+                      Steps
                     </Link>
                   </li>
                 ))}
@@ -849,7 +934,181 @@ function AgentPanel({
           </section>
         </div>
       </div>
+
+      {buying && (
+        <BuyCredits
+          needed={a.budget.maxCostInr}
+          onClose={() => setBuying(false)}
+          onBought={(credits) => {
+            setBuying(false);
+            setNotice({
+              tone: "good",
+              text: `${credits.toLocaleString("en-IN")} credits added. Run the checks again.`,
+            });
+            load();
+            onChanged();
+          }}
+        />
+      )}
     </Modal>
+  );
+}
+
+const TASK_STATE: Record<string, string> = {
+  working: "Working",
+  input_required: "Waiting for you",
+  completed: "Done",
+  failed: "Stopped",
+  canceled: "Canceled",
+};
+
+/** Give an active agent a job and watch it carry the job out, step by step. */
+function JobBox({ agentId, onDone }: { agentId: string; onDone: () => void }) {
+  const [instruction, setInstruction] = useState("");
+  const [task, setTask] = useState<Task | null>(null);
+  const [error, setError] = useState("");
+  const [starting, setStarting] = useState(false);
+  const running = Boolean(task && !task.finishedAt);
+
+  // Follow the job until it finishes
+  useEffect(() => {
+    if (!task || task.finishedAt) return;
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/agents/tasks/${task.id}`, {
+          cache: "no-store",
+        });
+        const j = await r.json();
+        if (j.success) {
+          setTask(j.task);
+          if (j.task.finishedAt) onDone();
+        }
+      } catch {}
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [task, onDone]);
+
+  const start = async () => {
+    setStarting(true);
+    setError("");
+    setTask(null);
+    try {
+      const r = await send(
+        `/api/agents/${encodeURIComponent(agentId)}/run`,
+        "POST",
+        { instruction },
+      );
+      setTask(r.task);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const out = task?.output;
+  return (
+    <section className="rounded-xl border border-line p-5 space-y-4">
+      <div>
+        <h3 className="text-sm font-semibold text-text">Give it a job</h3>
+        <p className="text-xs text-text-muted mt-0.5">
+          Say what you need in plain words, for example paste an enquiry and ask
+          for a reply and a follow-up.
+        </p>
+      </div>
+      <textarea
+        value={instruction}
+        onChange={(e) => setInstruction(e.target.value)}
+        rows={3}
+        maxLength={2000}
+        disabled={running || starting}
+        placeholder="e.g. Ramesh asked about 2BHK flats near Baner under ₹90 lakh and wants to visit this weekend. Draft a reply and create a follow-up task."
+        className="w-full px-3.5 py-3 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted/70 focus:outline-none focus:border-brass resize-y disabled:opacity-60"
+      />
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs text-text-muted">
+          Credits are held while it works, and whatever it does not use is
+          returned.
+        </span>
+        <button
+          type="button"
+          onClick={start}
+          disabled={running || starting || instruction.trim().length < 5}
+          className="h-10 px-4 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-50 inline-flex items-center gap-2 shrink-0"
+        >
+          {(running || starting) && (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          )}
+          {running ? "Working…" : "Start"}
+        </button>
+      </div>
+      {error && <p className="text-sm text-rust">{error}</p>}
+
+      {task && (
+        <div className="border-t border-line pt-4 space-y-3">
+          {running && !out?.steps?.length && (
+            <p className="text-sm text-text-muted flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Planning the job…
+            </p>
+          )}
+          {out?.steps?.map((s, i) => (
+            <div key={i} className="flex items-start gap-3 text-sm">
+              {s.status === "done" ? (
+                <Check className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+              ) : (
+                <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-text">{s.label}</p>
+                {s.why && <p className="text-xs text-text-muted">{s.why}</p>}
+                {s.status !== "done" && s.reason && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                    {s.reason}
+                  </p>
+                )}
+                {s.status === "done" && s.result?.draft && (
+                  <div className="mt-2 rounded-lg bg-surface-2 p-3">
+                    <p className="text-sm text-text whitespace-pre-wrap">
+                      {s.result.draft}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigator.clipboard?.writeText(s.result.draft)
+                      }
+                      className="mt-2 text-xs font-medium text-brass hover:underline cursor-pointer"
+                    >
+                      Copy draft
+                    </button>
+                  </div>
+                )}
+                {s.status === "done" && s.result?.taskId && (
+                  <Link
+                    href="/tasks"
+                    className="inline-block mt-1 text-xs font-medium text-brass hover:underline"
+                  >
+                    Task created: {s.result.title}
+                  </Link>
+                )}
+              </div>
+            </div>
+          ))}
+          {task.finishedAt && (
+            <p
+              className={`text-sm rounded-lg px-4 py-2.5 ${task.state === "completed" ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300" : "bg-surface-2 text-text"}`}
+            >
+              {out?.summary ||
+                task.result ||
+                (task.state === "completed" ? "Done." : "The job stopped.")}
+              <span className="block text-xs opacity-80 mt-0.5">
+                Cost ₹{task.costInr.toFixed(2)}. Nothing was sent outside
+                BizzPal.
+              </span>
+            </p>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 

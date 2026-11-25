@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { failure, requireAgentUser } from "@/lib/agents/api";
 import { ledger, walletBalance } from "@/lib/platform/wallet";
+import { creditPacks } from "@/lib/platform/creditPacks";
 import { dailyLimitInr, planIdFor, spentTodayInr, usageSummary } from "@/lib/platform/usage";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,8 @@ export async function GET(req: Request) {
       ledger: a.auth.isOwner ? ledger(a.walletBusinessId, 100) : [],
       today: { spentInr: spentTodayInr(a.walletBusinessId), limitInr: dailyLimitInr(plan), plan },
       usage30d: usageSummary(a.walletBusinessId, 30),
+      packs: creditPacks(),
+      canBuy: a.auth.isOwner,
     });
   } catch (err) {
     return failure(err);

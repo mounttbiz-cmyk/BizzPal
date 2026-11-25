@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { confirmPaymentAndActivateSubscription, confirmDataPalPackPayment, getPaymentTransactionByOrder, getPlatformConfig } from "@/lib/db";
 import { resolvePack } from "@/lib/datapal/plans";
+import { confirmCreditPackPayment, isCreditPackId } from "@/lib/platform/creditPacks";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getRazorpayCredentials, simulatedPaymentsAllowed } from "@/lib/payments/config";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
@@ -55,6 +56,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Payments are not available right now." }, { status: 503 });
     } else if (!isSimOrder) {
       return NextResponse.json({ success: false, error: "Invalid simulated order." }, { status: 400 });
+    }
+
+    // AI agent credits go to the account's wallet instead of changing the plan
+    if (isCreditPackId(tx.plan_id)) {
+      const creditPaymentId = razorpay_payment_id || `pay_sim_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const applied = confirmCreditPackPayment({
+        orderId: razorpay_order_id,
+        paymentId: creditPaymentId,
+        email: tx.user_email,
+        planId: tx.plan_id,
+        rawResponse: { order_id: razorpay_order_id, payment_id: creditPaymentId, mode: isLive ? "live_verified" : "sandbox_verified", verified_at: new Date().toISOString() },
+      });
+      return NextResponse.json({ success: true, kind: "credits", credits: applied.credits, alreadyApplied: applied.alreadyApplied, wallet: applied.wallet });
     }
 
     // A DataPal top-up adds records instead of changing the plan

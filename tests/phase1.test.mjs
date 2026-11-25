@@ -1,4 +1,5 @@
 // PRD Phase 1: credit wallet, risk tiers and approvals, agent lifecycle and runtime limits, audit trail and tracing.
+import { createHmac } from "crypto";
 import { BASE, businessIdOf, call, loadEnv, openDatabase, reporter, sessionToken } from "./helpers.mjs";
 
 const t = reporter();
@@ -19,7 +20,9 @@ function cleanup() {
     del("DELETE FROM businesses WHERE id = ?", id);
     del("DELETE FROM registered_users WHERE email = ?", e);
   }
-  del("DELETE FROM agent_evaluations WHERE detail = ?", `phase1-test-${stamp}`);
+  del("DELETE FROM agent_evaluations WHERE detail LIKE ?", `${BIZ}:%`);
+  for (const e of [OWNER, OTHER]) del("DELETE FROM payment_transactions WHERE user_email = ?", e);
+  for (const e of [OWNER, OTHER]) del("DELETE FROM business_briefs WHERE business_id = ?", businessIdOf(e));
 }
 cleanup();
 
@@ -69,11 +72,16 @@ try {
     t.check("a draft cannot be activated without passing evaluation", early.status === 409);
 
     const ev1 = await call(`/api/agents/${agentId}`, { method: "PATCH", cookie: owner, body: { step: "evaluate" } });
-    const failed = (ev1.json?.agent?.evaluation?.gates || []).filter(g => !g.passed).map(g => g.id);
-    t.check("evaluation fails while tests and connections are missing", ev1.json?.agent?.state === "draft" && failed.includes("G1") && failed.includes("G2") && failed.includes("connections"));
+    const gates1 = ev1.json?.agent?.evaluation?.gates || [];
+    const failed = gates1.filter(g => !g.passed).map(g => g.id);
+    t.check("the quality test fails while the business brief is empty, and says how to fix it", ev1.json?.agent?.state === "draft" && failed.includes("G1") && gates1.find(g => g.id === "G1")?.fix === "brief");
+    t.check("the safety test runs on the spot and every attack is blocked", gates1.find(g => g.id === "G2")?.passed === true && /blocked/.test(gates1.find(g => g.id === "G2")?.detail || ""));
+    const conn1 = gates1.find(g => g.id === "connections");
+    t.check("missing connections do not block it, but are flagged", conn1?.passed === true && conn1?.warning === true);
+    t.check("the safety test leaves nothing behind", Number(db.prepare("SELECT COUNT(*) AS n FROM approvals WHERE business_id LIKE 'eval_%'").get().n) === 0);
 
-    // Pass the gates the honest way: record suite results and connect the systems it needs
-    for (const suite of ["golden", "redteam"]) await admin("/api/admin/agent-evaluations", { agentId: "saas_lead_closer", suite, passed: true, score: 0.97, detail: `phase1-test-${stamp}` }, cookie);
+    // Fill in the brief and connect the systems it needs
+    await call("/api/business/brief", { method: "PUT", cookie: owner, body: { summary: "A B2B SaaS for clinics.", values: { offering: "Clinic scheduling software", customers: "Small clinics in India" } } });
     for (const key of ["salespal", "crm", "calendar"]) {
       db.prepare("INSERT INTO integrations (id, business_id, tool_key, name, category, status, config, updated_at) VALUES (?, ?, ?, ?, 'business', 'connected', '{}', ?)")
         .run(`int_${stamp}_${key}`, BIZ, key, key, new Date().toISOString());
@@ -156,6 +164,52 @@ try {
     await call(`/api/agents/${agentId}`, { method: "PATCH", cookie: owner, body: { step: "pause", reason: "test" } });
     const paused = await call(`/api/agents/${agentId}/tasks`, { method: "POST", cookie: owner, body: { purpose: "x" } });
     t.check("a paused agent takes no new tasks", paused.status === 409);
+
+    // ---------------------------------------------------------------- buying credits (Razorpay)
+    const badPack = await call("/api/payments/razorpay/order", { method: "POST", cookie: owner, body: { planId: "credits_999999" } });
+    t.check("an unknown credit pack cannot be bought", badPack.status === 400);
+    const secret = env.RAZORPAY_KEY_SECRET || "";
+    const isLiveKeys = /^rzp_/.test(env.RAZORPAY_KEY_ID || "") && secret.length > 6;
+    if (isLiveKeys) {
+      // An order as Razorpay would have created it (no real order is created from a test)
+      const orderId = `order_p1test_${stamp}`;
+      db.prepare("INSERT INTO payment_transactions (id, order_id, user_email, plan_id, amount, currency, status, created_at) VALUES (?, ?, ?, 'credits_100', 10000, 'INR', 'created', ?)")
+        .run(`ptx_${stamp}`, orderId, OWNER, new Date().toISOString());
+      const before = (await call("/api/credits", { cookie: owner })).json.wallet.balance;
+      const payId = `pay_p1test_${stamp}`;
+      const signature = createHmac("sha256", secret).update(`${orderId}|${payId}`).digest("hex");
+      const forged = await call("/api/payments/razorpay/verify", { method: "POST", cookie: owner, body: { razorpay_order_id: orderId, razorpay_payment_id: payId, razorpay_signature: "0".repeat(64) } });
+      t.check("a payment with a wrong signature adds nothing", forged.status === 400 && (await call("/api/credits", { cookie: owner })).json.wallet.balance === before);
+      const paid = await call("/api/payments/razorpay/verify", { method: "POST", cookie: owner, body: { razorpay_order_id: orderId, razorpay_payment_id: payId, razorpay_signature: signature } });
+      const w = (await call("/api/credits", { cookie: owner })).json;
+      t.check("a verified payment adds the pack's credits to the wallet", paid.json?.kind === "credits" && w.wallet.balance === before + 100 && w.ledger.some(e => e.type === "purchase"));
+      const again = await call("/api/payments/razorpay/verify", { method: "POST", cookie: owner, body: { razorpay_order_id: orderId, razorpay_payment_id: payId, razorpay_signature: signature } });
+      t.check("the same payment cannot add credits twice", again.json?.alreadyApplied === true && (await call("/api/credits", { cookie: owner })).json.wallet.balance === before + 100);
+      t.check("buying credits does not change the plan", !db.prepare("SELECT 1 FROM subscriptions WHERE user_email = ? AND plan_id LIKE 'credits_%'").get(OWNER));
+    } else {
+      console.log("SKIP credit purchase checks (no Razorpay keys in .env)");
+    }
+
+    // ---------------------------------------------------------------- a job, end to end
+    await call(`/api/agents/${agentId}`, { method: "PATCH", cookie: owner, body: { budget: { maxCostInr: 5 } } });
+    db.prepare("UPDATE agent_instances SET state = 'active' WHERE id = ?").run(agentId);
+    const tooShort = await call(`/api/agents/${agentId}/run`, { method: "POST", cookie: owner, body: { instruction: "hi" } });
+    t.check("a job needs a real instruction", tooShort.status === 400);
+    const job = await call(`/api/agents/${agentId}/run`, { method: "POST", cookie: owner, body: { instruction: "Dr. Mehta's clinic asked for a demo next week. Draft a short reply and create a follow-up task." } });
+    t.check("a job starts at once and runs in the background", job.status === 202 && Boolean(job.json?.task?.id));
+    let jt = job.json?.task;
+    for (let i = 0; i < 80 && jt && !jt.finishedAt; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      jt = (await call(`/api/agents/tasks/${jt.id}`, { cookie: owner })).json?.task;
+    }
+    t.check("the job finishes and its reserved credits are released", Boolean(jt?.finishedAt) && (await call("/api/credits", { cookie: owner })).json.wallet.reserved === 0);
+    if (jt?.state === "completed") {
+      t.check("the job's steps are recorded", jt.output?.steps?.length > 0 && jt.output.steps.every(s => ["done", "refused", "approval_required"].includes(s.status)));
+    } else {
+      console.log(`SKIP job result checks (the AI did not answer from here: ${jt?.result || "no result"})`);
+    }
+    const otherRun = await call(`/api/agents/${agentId}/run`, { method: "POST", cookie: other, body: { instruction: "Draft a reply to a lead please." } });
+    t.check("another account cannot give this agent a job", otherRun.status === 404 || otherRun.status === 409);
 
     // ---------------------------------------------------------------- audit trail
     const audit = await call("/api/business/audit", { cookie: owner });

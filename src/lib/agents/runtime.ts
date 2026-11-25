@@ -34,6 +34,7 @@ export interface TaskRecord {
   costInr: number;
   deadline: string;
   result: string | null;
+  output: JobOutput | null;
   createdBy: string;
   createdAt: string;
   finishedAt: string | null;
@@ -73,6 +74,23 @@ try {
     CREATE INDEX IF NOT EXISTS idx_workflow_tasks_business ON workflow_tasks (business_id, created_at);
   `);
 } catch {}
+// What a job produced, step by step (JSON), shown to the owner
+try {
+  db.exec("ALTER TABLE workflow_tasks ADD COLUMN output TEXT");
+} catch {}
+
+export interface JobStep {
+  action: string;
+  label: string;
+  why: string;
+  status: "done" | "approval_required" | "refused";
+  result?: unknown;
+  reason?: string;
+}
+export interface JobOutput {
+  summary: string;
+  steps: JobStep[];
+}
 
 /** Tokens and rupees of AI used under a trace. */
 function spentOnTrace(traceId: string): { tokens: number; costInr: number } {
@@ -97,18 +115,42 @@ function toTask(r: any): TaskRecord {
     costInr: spent.costInr,
     deadline: r.deadline,
     result: r.result,
+    output: (() => {
+      try {
+        return r.output ? JSON.parse(r.output) : null;
+      } catch {
+        return null;
+      }
+    })(),
     createdBy: r.created_by,
     createdAt: r.created_at,
     finishedAt: r.finished_at,
   };
 }
 
+/**
+ * Stops tasks that ran past their deadline without finishing (for example when the server restarted mid-job), so
+ * their reserved credits are released instead of being held forever.
+ */
+function stopOverdue(businessId: string) {
+  const rows = db
+    .prepare("SELECT id FROM workflow_tasks WHERE business_id = ? AND finished_at IS NULL AND deadline < ?")
+    .all(businessId, new Date().toISOString()) as any[];
+  for (const r of rows) {
+    try {
+      finishTask(businessId, r.id, "failed", "system", "The task ran past its time limit.");
+    } catch {}
+  }
+}
+
 export function getTask(businessId: string, id: string): TaskRecord | null {
+  stopOverdue(businessId);
   const r = db.prepare("SELECT * FROM workflow_tasks WHERE id = ? AND business_id = ?").get(id, businessId);
   return r ? toTask(r) : null;
 }
 
 export function listTasks(businessId: string, agentInstanceId?: string): TaskRecord[] {
+  stopOverdue(businessId);
   const rows = (agentInstanceId
     ? db.prepare("SELECT * FROM workflow_tasks WHERE business_id = ? AND agent_instance_id = ? ORDER BY created_at DESC LIMIT 50").all(businessId, agentInstanceId)
     : db.prepare("SELECT * FROM workflow_tasks WHERE business_id = ? ORDER BY created_at DESC LIMIT 50").all(businessId)) as any[];
@@ -306,4 +348,103 @@ export async function runAction(opts: {
     recordAudit({ businessId: opts.businessId, traceId: task.traceId, actor: opts.actor, action: "action.failed", resource: opts.action, detail: { spanId, error: message } });
     return { status: "refused", reason: message, code: err instanceof RuntimeError ? err.code : "failed" };
   }
+}
+
+// ------------------------------------------------------------------ jobs
+
+/** How the planner may call each in-app action. */
+const ACTION_INPUTS: Record<string, string> = {
+  "brief.read": "{} (rarely needed: you already have the brief)",
+  "tasks.list": "{} lists the open tasks, to avoid creating duplicates",
+  "message.draft": '{"instruction": "who the message is for, what it must say, and the tone"} writes a draft for the owner to review; nothing is sent',
+  "tasks.create_internal": '{"title": "a clear follow-up action, under 120 characters", "priority": "high" | "medium" | "low"}',
+};
+const MAX_JOB_STEPS = 4;
+
+/**
+ * Starts a job for an active agent: the task and its credit reservation are created now, and the work runs in the
+ * background (it can take longer than one web request may). Poll the task to see the steps as they finish.
+ */
+export function startJob(opts: { businessId: string; walletBusinessId: string; agentInstanceId: string; instruction: string; actor: string; tier: AiTier }): TaskRecord {
+  const instruction = opts.instruction.trim().slice(0, 2000);
+  if (instruction.length < 5) throw new RuntimeError("Describe the job in a sentence or two.", "invalid_input");
+  const task = startTask({ ...opts, purpose: instruction });
+  void runJob(opts.businessId, task.id, instruction, opts.actor, opts.tier).catch(err => {
+    console.warn("[agents] job failed:", (err as Error)?.message);
+    try {
+      finishTask(opts.businessId, task.id, "failed", "system", "The job stopped unexpectedly.");
+    } catch {}
+  });
+  return task;
+}
+
+function saveOutput(taskId: string, output: JobOutput) {
+  db.prepare("UPDATE workflow_tasks SET output = ? WHERE id = ?").run(JSON.stringify(output).slice(0, 60_000), taskId);
+}
+
+async function runJob(businessId: string, taskId: string, instruction: string, actor: string, tier: AiTier) {
+  const task = getTask(businessId, taskId)!;
+  const inst = getAgent(businessId, task.agentInstanceId);
+  const def = inst ? agentById(inst.agentId) : null;
+  if (!inst || !def) {
+    finishTask(businessId, taskId, "failed", "system", "The agent was not found.");
+    return;
+  }
+
+  // Only actions this agent may take and that can run today
+  const usable = def.agent.tools.filter(t => EXECUTORS[t] && actionById(t));
+  const brief = briefForAdvisors(businessId).lines;
+  const output: JobOutput = { summary: "", steps: [] };
+
+  // 1. Plan. The AI only proposes; every step still goes through the runtime's checks below.
+  const plan = await generateChatDetailed(
+    {
+      system: [
+        `You are "${def.agent.name}", an AI agent working for this business. Your job: ${def.agent.job}`,
+        `Rules you never break: ${def.agent.guardrails}`,
+        `About the business (the only facts you may use):\n${brief.join("\n") || "Nothing recorded."}`,
+        `Actions you can take:\n${usable.map(a => `- ${a}: ${actionById(a)!.label}. Input: ${ACTION_INPUTS[a] || "{}"}`).join("\n")}`,
+        `Plan the owner's request as at most ${MAX_JOB_STEPS} steps, using only these actions. If the request needs something you cannot do (sending, booking, updating another system, payments), do the closest safe thing (a draft or a follow-up task) and say so in the summary.`,
+        `Answer with JSON only: {"steps": [{"action": "...", "input": {...}, "why": "one short sentence"}], "summary": "two sentences for the owner on what you did and what they should do next"}`,
+      ].join("\n\n"),
+      message: instruction,
+      json: true,
+      temperature: 0.2,
+      meter: { businessId, feature: "agent", traceId: task.traceId },
+    },
+    tier
+  );
+
+  let parsed: any = null;
+  try {
+    parsed = plan ? JSON.parse(plan.text.replace(/^```(?:json)?\s*|\s*```$/g, "")) : null;
+  } catch {}
+  if (!parsed || !Array.isArray(parsed.steps)) {
+    output.summary = plan ? "The agent could not make a clear plan for this job. Try describing it more specifically." : "The AI is not answering right now, so the agent could not plan this job. No credits were used.";
+    saveOutput(taskId, output);
+    finishTask(businessId, taskId, "failed", "system", output.summary);
+    return;
+  }
+  output.summary = String(parsed.summary || "").slice(0, 600);
+
+  // 2. Carry out each step through the runtime, which enforces the limits, the agent's list and the risk tiers
+  for (const step of parsed.steps.slice(0, MAX_JOB_STEPS)) {
+    const action = String(step?.action || "");
+    const outcome = await runAction({ businessId, taskId, action, payload: step?.input && typeof step.input === "object" ? step.input : {}, actor: `agent:${inst.id}`, tier });
+    output.steps.push({
+      action,
+      label: actionById(action)?.label || action,
+      why: String(step?.why || "").slice(0, 300),
+      status: outcome.status,
+      ...(outcome.status === "done" ? { result: outcome.result } : outcome.status === "refused" ? { reason: outcome.reason } : { reason: "Waiting for your approval." }),
+    });
+    saveOutput(taskId, output);
+    const now = getTask(businessId, taskId);
+    if (!now || now.finishedAt) break; // a limit stopped the task
+  }
+
+  saveOutput(taskId, output);
+  const done = output.steps.some(s => s.status === "done");
+  const waiting = output.steps.some(s => s.status === "approval_required");
+  if (!waiting) finishTask(businessId, taskId, done ? "completed" : "failed", "system", output.summary);
 }

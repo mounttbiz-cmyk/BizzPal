@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getPlatformConfig, createPaymentOrderRecord } from "@/lib/db";
 import { getRazorpayCredentials, simulatedPaymentsAllowed } from "@/lib/payments/config";
 import { resolvePack } from "@/lib/datapal/plans";
+import { isCreditPackId, resolveCreditPack } from "@/lib/platform/creditPacks";
 import { requireUser } from "@/lib/auth/requireUser";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
 
@@ -55,6 +56,19 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: "That amount is not available." }, { status: 400 });
       }
       planName = `${pack.records.toLocaleString("en-IN")} DataPal records`;
+      amountInPaise = pack.priceInr * 100;
+    }
+
+    // AI agent credit packs: the price comes from the server's own list, and only the owner buys for the account
+    if (isCreditPackId(planId)) {
+      const pack = resolveCreditPack(String(planId));
+      if (!pack) {
+        return NextResponse.json({ success: false, error: "That credit pack is not available." }, { status: 400 });
+      }
+      if (!auth.isOwner) {
+        return NextResponse.json({ success: false, error: "Only the account owner can buy credits." }, { status: 403 });
+      }
+      planName = `${pack.credits.toLocaleString("en-IN")} agent credits`;
       amountInPaise = pack.priceInr * 100;
     }
 

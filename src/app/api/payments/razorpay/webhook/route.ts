@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { resolvePack } from "@/lib/datapal/plans";
+import { confirmCreditPackPayment, isCreditPackId } from "@/lib/platform/creditPacks";
 import {
+  confirmDataPalPackPayment,
   confirmPaymentAndActivateSubscription,
   extendSubscriptionPeriod,
   getPaymentTransactionByOrder,
@@ -37,7 +40,14 @@ export async function POST(req: Request) {
     if (eventType === "payment.captured" || eventType === "order.paid") {
       // Plan, amount and buyer come from our own order record, not the payload notes.
       const tx = payment.order_id ? getPaymentTransactionByOrder(payment.order_id) : null;
-      if (tx) {
+      const paymentId = payment.id || `pay_wh_${Date.now()}`;
+      // Top-ups are not plans: they must never activate a subscription
+      if (tx && isCreditPackId(tx.plan_id)) {
+        confirmCreditPackPayment({ orderId: payment.order_id, paymentId, email: tx.user_email, planId: tx.plan_id, rawResponse: event });
+      } else if (tx && String(tx.plan_id).startsWith("datapal_pack_")) {
+        const pack = resolvePack(String(tx.plan_id));
+        if (pack) confirmDataPalPackPayment({ orderId: payment.order_id, paymentId, email: tx.user_email, records: pack.records, rawResponse: event });
+      } else if (tx) {
         confirmPaymentAndActivateSubscription({
           orderId: payment.order_id,
           paymentId: payment.id || `pay_wh_${Date.now()}`,
