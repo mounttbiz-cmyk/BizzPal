@@ -24,6 +24,7 @@ export default function GrowthStrategyPage() {
   const [selectedVectorId, setSelectedVectorId] = useState<string>("");
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [tasksCreated, setTasksCreated] = useState(false);
 
   // Dynamic Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,8 +75,8 @@ export default function GrowthStrategyPage() {
     if (p.founder_name || p.founderName) setFounderName(p.founder_name || p.founderName);
     if (p.annual_revenue || p.annualRevenue) setAnnualRevenue(Number(p.annual_revenue || p.annualRevenue));
     if (p.monthly_revenue || p.revenue) setMonthlyRevenue(Number(p.monthly_revenue || p.revenue));
-    if (p.monthly_burn || p.burn) setMonthlyBurn(Number(p.monthly_burn || p.burn));
-    if (p.cash_on_hand || p.cash) setCashOnHand(Number(p.cash_on_hand || p.cash));
+    if (p.monthly_burn || p.monthlyBurn || p.burn) setMonthlyBurn(Number(p.monthly_burn || p.monthlyBurn || p.burn));
+    if (p.cash_on_hand || p.cashOnHand || p.cash) setCashOnHand(Number(p.cash_on_hand || p.cashOnHand || p.cash));
   };
 
   useEffect(() => {
@@ -113,8 +114,20 @@ export default function GrowthStrategyPage() {
   const runwayMonths =
     monthlyBurn > 0 && cashOnHand > 0 ? (cashOnHand / monthlyBurn).toFixed(1) : null;
 
+  const filteredVectors =
+    selectedCategory === "all"
+      ? vectors
+      : vectors.filter(v => v.category.toLowerCase() === selectedCategory.toLowerCase());
+
+  // The detail panel always shows an initiative from the list on screen
   const selectedVector =
-    vectors.find(v => v.id === selectedVectorId) || vectors[0] || null;
+    filteredVectors.find(v => v.id === selectedVectorId) || filteredVectors[0] || null;
+
+  const flash = (msg: string, ms = 4000) => {
+    setToastMessage(msg);
+    setTasksCreated(false);
+    setTimeout(() => setToastMessage(null), ms);
+  };
 
   const handleToggleMilestone = (vectorId: string, index: number) => {
     setVectors(prev => {
@@ -173,10 +186,6 @@ export default function GrowthStrategyPage() {
         return { title, done: existing ? existing.done : false };
       });
 
-    if (cleanedMilestones.length === 0) {
-      cleanedMilestones.push({ title: "Initialize initiative milestones", done: false });
-    }
-
     let updatedList: GrowthVector[];
     if (editingVector) {
       updatedList = vectors.map(v =>
@@ -195,7 +204,7 @@ export default function GrowthStrategyPage() {
             }
           : v
       );
-      setToastMessage(`Growth vector '${formTitle}' updated successfully.`);
+      flash(`Saved "${formTitle.trim()}".`);
     } else {
       const newId = `vector-${Date.now()}`;
       const newVector: GrowthVector = {
@@ -204,15 +213,17 @@ export default function GrowthStrategyPage() {
         category: formCategory,
         status: formStatus,
         expectedImpact: formExpectedImpact.trim() || "Not estimated",
-        timeline: formTimeline.trim() || "Q4 2026",
-        owner: formOwner.trim() || "Executive",
+        timeline: formTimeline.trim() || "Ongoing",
+        owner: formOwner.trim() || "Founder",
         riskTier: formRiskTier,
         description: formDescription.trim(),
         milestones: cleanedMilestones,
       };
       updatedList = [newVector, ...vectors];
       setSelectedVectorId(newId);
-      setToastMessage(`New strategic vector '${newVector.title}' created!`);
+      // Make sure the new initiative is visible under the current filter
+      if (selectedCategory !== "all" && selectedCategory !== newVector.category) setSelectedCategory("all");
+      flash(`Added "${newVector.title}".`);
     }
 
     setVectors(updatedList);
@@ -221,25 +232,23 @@ export default function GrowthStrategyPage() {
     } catch {}
 
     setIsModalOpen(false);
-    setTimeout(() => setToastMessage(null), 4000);
   };
 
   const handleDeleteVector = (vectorId: string) => {
     const target = vectors.find(v => v.id === vectorId);
-    if (!confirm(`Are you sure you want to delete strategic vector '${target?.title || ""}'?`)) {
+    if (!confirm(`Delete "${target?.title || "this initiative"}"?`)) {
       return;
     }
 
     const updated = vectors.filter(v => v.id !== vectorId);
     setVectors(updated);
     if (selectedVectorId === vectorId) {
-      setSelectedVectorId(updated[0].id);
+      setSelectedVectorId(updated[0]?.id || "");
     }
     try {
       localStorage.setItem("bizzpal_strategy_vectors", JSON.stringify(updated));
     } catch {}
-    setToastMessage(`Growth vector deleted.`);
-    setTimeout(() => setToastMessage(null), 3000);
+    flash("Initiative deleted.", 3000);
   };
 
   const handleExecuteInitiative = async (vector: GrowthVector) => {
@@ -265,25 +274,23 @@ export default function GrowthStrategyPage() {
     }
 
     setExecutingId(null);
-    setToastMessage(`Initiative '${vector.title}' converted to active tasks in /tasks!`);
-    setTimeout(() => setToastMessage(null), 5000);
+    flash(`Tasks created for "${vector.title}".`, 5000);
+    setTasksCreated(true);
   };
-
-  const filteredVectors =
-    selectedCategory === "all"
-      ? vectors
-      : vectors.filter(v => v.category.toLowerCase() === selectedCategory.toLowerCase());
 
   const inputClass =
     "w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-brass";
   const labelClass = "block text-sm text-text mb-1.5";
 
-  const stats = [
-    { label: "Yearly revenue", value: `₹${annualRevenue.toLocaleString("en-IN")}` },
-    { label: "Monthly revenue", value: `₹${monthlyRevenue.toLocaleString("en-IN")}` },
-    { label: "Cash in the bank", value: `₹${cashOnHand.toLocaleString("en-IN")}` },
-    { label: "Cash runway", value: runwayMonths ? `${runwayMonths} months` : "Add cash and burn in Settings" },
+  // A figure that was never entered is shown as missing, not as ₹0
+  const money = (n: number) => (n > 0 ? `₹${n.toLocaleString("en-IN")}` : null);
+  const stats: { label: string; value: string | null }[] = [
+    { label: "Yearly revenue", value: money(annualRevenue) },
+    { label: "Monthly revenue", value: money(monthlyRevenue) },
+    { label: "Cash in the bank", value: money(cashOnHand) },
+    { label: "Cash runway", value: runwayMonths ? `${runwayMonths} months` : null },
   ];
+  const hasVectors = vectors.length > 0;
 
   const completedOf = (v: GrowthVector) => v.milestones.filter(m => m.done).length;
 
@@ -320,25 +327,55 @@ export default function GrowthStrategyPage() {
       {toastMessage && (
         <div className="px-4 py-3 rounded-xl bg-surface-2 text-sm text-text flex items-center justify-between gap-3">
           <span>{toastMessage}</span>
-          <Link href="/tasks" className="text-brass hover:underline shrink-0">
-            View tasks
-          </Link>
+          {tasksCreated && (
+            <Link href="/tasks" className="text-brass hover:underline shrink-0">
+              View tasks
+            </Link>
+          )}
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(s => (
-          <div key={s.label} className="rounded-2xl border border-line bg-surface shadow-sm p-5">
-            <p className="text-sm text-text-muted">{s.label}</p>
-            <p className="text-2xl font-semibold text-text mt-2 truncate">{s.value}</p>
+      {stats.every(s => !s.value) ? (
+        <div className="rounded-2xl border border-line bg-surface px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-sm text-text-muted">
+            Add your revenue, cash and monthly spend to see your numbers and cash runway here.
+          </p>
+          <Link
+            href="/settings/profile"
+            className="px-4 py-2 rounded-xl border border-line text-sm text-text hover:bg-surface-2 whitespace-nowrap self-start sm:self-auto"
+          >
+            Add business numbers
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {stats.map(s => (
+              <div key={s.label} className="rounded-2xl border border-line bg-surface shadow-sm p-5 min-w-0">
+                <p className="text-sm text-text-muted">{s.label}</p>
+                {s.value ? (
+                  <p className="text-2xl font-semibold text-text mt-2 truncate tabular-nums">{s.value}</p>
+                ) : (
+                  <p className="text-base text-text-muted mt-3">Not added</p>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+          {stats.some(s => !s.value) && (
+            <p className="text-sm text-text-muted text-right">
+              <Link href="/settings/profile" className="text-brass hover:underline">
+                Complete your business numbers
+              </Link>
+            </p>
+          )}
+        </div>
+      )}
 
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-text">Initiatives</h2>
 
+          {hasVectors && (
           <div className="inline-flex items-center p-1 rounded-xl bg-surface-2 overflow-x-auto max-w-full">
             {["all", "Enterprise", "Monetization", "Product", "Partnerships"].map(cat => (
               <button
@@ -353,15 +390,39 @@ export default function GrowthStrategyPage() {
               </button>
             ))}
           </div>
+          )}
         </div>
 
+        {!hasVectors ? (
+          <div className="rounded-2xl border border-dashed border-line bg-surface px-6 py-14 text-center">
+            <p className="text-base font-medium text-text">No initiatives yet</p>
+            <p className="text-sm text-text-muted max-w-md mx-auto mt-2 leading-relaxed">
+              Add the growth moves you are working on, with their steps. BizzPal tracks the progress and can turn the steps into tasks for your team.
+            </p>
+            <button
+              type="button"
+              onClick={handleOpenAddModal}
+              className="mt-5 px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer"
+            >
+              Add your first initiative
+            </button>
+          </div>
+        ) : filteredVectors.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-line bg-surface px-6 py-12 text-center">
+            <p className="text-sm text-text-muted">No {selectedCategory} initiatives yet.</p>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("all")}
+              className="mt-3 text-sm text-brass hover:underline cursor-pointer"
+            >
+              Show all initiatives
+            </button>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className="lg:col-span-5 space-y-3">
-            {filteredVectors.length === 0 && (
-              <p className="text-sm text-text-muted py-6">No initiatives in this category yet.</p>
-            )}
             {filteredVectors.map(vec => {
-              const isSelected = vec.id === selectedVectorId;
+              const isSelected = vec.id === selectedVector?.id;
               const done = completedOf(vec);
               const total = vec.milestones.length || 1;
               const pct = Math.round((done / total) * 100);
@@ -447,6 +508,14 @@ export default function GrowthStrategyPage() {
 
             <div>
               <h4 className="text-sm font-medium text-text mb-1">Steps</h4>
+              {selectedVector.milestones.length === 0 && (
+                <p className="text-sm text-text-muted py-3">
+                  No steps yet.{" "}
+                  <button type="button" onClick={() => handleOpenEditModal(selectedVector)} className="text-brass hover:underline cursor-pointer">
+                    Add steps
+                  </button>
+                </p>
+              )}
               <ul className="divide-y divide-line">
                 {selectedVector.milestones.map((m, idx) => (
                   <li key={idx}>
@@ -478,23 +547,16 @@ export default function GrowthStrategyPage() {
               <button
                 type="button"
                 onClick={() => handleExecuteInitiative(selectedVector)}
-                disabled={Boolean(executingId)}
+                disabled={Boolean(executingId) || selectedVector.milestones.every(m => m.done)}
                 className="px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer whitespace-nowrap"
               >
                 {executingId ? "Creating tasks…" : "Create tasks"}
               </button>
             </div>
           </div>
-          ) : (
-            <div className="lg:col-span-7 rounded-2xl border border-line bg-surface shadow-sm p-10 text-center space-y-3">
-              <p className="text-base font-medium text-text">No initiatives yet</p>
-              <p className="text-sm text-text-muted max-w-md mx-auto">
-                Add the growth moves you are really working on, with their milestones. BizzPal will track progress and can turn them into tasks.
-              </p>
-              <button type="button" onClick={handleOpenAddModal} className="px-4 py-2 rounded-xl bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer">Add your first initiative</button>
-            </div>
-          )}
+          ) : null}
         </div>
+        )}
       </section>
 
       <PortalModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
