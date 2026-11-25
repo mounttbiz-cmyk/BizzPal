@@ -436,7 +436,7 @@ function AddAgent({
         <div
           role="tablist"
           aria-label="Industry"
-          className="flex gap-6 border-b border-line overflow-x-auto [scrollbar-width:none]"
+          className="flex gap-6 overflow-x-auto [scrollbar-width:none] shadow-[inset_0_-1px_0_var(--line)]"
         >
           {catalogue.map((p) => (
             <button
@@ -445,9 +445,9 @@ function AddAgent({
               role="tab"
               aria-selected={p.industry === pack?.industry}
               onClick={() => setIndustry(p.industry)}
-              className={`shrink-0 whitespace-nowrap pb-3 -mb-px border-b-2 text-sm transition-colors cursor-pointer ${
+              className={`shrink-0 whitespace-nowrap pb-3 border-b-2 text-sm transition-colors cursor-pointer ${
                 p.industry === pack?.industry
-                  ? "border-brass text-text font-medium"
+                  ? "border-brass text-text"
                   : "border-transparent text-text-muted hover:text-text"
               }`}
             >
@@ -459,63 +459,71 @@ function AddAgent({
 
       {error && <p className="text-sm text-rust">{error}</p>}
 
-      {pack && (
-        <ul className="grid gap-4 md:grid-cols-2">
-          {pack.agents.map((a) => (
-            <li
-              key={a.id}
-              className="rounded-xl border border-line bg-surface p-5 flex flex-col hover:border-line-strong transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <span className="w-9 h-9 rounded-lg bg-surface-2 text-brass flex items-center justify-center shrink-0">
-                  <Bot className="w-4 h-4" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-text leading-snug">
-                    {a.name}
-                  </p>
-                  <p className="text-sm text-text-muted mt-1 leading-relaxed">
-                    {a.job}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-auto pt-5 flex items-end justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[11px] text-text-muted mb-1.5">Needs</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {a.connections.map((c) => (
-                      <span
-                        key={c.key}
-                        className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md ${
-                          c.connected
-                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                            : "bg-surface-2 text-text-muted"
-                        }`}
-                      >
-                        {c.connected && <Check className="w-3 h-3" />}
-                        {c.label}
-                      </span>
-                    ))}
+      {/* Every industry is laid out in the same spot and only the chosen one is shown, so the window keeps the
+          height of the tallest list and does not jump when switching tabs. */}
+      <div className="grid">
+        {catalogue.map((p) => (
+          <ul
+            key={p.industry}
+            aria-hidden={p.industry !== pack?.industry}
+            className={`[grid-area:1/1] grid gap-4 md:grid-cols-2 content-start ${p.industry === pack?.industry ? "" : "invisible"}`}
+          >
+            {p.agents.map((a) => (
+              <li
+                key={a.id}
+                className="rounded-xl border border-line bg-surface p-5 flex flex-col hover:border-line-strong transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="w-9 h-9 rounded-lg bg-surface-2 text-brass flex items-center justify-center shrink-0">
+                    <Bot className="w-4 h-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-text leading-snug">
+                      {a.name}
+                    </p>
+                    <p className="text-sm text-text-muted mt-1 leading-relaxed">
+                      {a.job}
+                    </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => add(a.id)}
-                  disabled={Boolean(busy)}
-                  className="h-9 px-4 rounded-lg border border-brass/40 text-brass text-sm font-medium hover:bg-brass hover:text-white hover:border-brass transition-colors cursor-pointer shrink-0 disabled:opacity-50 inline-flex items-center gap-1.5"
-                >
-                  {busy === a.id ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Plus className="w-3.5 h-3.5" />
-                  )}
-                  Add
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+                <div className="mt-auto pt-5 flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-text-muted mb-1.5">Needs</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {a.connections.map((c) => (
+                        <span
+                          key={c.key}
+                          className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md ${
+                            c.connected
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                              : "bg-surface-2 text-text-muted"
+                          }`}
+                        >
+                          {c.connected && <Check className="w-3 h-3" />}
+                          {c.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => add(a.id)}
+                    disabled={Boolean(busy)}
+                    className="h-9 px-4 rounded-lg border border-brass/40 text-brass text-sm font-medium hover:bg-brass hover:text-white hover:border-brass transition-colors cursor-pointer shrink-0 disabled:opacity-50 inline-flex items-center gap-1.5"
+                  >
+                    {busy === a.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Plus className="w-3.5 h-3.5" />
+                    )}
+                    Add
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ))}
+      </div>
     </Modal>
   );
 }
