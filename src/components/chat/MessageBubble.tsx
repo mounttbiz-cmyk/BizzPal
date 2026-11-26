@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { ChatMessage, AgentMeta, CompanyProfile } from "./types";
 import { ChatMarkdown } from "@/components/shell/ChatMarkdown";
-import { PlaybookActions } from "./PlaybookActions";
-import { getAdvisorGreeting } from "@/lib/advisors";
-import { ArrowRight, Check, Loader2, NotebookPen } from "lucide-react";
+import { ArrowRight, Check, Copy, Loader2, NotebookPen, RotateCcw } from "lucide-react";
 import { AgentAvatarIcon } from "./CustomizeAdvisorModal";
 
 interface MessageBubbleProps {
@@ -13,8 +11,9 @@ interface MessageBubbleProps {
   activeAgent: AgentMeta;
   companyProfile?: CompanyProfile | null;
   onCommitRecord?: (record: any, msgId: string) => void;
-  onSelectPlaybook?: (playbook: string) => void;
   isTyping?: boolean;
+  /** The last reply in the chat can be asked again */
+  onRetry?: () => void;
   /** The colleague this advisor passed the question to */
   handoffAgent?: AgentMeta;
   onHandoff?: (agentId: string, question: string) => void;
@@ -23,20 +22,20 @@ interface MessageBubbleProps {
 export function MessageBubble({
   message,
   activeAgent,
-  companyProfile,
   onCommitRecord,
-  onSelectPlaybook,
   isTyping = false,
   handoffAgent,
   onHandoff,
+  onRetry,
 }: MessageBubbleProps) {
   const isUser = message.sender === "user";
+  const time = message.sentAt
+    ? new Date(message.sentAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })
+    : message.timestamp;
 
   // Clean formatted content
   const rawContent = isUser
     ? message.content
-    : message.id.startsWith("msg_init_")
-    ? getAdvisorGreeting(activeAgent, companyProfile)
     : message.content
         .replace(/\bAstra, your CEO AI\b/gi, `${activeAgent.name}, your ${activeAgent.role}`)
         .replace(/\bI am Astra\b/gi, `I am ${activeAgent.name}`)
@@ -96,8 +95,8 @@ export function MessageBubble({
             </div>
           )}
           <div
-            title={message.timestamp}
-            className="px-4 py-2.5 rounded-2xl bg-surface-2 text-text text-[15px] leading-relaxed whitespace-pre-wrap"
+            title={time}
+            className="px-4 py-2.5 rounded-2xl rounded-br-md bg-surface-2 text-text text-[15px] leading-relaxed whitespace-pre-wrap break-words"
           >
             {displayContent}
           </div>
@@ -108,14 +107,30 @@ export function MessageBubble({
 
   if (message.isError) {
     return (
-      <div id={message.id} className="w-full">
-        <p className="inline-block rounded-lg border border-rust/30 bg-rust/5 px-3.5 py-2 text-sm text-rust">{message.content}</p>
+      <div id={message.id} className="w-full flex flex-wrap items-center gap-3">
+        <p className="rounded-lg border border-rust/30 bg-rust/5 px-3.5 py-2 text-sm text-rust">{message.content}</p>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            disabled={isTyping}
+            className="h-8 px-3 rounded-lg border border-line text-sm text-text hover:bg-surface-2 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Try again
+          </button>
+        )}
       </div>
     );
   }
 
   return (
     <div id={message.id} className="group scroll-mt-6 w-full">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="w-6 h-6 rounded-md bg-surface-2 text-brass flex items-center justify-center shrink-0">
+          <AgentAvatarIcon iconName={activeAgent.avatar} className="w-3.5 h-3.5" />
+        </span>
+        <span className="text-sm font-medium text-text">{activeAgent.name}</span>
+      </div>
       <div className="text-[15px] leading-7 text-text">
         <ChatMarkdown content={displayContent} />
       </div>
@@ -204,24 +219,31 @@ export function MessageBubble({
         </div>
       )}
 
-      {((message.nextSteps && message.nextSteps.length > 0) || message.id.startsWith("msg_init_")) && onSelectPlaybook && (
-        <PlaybookActions
-          playbooks={message.nextSteps || []}
-          tools={activeAgent.quickTools || []}
-          promptSuggestions={activeAgent.promptSuggestions || []}
-          onSelectAction={onSelectPlaybook}
-          disabled={isTyping}
-        />
-      )}
-
-      {!message.id.startsWith("msg_init_") && (
-        <div className="mt-2 flex items-center gap-3 text-xs text-text-muted opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-          <button type="button" onClick={handleCopy} className="hover:text-text cursor-pointer">
-            {copied ? "Copied" : "Copy"}
+      <div className="mt-2 -ml-1.5 flex items-center gap-0.5 text-xs text-text-muted">
+        <button
+          type="button"
+          onClick={handleCopy}
+          aria-label="Copy"
+          title="Copy"
+          className="h-7 px-1.5 rounded-md hover:text-text hover:bg-surface-2 inline-flex items-center gap-1 cursor-pointer"
+        >
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied && <span>Copied</span>}
+        </button>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            disabled={isTyping}
+            aria-label="Ask again"
+            title="Ask again"
+            className="h-7 px-1.5 rounded-md hover:text-text hover:bg-surface-2 inline-flex items-center cursor-pointer disabled:opacity-40"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
           </button>
-          <span>{message.timestamp}</span>
-        </div>
-      )}
+        )}
+        {time && <span className="ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity">{time}</span>}
+      </div>
     </div>
   );
 }

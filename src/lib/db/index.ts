@@ -816,6 +816,8 @@ const EMAIL_KEYED: Array<[string, string]> = [
   ["team_members", "email"],
   ["hris_connections", "owner_email"],
   ["hris_employees", "owner_email"],
+  // Their saved advisor chats in any business
+  ["chat_conversations", "user_email"],
 ];
 
 /** Removes businesses and every row saved for them (tasks, documents, connections, team, per-business settings). */

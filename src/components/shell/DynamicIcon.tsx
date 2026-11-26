@@ -31,11 +31,13 @@ import {
   Briefcase,
   ScanSearch,
   ShieldCheck,
+  Calculator,
   LucideProps,
 } from "lucide-react";
 
 const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
   ShieldCheck,
+  Calculator,
   LayoutDashboard,
   MessageSquare,
   AlertTriangle,

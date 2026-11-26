@@ -146,16 +146,16 @@ export function CompanySwitcher({ variant = "rail", fallbackName = "" }: Props) 
         aria-expanded={open}
         aria-haspopup="dialog"
         title={name}
-        className={`group w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl border text-left cursor-pointer transition-colors ${
-          open ? "border-line-strong bg-surface-2" : "border-line bg-surface hover:bg-surface-2"
+        className={`group w-full h-12 flex items-center gap-2.5 px-2 rounded-lg text-left cursor-pointer transition-colors ${
+          open ? "bg-surface-2" : "hover:bg-surface-2"
         }`}
       >
-        {avatar("md")}
+        {avatar("sm")}
         <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-semibold text-text leading-[1.25] line-clamp-2 break-words">{name}</span>
-          {detail && <span className="block text-[11px] text-text-muted truncate mt-0.5">{detail}</span>}
+          <span className="block text-sm font-medium text-text leading-tight truncate">{name}</span>
+          {detail && <span className="block text-xs text-text-muted leading-tight truncate mt-0.5">{detail}</span>}
         </span>
-        <ChevronsUpDown className="w-3.5 h-3.5 text-text-muted group-hover:text-text shrink-0" />
+        <ChevronsUpDown className="w-4 h-4 text-text-muted group-hover:text-text shrink-0" />
       </button>
 
       {open && (

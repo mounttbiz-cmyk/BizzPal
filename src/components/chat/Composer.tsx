@@ -12,6 +12,10 @@ interface ComposerProps {
   activeAgent: AgentMeta;
   isTyping: boolean;
   className?: string;
+  /** Show the "AI can make mistakes" line under the box (off on a new chat, where it sits at the bottom of the page) */
+  showNote?: boolean;
+  /** A taller box on a new chat, with room to write */
+  roomy?: boolean;
 }
 
 export function Composer({
@@ -22,10 +26,17 @@ export function Composer({
   activeAgent,
   isTyping,
   className = "",
+  showNote = true,
+  roomy = false,
 }: ComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+
+  // Ready to type as soon as an advisor or chat is opened (not on phones, where it would pop the keyboard up)
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) textareaRef.current?.focus();
+  }, [activeAgent.id]);
 
   // Auto-grow textarea up to 200px
   useEffect(() => {
@@ -80,7 +91,7 @@ export function Composer({
             e.preventDefault();
             handleTriggerSend();
           }}
-          className="bg-surface border border-line-strong rounded-2xl px-3.5 pt-3 pb-2 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.08)] focus-within:border-text-muted transition-colors"
+          className="bg-surface border border-line rounded-[22px] px-4 pt-3.5 pb-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)] focus-within:border-line-strong focus-within:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-12px_rgba(0,0,0,0.18)] transition-[border-color,box-shadow]"
         >
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
@@ -112,10 +123,10 @@ export function Composer({
             value={value}
             onChange={e => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Message ${activeAgent.name}…`}
+            placeholder={activeAgent.badge ? `Ask about ${activeAgent.badge.toLowerCase()}…` : `Message ${activeAgent.name}…`}
             aria-label={`Message ${activeAgent.name}`}
             style={{ outline: "none", boxShadow: "none" }}
-            className="w-full max-h-[200px] bg-transparent text-[15px] text-text placeholder:text-text-muted resize-none leading-relaxed border-none outline-none ring-0 focus:outline-none focus:ring-0"
+            className={`w-full max-h-[200px] ${roomy ? "min-h-[52px]" : ""} bg-transparent text-[15px] text-text placeholder:text-text-muted resize-none leading-relaxed border-none outline-none ring-0 focus:outline-none focus:ring-0`}
           />
 
           <div className="flex items-center justify-between mt-1">
@@ -144,7 +155,7 @@ export function Composer({
                 onClick={onStop}
                 aria-label="Stop generating"
                 title="Stop"
-                className="w-8 h-8 rounded-lg bg-text text-bg flex items-center justify-center cursor-pointer hover:opacity-85"
+                className="w-9 h-9 rounded-full bg-text text-bg flex items-center justify-center cursor-pointer hover:opacity-85"
               >
                 <Square className="w-3.5 h-3.5 fill-current" />
               </button>
@@ -153,7 +164,7 @@ export function Composer({
                 type="submit"
                 disabled={!canSend}
                 aria-label="Send message"
-                className="w-8 h-8 rounded-lg bg-brass text-white flex items-center justify-center cursor-pointer hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-9 h-9 rounded-full bg-brass text-white flex items-center justify-center cursor-pointer hover:brightness-110 disabled:bg-surface-2 disabled:text-text-muted disabled:cursor-not-allowed"
               >
                 <ArrowUp className="w-4 h-4" />
               </button>
@@ -161,9 +172,9 @@ export function Composer({
           </div>
         </form>
 
-        <p className="text-[11px] text-text-muted text-center select-none pt-1.5">
-          AI can make mistakes. Please check important business and financial decisions.
-        </p>
+        {showNote && <p className="text-[11px] text-text-muted text-center select-none pt-1.5">
+          AI can make mistakes. Check important business and money decisions.
+        </p>}
       </div>
     </div>
   );

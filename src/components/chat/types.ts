@@ -33,6 +33,8 @@ export interface ChatMessage {
   agentName: string;
   avatar: string;
   timestamp: string;
+  /** When it was sent (ISO), for the time shown under it */
+  sentAt?: string;
   content: string;
   provider?: string;
   structuredRecord?: ExtractedBusinessRecord | null;

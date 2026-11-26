@@ -293,6 +293,7 @@ export function AppShell({
         <CommandPalette
           isOpen={searchOpen}
           onClose={() => setSearchOpen(false)}
+          navItems={visibleItems}
         />
       )}
 

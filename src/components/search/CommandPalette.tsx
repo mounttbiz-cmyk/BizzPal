@@ -1,644 +1,288 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import {
-  Search,
-  Calculator,
-  TrendingUp,
-  DollarSign,
-  Target,
-  ShieldAlert,
-  Layers,
-  Compass,
-  Wrench,
-  CheckSquare,
-  FileText,
-  Zap,
-  Plug,
-  BookOpen,
-  Settings,
-  Users,
-  CreditCard,
-  Bot, CornerDownLeft,
-  X, ChevronRight,
-  Database
-} from "lucide-react";
+import { CornerDownLeft, Search } from "lucide-react";
+import { NavItem } from "@/config/schemas/nav";
+import { DynamicIcon } from "@/components/shell/DynamicIcon";
 
-export interface SearchItem {
+type Group = "Pages" | "Tools" | "Tasks" | "Settings";
+
+interface Result {
   id: string;
   title: string;
-  category: "Tools & Calculators" | "Pages & Navigation" | "Execution Tasks" | "Bottlenecks & Gaps";
-  description?: string;
-  badge?: string;
+  group: Group;
+  /** A few plain words shown on the right */
+  hint?: string;
   href: string;
-  icon: React.ReactNode;
+  icon: string;
   keywords?: string[];
 }
 
-const STATIC_SEARCH_ITEMS: SearchItem[] = [
-  // ==========================================
-  // TOOLS & CALCULATORS
-  // ==========================================
-  {
-    id: "tool_profit",
-    title: "Profit Calculator",
-    category: "Tools & Calculators",
-    description: "Calculate gross, operating, and net margins with loaded Indian payroll & overheads.",
-    badge: "Calculator",
-    href: "/tools?tool=profit",
-    icon: <Calculator className="w-4 h-4 text-emerald-400" />,
-    keywords: ["profit", "margin", "gross", "net", "cogs", "opex", "calculator", "finance", "money"],
-  },
-  {
-    id: "tool_breakeven",
-    title: "Break-Even Calculator",
-    category: "Tools & Calculators",
-    description: "Determine exact monthly transaction volume and revenue required to reach zero net burn.",
-    badge: "Calculator",
-    href: "/tools?tool=breakeven",
-    icon: <Target className="w-4 h-4 text-cyan-400" />,
-    keywords: ["breakeven", "break even", "zero burn", "fixed cost", "unit economics", "calculator"],
-  },
-  {
-    id: "tool_cashflow",
-    title: "Cash Flow Forecast",
-    category: "Tools & Calculators",
-    description: "Multi-month forward cash projections incorporating collections, net burn, and tax outlays.",
-    badge: "Calculator",
-    href: "/tools?tool=cashflow",
-    icon: <DollarSign className="w-4 h-4 text-amber-400" />,
-    keywords: ["cash flow", "cashflow", "runway", "forecast", "burn", "inflow", "outflow", "treasury"],
-  },
-  {
-    id: "tool_cac",
-    title: "CAC / LTV Calculator",
-    category: "Tools & Calculators",
-    description: "Model customer acquisition cost vs lifetime value, payback velocity, and retention.",
-    badge: "Calculator",
-    href: "/tools?tool=cac",
-    icon: <TrendingUp className="w-4 h-4 text-purple-400" />,
-    keywords: ["cac", "ltv", "customer acquisition", "payback", "marketing", "sales", "churn"],
-  },
-  {
-    id: "tool_roi",
-    title: "ROI Calculator",
-    category: "Tools & Calculators",
-    description: "Evaluate software licenses, capital expenditure, and vendor investment payback periods.",
-    badge: "Calculator",
-    href: "/tools?tool=roi",
-    icon: <DollarSign className="w-4 h-4 text-emerald-400" />,
-    keywords: ["roi", "return on investment", "capex", "payback", "software spend"],
-  },
-  {
-    id: "tool_pricing",
-    title: "Pricing Simulator",
-    category: "Tools & Calculators",
-    description: "Model tiered packaging, discounting thresholds, and margin impacts on buyers.",
-    badge: "Simulator",
-    href: "/tools?tool=pricing",
-    icon: <Layers className="w-4 h-4 text-cyan-400" />,
-    keywords: ["pricing", "tiers", "packages", "discounts", "rate card", "revenue ops"],
-  },
-  {
-    id: "tool_hiring",
-    title: "Hiring Simulator",
-    category: "Tools & Calculators",
-    description: "Fully loaded Indian payroll simulation including provident fund, benefits, and revenue lag.",
-    badge: "Simulator",
-    href: "/tools?tool=hiring",
-    icon: <Users className="w-4 h-4 text-blue-400" />,
-    keywords: ["hiring", "headcount", "salary", "payroll", "provident fund", "pf", "recruiting"],
-  },
-  {
-    id: "tool_scenario",
-    title: "Scenario Planner",
-    category: "Tools & Calculators",
-    description: "Macro stress-testing: inflation, demand contraction, and competitor price wars.",
-    badge: "Simulator",
-    href: "/tools?tool=scenario_planner",
-    icon: <Compass className="w-4 h-4 text-violet-400" />,
-    keywords: ["scenario", "macro", "stress test", "downside", "inflation", "risk"],
-  },
-  {
-    id: "tool_simulator",
-    title: "Runway & Decision Simulator",
-    category: "Tools & Calculators",
-    description: "Forward-looking scenario engine for burn shocks, hiring expansions, and solvency.",
-    badge: "Simulator",
-    href: "/simulator",
-    icon: <Compass className="w-4 h-4 text-cyan-400" />,
-    keywords: ["simulator", "runway", "burn shock", "solvency", "decision"],
-  },
+// What each page is for, in plain words (shown as the hint and used for matching)
+const PAGE_HINTS: Record<string, { hint: string; keywords: string[] }> = {
+  "/dashboard": { hint: "Your numbers at a glance", keywords: ["home", "overview", "health", "runway"] },
+  "/chat": { hint: "Ask your AI advisors", keywords: ["ai", "advisor", "ceo", "cfo", "ask", "chat"] },
+  "/strategy": { hint: "Plan growth initiatives", keywords: ["initiatives", "growth", "plan"] },
+  "/playbooks": { hint: "Step-by-step plans", keywords: ["playbook", "plan", "steps"] },
+  "/xray": { hint: "Find what is holding you back", keywords: ["xray", "x-ray", "website", "analysis", "problems"] },
+  "/gaps": { hint: "Problems to fix", keywords: ["gaps", "problems", "risks", "bottlenecks"] },
+  "/simulator": { hint: "Test a decision first", keywords: ["scenario", "what if", "decision", "simulate"] },
+  "/analytics": { hint: "Charts and trends", keywords: ["charts", "metrics", "kpi", "revenue", "trends"] },
+  "/knowledge": { hint: "Your documents", keywords: ["documents", "files", "knowledge", "docs"] },
+  "/tools": { hint: "Calculators", keywords: ["calculator", "tools"] },
+  "/datapal": { hint: "Find business leads", keywords: ["leads", "contacts", "data", "datapal"] },
+  "/tasks": { hint: "Your to-do list", keywords: ["tasks", "todo", "work"] },
+  "/reports": { hint: "Briefings and reports", keywords: ["reports", "briefing", "summary"] },
+  "/automations": { hint: "Things that run by themselves", keywords: ["automation", "rules", "alerts"] },
+  "/agents": { hint: "AI agents that do work", keywords: ["agents", "ai", "automation", "jobs"] },
+  "/approvals": { hint: "Waiting for your decision", keywords: ["approve", "approvals", "agent", "email"] },
+  "/team": { hint: "People and access", keywords: ["team", "people", "users", "invite"] },
+  "/integrations": { hint: "Connect your tools", keywords: ["integrations", "connect", "email", "slack", "drive", "razorpay"] },
+  "/group": { hint: "Your companies", keywords: ["group", "companies", "subsidiaries"] },
+  "/help": { hint: "Help and support", keywords: ["help", "support", "faq"] },
+  "/workflows": { hint: "Workflows", keywords: ["workflow", "process"] },
+};
 
-  // ==========================================
-  // PAGES & NAVIGATION
-  // ==========================================
-  {
-    id: "nav_dashboard",
-    title: "Dashboard",
-    category: "Pages & Navigation",
-    description: "Executive mission control with live health score, runway, and daily briefing.",
-    badge: "Page",
-    href: "/dashboard",
-    icon: <Layers className="w-4 h-4 text-cyan-400" />,
-    keywords: ["dashboard", "home", "main", "overview", "health", "briefing"],
-  },
-  {
-    id: "nav_gaps",
-    title: "Gap Register & Playbooks",
-    category: "Pages & Navigation",
-    description: "Deterministic detection of operational bottlenecks with step-by-step resolution playbooks.",
-    badge: "Page",
-    href: "/gaps",
-    icon: <ShieldAlert className="w-4 h-4 text-rust" />,
-    keywords: ["gaps", "bottlenecks", "register", "playbooks", "problems", "solutions", "risk"],
-  },
-  {
-    id: "nav_analytics",
-    title: "Adaptive Analytics",
-    category: "Pages & Navigation",
-    description: "Deep unit economics telemetry, revenue breakdowns, and financial runway metrics.",
-    badge: "Page",
-    href: "/analytics",
-    icon: <TrendingUp className="w-4 h-4 text-emerald-400" />,
-    keywords: ["analytics", "charts", "metrics", "kpi", "telemetry", "graphs", "revenue", "trends"],
-  },
-  {
-    id: "nav_tasks",
-    title: "Tasks & Execution Queue",
-    category: "Pages & Navigation",
-    description: "High-impact tactical initiatives, custom task creation, and team milestone tracking.",
-    badge: "Page",
-    href: "/tasks",
-    icon: <CheckSquare className="w-4 h-4 text-purple-400" />,
-    keywords: ["tasks", "execution", "todo", "in progress", "done", "milestones", "queue", "work"],
-  },
-  {
-    id: "nav_tools",
-    title: "Tools Catalog & Simulators",
-    category: "Pages & Navigation",
-    description: "Comprehensive repository of financial calculators, hiring models, and business tools.",
-    badge: "Page",
-    href: "/tools",
-    icon: <Wrench className="w-4 h-4 text-amber-400" />,
-    keywords: ["tools", "calculators", "catalog", "utilities", "all tools"],
-  },
-  {
-    id: "nav_datapal",
-    title: "DataPal™ Extraction Engine",
-    category: "Pages & Navigation",
-    description: "Extract verified business contacts, directories, phone numbers, and digital gap leads across India.",
-    badge: "New",
-    href: "/datapal",
-    icon: <Database className="w-4 h-4 text-indigo-400" />,
-    keywords: ["datapal", "data", "scraper", "leads", "contacts", "phone", "email", "extract", "directories", "b2b", "outreach"],
-  },
-  {
-    id: "nav_reports",
-    title: "Executive Briefings & Reports",
-    category: "Pages & Navigation",
-    description: "Automated daily, weekly, and monthly intelligence syntheses from AI executive team.",
-    badge: "Page",
-    href: "/reports",
-    icon: <FileText className="w-4 h-4 text-cyan-400" />,
-    keywords: ["reports", "briefings", "executive summary", "daily brief", "weekly digest"],
-  },
-  {
-    id: "nav_automations",
-    title: "Automations Engine",
-    category: "Pages & Navigation",
-    description: "Autonomous rule triggers, webhook responders, and anomaly notification engines.",
-    badge: "Page",
-    href: "/automations",
-    icon: <Zap className="w-4 h-4 text-amber-400" />,
-    keywords: ["automations", "triggers", "alerts", "rules", "bots"],
-  },
-  {
-    id: "nav_integrations",
-    title: "Integrations & Tools Setup",
-    category: "Pages & Navigation",
-    description: "Manage live connectors for Stripe, Slack, Zoho Books, Google Calendar, and Help Desk.",
-    badge: "Page",
-    href: "/integrations",
-    icon: <Plug className="w-4 h-4 text-emerald-400" />,
-    keywords: ["integrations", "stripe", "slack", "zoho", "google calendar", "zendesk", "connectors"],
-  },
-  {
-    id: "nav_knowledge",
-    title: "Knowledge Hub",
-    category: "Pages & Navigation",
-    description: "Institutional repository for company playbooks, market intelligence, and documents.",
-    badge: "Page",
-    href: "/knowledge",
-    icon: <BookOpen className="w-4 h-4 text-purple-400" />,
-    keywords: ["knowledge", "docs", "hub", "wiki", "playbooks", "library"],
-  },
-  {
-    id: "nav_settings_tools",
-    title: "Settings: Connected Tools & Daily Intake",
-    category: "Pages & Navigation",
-    description: "Modify connected business tools, manual data preferences, and your daily email briefing.",
-    badge: "Settings",
-    href: "/settings/tools",
-    icon: <Settings className="w-4 h-4 text-text-muted" />,
-    keywords: ["settings", "tools settings", "whatsapp", "phone", "preferences"],
-  },
-  {
-    id: "nav_settings_appearance",
-    title: "Settings: Appearance & Theme",
-    category: "Pages & Navigation",
-    description: "Configure dark, light, and system theme preferences.",
-    badge: "Settings",
-    href: "/settings/appearance",
-    icon: <Settings className="w-4 h-4 text-text-muted" />,
-    keywords: ["appearance", "theme", "dark mode", "light mode", "display"],
-  },
-  {
-    id: "nav_team",
-    title: "Team & Permissions",
-    category: "Pages & Navigation",
-    description: "Manage leadership team members, departmental responsibilities, and access levels.",
-    badge: "Page",
-    href: "/team",
-    icon: <Users className="w-4 h-4 text-blue-400" />,
-    keywords: ["team", "users", "roles", "permissions", "founder", "cfo", "cmo"],
-  },
-  {
-    id: "nav_subscription",
-    title: "Subscription & Billing",
-    category: "Pages & Navigation",
-    description: "View plan limits, enterprise license tiers, and invoicing receipts.",
-    badge: "Page",
-    href: "/subscription",
-    icon: <CreditCard className="w-4 h-4 text-emerald-400" />,
-    keywords: ["subscription", "plan", "billing", "pricing", "upgrade", "invoice"],
-  },
-  {
-    id: "nav_chat",
-    title: "AI Workspace & Copilot",
-    category: "Pages & Navigation",
-    description: "Chat with CEO, CFO, and Marketing for strategic advisory.",
-    badge: "Executive Advisory",
-    href: "/chat",
-    icon: <Bot className="w-4 h-4 text-cyan-400" />,
-    keywords: ["chat", "copilot", "ai", "ceo", "cfo", "marketing", "advisor"],
-  },
-
-  // ==========================================
-  // BOTTLENECKS & GAPS
-  // ==========================================
-  {
-    id: "gap_founder",
-    title: "Founder Dependency & Key-Person Risk",
-    category: "Bottlenecks & Gaps",
-    description: "Over-reliance on founder for commercial deals, client deliveries, and firefighting.",
-    badge: "Critical Gap",
-    href: "/gaps",
-    icon: <ShieldAlert className="w-4 h-4 text-rust" />,
-    keywords: ["founder dependency", "key person", "bottleneck", "delegation", "firefighting"],
-  },
-  {
-    id: "gap_runway",
-    title: "Cash Runway Under 6 Months",
-    category: "Bottlenecks & Gaps",
-    description: "Current cash reserve vs net monthly burn puts company below 6-month safety threshold.",
-    badge: "Critical Gap",
-    href: "/gaps",
-    icon: <ShieldAlert className="w-4 h-4 text-rust" />,
-    keywords: ["cash runway", "solvency", "burn", "runway under 6 months", "capital"],
-  },
-  {
-    id: "gap_client_concentration",
-    title: "High Customer Concentration (>25%)",
-    category: "Bottlenecks & Gaps",
-    description: "Largest single account accounts for >25% of company revenue, risking insolvency if lost.",
-    badge: "High Risk",
-    href: "/gaps",
-    icon: <ShieldAlert className="w-4 h-4 text-amber-400" />,
-    keywords: ["concentration", "client concentration", "top customer", "revenue risk"],
-  },
-  {
-    id: "gap_channel_concentration",
-    title: "Single Channel Acquisition Risk (>60%)",
-    category: "Bottlenecks & Gaps",
-    description: "Over 60% of customer acquisition relies on a single ad platform or inbound source.",
-    badge: "High Risk",
-    href: "/gaps",
-    icon: <ShieldAlert className="w-4 h-4 text-amber-400" />,
-    keywords: ["channel concentration", "ad risk", "single channel", "acquisition"],
-  },
+const TOOLS: Result[] = [
+  { id: "tool_profit", title: "Profit calculator", group: "Tools", hint: "Margins after all costs", href: "/tools?tool=profit", icon: "Calculator", keywords: ["profit", "margin", "gross", "net", "cost"] },
+  { id: "tool_breakeven", title: "Break-even calculator", group: "Tools", hint: "Sales needed to cover costs", href: "/tools?tool=breakeven", icon: "Target", keywords: ["breakeven", "break even", "fixed cost"] },
+  { id: "tool_cashflow", title: "Cash flow forecast", group: "Tools", hint: "Cash for the next months", href: "/tools?tool=cashflow", icon: "LineChart", keywords: ["cash", "cash flow", "runway", "forecast", "burn"] },
+  { id: "tool_cac", title: "CAC and LTV calculator", group: "Tools", hint: "Cost to win a customer", href: "/tools?tool=cac", icon: "TrendingUp", keywords: ["cac", "ltv", "acquisition", "payback", "marketing"] },
+  { id: "tool_roi", title: "ROI calculator", group: "Tools", hint: "Is an investment worth it", href: "/tools?tool=roi", icon: "BarChart3", keywords: ["roi", "return", "investment", "payback"] },
+  { id: "tool_pricing", title: "Pricing simulator", group: "Tools", hint: "Try prices and plans", href: "/tools?tool=pricing", icon: "Sliders", keywords: ["pricing", "price", "plans", "discount"] },
+  { id: "tool_hiring", title: "Hiring cost calculator", group: "Tools", hint: "Full cost of a new hire", href: "/tools?tool=hiring", icon: "Users", keywords: ["hiring", "salary", "payroll", "pf", "headcount"] },
+  { id: "tool_scenario", title: "Scenario planner", group: "Tools", hint: "Plan for good and bad times", href: "/tools?tool=scenario_planner", icon: "Compass", keywords: ["scenario", "risk", "stress test", "downturn"] },
 ];
+
+const SETTINGS: Result[] = [
+  { id: "set_profile", title: "Business profile", group: "Settings", hint: "Name, logo and numbers", href: "/settings/profile", icon: "Briefcase", keywords: ["profile", "business", "logo", "revenue", "settings"] },
+  { id: "set_brief", title: "Business brief", group: "Settings", hint: "What the AI knows about you", href: "/settings/brief", icon: "FileText", keywords: ["brief", "about", "ai", "context"] },
+  { id: "set_advisors", title: "AI advisors", group: "Settings", hint: "Rename your advisors", href: "/settings/advisors", icon: "Bot", keywords: ["advisors", "rename", "names"] },
+  { id: "set_credits", title: "Credits", group: "Settings", hint: "Agent credits and usage", href: "/settings/credits", icon: "CreditCard", keywords: ["credits", "wallet", "usage", "buy"] },
+  { id: "set_appearance", title: "Appearance", group: "Settings", hint: "Light or dark theme", href: "/settings/appearance", icon: "Sliders", keywords: ["theme", "dark", "light", "appearance"] },
+  { id: "set_audit", title: "Activity log", group: "Settings", hint: "Everything that happened", href: "/settings/audit", icon: "FileText", keywords: ["audit", "log", "history", "activity"] },
+];
+
+const GROUP_ORDER: Group[] = ["Pages", "Tools", "Tasks", "Settings"];
+
+function score(r: Result, q: string): number {
+  const t = r.title.toLowerCase();
+  if (t === q) return 100;
+  if (t.startsWith(q)) return 80;
+  if (t.split(/\s+/).some(w => w.startsWith(q))) return 60;
+  if (t.includes(q)) return 50;
+  if (r.keywords?.some(k => k.startsWith(q))) return 40;
+  if (r.keywords?.some(k => k.includes(q))) return 30;
+  if (r.hint?.toLowerCase().includes(q)) return 20;
+  return 0;
+}
 
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
+  /** The pages in the sidebar this person can open */
+  navItems?: NavItem[];
 }
 
-export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
+/**
+ * Quick search (Ctrl K): jump to any page, tool, task or setting. Pages come from the sidebar, so search always
+ * matches what the person can open; tasks are their real tasks.
+ */
+export function CommandPalette({ isOpen, onClose, navItems = [] }: CommandPaletteProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [activeTasks, setActiveTasks] = useState<SearchItem[]>([]);
+  const [index, setIndex] = useState(0);
+  const [tasks, setTasks] = useState<Result[]>([]);
+  const [mounted, setMounted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Load tasks dynamically from SQLite
+  useEffect(() => setMounted(true), []);
+
+  // The person's open tasks
   useEffect(() => {
-    if (isOpen) {
-      fetch("/api/tasks")
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && Array.isArray(data.tasks)) {
-            const taskItems: SearchItem[] = data.tasks.slice(0, 10).map((t: any) => ({
+    if (!isOpen) return;
+    setQuery("");
+    setIndex(0);
+    setTimeout(() => inputRef.current?.focus(), 30);
+    fetch("/api/tasks", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => {
+        if (!d?.success || !Array.isArray(d.tasks)) return;
+        setTasks(
+          d.tasks
+            .filter((t: any) => t.status !== "done")
+            .slice(0, 30)
+            .map((t: any) => ({
               id: `task_${t.id}`,
-              title: t.title,
-              category: "Execution Tasks",
-              description: `Owner: ${t.owner || "Team"} · Gap: ${t.gap || "General"} · Priority: ${(t.priority || "high").toUpperCase()}`,
-              badge: t.status === "done" ? "Completed" : t.status === "in_progress" ? "In Progress" : "To Do",
+              title: String(t.title || "Task"),
+              group: "Tasks" as const,
+              hint: t.status === "in_progress" ? "In progress" : "To do",
               href: "/tasks",
-              icon: <CheckSquare className={`w-4 h-4 ${t.status === "done" ? "text-emerald-400" : "text-purple-400"}`} />,
-              keywords: [t.title.toLowerCase(), (t.owner || "").toLowerCase(), (t.gap || "").toLowerCase(), "task", t.status],
-            }));
-            setActiveTasks(taskItems);
-          }
-        })
-        .catch(() => {
-          // fallback silently
-        });
-    }
+              icon: "CheckSquare",
+              keywords: [String(t.owner || "").toLowerCase(), "task"],
+            }))
+        );
+      })
+      .catch(() => {});
   }, [isOpen]);
 
-  // Combine static and dynamic items
-  const allItems = useMemo(() => {
-    return [...STATIC_SEARCH_ITEMS, ...activeTasks];
-  }, [activeTasks]);
+  const pages: Result[] = useMemo(
+    () =>
+      navItems
+        .filter(n => n.enabled !== false && n.href && !n.href.startsWith("http"))
+        .map(n => ({
+          id: `page_${n.id}`,
+          title: n.href === "/datapal" ? "DataPal" : n.label,
+          group: "Pages" as const,
+          hint: PAGE_HINTS[n.href]?.hint,
+          href: n.href,
+          icon: n.icon || "LayoutDashboard",
+          keywords: PAGE_HINTS[n.href]?.keywords,
+        })),
+    [navItems]
+  );
 
-  // Filter items based on query
-  const filteredItems = useMemo(() => {
+  const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) {
-      // Return curated recommendations when query is empty
-      return allItems.filter(item =>
-        [
-          "tool_profit",
-          "tool_breakeven",
-          "tool_cashflow",
-          "tool_cac",
-          "tool_simulator",
-          "nav_dashboard",
-          "nav_gaps",
-          "nav_tasks",
-          "nav_analytics",
-          "nav_tools",
-          "nav_integrations",
-        ].includes(item.id)
-      );
+      // Before typing: the main pages and the most used tools
+      return [...pages.slice(0, 6), ...TOOLS.slice(0, 4)];
     }
+    return [...pages, ...TOOLS, ...tasks, ...SETTINGS]
+      .map(r => ({ r, s: score(r, q) }))
+      .filter(x => x.s > 0)
+      .sort((a, b) => b.s - a.s)
+      .map(x => x.r);
+  }, [query, pages, tasks]);
 
-    return allItems.filter(item => {
-      if (item.title.toLowerCase().includes(q)) return true;
-      if (item.description && item.description.toLowerCase().includes(q)) return true;
-      if (item.category.toLowerCase().includes(q)) return true;
-      if (item.badge && item.badge.toLowerCase().includes(q)) return true;
-      if (item.keywords && item.keywords.some(k => k.includes(q))) return true;
-      return false;
-    });
-  }, [allItems, query]);
+  // Grouped for display, in a fixed group order, best matches first inside each group
+  const grouped = useMemo(() => {
+    return GROUP_ORDER.map(g => ({ group: g, items: results.filter(r => r.group === g).slice(0, query ? 8 : 6) })).filter(g => g.items.length > 0);
+  }, [results, query]);
+  const flat = useMemo(() => grouped.flatMap(g => g.items), [grouped]);
 
-  // Group filtered items by category
-  const groupedItems = useMemo(() => {
-    const groups: { category: string; items: SearchItem[] }[] = [];
-    const categoryOrder: SearchItem["category"][] = [
-      "Tools & Calculators",
-      "Pages & Navigation",
-      "Execution Tasks",
-      "Bottlenecks & Gaps",
-    ];
+  useEffect(() => setIndex(0), [query]);
 
-    categoryOrder.forEach(cat => {
-      const itemsInCat = filteredItems.filter(item => item.category === cat);
-      if (itemsInCat.length > 0) {
-        groups.push({ category: cat, items: itemsInCat });
-      }
-    });
-
-    return groups;
-  }, [filteredItems]);
-
-  // Flatten items for keyboard index selection
-  const flatItems = useMemo(() => {
-    return groupedItems.flatMap(g => g.items);
-  }, [groupedItems]);
-
-  // Reset index when query changes
   useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
+    listRef.current?.querySelector(`[data-index="${index}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [index]);
 
-  // Focus input on open
+  const open = (r: Result) => {
+    onClose();
+    router.push(r.href);
+  };
+
   useEffect(() => {
-    if (isOpen) {
-      setQuery("");
-      setSelectedIndex(0);
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 50);
-    }
-  }, [isOpen]);
-
-  // Scroll active item into view
-  useEffect(() => {
-    if (listRef.current) {
-      const activeEl = listRef.current.querySelector(`[data-index="${selectedIndex}"]`);
-      if (activeEl) {
-        activeEl.scrollIntoView({ block: "nearest" });
-      }
-    }
-  }, [selectedIndex]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         onClose();
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex(prev => (prev + 1) % (flatItems.length || 1));
+        setIndex(i => (flat.length ? (i + 1) % flat.length : 0));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedIndex(prev => (prev - 1 + flatItems.length) % (flatItems.length || 1));
+        setIndex(i => (flat.length ? (i - 1 + flat.length) % flat.length : 0));
       } else if (e.key === "Enter") {
         e.preventDefault();
-        if (flatItems[selectedIndex]) {
-          handleSelect(flatItems[selectedIndex]);
-        }
+        if (flat[index]) open(flat[index]);
       }
     };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, flat, index]);
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, flatItems, selectedIndex]);
-
-  const handleSelect = (item: SearchItem) => {
-    onClose();
-    router.push(item.href);
-  };
-
-  const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isOpen]);
 
-  if (!isOpen || !mounted || typeof document === "undefined") return null;
+  if (!isOpen || !mounted) return null;
 
-  let runningIndex = -1;
-
+  let running = -1;
   return createPortal(
-    <div
-      className="fixed inset-0 m-0 z-[9999] bg-slate-900/60 dark:bg-black/85 backdrop-blur-md flex items-start justify-center p-4 sm:pt-20 animate-fade-in"
-      style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
-      onClick={onClose}
-    >
-      <div
-        className="max-w-2xl w-full bg-white dark:bg-[#0C1222] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[85vh] animate-scale-in text-slate-900 dark:text-slate-100"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Top Search Input Box */}
-        <div className="p-4 border-b border-slate-200 dark:border-white/10 flex items-center gap-3 bg-slate-50/80 dark:bg-white/[0.02]">
-          <Search className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+    <div className="fixed inset-0 z-[9999] flex items-start justify-center px-4 pt-[12vh]" role="dialog" aria-modal="true" aria-label="Search">
+      <button type="button" aria-label="Close search" onClick={onClose} className="absolute inset-0 bg-slate-950/40 cursor-default" />
+
+      <div className="relative w-full max-w-xl rounded-xl border border-line bg-surface shadow-2xl overflow-hidden flex flex-col max-h-[70vh]">
+        {/* Search field */}
+        <div className="h-14 px-4 flex items-center gap-3 border-b border-line shrink-0">
+          <Search className="w-[18px] h-[18px] text-text-muted shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search tools, calculators, tasks, pages, metrics… (e.g. 'profit', 'breakeven')"
-            className="flex-1 bg-transparent border-0 text-slate-900 dark:text-white text-sm focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium"
+            placeholder="Search pages, tools and tasks…"
+            aria-label="Search"
+            spellCheck={false}
+            className="flex-1 bg-transparent text-[15px] text-text placeholder:text-text-muted focus:outline-none"
           />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 text-xs transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-          <kbd className="hidden sm:inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-mono font-semibold shadow-xs">
-            ESC
-          </kbd>
+          <kbd className="hidden sm:inline-flex h-6 px-1.5 items-center rounded-md border border-line text-[11px] text-text-muted font-sans">Esc</kbd>
         </div>
 
-        {/* Results List */}
-        <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-4 bg-white dark:bg-[#0C1222]">
-          {flatItems.length === 0 ? (
-            <div className="py-16 text-center text-xs text-slate-500 dark:text-slate-400 space-y-2">
-              <Search className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
-              <p className="font-semibold text-slate-900 dark:text-white">No results found for &ldquo;{query}&rdquo;</p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">Try searching for &ldquo;profit&rdquo;, &ldquo;breakeven&rdquo;, &ldquo;runway&rdquo;, &ldquo;tasks&rdquo;, or &ldquo;gaps&rdquo;.</p>
+        {/* Results */}
+        <div ref={listRef} className="flex-1 overflow-y-auto p-2" role="listbox" aria-label="Results">
+          {flat.length === 0 ? (
+            <div className="px-4 py-12 text-center">
+              <p className="text-sm text-text">No results for &ldquo;{query}&rdquo;</p>
+              <p className="mt-1 text-sm text-text-muted">Try a page name, a tool like &ldquo;profit&rdquo;, or one of your tasks.</p>
             </div>
           ) : (
-            groupedItems.map(group => (
-              <div key={group.category} className="space-y-1.5">
-                <div className="px-3 text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-400 flex items-center justify-between">
-                  <span>{group.category}</span>
-                  <span className="font-mono text-[9px] font-medium lowercase text-slate-400 dark:text-slate-400">
-                    {group.items.length} {group.items.length === 1 ? "result" : "results"}
-                  </span>
-                </div>
-
-                <div className="space-y-1">
-                  {group.items.map(item => {
-                    runningIndex++;
-                    const itemIndex = runningIndex;
-                    const isSelected = itemIndex === selectedIndex;
-
-                    return (
-                      <div
-                        key={item.id}
-                        data-index={itemIndex}
-                        onClick={() => handleSelect(item)}
-                        onMouseEnter={() => setSelectedIndex(itemIndex)}
-                        className={`px-3 py-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isSelected
-                            ? "bg-cyan-50/90 dark:bg-cyan-500/15 border-cyan-300 dark:border-cyan-500/40 shadow-xs"
-                            : "bg-slate-50/70 dark:bg-white/[0.03] border-slate-200/60 dark:border-transparent hover:border-slate-300 dark:hover:border-white/10 hover:bg-slate-100/90 dark:hover:bg-white/[0.06]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${
-                              isSelected
-                                ? "bg-cyan-100 dark:bg-cyan-500/25 border-cyan-300 dark:border-cyan-500/50 text-cyan-700 dark:text-cyan-300"
-                                : "bg-white dark:bg-white/[0.05] border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 shadow-xs"
-                            }`}
-                          >
-                            {item.icon}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-xs font-bold truncate ${isSelected ? "text-cyan-950 dark:text-white" : "text-slate-900 dark:text-slate-100"}`}>
-                                {item.title}
-                              </span>
-                              {item.badge && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-semibold uppercase bg-slate-100 dark:bg-white/[0.08] border border-slate-200 dark:border-white/10 text-cyan-700 dark:text-cyan-400">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </div>
-                            {item.description && (
-                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-md">
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 flex items-center gap-2">
-                          {isSelected && (
-                            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-cyan-700 dark:text-cyan-400 font-mono font-medium">
-                              Press <CornerDownLeft className="w-3 h-3" /> to open
-                            </span>
-                          )}
-                          <ChevronRight
-                            className={`w-4 h-4 transition-transform ${
-                              isSelected ? "text-cyan-600 dark:text-cyan-400 translate-x-0.5" : "text-slate-300 dark:text-slate-600"
-                            }`}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+            grouped.map(g => (
+              <div key={g.group} className="mb-1 last:mb-0">
+                <p className="px-3 pt-2.5 pb-1.5 text-xs font-medium text-text-muted">{!query && g.group === "Tools" ? "Popular tools" : g.group}</p>
+                {g.items.map(r => {
+                  running++;
+                  const i = running;
+                  const on = i === index;
+                  return (
+                    <div
+                      key={r.id}
+                      role="option"
+                      aria-selected={on}
+                      data-index={i}
+                      onClick={() => open(r)}
+                      onMouseMove={() => index !== i && setIndex(i)}
+                      className={`h-10 px-3 rounded-lg flex items-center gap-3 cursor-pointer ${on ? "bg-surface-2" : ""}`}
+                    >
+                      <span className={`shrink-0 ${on ? "text-brass" : "text-text-muted"}`}>
+                        <DynamicIcon name={r.icon} className="w-4 h-4" />
+                      </span>
+                      <span className="text-sm text-text truncate">{r.title}</span>
+                      {r.hint && <span className="ml-auto pl-3 text-xs text-text-muted truncate shrink-0 max-w-[45%]">{r.hint}</span>}
+                      {on && <CornerDownLeft className={`w-3.5 h-3.5 text-text-muted shrink-0 ${r.hint ? "" : "ml-auto"}`} />}
+                    </div>
+                  );
+                })}
               </div>
             ))
           )}
         </div>
 
-        {/* Bottom Keyboard Hint Bar */}
-        <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50/90 dark:bg-white/[0.02] text-[11px] text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-2 px-4">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 font-mono text-[9px] text-slate-600 dark:text-slate-300 shadow-xs">↑</kbd>
-              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 font-mono text-[9px] text-slate-600 dark:text-slate-300 shadow-xs">↓</kbd>
-              <span>to navigate</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 font-mono text-[9px] text-slate-600 dark:text-slate-300 shadow-xs">↵</kbd>
-              <span>to select</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 font-mono text-[9px] text-slate-600 dark:text-slate-300 shadow-xs">esc</kbd>
-              <span>to close</span>
-            </span>
-          </div>
-
-          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
-            {query ? `Filter active` : `Search across all tools & pages`}
+        {/* Keys */}
+        <div className="h-10 px-4 border-t border-line flex items-center gap-4 text-xs text-text-muted shrink-0">
+          <span className="inline-flex items-center gap-1.5">
+            <kbd className="min-w-5 h-5 px-1 inline-flex items-center justify-center rounded border border-line font-sans">↑</kbd>
+            <kbd className="min-w-5 h-5 px-1 inline-flex items-center justify-center rounded border border-line font-sans">↓</kbd>
+            to move
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <kbd className="min-w-5 h-5 px-1 inline-flex items-center justify-center rounded border border-line font-sans">↵</kbd>
+            to open
+          </span>
+          <span className="hidden sm:inline-flex items-center gap-1.5 ml-auto">
+            <kbd className="h-5 px-1.5 inline-flex items-center rounded border border-line font-sans">Ctrl K</kbd>
+            anywhere
           </span>
         </div>
       </div>
