@@ -71,46 +71,45 @@
   --grid:        rgba(223, 186, 115, 0.02);
 }
 
-/* Sleek custom scrollbars matching BizzPal brass/slate design across the whole dashboard & website */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
+/* Scrollbars: slim, rounded, no arrows and no track.
+   Chrome and Edge ignore the ::-webkit-scrollbar styles below (and show their own bar with arrows) as soon as
+   scrollbar-width or scrollbar-color is set, so those two are only used for Firefox. */
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .nav-scroll { scrollbar-color: transparent transparent; }
+  .nav-scroll:hover { scrollbar-color: var(--line-strong) transparent; }
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
-  border-radius: 9999px;
-  transition: background-color 0.2s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--brass);
-}
-
-::-webkit-scrollbar-button {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
+::-webkit-scrollbar-track,
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+/* A 4px pill: the transparent border keeps it slim and away from the edge */
+::-webkit-scrollbar-thumb {
+  background-color: var(--line-strong);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-muted, #8a8f98);
+}
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
 
 /* The sidebar menu shows its scrollbar only while the pointer is over it */
-.nav-scroll { scrollbar-color: transparent transparent; }
-.nav-scroll:hover { scrollbar-color: var(--line-strong) transparent; }
-.nav-scroll::-webkit-scrollbar-thumb { background: transparent; }
-.nav-scroll:hover::-webkit-scrollbar-thumb { background: var(--line-strong); }
+.nav-scroll::-webkit-scrollbar-thumb { background-color: transparent; }
+.nav-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--line-strong); }
 
 /* Base resets & Enterprise Typography */
 html {
