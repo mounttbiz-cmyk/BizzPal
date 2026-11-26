@@ -170,6 +170,15 @@ export function IntegrationLogo({ id, className = "w-7 h-7" }: { id: string; cla
         </svg>
       );
 
+    case "email":
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none">
+          <rect width="24" height="24" rx="5" fill="#B48C36" />
+          <rect x="5" y="7" width="14" height="10" rx="1.5" stroke="white" strokeWidth="1.6" />
+          <path d="M5.8 8l6.2 4.6L18.2 8" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+
     case "help_desk":
     case "zendesk":
       return (

@@ -2562,6 +2562,8 @@ export default function AdminPage() {
                   <option value="GapsPreviewWidget">GapsPreviewWidget (Priority Gaps & Bottlenecks)</option>
                   <option value="TasksPreviewWidget">TasksPreviewWidget (Execution Queue)</option>
                   <option value="SimulatorHighlightWidget">SimulatorHighlightWidget (Active Simulation)</option>
+                  <option value="DataUploadWidget">DataUploadWidget (Data Upload)</option>
+                  <option value="AgentResultsWidget">AgentResultsWidget (AI agents this week)</option>
                 </select>
               </div>
 

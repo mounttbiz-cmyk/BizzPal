@@ -161,6 +161,16 @@ export const defaultNavItems: NavItem[] = [
     group: "management",
     enabled: true,
   },
+  {
+    id: "nav_approvals",
+    label: "Approvals",
+    href: "/approvals",
+    icon: "ShieldCheck",
+    order: 12.6,
+    mobileTab: false,
+    group: "management",
+    enabled: true,
+  },
 
   // 4. PLATFORM
   {

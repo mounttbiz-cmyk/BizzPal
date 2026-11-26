@@ -204,6 +204,65 @@ export const INDUSTRY_PACKS: IndustryPack[] = [
   },
 ];
 
+/**
+ * Agents any business can use, whatever its industry. They work from the business brief and the business's own email
+ * account; every email waits for the owner's approval. (Not an industry: the X-Ray never classifies a business here.)
+ */
+export const EVERYDAY_AGENTS: { id: "everyday"; name: string; agents: AgentDefinition[] } = {
+  id: "everyday",
+  name: "For every business",
+  agents: [
+    {
+      id: "everyday_collections",
+      requires: ["email"],
+      tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "email.send"],
+      name: "Payment Reminder Agent",
+      job: "Reminds customers about unpaid invoices, politely and on time, from your own email.",
+      needs: ["Email"],
+      actions: "Writes reminder emails for the invoices you give it, sends them after you approve, and creates a follow-up task for anything long overdue.",
+      guardrails: "Never threatens, never offers discounts or new due dates, and only emails the customers and amounts you give it.",
+      approvals: "You approve every email before it is sent.",
+      fixes: ["revenue", "risk"],
+    },
+    {
+      id: "everyday_quote_followup",
+      requires: ["email"],
+      tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "email.send"],
+      name: "Quote Follow-up Agent",
+      job: "Follows up on quotes and proposals that have had no reply.",
+      needs: ["Email"],
+      actions: "Writes a short, friendly follow-up for each quote you list, sends it after you approve, and reminds you to call the ones worth chasing.",
+      guardrails: "Never changes a price, discount or scope, and never promises anything that is not in your brief.",
+      approvals: "You approve every email before it is sent.",
+      fixes: ["revenue"],
+    },
+    {
+      id: "everyday_review_replies",
+      requires: [],
+      tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal"],
+      name: "Review Reply Agent",
+      job: "Writes replies to customer reviews in your tone, for you to post.",
+      needs: [],
+      actions: "Drafts a reply to each review you paste in and flags unhappy customers as a task, so someone calls them.",
+      guardrails: "Drafts only: it never posts anything. Never offers refunds or compensation and never argues with a customer.",
+      approvals: "Nothing is posted. You copy the reply you like.",
+      fixes: ["risk", "revenue"],
+    },
+    {
+      id: "everyday_appointment_reminders",
+      requires: ["email"],
+      tools: ["brief.read", "tasks.list", "message.draft", "tasks.create_internal", "email.send"],
+      name: "Appointment Reminder Agent",
+      job: "Sends appointment reminders and confirmations, so fewer people miss them.",
+      needs: ["Email"],
+      actions: "Writes a reminder for each appointment you list, with the date, time and place you give it, and sends it after you approve.",
+      guardrails: "Never books, moves or cancels an appointment, and only uses the details you give it.",
+      approvals: "You approve every email before it is sent.",
+      fixes: ["efficiency", "revenue"],
+    },
+  ],
+};
+
 export const INDUSTRY_NAMES: Record<IndustryId, string> = {
   real_estate: "Real Estate & Property Management",
   financial_services: "Financial Services / Broking / Insurance",
@@ -215,11 +274,13 @@ export function packFor(industry: IndustryId): IndustryPack | null {
   return INDUSTRY_PACKS.find(p => p.id === industry) || null;
 }
 
-export function agentById(id: string): { agent: AgentDefinition; pack: IndustryPack } | null {
+export function agentById(id: string): { agent: AgentDefinition; pack: { id: string; name: string } } | null {
   for (const pack of INDUSTRY_PACKS) {
     const agent = pack.agents.find(a => a.id === id);
     if (agent) return { agent, pack };
   }
+  const everyday = EVERYDAY_AGENTS.agents.find(a => a.id === id);
+  if (everyday) return { agent: everyday, pack: EVERYDAY_AGENTS };
   return null;
 }
 

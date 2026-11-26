@@ -1914,6 +1914,34 @@ try {
   }
 } catch {}
 
+// Add the "AI agents this week" widget to the saved dashboard once; after that the admin can hide or remove it.
+try {
+  const done = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'widgets_added_agent_results'").get() as any;
+  const row = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'dashboard_widgets'").get() as any;
+  if (!done && row && typeof row.config_value === "string") {
+    const widgets = JSON.parse(row.config_value);
+    if (Array.isArray(widgets) && !widgets.some((w: any) => w?.id === "widget_agent_results")) {
+      widgets.push({ id: "widget_agent_results", title: "AI agents this week", component: "AgentResultsWidget", priority: 78, defaultSpan: 2, minContainerWidth: 320, requires: {}, enabled: true });
+      db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'dashboard_widgets'").run(JSON.stringify(widgets), new Date().toISOString());
+    }
+    db.prepare("INSERT OR REPLACE INTO platform_config (config_key, config_value, updated_at) VALUES ('widgets_added_agent_results', 'true', ?)").run(new Date().toISOString());
+  }
+} catch {}
+
+// Add the Approvals item (agent actions waiting for the owner) to the saved menu once.
+try {
+  const done = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'nav_added_approvals'").get() as any;
+  const navRow = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'dashboard_nav'").get() as any;
+  if (!done && navRow && typeof navRow.config_value === "string") {
+    const nav = JSON.parse(navRow.config_value);
+    if (Array.isArray(nav) && !nav.some((i: any) => i?.id === "nav_approvals" || i?.href === "/approvals")) {
+      nav.push({ id: "nav_approvals", label: "Approvals", href: "/approvals", icon: "ShieldCheck", order: 12.6, mobileTab: false, group: "management", enabled: true });
+      db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'dashboard_nav'").run(JSON.stringify(nav), new Date().toISOString());
+    }
+    db.prepare("INSERT OR REPLACE INTO platform_config (config_key, config_value, updated_at) VALUES ('nav_added_approvals', 'true', ?)").run(new Date().toISOString());
+  }
+} catch {}
+
 // Saved plans used to promise a WhatsApp briefing. The daily briefing now goes by email, so the plan text says that.
 try {
   const row = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'subscription_plans'").get() as any;

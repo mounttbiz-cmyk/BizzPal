@@ -13,6 +13,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { calculateBusinessMetrics } from "@/lib/bi/metricsEngine";
 import { runAutomation, type RunStatus } from "@/lib/automations/engine";
 import { sendAllBriefings } from "@/lib/briefing";
+import { runDueSchedules } from "@/lib/agents/schedule";
 import { appBaseUrl, mailConfigured, sendMail, emailTemplate } from "@/lib/mail";
 
 const SIX_HOURS = 6 * 60 * 60 * 1000;
@@ -266,4 +267,13 @@ export function startScheduler() {
   // First look a minute after start so a restart is not slowed down
   setTimeout(() => { runDueJobs(); }, 60_000).unref?.();
   setInterval(() => { runDueJobs(); }, TICK_MS).unref?.();
+  // Scheduled AI agents: checked every minute so a run starts close to its set time
+  setInterval(() => {
+    try {
+      const n = runDueSchedules();
+      if (n) console.log(`[scheduler] started ${n} scheduled agent run(s)`);
+    } catch (e) {
+      console.error("[scheduler] agent schedules failed:", (e as Error).message);
+    }
+  }, 60_000).unref?.();
 }

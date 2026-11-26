@@ -71,4 +71,14 @@ export const defaultWidgets: WidgetDef[] = [
     requires: {},
     enabled: true,
   },
+  {
+    id: "widget_agent_results",
+    title: "AI agents this week",
+    component: "AgentResultsWidget",
+    priority: 78,
+    defaultSpan: 2,
+    minContainerWidth: 320,
+    requires: {},
+    enabled: true,
+  },
 ];

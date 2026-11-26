@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "crypto";
-import { db } from "@/lib/db";
+import { db, getPlatformConfig } from "@/lib/db";
 import { recordAudit } from "./audit";
 
 /**
@@ -31,6 +31,7 @@ export const ACTIONS: ActionDefinition[] = [
   { id: "crm.read_lead", label: "Read a lead in the CRM", tier: "T0", requires: "crm" },
   { id: "message.draft", label: "Draft a message for review", tier: "T1" },
   { id: "tasks.create_internal", label: "Create an internal BizzPal task", tier: "T1" },
+  { id: "email.send", label: "Send an email", tier: "T2", requires: "email" },
   { id: "crm.update_lead", label: "Update a lead in the CRM", tier: "T2", requires: "crm" },
   { id: "calendar.book_slot", label: "Book a calendar slot", tier: "T2", requires: "calendar" },
   { id: "whatsapp.send_template", label: "Send an approved WhatsApp template", tier: "T2", requires: "whatsapp" },
@@ -55,7 +56,43 @@ export type Decision =
   | { outcome: "approval_required"; tier: RiskTier; approvalId: string; expiresAt: string }
   | { outcome: "deny"; tier: RiskTier | null; reason: string };
 
-const APPROVAL_TTL_MS = 30 * 60 * 1000;
+/** How long a request waits for the owner. Platform config "agent_approval_ttl_hours", 1 to 168 hours, default 24. */
+export function approvalTtlMs(): number {
+  const h = Number(getPlatformConfig<number>("agent_approval_ttl_hours", 24));
+  return Math.min(168, Math.max(1, Number.isFinite(h) ? h : 24)) * 60 * 60 * 1000;
+}
+
+/** What the owner sees before deciding: a title and labelled lines, built from the exact payload. */
+export interface ApprovalPreview {
+  title: string;
+  lines: Array<{ label: string; value: string }>;
+  /** Payload fields the owner may edit before approving */
+  editable: string[];
+}
+
+export function previewOf(action: string, target: string, payload: any): ApprovalPreview {
+  const p = payload && typeof payload === "object" ? payload : {};
+  const text = (v: unknown, max = 4000) => String(v ?? "").slice(0, max);
+  if (action === "email.send") {
+    return {
+      title: `Send an email to ${text(p.to, 200)}`,
+      lines: [
+        { label: "To", value: text(p.to, 200) },
+        { label: "Subject", value: text(p.subject, 300) },
+        { label: "Message", value: text(p.body) },
+      ],
+      editable: ["subject", "body"],
+    };
+  }
+  const def = actionById(action);
+  return {
+    title: `${def?.label || action}${target && target !== "business" ? `: ${target}` : ""}`,
+    lines: Object.entries(p)
+      .slice(0, 12)
+      .map(([k, v]) => ({ label: k, value: typeof v === "string" ? text(v) : text(JSON.stringify(v)) })),
+    editable: [],
+  };
+}
 
 try {
   db.exec(`
@@ -82,6 +119,13 @@ try {
     CREATE INDEX IF NOT EXISTS idx_approvals_business ON approvals (business_id, status, created_at);
   `);
 } catch {}
+// The exact action to run (so the owner can see it and the job can carry on after approval), the version the agent
+// first proposed (to learn from the owner's edits), the owner's note, and when the owner was told about it.
+for (const col of ["payload TEXT", "original_payload TEXT", "decision_note TEXT", "notified_at TEXT"]) {
+  try {
+    db.exec(`ALTER TABLE approvals ADD COLUMN ${col}`);
+  } catch {}
+}
 
 /**
  * Decides whether an action may run now. For T2 it either consumes a matching approval or creates a request for one.
@@ -120,10 +164,11 @@ export function authorize(req: {
   }
   const now = Date.now();
   const id = `apr_${randomBytes(10).toString("hex")}`;
-  const expiresAt = new Date(now + APPROVAL_TTL_MS).toISOString();
+  const expiresAt = new Date(now + approvalTtlMs()).toISOString();
+  const payloadJson = JSON.stringify(req.payload ?? null).slice(0, 20000);
   db.prepare(
-    `INSERT INTO approvals (id, business_id, trace_id, task_id, agent_instance_id, action, tier, target, payload_hash, summary, status, requested_by, nonce, expires_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'T2', ?, ?, ?, 'pending', ?, ?, ?, ?)`
+    `INSERT INTO approvals (id, business_id, trace_id, task_id, agent_instance_id, action, tier, target, payload_hash, summary, status, requested_by, nonce, expires_at, created_at, payload, original_payload)
+     VALUES (?, ?, ?, ?, ?, ?, 'T2', ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     req.businessId,
@@ -137,7 +182,9 @@ export function authorize(req: {
     req.actor,
     randomBytes(8).toString("hex"),
     expiresAt,
-    new Date(now).toISOString()
+    new Date(now).toISOString(),
+    payloadJson,
+    payloadJson
   );
   recordAudit({ businessId: req.businessId, traceId: req.traceId, actor: req.actor, action: "approval.requested", resource: id, detail: { action: req.action, target: req.target, tier: "T2" } });
   return { outcome: "approval_required", tier: "T2", approvalId: id, expiresAt };
@@ -163,8 +210,17 @@ function consumeApproval(businessId: string, id: string, action: string, target:
   return true;
 }
 
-/** The owner's decision on a pending approval. */
-export function decideApproval(businessId: string, id: string, decision: "approve" | "reject", actor: string): { ok: true } | { ok: false; reason: string } {
+/**
+ * The owner's decision on a pending approval. When approving, the owner may first edit the fields the preview marks as
+ * editable; the approval is then bound to the edited version, which is what runs.
+ */
+export function decideApproval(
+  businessId: string,
+  id: string,
+  decision: "approve" | "reject",
+  actor: string,
+  opts: { note?: string; edits?: Record<string, unknown> } = {}
+): { ok: true; edited: boolean } | { ok: false; reason: string } {
   const a = db.prepare("SELECT * FROM approvals WHERE id = ? AND business_id = ?").get(id, businessId) as any;
   if (!a) return { ok: false, reason: "That approval was not found." };
   if (a.status !== "pending") return { ok: false, reason: "This has already been decided." };
@@ -172,22 +228,80 @@ export function decideApproval(businessId: string, id: string, decision: "approv
     db.prepare("UPDATE approvals SET status = 'expired' WHERE id = ?").run(id);
     return { ok: false, reason: "This request has expired." };
   }
+  const note = String(opts.note || "").trim().slice(0, 500) || null;
+  let edited = false;
+  if (decision === "approve" && opts.edits && typeof opts.edits === "object") {
+    let payload: any = null;
+    try {
+      payload = JSON.parse(a.payload || "null");
+    } catch {}
+    if (!payload || typeof payload !== "object") return { ok: false, reason: "This request cannot be edited." };
+    const allowed = previewOf(a.action, a.target, payload).editable;
+    for (const [k, v] of Object.entries(opts.edits)) {
+      if (!allowed.includes(k)) return { ok: false, reason: `"${k}" cannot be changed here.` };
+      // Same clean-up the email check uses, so an approved edit always matches when it runs
+      const value = k === "body" ? String(v ?? "").trim().slice(0, 10000) : String(v ?? "").replace(/[\r\n]+/g, " ").trim().slice(0, 200);
+      if (!value) return { ok: false, reason: `"${k}" cannot be empty.` };
+      if (value !== String(payload[k] ?? "")) {
+        payload[k] = value;
+        edited = true;
+      }
+    }
+    if (edited) {
+      db.prepare("UPDATE approvals SET payload = ?, payload_hash = ? WHERE id = ? AND status = 'pending'").run(
+        JSON.stringify(payload),
+        payloadHash(a.action, a.target, payload),
+        id
+      );
+    }
+  }
   const status = decision === "approve" ? "approved" : "rejected";
-  db.prepare("UPDATE approvals SET status = ?, decided_by = ?, decided_at = ? WHERE id = ? AND status = 'pending'").run(status, actor, new Date().toISOString(), id);
-  recordAudit({ businessId, traceId: a.trace_id, actor, action: `approval.${status}`, resource: id, detail: { action: a.action, target: a.target } });
-  return { ok: true };
+  db.prepare("UPDATE approvals SET status = ?, decided_by = ?, decided_at = ?, decision_note = ? WHERE id = ? AND status = 'pending'").run(
+    status,
+    actor,
+    new Date().toISOString(),
+    note,
+    id
+  );
+  recordAudit({ businessId, traceId: a.trace_id, actor, action: `approval.${status}`, resource: id, detail: { action: a.action, target: a.target, edited } });
+  return { ok: true, edited };
+}
+
+/** The exact payload an approval covers (after any edits by the owner). */
+export function approvalPayload(businessId: string, id: string): unknown {
+  const a = db.prepare("SELECT payload FROM approvals WHERE id = ? AND business_id = ?").get(id, businessId) as any;
+  try {
+    return a?.payload ? JSON.parse(a.payload) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Number of requests waiting for the owner right now. */
+export function pendingApprovalCount(businessId: string): number {
+  const r = db.prepare("SELECT COUNT(*) AS n FROM approvals WHERE business_id = ? AND status = 'pending' AND expires_at > ?").get(businessId, new Date().toISOString()) as any;
+  return Number(r?.n || 0);
 }
 
 export function listApprovals(businessId: string, status?: string) {
   const rows = (status
     ? db.prepare("SELECT * FROM approvals WHERE business_id = ? AND status = ? ORDER BY created_at DESC LIMIT 100").all(businessId, status)
     : db.prepare("SELECT * FROM approvals WHERE business_id = ? ORDER BY created_at DESC LIMIT 100").all(businessId)) as any[];
-  return rows.map(a => ({
+  return rows.map(a => {
+    let payload: any = null;
+    try {
+      payload = a.payload ? JSON.parse(a.payload) : null;
+    } catch {}
+    return {
     id: a.id,
     action: a.action,
+    actionLabel: actionById(a.action)?.label || a.action,
     tier: a.tier,
     target: a.target,
     summary: a.summary,
+    preview: payload ? previewOf(a.action, a.target, payload) : null,
+    note: a.decision_note || null,
+    decidedAt: a.decided_at || null,
     status: a.status !== "pending" || new Date(a.expires_at).getTime() >= Date.now() ? a.status : "expired",
     traceId: a.trace_id,
     taskId: a.task_id,
@@ -196,5 +310,6 @@ export function listApprovals(businessId: string, status?: string) {
     decidedBy: a.decided_by,
     expiresAt: a.expires_at,
     createdAt: a.created_at,
-  }));
+    };
+  });
 }

@@ -88,6 +88,27 @@ export function DesktopRail({
 
   const { hasPlanLevel } = usePlanAccess();
   const [lockedItem, setLockedItem] = React.useState<NavItem | null>(null);
+
+  // Agent actions waiting for the owner: the number shows next to Approvals
+  const [pendingApprovals, setPendingApprovals] = React.useState(0);
+  React.useEffect(() => {
+    let alive = true;
+    const load = () =>
+      fetch("/api/approvals?count=1", { cache: "no-store" })
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => {
+          if (alive && d?.success) setPendingApprovals(Number(d.pending) || 0);
+        })
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 60_000);
+    window.addEventListener("bizzpal_approvals_changed", load);
+    return () => {
+      alive = false;
+      clearInterval(t);
+      window.removeEventListener("bizzpal_approvals_changed", load);
+    };
+  }, [pathname]);
   const planBadgeLabel = usePlanName();
 
   // Use navItems directly without force-injecting deleted items
@@ -154,6 +175,8 @@ export function DesktopRail({
                     badge: (rawItem.badge?.toUpperCase() === "NEW" || rawItem.badge?.toUpperCase() === "PRO" || isDataPal) ? undefined : notACount(rawItem.badge),
                   };
 
+                  const isApprovals = rawItem.id === "nav_approvals" || rawItem.href === "/approvals";
+                  const liveCount = isApprovals && pendingApprovals > 0 ? pendingApprovals : 0;
                   const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
                   const isLocked = !hasPlanLevel(item.requiredPlan);
 
@@ -191,7 +214,13 @@ export function DesktopRail({
                         />
                         <span>{item.label}</span>
                       </span>
-                      {item.badge && <span className="text-xs text-text-muted">{item.badge}</span>}
+                      {liveCount > 0 ? (
+                        <span className="min-w-5 h-5 px-1.5 rounded-full bg-brass text-white text-xs font-medium tabular-nums flex items-center justify-center" aria-label={`${liveCount} waiting`}>
+                          {liveCount > 99 ? "99+" : liveCount}
+                        </span>
+                      ) : (
+                        item.badge && <span className="text-xs text-text-muted">{item.badge}</span>
+                      )}
                     </Link>
                   );
                 })}

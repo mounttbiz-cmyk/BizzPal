@@ -90,6 +90,8 @@ interface JobStep {
   status: "done" | "approval_required" | "refused";
   result?: any;
   reason?: string;
+  approvalId?: string;
+  preview?: { title: string };
 }
 interface JobOutput {
   summary: string;
@@ -249,12 +251,24 @@ export default function AgentsPage() {
       </header>
 
       {data.pendingApprovals.length > 0 && (
-        <Approvals
-          items={data.pendingApprovals}
-          canManage={data.canManage}
-          onDone={load}
-        />
+        <Link
+          href="/approvals"
+          className="flex items-center justify-between gap-4 rounded-xl border border-brass/30 bg-brass/[0.05] px-5 py-4 hover:bg-brass/[0.08]"
+        >
+          <span className="flex items-center gap-3 min-w-0">
+            <ShieldCheck className="w-5 h-5 text-brass shrink-0" />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-text">
+                {data.pendingApprovals.length} {data.pendingApprovals.length === 1 ? "request is" : "requests are"} waiting for your approval
+              </span>
+              <span className="block text-xs text-text-muted">Nothing is sent until you approve it.</span>
+            </span>
+          </span>
+          <span className="text-sm font-medium text-brass shrink-0">Review</span>
+        </Link>
       )}
+
+      {live.some((a) => a.state === "active" || a.state === "paused") && <AgentResults title="What your agents did" />}
 
       {live.length === 0 ? (
         <div className="rounded-xl border border-line bg-surface px-6 py-12 text-center">
@@ -310,6 +324,8 @@ export default function AgentsPage() {
         </ul>
       )}
 
+      {live.length > 0 && <HouseStyle canManage={data.canManage} />}
+
       {openId && (
         <AgentPanel
           id={openId}
@@ -333,85 +349,6 @@ export default function AgentsPage() {
         />
       )}
     </div>
-  );
-}
-
-// ------------------------------------------------------------------ approvals
-
-function Approvals({
-  items,
-  canManage,
-  onDone,
-}: {
-  items: Approval[];
-  canManage: boolean;
-  onDone: () => void;
-}) {
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const decide = async (id: string, decision: "approve" | "reject") => {
-    setBusy(id);
-    setError("");
-    try {
-      await send(`/api/approvals/${id}`, "POST", { decision });
-      onDone();
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setBusy(null);
-    }
-  };
-  return (
-    <section
-      aria-label="Waiting for your approval"
-      className="rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-5"
-    >
-      <h2 className="text-sm font-semibold text-text flex items-center gap-2">
-        <ShieldCheck className="w-4 h-4 text-amber-600" /> Waiting for your
-        approval
-      </h2>
-      <p className="text-xs text-text-muted mt-0.5">
-        Each approval covers exactly this action, once. If anything about it
-        changes, it asks again.
-      </p>
-      {error && <p className="mt-2 text-sm text-rust">{error}</p>}
-      <ul className="mt-3 space-y-2">
-        {items.map((a) => (
-          <li
-            key={a.id}
-            className="rounded-lg border border-line bg-surface px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="text-sm text-text">{a.summary}</p>
-              <p className="text-xs text-text-muted mt-0.5">
-                Risk {a.tier} · asked {when(a.createdAt)} · expires{" "}
-                {when(a.expiresAt)}
-              </p>
-            </div>
-            {canManage && (
-              <div className="flex gap-2 shrink-0">
-                <button
-                  type="button"
-                  disabled={busy === a.id}
-                  onClick={() => decide(a.id, "reject")}
-                  className="h-8 px-3 rounded-md border border-line text-sm text-text hover:bg-surface-2 cursor-pointer disabled:opacity-50"
-                >
-                  Reject
-                </button>
-                <button
-                  type="button"
-                  disabled={busy === a.id}
-                  onClick={() => decide(a.id, "approve")}
-                  className="h-8 px-3 rounded-md bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-50"
-                >
-                  Approve
-                </button>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }
 
@@ -899,6 +836,12 @@ function AgentPanel({
             )}
           </section>
 
+          {(a.state === "active" || a.state === "paused") && (
+            <ScheduleBox agentId={a.id} canManage={d.canManage} paused={a.state === "paused"} />
+          )}
+
+          {(a.state === "active" || a.state === "paused" || d.tasks.length > 0) && <AgentResults agentId={a.id} title="Results" compact />}
+
           <section>
             <h3 className="text-sm font-semibold text-text mb-2">
               Recent jobs
@@ -924,13 +867,28 @@ function AgentPanel({
                         {when(t.createdAt)} · {TASK_STATE[t.state] || t.state} ·
                         ₹{t.costInr.toFixed(2)}
                       </span>
+                      {t.output?.summary?.startsWith("Skipped:") && (
+                        <span className="block text-xs text-rust mt-0.5">{t.output.summary}</span>
+                      )}
                     </span>
-                    <Link
-                      href={`/settings/audit?trace=${encodeURIComponent(t.traceId)}`}
-                      className="text-xs text-text-muted hover:text-text shrink-0"
-                    >
-                      Steps
-                    </Link>
+                    {t.state === "input_required" && !t.finishedAt ? (
+                      <Link
+                        href={`/approvals${(() => {
+                          const w = t.output?.steps?.find((x) => x.status === "approval_required" && x.approvalId);
+                          return w ? `?id=${encodeURIComponent(w.approvalId!)}` : "";
+                        })()}`}
+                        className="text-xs font-medium text-brass hover:underline shrink-0"
+                      >
+                        Review
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/settings/audit?trace=${encodeURIComponent(t.traceId)}`}
+                        className="text-xs text-text-muted hover:text-text shrink-0"
+                      >
+                        Steps
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -972,11 +930,12 @@ function JobBox({ agentId, onDone }: { agentId: string; onDone: () => void }) {
   const [task, setTask] = useState<Task | null>(null);
   const [error, setError] = useState("");
   const [starting, setStarting] = useState(false);
-  const running = Boolean(task && !task.finishedAt);
+  const waiting = Boolean(task && !task.finishedAt && task.state === "input_required");
+  const running = Boolean(task && !task.finishedAt && !waiting);
 
-  // Follow the job until it finishes
+  // Follow the job until it finishes or waits for the owner
   useEffect(() => {
-    if (!task || task.finishedAt) return;
+    if (!task || task.finishedAt || task.state === "input_required") return;
     const t = setTimeout(async () => {
       try {
         const r = await fetch(`/api/agents/tasks/${task.id}`, {
@@ -985,7 +944,7 @@ function JobBox({ agentId, onDone }: { agentId: string; onDone: () => void }) {
         const j = await r.json();
         if (j.success) {
           setTask(j.task);
-          if (j.task.finishedAt) onDone();
+          if (j.task.finishedAt || j.task.state === "input_required") onDone();
         }
       } catch {}
     }, 1500);
@@ -1050,6 +1009,14 @@ function JobBox({ agentId, onDone }: { agentId: string; onDone: () => void }) {
 
       {task && (
         <div className="border-t border-line pt-4 space-y-3">
+          {waiting && (
+            <p className="text-sm rounded-lg px-4 py-2.5 bg-brass/[0.06] text-text">
+              The agent is waiting for your approval before it carries on.{" "}
+              <Link href="/approvals" className="font-medium text-brass hover:underline">
+                Open Approvals
+              </Link>
+            </p>
+          )}
           {running && !out?.steps?.length && (
             <p className="text-sm text-text-muted flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin" /> Planning the job…
@@ -1065,9 +1032,21 @@ function JobBox({ agentId, onDone }: { agentId: string; onDone: () => void }) {
               <div className="min-w-0 flex-1">
                 <p className="text-text">{s.label}</p>
                 {s.why && <p className="text-xs text-text-muted">{s.why}</p>}
-                {s.status !== "done" && s.reason && (
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                    {s.reason}
+                {s.status === "approval_required" && s.approvalId ? (
+                  <p className="text-xs mt-1">
+                    <span className="text-text-muted">{s.preview?.title ? `${s.preview.title}. ` : ""}Waiting for your approval. </span>
+                    <Link href={`/approvals?id=${encodeURIComponent(s.approvalId)}`} className="font-medium text-brass hover:underline">
+                      Review it
+                    </Link>
+                  </p>
+                ) : (
+                  s.status !== "done" &&
+                  s.reason && <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">{s.reason}</p>
+                )}
+                {s.status === "done" && s.result?.sentTo && (
+                  <p className="text-xs text-text-muted mt-0.5">
+                    {s.result.sandbox ? "Recorded (test account): " : "Sent to "}
+                    {s.result.sentTo}
                   </p>
                 )}
                 {s.status === "done" && s.result?.draft && (
@@ -1105,11 +1084,375 @@ function JobBox({ agentId, onDone }: { agentId: string; onDone: () => void }) {
                 task.result ||
                 (task.state === "completed" ? "Done." : "The job stopped.")}
               <span className="block text-xs opacity-80 mt-0.5">
-                Cost ₹{task.costInr.toFixed(2)}. Nothing was sent outside
-                BizzPal.
+                Cost ₹{task.costInr.toFixed(2)}.{" "}
+                {(() => {
+                  const sent = (out?.steps || []).filter((x) => x.status === "done" && x.result?.sentTo && !x.result?.sandbox).length;
+                  return sent > 0 ? `${sent} ${sent === 1 ? "email was" : "emails were"} sent from your account.` : "Nothing was sent outside BizzPal.";
+                })()}
               </span>
             </p>
           )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ------------------------------------------------------------------ results
+
+interface Report {
+  days: number;
+  jobs: { total: number; completed: number; failed: number; skipped: number; waiting: number; running: number };
+  actions: { total: number; byAction: Array<{ action: string; label: string; count: number }> };
+  approvals: { approved: number; rejected: number; expired: number; pending: number };
+  emailsSent: number;
+  creditsSpent: number;
+  minutesSaved: number;
+}
+
+const hoursAndMinutes = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h ${m % 60 ? `${m % 60} min` : ""}`.trim() : `${m} min`);
+
+/** What the agents (or one agent) did in the last 7 or 30 days, from the records. */
+function AgentResults({ agentId, title, compact }: { agentId?: string; title: string; compact?: boolean }) {
+  const [days, setDays] = useState(7);
+  const [r, setR] = useState<Report | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/agents/report?days=${days}${agentId ? `&agent=${encodeURIComponent(agentId)}` : ""}`, { cache: "no-store" })
+      .then((x) => x.json())
+      .then((d) => {
+        if (!alive) return;
+        if (d.success) setR(d.report);
+        else setError(d.error || "Could not load the results.");
+      })
+      .catch(() => alive && setError("Could not load the results."));
+    return () => {
+      alive = false;
+    };
+  }, [days, agentId]);
+
+  const stats = r
+    ? [
+        { label: "Jobs done", value: String(r.jobs.completed), note: r.jobs.failed + r.jobs.skipped ? `${r.jobs.failed + r.jobs.skipped} stopped or skipped` : r.jobs.waiting ? `${r.jobs.waiting} waiting for you` : "" },
+        { label: "Emails sent", value: String(r.emailsSent), note: r.approvals.rejected ? `${r.approvals.rejected} rejected by you` : "" },
+        { label: "Credits spent", value: `₹${r.creditsSpent.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`, note: "" },
+        { label: "Time saved", value: r.minutesSaved ? `≈ ${hoursAndMinutes(r.minutesSaved)}` : "—", note: "Estimate" },
+      ]
+    : [];
+
+  return (
+    <section className={compact ? "" : "rounded-xl border border-line bg-surface p-5"}>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h3 className="text-sm font-semibold text-text">{title}</h3>
+        <div className="inline-flex rounded-lg border border-line p-0.5 text-xs">
+          {[7, 30].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setDays(n)}
+              className={`px-2.5 h-7 rounded-md cursor-pointer ${days === n ? "bg-surface-2 text-text font-medium" : "text-text-muted hover:text-text"}`}
+            >
+              {n} days
+            </button>
+          ))}
+        </div>
+      </div>
+      {error ? (
+        <p className="text-sm text-rust">{error}</p>
+      ) : !r ? (
+        <p className="text-sm text-text-muted flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+        </p>
+      ) : r.jobs.total === 0 ? (
+        <p className="text-sm text-text-muted">No jobs in the last {r.days} days.</p>
+      ) : (
+        <div className={`grid gap-3 ${compact ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4"}`}>
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-lg bg-surface-2/60 px-4 py-3 min-w-0">
+              <p className="text-xs text-text-muted">{s.label}</p>
+              <p className="text-lg font-semibold text-text tabular-nums mt-0.5 truncate">{s.value}</p>
+              {s.note && <p className="text-xs text-text-muted truncate">{s.note}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ------------------------------------------------------------------ schedule
+
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** Let the agent run on its own, daily or weekly at a set time (India time). */
+function ScheduleBox({ agentId, canManage, paused }: { agentId: string; canManage: boolean; paused: boolean }) {
+  const [loaded, setLoaded] = useState(false);
+  const [saved, setSaved] = useState<any>(null);
+  const [form, setForm] = useState({ cadence: "daily", time: "09:00", weekday: 1, instruction: "" });
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      const d = await send(`/api/agents/${encodeURIComponent(agentId)}/schedule`, "GET");
+      setSaved(d.schedule);
+      if (d.schedule) setForm({ cadence: d.schedule.cadence, time: d.schedule.time, weekday: d.schedule.weekday ?? 1, instruction: d.schedule.instruction });
+    } catch {}
+    setLoaded(true);
+  }, [agentId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const save = async (enabled: boolean) => {
+    setBusy(true);
+    setError("");
+    try {
+      const d = await send(`/api/agents/${encodeURIComponent(agentId)}/schedule`, "PUT", { ...form, enabled });
+      setSaved(d.schedule);
+      setEditing(false);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async () => {
+    if (!(await askConfirm({ title: "Stop the automatic runs?", message: "The agent will only work when you give it a job.", confirmLabel: "Stop", danger: true }))) return;
+    setBusy(true);
+    try {
+      await send(`/api/agents/${encodeURIComponent(agentId)}/schedule`, "DELETE");
+      setSaved(null);
+      setForm({ cadence: "daily", time: "09:00", weekday: 1, instruction: "" });
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!loaded) return null;
+  const describe = (s: any) =>
+    `${s.cadence === "weekly" ? `Every ${WEEKDAYS[s.weekday ?? 1]}` : "Every day"} at ${new Date(`2000-01-01T${s.time}:00`).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`;
+
+  return (
+    <section>
+      <h3 className="text-sm font-semibold text-text">Runs on its own</h3>
+      {!editing ? (
+        saved ? (
+          <div className="mt-2 rounded-lg border border-line px-4 py-3 text-sm space-y-1">
+            <p className="text-text">
+              {saved.enabled ? describe(saved) : "Switched off"}
+              {saved.enabled && paused && <span className="text-rust"> · skipped while the agent is paused</span>}
+            </p>
+            <p className="text-xs text-text-muted line-clamp-2">{saved.instruction}</p>
+            <p className="text-xs text-text-muted">
+              {saved.nextRunAt ? `Next run ${when(saved.nextRunAt)}` : ""}
+              {saved.lastRunAt ? `${saved.nextRunAt ? " · " : ""}last ${when(saved.lastRunAt)}${saved.lastResult ? `: ${saved.lastResult}` : ""}` : ""}
+            </p>
+            {canManage && (
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setEditing(true)} className="text-xs font-medium text-brass hover:underline cursor-pointer">
+                  Change
+                </button>
+                <button type="button" onClick={() => save(!saved.enabled)} disabled={busy} className="text-xs text-text-muted hover:text-text cursor-pointer">
+                  {saved.enabled ? "Switch off" : "Switch on"}
+                </button>
+                <button type="button" onClick={remove} disabled={busy} className="text-xs text-text-muted hover:text-rust cursor-pointer">
+                  Remove
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-text-muted mt-0.5">
+            It only works when you give it a job.{" "}
+            {canManage && (
+              <button type="button" onClick={() => setEditing(true)} className="font-medium text-brass hover:underline cursor-pointer">
+                Set a schedule
+              </button>
+            )}
+          </p>
+        )
+      ) : (
+        <div className="mt-2 rounded-lg border border-line p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="block text-xs text-text-muted mb-1">How often</span>
+              <select
+                value={form.cadence}
+                onChange={(e) => setForm({ ...form, cadence: e.target.value })}
+                className="w-full h-9 px-2 rounded-lg bg-surface border border-line text-sm text-text cursor-pointer"
+              >
+                <option value="daily">Every day</option>
+                <option value="weekly">Every week</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="block text-xs text-text-muted mb-1">Time (India)</span>
+              <input
+                type="time"
+                value={form.time}
+                onChange={(e) => setForm({ ...form, time: e.target.value })}
+                className="w-full h-9 px-2 rounded-lg bg-surface border border-line text-sm text-text"
+              />
+            </label>
+          </div>
+          {form.cadence === "weekly" && (
+            <label className="block">
+              <span className="block text-xs text-text-muted mb-1">Day</span>
+              <select
+                value={form.weekday}
+                onChange={(e) => setForm({ ...form, weekday: Number(e.target.value) })}
+                className="w-full h-9 px-2 rounded-lg bg-surface border border-line text-sm text-text cursor-pointer"
+              >
+                {WEEKDAYS.map((d, i) => (
+                  <option key={d} value={i}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label className="block">
+            <span className="block text-xs text-text-muted mb-1">What it should do each time</span>
+            <textarea
+              rows={3}
+              maxLength={2000}
+              value={form.instruction}
+              onChange={(e) => setForm({ ...form, instruction: e.target.value })}
+              placeholder="For example: List open tasks older than a week and create one follow-up task for the most urgent."
+              className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text focus:outline-none focus:border-brass"
+            />
+          </label>
+          <p className="text-xs text-text-muted">Each run is a normal job: it uses credits, keeps to the limits, and asks you before sending anything.</p>
+          {error && <p className="text-sm text-rust">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setEditing(false)} disabled={busy} className="h-9 px-3 rounded-lg text-sm text-text-muted hover:text-text cursor-pointer">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => save(true)}
+              disabled={busy || form.instruction.trim().length < 5}
+              className="h-9 px-4 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-50"
+            >
+              Save schedule
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ------------------------------------------------------------------ house style (agent memory)
+
+/** The style the agents write in, learned from the emails the owner approved. The owner can edit it or switch it off. */
+function HouseStyle({ canManage }: { canManage: boolean }) {
+  const [m, setM] = useState<{ style: string; enabled: boolean; learnedFrom: number; learnedAt: string | null; newExamples: number } | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    send("/api/agents/memory", "GET")
+      .then((d) => setM(d.memory))
+      .catch(() => {});
+  }, []);
+
+  const act = async (kind: "learn" | "save" | "toggle") => {
+    setBusy(kind);
+    setError("");
+    try {
+      const d =
+        kind === "learn"
+          ? await send("/api/agents/memory", "POST")
+          : kind === "save"
+            ? await send("/api/agents/memory", "PUT", { style: text })
+            : await send("/api/agents/memory", "PUT", { enabled: !m?.enabled });
+      setM(d.memory);
+      setEditing(false);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy("");
+    }
+  };
+
+  if (!m) return null;
+  return (
+    <section className="rounded-xl border border-line bg-surface p-5">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-text">House style</h2>
+          <p className="text-xs text-text-muted mt-0.5 max-w-xl">
+            How your agents write: learned from the emails you approved and the changes you made to them. It never keeps customer contact details.
+          </p>
+        </div>
+        {canManage && (m.style || m.learnedFrom > 0) && (
+          <button type="button" onClick={() => act("toggle")} disabled={Boolean(busy)} className="text-xs text-text-muted hover:text-text cursor-pointer shrink-0">
+            {m.enabled ? "Switch off" : "Switch on"}
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="mt-3 space-y-2">
+          <textarea
+            rows={7}
+            maxLength={2000}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text leading-relaxed focus:outline-none focus:border-brass"
+          />
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setEditing(false)} className="h-9 px-3 rounded-lg text-sm text-text-muted hover:text-text cursor-pointer">
+              Cancel
+            </button>
+            <button type="button" onClick={() => act("save")} disabled={Boolean(busy)} className="h-9 px-4 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-50">
+              Save
+            </button>
+          </div>
+        </div>
+      ) : m.style ? (
+        <div className={`mt-3 rounded-lg bg-surface-2/60 px-4 py-3 ${m.enabled ? "" : "opacity-60"}`}>
+          <p className="text-sm text-text whitespace-pre-wrap leading-relaxed">{m.style}</p>
+          <p className="text-xs text-text-muted mt-2">
+            {m.enabled ? "In use" : "Switched off"}
+            {m.learnedAt ? ` · learned from ${m.learnedFrom} ${m.learnedFrom === 1 ? "email" : "emails"} on ${when(m.learnedAt)}` : " · written by you"}
+          </p>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-text-muted">
+          {m.newExamples > 0
+            ? `You have approved ${m.newExamples} ${m.newExamples === 1 ? "email" : "emails"}. BizzPal can learn your style from them.`
+            : "Nothing learned yet. Once you approve a few emails from your agents, BizzPal learns how you like to write."}
+        </p>
+      )}
+
+      {error && <p className="mt-2 text-sm text-rust">{error}</p>}
+      {canManage && !editing && (
+        <div className="mt-3 flex flex-wrap gap-3">
+          {m.newExamples > 0 && (
+            <button type="button" onClick={() => act("learn")} disabled={Boolean(busy)} className="text-xs font-medium text-brass hover:underline cursor-pointer inline-flex items-center gap-1.5">
+              {busy === "learn" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {m.style ? `Update from ${m.newExamples} new ${m.newExamples === 1 ? "email" : "emails"}` : "Learn my style"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setText(m.style);
+              setEditing(true);
+            }}
+            className="text-xs text-text-muted hover:text-text cursor-pointer"
+          >
+            {m.style ? "Edit" : "Write it yourself"}
+          </button>
         </div>
       )}
     </section>

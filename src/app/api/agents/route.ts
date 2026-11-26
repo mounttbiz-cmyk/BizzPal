@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { body, failure, requireAgentUser } from "@/lib/agents/api";
 import { connectionStatus, createDraft, listAgents } from "@/lib/agents/lifecycle";
-import { INDUSTRY_PACKS } from "@/lib/xray/packs";
+import { EVERYDAY_AGENTS, INDUSTRY_PACKS } from "@/lib/xray/packs";
 import { walletBalance } from "@/lib/platform/wallet";
 import { listApprovals } from "@/lib/platform/policy";
 
@@ -16,7 +16,7 @@ export async function GET(req: Request) {
       success: true,
       canManage: a.auth.isOwner,
       agents: listAgents(a.businessId),
-      catalogue: INDUSTRY_PACKS.map(p => ({
+      catalogue: [EVERYDAY_AGENTS, ...INDUSTRY_PACKS].map(p => ({
         industry: p.id,
         name: p.name,
         agents: p.agents.map(ag => ({

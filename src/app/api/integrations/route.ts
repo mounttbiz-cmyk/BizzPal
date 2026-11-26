@@ -14,8 +14,14 @@ function stripSecrets(cfg: any): any {
   return clean;
 }
 
-// Fallback in-memory store for high availability during filesystem sync events
+// Fallback in-memory store for high availability during filesystem sync events. Keyed by business AND tool, so one
+// business's connection can never show up for another.
 const memoryIntegrations = new Map<string, any>();
+const memKey = (tenantId: string, toolKey: string) => `${tenantId}:${toolKey}`;
+
+// Connections that let an agent act in the outside world, or that move money, count as connected only after their own
+// route has really tested them. They can never be switched on through this generic route.
+const VERIFIED_ONLY_CONNECTIONS = ["slack", "stripe", "email"];
 
 export async function GET(req: Request) {
   const auth = requireUser(req);
@@ -39,8 +45,8 @@ export async function GET(req: Request) {
       } catch {}
 
       // Merge any memory overlay
-      if (memoryIntegrations.has(int.tool_key)) {
-        const mem = memoryIntegrations.get(int.tool_key);
+      if (memoryIntegrations.has(memKey(tenantId, int.tool_key))) {
+        const mem = memoryIntegrations.get(memKey(tenantId, int.tool_key));
         configObj = { ...configObj, ...mem.config };
       }
 
@@ -85,14 +91,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "toolKey is required" }, { status: 400 });
     }
     // These two are only "connected" after the connection has really been tested, through their own routes.
-    if (toolKey === "slack" || toolKey === "stripe") {
+    if (VERIFIED_ONLY_CONNECTIONS.includes(String(toolKey))) {
       return NextResponse.json({ error: "Connect this tool from the Integrations page." }, { status: 400 });
     }
 
     const now = new Date().toISOString();
 
     // Cache in memory immediately for instantaneous feedback
-    memoryIntegrations.set(toolKey, {
+    memoryIntegrations.set(memKey(tenantId, toolKey), {
       toolKey,
       status: status || "connected",
       apiKey: apiKey || null,

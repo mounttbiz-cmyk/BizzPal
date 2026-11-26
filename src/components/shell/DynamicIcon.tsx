@@ -30,10 +30,12 @@ import {
   Share2,
   Briefcase,
   ScanSearch,
+  ShieldCheck,
   LucideProps,
 } from "lucide-react";
 
 const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
+  ShieldCheck,
   LayoutDashboard,
   MessageSquare,
   AlertTriangle,

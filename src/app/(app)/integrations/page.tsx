@@ -6,6 +6,7 @@ import { IntegrationLogo } from "@/components/ui/IntegrationLogo";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { RealToolAuthModal } from "@/components/tools/RealToolAuthModal";
 import { PaymentsStep } from "@/components/onboarding/PaymentsStep";
+import { EmailAccountModal } from "@/components/integrations/EmailAccountModal";
 import type { PaySource, PayTotal } from "@/components/onboarding/types";
 
 /**
@@ -14,7 +15,7 @@ import type { PaySource, PayTotal } from "@/components/onboarding/types";
 type Status = "connected" | "not_connected";
 
 interface Tool {
-  id: "google_drive" | "onedrive" | "payments" | "slack";
+  id: "google_drive" | "onedrive" | "payments" | "slack" | "email";
   logo: string;
   name: string;
   tagline: string;
@@ -25,6 +26,7 @@ const TOOLS: Tool[] = [
   { id: "onedrive", logo: "onedrive", name: "Microsoft OneDrive & Excel", tagline: "Import Excel workbooks and other files from OneDrive." },
   { id: "payments", logo: "stripe", name: "Payments: Razorpay & Stripe", tagline: "Read your real payments so your revenue is accurate and can't be edited." },
   { id: "slack", logo: "slack", name: "Slack", tagline: "Post updates and alerts to a Slack channel you choose." },
+  { id: "email", logo: "email", name: "Email account", tagline: "Lets your AI agents send emails you approve, from your own address." },
 ];
 
 // Our own products. Their accounts are linked to BizzPal by our team for now, so Connect explains how.
@@ -72,6 +74,7 @@ export default function IntegrationsPage() {
   const [paySources, setPaySources] = useState<PaySource[]>([]);
   const [payTotal, setPayTotal] = useState<PayTotal | null>(null);
 
+  const [emailOpen, setEmailOpen] = useState(false);
   const [slackOpen, setSlackOpen] = useState(false);
   const [slackUrl, setSlackUrl] = useState("");
   const [slackText, setSlackText] = useState("");
@@ -88,7 +91,8 @@ export default function IntegrationsPage() {
         fetch("/api/auth/session", { cache: "no-store" }).then(r => r.json()).catch(() => null),
       ]);
       for (const i of integ?.integrations || []) {
-        if (i.id === "google_drive" || i.id === "onedrive" || i.id === "slack") next[i.id] = i.status === "connected" ? "connected" : "not_connected";
+        if (i.id === "google_drive" || i.id === "onedrive" || i.id === "slack" || i.id === "email") next[i.id] = i.status === "connected" ? "connected" : "not_connected";
+        if (i.id === "email" && i.status === "connected" && i.config?.fromEmail) info.email = `Sends from ${i.config.fromEmail}`;
       }
       const sources: PaySource[] = pay?.sources || [];
       setPaySources(sources);
@@ -113,6 +117,7 @@ export default function IntegrationsPage() {
 
   const open = (tool: Tool) => {
     if (tool.id === "payments") setPayOpen(true);
+    else if (tool.id === "email") setEmailOpen(true);
     else if (tool.id === "slack") {
       setSlackMsg(null);
       setSlackUrl("");
@@ -171,7 +176,7 @@ export default function IntegrationsPage() {
       <div className="pb-4 border-b border-line">
         <h1 className="text-xl font-bold text-text">Integrations</h1>
         <p className="text-sm text-text-muted mt-1">
-          Connect your payments and files so your advisors work from real data.
+          Connect your payments, files and email so your advisors and agents work from real data.
           {!loading && ` ${connectedCount} of ${TOOLS.length} connected.`}
         </p>
       </div>
@@ -323,6 +328,8 @@ export default function IntegrationsPage() {
           />
         </div>
       </PortalModal>
+
+      <EmailAccountModal open={emailOpen} onClose={() => setEmailOpen(false)} onChanged={load} />
 
       {/* Slack */}
       <PortalModal isOpen={slackOpen} onClose={() => setSlackOpen(false)}>
