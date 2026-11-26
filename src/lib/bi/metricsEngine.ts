@@ -1,4 +1,5 @@
 import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
+import { businessFigures } from "@/lib/money/figures";
 
 /**
  * The business's own figures. Everything here is either entered by the owner, read from an uploaded file, or counted
@@ -69,9 +70,14 @@ export function calculateBusinessMetrics(businessId = DEFAULT_BUSINESS_ID): Busi
     } catch {}
   }
 
-  const monthlyRev = uploadedMonthlyRev || Number(biz?.monthly_revenue) || 0;
-  const monthlyBurn = uploadedBurn || Number(biz?.monthly_burn) || 0;
-  const cashReserve = uploadedCash || Number(biz?.cash_on_hand) || 0;
+  // Bank statements and Tally come first, then uploaded files, then typed-in figures (see lib/money/figures)
+  let figures: ReturnType<typeof businessFigures> | null = null;
+  try {
+    figures = businessFigures(businessId);
+  } catch {}
+  const monthlyRev = figures?.monthlyRevenue.value || uploadedMonthlyRev || Number(biz?.monthly_revenue) || 0;
+  const monthlyBurn = figures?.monthlySpending.value || uploadedBurn || Number(biz?.monthly_burn) || 0;
+  const cashReserve = figures?.cash.value || uploadedCash || Number(biz?.cash_on_hand) || 0;
   const teamSize = Number(biz?.team_size) || 0;
   const runwayMonths = monthlyBurn > 0 && cashReserve > 0 ? Number((cashReserve / monthlyBurn).toFixed(1)) : null;
 
@@ -93,7 +99,19 @@ export function calculateBusinessMetrics(businessId = DEFAULT_BUSINESS_ID): Busi
       ).run(businessId, ym, monthlyRev, monthlyBurn, cashReserve, new Date().toISOString());
     }
     const rows = db.prepare("SELECT month, revenue, burn FROM business_metric_history WHERE business_id = ? ORDER BY month DESC LIMIT 12").all(businessId) as any[];
-    history = rows.reverse().map(r => ({ month: monthLabel(r.month), revenue: Number(r.revenue), burn: Number(r.burn), netCash: Number(r.revenue) - Number(r.burn) }));
+    // Months covered by bank or Tally files use those real totals instead of the saved snapshot
+    const real = new Map((figures?.months || []).map(m => [m.month, m]));
+    const all = new Set([...rows.map(r => String(r.month)), ...Array.from(real.keys())]);
+    history = Array.from(all)
+      .sort()
+      .slice(-12)
+      .map(ym => {
+        const m = real.get(ym);
+        const r = rows.find(x => x.month === ym);
+        const revenue = m ? m.revenue : Number(r?.revenue || 0);
+        const burn = m ? m.spending : Number(r?.burn || 0);
+        return { month: monthLabel(ym), revenue, burn, netCash: revenue - burn };
+      });
   } catch {}
 
   return {

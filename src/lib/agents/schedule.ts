@@ -35,7 +35,8 @@ try {
   `);
 } catch {}
 
-export type Cadence = "daily" | "weekly";
+export type Cadence = "daily" | "weekly" | "event";
+export type TriggerEvent = "new_lead" | "new_enquiry";
 export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const IST_OFFSET_MS = 330 * 60 * 1000; // India has no daylight saving
 
@@ -45,6 +46,8 @@ export interface AgentSchedule {
   time: string;
   weekday: number | null;
   instruction: string;
+  /** Set when the agent reacts to something instead of running at a time */
+  trigger: TriggerEvent | null;
   nextRunAt: string | null;
   lastRunAt: string | null;
   lastResult: string | null;
@@ -77,6 +80,7 @@ function toSchedule(r: any): AgentSchedule {
     time: r.run_time,
     weekday: r.weekday === null || r.weekday === undefined ? null : Number(r.weekday),
     instruction: r.instruction,
+    trigger: r.trigger_event === "new_lead" || r.trigger_event === "new_enquiry" ? r.trigger_event : null,
     nextRunAt: r.enabled ? r.next_run_at : null,
     lastRunAt: r.last_run_at,
     lastResult: r.last_result,
@@ -90,33 +94,34 @@ export function getSchedule(businessId: string, agentInstanceId: string): AgentS
 
 export function saveSchedule(
   opts: { businessId: string; walletBusinessId: string; agentInstanceId: string; ownerEmail: string },
-  input: { enabled?: unknown; cadence?: unknown; time?: unknown; weekday?: unknown; instruction?: unknown }
+  input: { enabled?: unknown; cadence?: unknown; time?: unknown; weekday?: unknown; instruction?: unknown; trigger?: unknown }
 ): AgentSchedule {
   const inst = getAgent(opts.businessId, opts.agentInstanceId);
   if (!inst) throw Object.assign(new ScheduleError("That agent was not found."), { status: 404 });
   if (inst.state === "retired") throw new ScheduleError("A retired agent cannot be scheduled.");
-  const cadence: Cadence = input.cadence === "weekly" ? "weekly" : "daily";
-  const time = String(input.time || "");
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new ScheduleError("Choose a time, for example 09:00.");
+  const trigger: TriggerEvent | null = input.trigger === "new_lead" || input.trigger === "new_enquiry" ? input.trigger : null;
+  const cadence: Cadence = trigger ? "event" : input.cadence === "weekly" ? "weekly" : "daily";
+  const time = trigger ? "00:00" : String(input.time || "");
+  if (!trigger && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new ScheduleError("Choose a time, for example 09:00.");
   const weekday = cadence === "weekly" ? Number(input.weekday) : null;
   if (cadence === "weekly" && !(Number.isInteger(weekday) && weekday! >= 0 && weekday! <= 6)) throw new ScheduleError("Choose a day of the week.");
   const instruction = String(input.instruction || "").trim().slice(0, 2000);
   if (instruction.length < 5) throw new ScheduleError("Describe what the agent should do on each run.");
   const enabled = input.enabled !== false;
   const now = new Date().toISOString();
-  const next = enabled ? nextRunAt(cadence, time, weekday) : null;
+  const next = enabled && !trigger ? nextRunAt(cadence, time, weekday) : null;
   const existing = db.prepare("SELECT id FROM agent_schedules WHERE business_id = ? AND agent_instance_id = ?").get(opts.businessId, opts.agentInstanceId) as any;
   if (existing) {
     db.prepare(
-      "UPDATE agent_schedules SET instruction = ?, cadence = ?, run_time = ?, weekday = ?, enabled = ?, next_run_at = ?, owner_email = ?, wallet_business_id = ?, updated_at = ? WHERE id = ?"
-    ).run(instruction, cadence, time, weekday, enabled ? 1 : 0, next, opts.ownerEmail, opts.walletBusinessId, now, existing.id);
+      "UPDATE agent_schedules SET instruction = ?, cadence = ?, run_time = ?, weekday = ?, trigger_event = ?, enabled = ?, next_run_at = ?, owner_email = ?, wallet_business_id = ?, updated_at = ? WHERE id = ?"
+    ).run(instruction, cadence, time, weekday, trigger, enabled ? 1 : 0, next, opts.ownerEmail, opts.walletBusinessId, now, existing.id);
   } else {
     db.prepare(
-      `INSERT INTO agent_schedules (id, business_id, wallet_business_id, agent_instance_id, instruction, cadence, run_time, weekday, enabled, next_run_at, owner_email, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(`sch_${randomBytes(8).toString("hex")}`, opts.businessId, opts.walletBusinessId, opts.agentInstanceId, instruction, cadence, time, weekday, enabled ? 1 : 0, next, opts.ownerEmail, now);
+      `INSERT INTO agent_schedules (id, business_id, wallet_business_id, agent_instance_id, instruction, cadence, run_time, weekday, trigger_event, enabled, next_run_at, owner_email, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(`sch_${randomBytes(8).toString("hex")}`, opts.businessId, opts.walletBusinessId, opts.agentInstanceId, instruction, cadence, time, weekday, trigger, enabled ? 1 : 0, next, opts.ownerEmail, now);
   }
-  recordAudit({ businessId: opts.businessId, actor: opts.ownerEmail, action: "agent.schedule_saved", resource: opts.agentInstanceId, detail: { cadence, time, weekday, enabled } });
+  recordAudit({ businessId: opts.businessId, actor: opts.ownerEmail, action: "agent.schedule_saved", resource: opts.agentInstanceId, detail: { cadence, time, weekday, trigger, enabled } });
   return getSchedule(opts.businessId, opts.agentInstanceId)!;
 }
 
@@ -159,14 +164,14 @@ function startRun(s: any, instruction: string, actor: string): string {
 export function runDueSchedules(now = new Date()): number {
   let rows: any[] = [];
   try {
-    rows = db.prepare("SELECT * FROM agent_schedules WHERE enabled = 1 AND next_run_at IS NOT NULL AND next_run_at <= ?").all(now.toISOString()) as any[];
+    rows = db.prepare("SELECT * FROM agent_schedules WHERE enabled = 1 AND trigger_event IS NULL AND next_run_at IS NOT NULL AND next_run_at <= ?").all(now.toISOString()) as any[];
   } catch {
     return 0;
   }
   let started = 0;
   for (const s of rows) {
     // Move the schedule on first, so a slow run or a restart can never start the same run twice
-    const next = nextRunAt(s.cadence, s.run_time, s.weekday === null ? null : Number(s.weekday), now);
+    const next = nextRunAt(s.cadence === "weekly" ? "weekly" : "daily", s.run_time, s.weekday === null ? null : Number(s.weekday), now);
     const claimed: any = db.prepare("UPDATE agent_schedules SET next_run_at = ?, last_run_at = ? WHERE id = ? AND next_run_at = ?").run(next, now.toISOString(), s.id, s.next_run_at);
     if (!claimed?.changes) continue;
     const inst = getAgent(s.business_id, s.agent_instance_id);

@@ -1,23 +1,41 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ContainerTile } from "../ui/ContainerTile";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
 import { useBusinessDataSync } from "@/lib/upload/events";
 
 export function KpiGridWidget() {
-  const [industryLabel, setIndustryLabel] = useState("your industry");
   const [monthlyRev, setMonthlyRev] = useState(0);
   const [annualRev, setAnnualRev] = useState(0);
   const [burn, setBurn] = useState(0);
   const [cash, setCash] = useState(0);
   const [teamSize, setTeamSize] = useState(0);
-  const [grossMarginVal, setGrossMarginVal] = useState(0);
+  // Where each figure came from (bank statement, Tally, Razorpay, upload or typed in)
+  const [sources, setSources] = useState<{ revenue?: string; spending?: string; cash?: string }>({});
+  const [fromFigures, setFromFigures] = useState(false);
+
+  const loadFigures = () =>
+    fetch("/api/business/figures", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!d?.success) return;
+        const f = d.figures;
+        setFromFigures(true);
+        setMonthlyRev(Number(f.monthlyRevenue.value) || 0);
+        setAnnualRev((Number(f.monthlyRevenue.value) || 0) * 12);
+        setBurn(Number(f.monthlySpending.value) || 0);
+        setCash(Number(f.cash.value) || 0);
+        setSources({ revenue: f.monthlyRevenue.label, spending: f.monthlySpending.label, cash: f.cash.label });
+      })
+      .catch(() => {});
 
   const applyProfile = (p: any) => {
     if (!p) return;
-    if (p.industryLabel) setIndustryLabel(p.industryLabel);
-    else if (p.industry) setIndustryLabel(p.industry);
+    if (fromFiguresRef.current) {
+      if (p.teamSize !== undefined && p.teamSize !== null) setTeamSize(Number(p.teamSize));
+      return;
+    }
     if (p.revenue !== undefined && p.revenue !== null) setMonthlyRev(Number(p.revenue));
     else if (p.monthlyRevenue !== undefined && p.monthlyRevenue !== null) setMonthlyRev(Number(p.monthlyRevenue));
     if (p.annualRevenue !== undefined && p.annualRevenue !== null) setAnnualRev(Number(p.annualRevenue));
@@ -27,8 +45,20 @@ export function KpiGridWidget() {
     if (p.cash !== undefined && p.cash !== null) setCash(Number(p.cash));
     else if (p.cashOnHand !== undefined && p.cashOnHand !== null) setCash(Number(p.cashOnHand));
     if (p.teamSize !== undefined && p.teamSize !== null) setTeamSize(Number(p.teamSize));
-    if (p.grossMargin !== undefined && p.grossMargin !== null) setGrossMarginVal(Number(p.grossMargin));
   };
+
+  const fromFiguresRef = useRef(false);
+  useEffect(() => {
+    fromFiguresRef.current = fromFigures;
+  }, [fromFigures]);
+
+  useEffect(() => {
+    loadFigures();
+    const refresh = () => loadFigures();
+    window.addEventListener("bizzpal_business_data_updated", refresh);
+    return () => window.removeEventListener("bizzpal_business_data_updated", refresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     try {
@@ -52,36 +82,38 @@ export function KpiGridWidget() {
 
   useBusinessDataSync(metrics => {
     applyProfile(metrics);
+    loadFigures();
   });
 
-  const runwayMonths = burn > 0 ? (cash / burn).toFixed(1) : cash > 0 ? "18+" : "0.0";
-  const effectiveTeam = teamSize || (monthlyRev > 0 ? 1 : 0);
-  const revPerHead = effectiveTeam > 0 ? Math.round((annualRev || monthlyRev * 12) / effectiveTeam) : 0;
+  const runwayMonths = burn > 0 && cash > 0 ? (cash / burn).toFixed(1) : null;
+  const effectiveTeam = teamSize || 0;
+  const revPerHead = effectiveTeam > 0 && monthlyRev > 0 ? Math.round((annualRev || monthlyRev * 12) / effectiveTeam) : 0;
+  const money = (n: number) => (n > 0 ? `₹${n.toLocaleString("en-IN")}` : "—");
 
   const kpis = [
     {
       id: "mrr",
       label: "Monthly revenue",
-      value: `₹${monthlyRev.toLocaleString("en-IN")}`,
-      note: monthlyRev > 0 ? "From your billings" : "Not added yet",
+      value: money(monthlyRev),
+      note: monthlyRev > 0 ? sources.revenue || "Added by you" : "Not added yet",
+    },
+    {
+      id: "spending",
+      label: "Monthly spending",
+      value: money(burn),
+      note: burn > 0 ? sources.spending || "Added by you" : "Not added yet",
     },
     {
       id: "runway",
       label: "Cash runway",
-      value: `${runwayMonths} mo`,
-      note: burn > 0 ? `₹${burn.toLocaleString("en-IN")} spent a month` : "Add your monthly costs",
+      value: runwayMonths ? `${runwayMonths} mo` : "—",
+      note: cash > 0 ? `${money(cash)} in the bank${sources.cash ? ` · ${sources.cash.replace(/^Bank balance, /, "")}` : ""}` : "Needs your cash and spending",
     },
     {
       id: "rev_head",
       label: "Revenue per person (yearly)",
-      value: `₹${revPerHead.toLocaleString("en-IN")}`,
+      value: money(revPerHead),
       note: effectiveTeam > 0 ? `${effectiveTeam} team ${effectiveTeam === 1 ? "member" : "members"}` : "Add your team size",
-    },
-    {
-      id: "gross_margin",
-      label: "Gross margin",
-      value: grossMarginVal > 0 ? `${grossMarginVal}%` : "—",
-      note: grossMarginVal > 0 ? `For ${industryLabel}` : "Add your costs of sale",
     },
   ];
 

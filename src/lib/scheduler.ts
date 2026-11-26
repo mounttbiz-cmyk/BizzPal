@@ -14,6 +14,7 @@ import { calculateBusinessMetrics } from "@/lib/bi/metricsEngine";
 import { runAutomation, type RunStatus } from "@/lib/automations/engine";
 import { sendAllBriefings } from "@/lib/briefing";
 import { runDueSchedules } from "@/lib/agents/schedule";
+import { syncAllSources } from "@/lib/leads/sync";
 import { appBaseUrl, mailConfigured, sendMail, emailTemplate } from "@/lib/mail";
 
 const SIX_HOURS = 6 * 60 * 60 * 1000;
@@ -276,4 +277,10 @@ export function startScheduler() {
       console.error("[scheduler] agent schedules failed:", (e as Error).message);
     }
   }, 60_000).unref?.();
+  // New leads from Google Sheets and new enquiries from the connected inbox, every 5 minutes
+  setInterval(() => {
+    syncAllSources()
+      .then(n => n && console.log(`[scheduler] ${n} new lead(s) and enquiries`))
+      .catch(e => console.error("[scheduler] lead sources failed:", (e as Error).message));
+  }, 5 * 60_000).unref?.();
 }

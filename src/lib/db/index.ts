@@ -1930,6 +1930,34 @@ try {
   }
 } catch {}
 
+// Add the "Leads & enquiries" item to the saved menu once.
+try {
+  const done = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'nav_added_leads'").get() as any;
+  const navRow = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'dashboard_nav'").get() as any;
+  if (!done && navRow && typeof navRow.config_value === "string") {
+    const nav = JSON.parse(navRow.config_value);
+    if (Array.isArray(nav) && !nav.some((i: any) => i?.id === "nav_leads" || i?.href === "/leads")) {
+      nav.push({ id: "nav_leads", label: "Leads & enquiries", href: "/leads", icon: "Users", order: 12.4, mobileTab: false, group: "management", enabled: true });
+      db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'dashboard_nav'").run(JSON.stringify(nav), new Date().toISOString());
+    }
+    db.prepare("INSERT OR REPLACE INTO platform_config (config_key, config_value, updated_at) VALUES ('nav_added_leads', 'true', ?)").run(new Date().toISOString());
+  }
+} catch {}
+
+// Add the "Money in & out" item (bank statements and Tally) to the saved menu once.
+try {
+  const done = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'nav_added_money'").get() as any;
+  const navRow = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'dashboard_nav'").get() as any;
+  if (!done && navRow && typeof navRow.config_value === "string") {
+    const nav = JSON.parse(navRow.config_value);
+    if (Array.isArray(nav) && !nav.some((i: any) => i?.id === "nav_money" || i?.href === "/money")) {
+      nav.push({ id: "nav_money", label: "Money in & out", href: "/money", icon: "LineChart", order: 4.6, mobileTab: false, group: "intelligence", enabled: true });
+      db.prepare("UPDATE platform_config SET config_value = ?, updated_at = ? WHERE config_key = 'dashboard_nav'").run(JSON.stringify(nav), new Date().toISOString());
+    }
+    db.prepare("INSERT OR REPLACE INTO platform_config (config_key, config_value, updated_at) VALUES ('nav_added_money', 'true', ?)").run(new Date().toISOString());
+  }
+} catch {}
+
 // Add the Approvals item (agent actions waiting for the owner) to the saved menu once.
 try {
   const done = db.prepare("SELECT config_value FROM platform_config WHERE config_key = 'nav_added_approvals'").get() as any;

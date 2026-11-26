@@ -152,3 +152,15 @@ export async function sendFromBusiness(businessId: string, msg: { to: string; su
     throw new EmailAccountError(e?.code === "EAUTH" ? "The email account refused the login. Reconnect it on the Integrations page." : "The email could not be sent. Please try again.", 502);
   }
 }
+
+/** The account's login, for reading the inbox (server only; never sent to the browser). */
+export function getEmailCredentials(businessId: string): { host: string; port: number; user: string; password: string; fromEmail: string; sandbox: boolean } | null {
+  const row = db.prepare("SELECT * FROM integrations WHERE business_id = ? AND tool_key = ? AND status = 'connected'").get(businessId, TOOL_KEY) as any;
+  if (!row) return null;
+  try {
+    const c = JSON.parse(row.config || "{}");
+    return { host: c.host, port: c.port, user: c.user, password: safeDecrypt(row.api_key || ""), fromEmail: c.fromEmail, sandbox: Boolean(c.sandbox) };
+  } catch {
+    return null;
+  }
+}

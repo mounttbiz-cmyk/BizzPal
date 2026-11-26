@@ -38,7 +38,7 @@ export const DEFAULT_MATRIX: Matrix = {
 };
 
 /** Pages only the owner may open, whatever the matrix says */
-const OWNER_ONLY_PATHS = ["/team"];
+const OWNER_ONLY_PATHS = ["/team", "/money"];
 
 export function roleFromSession(raw: string | null | undefined): Role {
   const r = String(raw || "owner").toLowerCase();

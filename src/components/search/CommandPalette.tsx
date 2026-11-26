@@ -23,6 +23,8 @@ interface Result {
 // What each page is for, in plain words (shown as the hint and used for matching)
 const PAGE_HINTS: Record<string, { hint: string; keywords: string[] }> = {
   "/dashboard": { hint: "Your numbers at a glance", keywords: ["home", "overview", "health", "runway"] },
+  "/money": { hint: "Bank statements and Tally", keywords: ["bank", "statement", "tally", "transactions", "money", "cash", "expenses", "spending"] },
+  "/leads": { hint: "New leads and enquiries", keywords: ["leads", "enquiries", "inquiries", "sheet", "inbox", "customers"] },
   "/chat": { hint: "Ask your AI advisors", keywords: ["ai", "advisor", "ceo", "cfo", "ask", "chat"] },
   "/strategy": { hint: "Plan growth initiatives", keywords: ["initiatives", "growth", "plan"] },
   "/playbooks": { hint: "Step-by-step plans", keywords: ["playbook", "plan", "steps"] },

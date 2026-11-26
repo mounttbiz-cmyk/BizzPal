@@ -1189,6 +1189,7 @@ const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frida
 function ScheduleBox({ agentId, canManage, paused }: { agentId: string; canManage: boolean; paused: boolean }) {
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState<any>(null);
+  // "daily" | "weekly" | "new_lead" | "new_enquiry"
   const [form, setForm] = useState({ cadence: "daily", time: "09:00", weekday: 1, instruction: "" });
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -1198,7 +1199,8 @@ function ScheduleBox({ agentId, canManage, paused }: { agentId: string; canManag
     try {
       const d = await send(`/api/agents/${encodeURIComponent(agentId)}/schedule`, "GET");
       setSaved(d.schedule);
-      if (d.schedule) setForm({ cadence: d.schedule.cadence, time: d.schedule.time, weekday: d.schedule.weekday ?? 1, instruction: d.schedule.instruction });
+      if (d.schedule)
+        setForm({ cadence: d.schedule.trigger || d.schedule.cadence, time: d.schedule.trigger ? "09:00" : d.schedule.time, weekday: d.schedule.weekday ?? 1, instruction: d.schedule.instruction });
     } catch {}
     setLoaded(true);
   }, [agentId]);
@@ -1210,7 +1212,13 @@ function ScheduleBox({ agentId, canManage, paused }: { agentId: string; canManag
     setBusy(true);
     setError("");
     try {
-      const d = await send(`/api/agents/${encodeURIComponent(agentId)}/schedule`, "PUT", { ...form, enabled });
+      const trigger = form.cadence === "new_lead" || form.cadence === "new_enquiry" ? form.cadence : null;
+      const d = await send(`/api/agents/${encodeURIComponent(agentId)}/schedule`, "PUT", {
+        ...form,
+        cadence: trigger ? "daily" : form.cadence,
+        trigger,
+        enabled,
+      });
       setSaved(d.schedule);
       setEditing(false);
     } catch (e: any) {
@@ -1235,7 +1243,12 @@ function ScheduleBox({ agentId, canManage, paused }: { agentId: string; canManag
 
   if (!loaded) return null;
   const describe = (s: any) =>
-    `${s.cadence === "weekly" ? `Every ${WEEKDAYS[s.weekday ?? 1]}` : "Every day"} at ${new Date(`2000-01-01T${s.time}:00`).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`;
+    s.trigger === "new_lead"
+      ? "Whenever a new lead arrives"
+      : s.trigger === "new_enquiry"
+        ? "Whenever a new enquiry arrives by email"
+        : `${s.cadence === "weekly" ? `Every ${WEEKDAYS[s.weekday ?? 1]}` : "Every day"} at ${new Date(`2000-01-01T${s.time}:00`).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`;
+  const isTrigger = form.cadence === "new_lead" || form.cadence === "new_enquiry";
 
   return (
     <section>
@@ -1280,7 +1293,7 @@ function ScheduleBox({ agentId, canManage, paused }: { agentId: string; canManag
         <div className="mt-2 rounded-lg border border-line p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="block text-xs text-text-muted mb-1">How often</span>
+              <span className="block text-xs text-text-muted mb-1">When it runs</span>
               <select
                 value={form.cadence}
                 onChange={(e) => setForm({ ...form, cadence: e.target.value })}
@@ -1288,9 +1301,11 @@ function ScheduleBox({ agentId, canManage, paused }: { agentId: string; canManag
               >
                 <option value="daily">Every day</option>
                 <option value="weekly">Every week</option>
+                <option value="new_lead">When a new lead arrives</option>
+                <option value="new_enquiry">When a new enquiry arrives</option>
               </select>
             </label>
-            <label className="block">
+            <label className={`block ${isTrigger ? "invisible" : ""}`}>
               <span className="block text-xs text-text-muted mb-1">Time (India)</span>
               <input
                 type="time"
@@ -1323,11 +1338,19 @@ function ScheduleBox({ agentId, canManage, paused }: { agentId: string; canManag
               maxLength={2000}
               value={form.instruction}
               onChange={(e) => setForm({ ...form, instruction: e.target.value })}
-              placeholder="For example: List open tasks older than a week and create one follow-up task for the most urgent."
+              placeholder={
+                isTrigger
+                  ? "For example: Draft a friendly reply to this person and create a follow-up task for tomorrow."
+                  : "For example: List open tasks older than a week and create one follow-up task for the most urgent."
+              }
               className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text focus:outline-none focus:border-brass"
             />
           </label>
-          <p className="text-xs text-text-muted">Each run is a normal job: it uses credits, keeps to the limits, and asks you before sending anything.</p>
+          <p className="text-xs text-text-muted">
+            {isTrigger
+              ? `The agent is told who the ${form.cadence === "new_lead" ? "lead" : "enquiry"} is from and what they said. Leads come from your lead sheet and enquiries from your inbox (set them up under Leads & enquiries).`
+              : "Each run is a normal job: it uses credits, keeps to the limits, and asks you before sending anything."}
+          </p>
           {error && <p className="text-sm text-rust">{error}</p>}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setEditing(false)} disabled={busy} className="h-9 px-3 rounded-lg text-sm text-text-muted hover:text-text cursor-pointer">
