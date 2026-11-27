@@ -23,9 +23,6 @@ export default function BusinessProfileSettingsPage() {
   const [industry, setIndustry] = useState("");
   const [industryLabel, setIndustryLabel] = useState("");
   const [teamSize, setTeamSize] = useState<number | string>(1);
-  const [monthlyRevenue, setMonthlyRevenue] = useState<number | string>(0);
-  const [monthlyBurn, setMonthlyBurn] = useState<number | string>(0);
-  const [cashOnHand, setCashOnHand] = useState<number | string>(0);
   const [provider, setProvider] = useState("email");
 
   // UI state
@@ -44,10 +41,10 @@ export default function BusinessProfileSettingsPage() {
 
   useEscapeKey(() => setIsDeleteModalOpen(false), isDeleteModalOpen);
 
-  // Load existing profile from localStorage and backend
+  // Load authoritative profile from backend, using localStorage only as an initial hint
   useEffect(() => {
+    let active = true;
     try {
-      // 1. Session check
       const sessionStr = localStorage.getItem("bizzpal_user_session");
       if (sessionStr) {
         const sess = JSON.parse(sessionStr);
@@ -56,7 +53,6 @@ export default function BusinessProfileSettingsPage() {
         if (sess.provider) setProvider(sess.provider);
       }
 
-      // 2. Business profile check
       const profileStr = localStorage.getItem("bizzpal_business_profile");
       if (profileStr) {
         const p = JSON.parse(profileStr);
@@ -64,37 +60,60 @@ export default function BusinessProfileSettingsPage() {
         if (p.name) setBusinessName(p.name);
         if (p.founderName) setFounderName(p.founderName);
         if (p.website) setWebsite(p.website);
-        // The profile keeps the industry key (e.g. "it") next to its display name; older profiles may only have the name.
         const key = BUSINESS_TYPES.find(b => b.id === p.industryKey || b.id === p.industry || b.title === p.industry || b.title === p.industryLabel)?.id;
         if (key) setIndustry(key);
         if (p.industryLabel || p.industry) setIndustryLabel(p.industryLabel || p.industry);
         if (p.teamSize !== undefined) setTeamSize(p.teamSize);
-        if (p.revenue !== undefined) setMonthlyRevenue(p.revenue);
-        if (p.monthlyRevenue !== undefined) setMonthlyRevenue(p.monthlyRevenue);
-        if (p.burn !== undefined) setMonthlyBurn(p.burn);
-        if (p.cash !== undefined) setCashOnHand(p.cash);
-      } else {
-        // Fallback default
-        setBusinessName("");
       }
+    } catch (e) {
+      console.error("Error reading cached profile:", e);
+    }
 
-      // 3. Backend fallback check
-      fetch("/api/business/intake")
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.success && d.business) {
-            if (d.business.logoUrl) {
-              setBusinessLogo((prev) => prev || d.business.logoUrl);
-            }
-            if (d.business.name) {
-              setBusinessName((prev) => prev || d.business.name);
+    (async () => {
+      try {
+        const [sessRes, intakeRes] = await Promise.all([
+          fetch("/api/auth/session", { cache: "no-store" }),
+          fetch("/api/business/intake", { cache: "no-store" }),
+        ]);
+        if (!active) return;
+
+        if (sessRes.ok) {
+          const s = await sessRes.json().catch(() => null);
+          if (s?.user) {
+            if (s.user.email) setEmail(s.user.email);
+            if (s.user.name) setFounderName(prev => prev || s.user.name);
+            if (s.user.provider) setProvider(s.user.provider);
+          }
+        }
+
+        if (intakeRes.ok) {
+          const d = await intakeRes.json().catch(() => null);
+          if (d?.success && d?.business) {
+            const b = d.business;
+            if (b.logoUrl !== undefined) setBusinessLogo(b.logoUrl || null);
+            if (b.name) setBusinessName(b.name);
+            if (b.founderName) setFounderName(b.founderName);
+            if (b.website !== undefined) setWebsite(b.website || "");
+            if (b.teamSize !== undefined) setTeamSize(b.teamSize);
+            const matched = BUSINESS_TYPES.find(
+              item => item.id === b.industry || item.title === b.industry
+            );
+            if (matched) {
+              setIndustry(matched.id);
+              setIndustryLabel(matched.title);
+            } else if (b.industry) {
+              setIndustryLabel(b.industry);
             }
           }
-        })
-        .catch(() => {});
-    } catch (e) {
-      console.error("Error reading business profile for settings:", e);
-    }
+        }
+      } catch {
+        // Keep hydrated hint if offline
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
 
@@ -110,12 +129,7 @@ export default function BusinessProfileSettingsPage() {
       const cleanFounderName = founderName.trim() || "Founder";
       const cleanWebsite = website.trim();
       const numTeam = Number(teamSize) || 1;
-      const numRevenue = Number(monthlyRevenue) || 0;
-      const numBurn = Number(monthlyBurn) || 0;
-      const numCash = Number(cashOnHand) || 0;
-      const numAnnual = numRevenue * 12;
 
-      // Existing profile merged
       const existingStr = localStorage.getItem("bizzpal_business_profile");
       const existing = existingStr ? JSON.parse(existingStr) : {};
 
@@ -129,15 +143,9 @@ export default function BusinessProfileSettingsPage() {
         industryLabel,
         logoUrl: businessLogo || null,
         teamSize: numTeam,
-        revenue: numRevenue,
-        monthlyRevenue: numRevenue,
-        annualRevenue: numAnnual,
-        burn: numBurn,
-        cash: numCash,
         updatedAt: new Date().toISOString(),
       };
 
-      // 1. Update localStorage immediately (guarantees local sync instantly)
       localStorage.setItem("bizzpal_business_profile", JSON.stringify(updatedProfile));
       if (email) {
         localStorage.setItem(`bizzpal_user_business_${email.trim().toLowerCase()}`, JSON.stringify(updatedProfile));
@@ -155,60 +163,42 @@ export default function BusinessProfileSettingsPage() {
         })
       );
 
-      // Helper: execute remote async tasks with a strict safety timeout so slow networks never stall the UI
-      const withTimeout = (p: Promise<any>, ms = 1500) =>
-        Promise.race([
-          p,
-          new Promise((resolve) => setTimeout(() => resolve(null), ms)),
-        ]);
-
-      // 3. Persist concurrently to SQLite intake, account-status, in the background
-      const remoteTasks: Promise<any>[] = [];
-
-      // 3a. SQLite intake endpoint
-      remoteTasks.push(
-        withTimeout(
-          fetch("/api/business/intake", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: cleanBusinessName,
-              founderName: cleanFounderName,
-              website: cleanWebsite,
-              industry,
-              industryLabel,
-              logoUrl: businessLogo || null,
-              teamSize: numTeam,
-              monthlyRevenue: numRevenue,
-              annualRevenue: numAnnual,
-              monthlyBurn: numBurn,
-              cashOnHand: numCash,
-            }),
-          }).catch(() => {})
-        )
-      );
-
-      // 3b. SQLite account-status ledger
-      if (email) {
-        remoteTasks.push(
-          withTimeout(
-            fetch("/api/auth/account-status", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: email.trim().toLowerCase(),
-                name: cleanFounderName,
-                businessProfile: updatedProfile,
-              }),
-            }).catch(() => {})
-          )
-        );
+      // 3. Persist cleanly to SQLite intake (do not overwrite financial figures or integrations) and verify response
+      const intakeRes = await fetch("/api/business/intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: cleanBusinessName,
+          founderName: cleanFounderName,
+          website: cleanWebsite,
+          industry,
+          industryLabel,
+          logoUrl: businessLogo || null,
+          teamSize: numTeam,
+        }),
+      });
+      const intakeJson = await intakeRes.json().catch(() => ({}));
+      if (!intakeRes.ok || !intakeJson.success) {
+        throw new Error(intakeJson.error || "Could not save your business profile to the server.");
       }
 
-      // Await all remote tasks with timeout (maximum 1.5 seconds wait)
-      await Promise.allSettled(remoteTasks);
+      const cleanEmail = email.trim().toLowerCase();
+      if (cleanEmail) {
+        const acctRes = await fetch("/api/auth/account-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: cleanEmail,
+            name: cleanFounderName,
+            businessProfile: updatedProfile,
+          }),
+        }).catch(() => null);
+        if (acctRes && !acctRes.ok) {
+          const acctJson = await acctRes.json().catch(() => ({}));
+          throw new Error(acctJson.error || "Could not update your account record.");
+        }
+      }
 
-      // Immediate success feedback
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
     } catch (err: any) {
@@ -223,9 +213,10 @@ export default function BusinessProfileSettingsPage() {
     if (!(await askConfirm({ title: "Sign out of BizzPal?", confirmLabel: "Sign out" }))) return;
     setIsLoggingOut(true);
     try {
+      await fetch("/api/auth/session", { method: "DELETE" }).catch(() => {});
       await logout();
     } catch (e) {}
-    fetch("/api/auth/session", { method: "DELETE" }).catch(() => {}); localStorage.removeItem("bizzpal_user_session");
+    localStorage.removeItem("bizzpal_user_session");
     router.push("/login?signin=true");
   };
 
@@ -253,8 +244,9 @@ export default function BusinessProfileSettingsPage() {
         }
       }
 
-      // 3. Clear local storage
-      fetch("/api/auth/session", { method: "DELETE" }).catch(() => {}); localStorage.removeItem("bizzpal_user_session");
+      // 3. Clear server session and local storage
+      await fetch("/api/auth/session", { method: "DELETE" }).catch(() => {});
+      localStorage.removeItem("bizzpal_user_session");
       localStorage.removeItem("bizzpal_business_profile");
       if (cleanEmail) {
         localStorage.removeItem(`bizzpal_user_business_${cleanEmail}`);
@@ -382,11 +374,14 @@ export default function BusinessProfileSettingsPage() {
               <input
                 type="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                readOnly
+                disabled
                 placeholder="founder@company.com"
-                className={inputClass}
+                className={`${inputClass} opacity-75 cursor-not-allowed bg-surface-2/60`}
               />
-              <p className="text-xs text-text-muted mt-1.5 capitalize">Signed in with {provider}</p>
+              <p className="text-xs text-text-muted mt-1.5 capitalize">
+                Signed in with {provider} · account email cannot be changed
+              </p>
             </div>
 
             <div className="lg:order-6">

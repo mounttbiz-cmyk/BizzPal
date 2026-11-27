@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { defaultGapRules } from "@/config/seeds/defaultRules";
 import { Check, ChevronDown, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { loadWorkspaceState, saveWorkspaceState } from "@/lib/workspace/stateClient";
 
 export type GapStatus = "detected" | "prioritized" | "in_progress" | "under_verification" | "resolved";
 
@@ -43,29 +44,118 @@ const RUNWAY_TARGET = Number((RUNWAY_RULE.condition as any).value) || 6;
 const PROGRESS_KEY = "bizzpal_gap_progress";
 
 /**
- * The gaps that can really be found from the numbers the business has entered. Nothing is assumed: checks that need
- * data BizzPal does not have yet (customer concentration, channels, churn) are not shown at all.
+ * Evaluate gap rules using only actual numbers and fields provided by the business.
+ * Unpopulated domain metrics are never fabricated.
  */
 function findGaps(profile: any): { gaps: ExtendedGapItem[]; hasNumbers: boolean; runway: number | null } {
-  const cash = Number(profile?.cash ?? profile?.cashOnHand ?? 0);
-  const burn = Number(profile?.burn ?? profile?.monthlyBurn ?? 0);
-  if (!(cash > 0) || !(burn > 0)) return { gaps: [], hasNumbers: false, runway: null };
-  const runway = cash / burn;
-  if (runway >= RUNWAY_TARGET) return { gaps: [], hasNumbers: true, runway };
-  const dev = ((runway - RUNWAY_TARGET) / RUNWAY_TARGET) * 100;
-  const gap = {
-    ...RUNWAY_RULE,
-    targetMetric: `Runway of at least ${RUNWAY_TARGET} months`,
-    actualMetric: `${runway.toFixed(1)} months`,
-    deviation: `${dev.toFixed(1)}% vs target`,
-    deviationPercent: dev,
+  const rev = Number(profile?.revenue ?? profile?.monthlyRevenue ?? profile?.monthly_revenue ?? 0);
+  const cash = Number(profile?.cash ?? profile?.cashOnHand ?? profile?.cash_on_hand ?? 0);
+  const burn = Number(profile?.burn ?? profile?.monthlyBurn ?? profile?.monthly_burn ?? 0);
+  const team = Number(profile?.teamSize ?? profile?.team_size ?? 0);
+  const hasNumbers = cash > 0 && burn > 0;
+  const runway = hasNumbers ? cash / burn : null;
+  const found: ExtendedGapItem[] = [];
+
+  const wrapRule = (
+    rule: (typeof defaultGapRules)[number],
+    targetMetric: string,
+    actualMetric: string,
+    deviation: string,
+    deviationPercent: number,
+    evidenceTemplate: string
+  ): ExtendedGapItem => ({
+    ...(rule as any),
+    targetMetric,
+    actualMetric,
+    deviation,
+    deviationPercent,
     status: "detected" as GapStatus,
     assignedOwner: "Not assigned yet",
     assignedRole: "",
-    completedSteps: [] as number[],
-    evidenceTemplate: `Cash in bank of ₹${cash.toLocaleString("en-IN")} against net monthly burn of ₹${burn.toLocaleString("en-IN")} gives ${runway.toFixed(1)} months of runway.`,
-  } as ExtendedGapItem;
-  return { gaps: [gap], hasNumbers: true, runway };
+    completedSteps: [],
+    evidenceTemplate,
+  });
+
+  if (runway !== null && runway < RUNWAY_TARGET) {
+    const dev = ((runway - RUNWAY_TARGET) / RUNWAY_TARGET) * 100;
+    found.push(
+      wrapRule(
+        RUNWAY_RULE,
+        `Runway of at least ${RUNWAY_TARGET} months`,
+        `${runway.toFixed(1)} months`,
+        `${dev.toFixed(1)}% vs target`,
+        dev,
+        `Cash in bank of ₹${cash.toLocaleString("en-IN")} against net monthly burn of ₹${burn.toLocaleString("en-IN")} gives ${runway.toFixed(1)} months of runway.`
+      )
+    );
+  }
+
+  const concRule = defaultGapRules.find(r => r.key === "revenue_concentration");
+  const topClientPct = Number(profile?.topClientRevPct ?? profile?.top_client_rev_pct ?? NaN);
+  const concTarget = Number((concRule?.condition as any)?.value) || 25;
+  if (concRule?.enabled && Number.isFinite(topClientPct) && topClientPct > concTarget) {
+    const dev = ((topClientPct - concTarget) / concTarget) * 100;
+    found.push(
+      wrapRule(
+        concRule,
+        `Top client share below ${concTarget}%`,
+        `${topClientPct.toFixed(0)}% of revenue`,
+        `+${dev.toFixed(1)}% over limit`,
+        dev,
+        `Your largest customer accounts for ${topClientPct.toFixed(0)}% of company revenue.`
+      )
+    );
+  }
+
+  const chanRule = defaultGapRules.find(r => r.key === "channel_concentration");
+  const topChannelPct = Number(profile?.topChannelSharePct ?? profile?.top_channel_share_pct ?? NaN);
+  const chanTarget = Number((chanRule?.condition as any)?.value) || 60;
+  if (chanRule?.enabled && Number.isFinite(topChannelPct) && topChannelPct > chanTarget) {
+    const dev = ((topChannelPct - chanTarget) / chanTarget) * 100;
+    found.push(
+      wrapRule(
+        chanRule,
+        `Single channel share <= ${chanTarget}%`,
+        `${topChannelPct.toFixed(0)}% acquisition share`,
+        `+${dev.toFixed(1)}% over threshold`,
+        dev,
+        `A single acquisition channel currently drives ${topChannelPct.toFixed(0)}% of customer acquisition.`
+      )
+    );
+  }
+
+  const founderRule = defaultGapRules.find(r => r.key === "founder_dependency");
+  const founderBottleneck = profile?.founderHandlesSales ?? profile?.founder_handles_sales;
+  if (founderRule?.enabled && founderBottleneck === true) {
+    found.push(
+      wrapRule(
+        founderRule,
+        "Less than 50% founder dependency",
+        "Founder closes core deals",
+        "Single-point dependency",
+        100,
+        "Sales closing is currently marked as founder-dependent."
+      )
+    );
+  }
+
+  const metricRule = defaultGapRules.find(r => r.key === "measurement_gap");
+  const trackedCount = [rev > 0, burn > 0, cash > 0, team > 0].filter(Boolean).length;
+  const minMetrics = Number((metricRule?.condition as any)?.value) || 3;
+  if (metricRule?.enabled && profile && trackedCount < minMetrics) {
+    found.push(
+      wrapRule(
+        metricRule,
+        `At least ${minMetrics} core financial baselines`,
+        `${trackedCount} baselines recorded`,
+        `${minMetrics - trackedCount} missing`,
+        -((minMetrics - trackedCount) / minMetrics) * 100,
+        `Only ${trackedCount} of 4 core baselines (revenue, burn, cash, team size) have been entered.`
+      )
+    );
+  }
+
+  return { gaps: found, hasNumbers, runway };
 }
 
 const STATUS_LABEL: Record<GapStatus, string> = {
@@ -95,16 +185,25 @@ export default function GapsPage() {
   const [isScanning, setIsScanning] = useState(false);
 
   // Look for gaps in the business's own saved numbers, and restore what the team already did about them
-  const scan = () => {
+  const scan = async () => {
     let profile: any = null;
     try {
-      profile = JSON.parse(localStorage.getItem("bizzpal_business_profile") || "null");
+      const r = await fetch("/api/business/intake", { cache: "no-store" });
+      const d = await r.json().catch(() => null);
+      if (d?.success && d.business) {
+        profile = d.business;
+        try {
+          localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business));
+        } catch {}
+      }
     } catch {}
+    if (!profile) {
+      try {
+        profile = JSON.parse(localStorage.getItem("bizzpal_business_profile") || "null");
+      } catch {}
+    }
     const found = findGaps(profile);
-    let progress: Record<string, { status: GapStatus; completedSteps: number[] }> = {};
-    try {
-      progress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}");
-    } catch {}
+    const progress = (await loadWorkspaceState<Record<string, { status: GapStatus; completedSteps: number[] }>>("gaps", PROGRESS_KEY)) || {};
     setGaps(found.gaps.map(g => (progress[g.key] ? { ...g, status: progress[g.key].status, completedSteps: progress[g.key].completedSteps } : g)));
     setHasNumbers(found.hasNumbers);
     setRunway(found.runway);
@@ -116,14 +215,12 @@ export default function GapsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Remember progress on each gap
+  // Remember progress on each gap in SQLite
   useEffect(() => {
     if (!loaded) return;
-    try {
-      const progress: Record<string, { status: GapStatus; completedSteps: number[] }> = {};
-      for (const g of gaps) progress[g.key] = { status: g.status, completedSteps: g.completedSteps };
-      localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
-    } catch {}
+    const progress: Record<string, { status: GapStatus; completedSteps: number[] }> = {};
+    for (const g of gaps) progress[g.key] = { status: g.status, completedSteps: g.completedSteps };
+    saveWorkspaceState("gaps", progress, PROGRESS_KEY).catch(() => {});
   }, [gaps, loaded]);
 
   const updateGap = (id: string, fn: (g: ExtendedGapItem) => ExtendedGapItem) =>
@@ -145,10 +242,10 @@ export default function GapsPage() {
       return { ...g, completedSteps: done, status: allDone ? "under_verification" : g.status };
     });
 
-  const runScan = () => {
+  const runScan = async () => {
     setIsScanning(true);
-    scan();
-    setTimeout(() => setIsScanning(false), 400);
+    await scan();
+    setTimeout(() => setIsScanning(false), 300);
   };
 
   const filtered = gaps.filter(g => {

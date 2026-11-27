@@ -57,6 +57,7 @@ const TOOLS_OPTIONS = [
 export default function SettingsToolsPage() {
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [noIntegrations, setNoIntegrations] = useState<boolean>(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [briefingOn, setBriefingOn] = useState<boolean>(false);
   const [briefingEmail, setBriefingEmail] = useState<string>("");
   const [mailReady, setMailReady] = useState<boolean>(true);
@@ -66,16 +67,33 @@ export default function SettingsToolsPage() {
   const [saving, setSaving] = useState<boolean>(false);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
-  // Load current saved intake settings
+  // Load current saved intake settings and live connected integrations
   useEffect(() => {
     async function loadSettings() {
       try {
-        const res = await fetch("/api/business/intake");
-        const data = await res.json();
-        if (data.business) {
-          setSelectedTools(data.business.connectedTools || []);
-          setNoIntegrations(Boolean(data.business.noIntegrations));
-        }
+        const [intakeRes, intRes] = await Promise.all([
+          fetch("/api/business/intake", { cache: "no-store" }),
+          fetch("/api/integrations", { cache: "no-store" }),
+        ]);
+        const data = await intakeRes.json().catch(() => ({}));
+        const intData = await intRes.json().catch(() => ({}));
+
+        const savedTools: string[] = Array.isArray(data?.business?.connectedTools)
+          ? data.business.connectedTools
+          : [];
+        const liveConnectedKeys: string[] = Array.isArray(intData?.integrations)
+          ? intData.integrations
+              .filter((row: any) => row.status === "connected" && row.tool_key)
+              .map((row: any) => {
+                if (row.tool_key === "google_drive" || row.tool_key === "google_calendar" || row.tool_key === "google_workspace") return "google";
+                if (row.tool_key === "onedrive" || row.tool_key === "microsoft_365") return "microsoft";
+                return row.tool_key;
+              })
+          : [];
+
+        const merged = Array.from(new Set([...savedTools, ...liveConnectedKeys]));
+        setSelectedTools(merged);
+        setNoIntegrations(merged.length === 0 && Boolean(data?.business?.noIntegrations));
       } catch (err) {
         console.error("Failed to load business intake settings", err);
       } finally {
@@ -140,6 +158,7 @@ export default function SettingsToolsPage() {
   const handleSave = async () => {
     setSaving(true);
     setSavedSuccess(false);
+    setSaveError(null);
 
     try {
       const res = await fetch("/api/business/intake", {
@@ -150,10 +169,10 @@ export default function SettingsToolsPage() {
           noIntegrations,
         }),
       });
+      const data = await res.json().catch(() => ({}));
 
-      if (res.ok) {
+      if (res.ok && data.success !== false) {
         setSavedSuccess(true);
-        // Also update local storage profile
         try {
           const raw = localStorage.getItem("bizzpal_business_profile");
           if (raw) {
@@ -164,9 +183,11 @@ export default function SettingsToolsPage() {
           }
         } catch {}
         setTimeout(() => setSavedSuccess(false), 3000);
+      } else {
+        setSaveError(data?.error || "Could not save your tool settings. Please try again.");
       }
-    } catch (err) {
-      console.error("Failed to update intake settings", err);
+    } catch {
+      setSaveError("Could not reach the server. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -212,6 +233,27 @@ export default function SettingsToolsPage() {
                   </li>
                 );
               })}
+              <li className="lg:col-span-2">
+                <label
+                  className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+                    noIntegrations ? "border-line-strong bg-surface-2" : "border-line hover:bg-surface-2/50"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={noIntegrations}
+                    onChange={() => toggleTool("none")}
+                    className="mt-1 w-4 h-4 accent-[#8a6414] shrink-0"
+                  />
+                  <ToolLogo toolId="none" size={32} className="mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-text">None of these yet — manual daily check-in</p>
+                    <p className="text-sm text-text-muted leading-relaxed mt-0.5">
+                      Use quick manual revenue, burn, and cash entry instead of syncing external tools right now.
+                    </p>
+                  </div>
+                </label>
+              </li>
             </ul>
           </section>
 
@@ -257,7 +299,13 @@ export default function SettingsToolsPage() {
 
           <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 p-4 rounded-2xl border border-line bg-surface shadow-lg">
             <p className="text-sm text-text-muted">
-              {savedSuccess ? <span className="text-text">Changes saved.</span> : "Changes apply to your dashboard and integrations."}
+              {saveError ? (
+                <span className="text-rust">{saveError}</span>
+              ) : savedSuccess ? (
+                <span className="text-text">Changes saved.</span>
+              ) : (
+                "Changes apply to your dashboard and integrations."
+              )}
             </p>
             <button
               type="button"

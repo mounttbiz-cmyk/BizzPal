@@ -25,16 +25,16 @@ export interface DataPalPack {
 }
 
 export const DATAPAL_PACKS: DataPalPack[] = [
-  { id: "datapal_pack_100", records: 100, priceInr: 1 },
-  { id: "datapal_pack_500", records: 500, priceInr: 1 },
-  { id: "datapal_pack_1500", records: 1500, priceInr: 1 },
+  { id: "datapal_pack_100", records: 100, priceInr: 299 },
+  { id: "datapal_pack_500", records: 500, priceInr: 999 },
+  { id: "datapal_pack_1500", records: 1500, priceInr: 2499 },
 ];
 
 export const CUSTOM_PACK_MIN = 10;
 export const CUSTOM_PACK_MAX = 50000;
 
 export function customPackPrice(records: number): number {
-  return 1;
+  return Math.max(199, Math.round(records * 2.5));
 }
 
 /** Finds a pack by id. "datapal_pack_custom_<number>" is a custom amount. */

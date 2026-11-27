@@ -191,7 +191,7 @@ export function DocumentsManager() {
         setIsUploadModalOpen(false);
         setUploadFile(null);
         setUploadTitle("");
-        setToastMessage(`Document "${uploadTitle || uploadFile.name}" indexed with ${data.result?.chunkCount || 0} vector chunks!`);
+        setToastMessage(`Document "${uploadTitle || uploadFile.name}" indexed with ${data.result?.chunkCount || 0} searchable sections!`);
         setTimeout(() => setToastMessage(null), 4000);
         fetchDocuments();
       } else {
@@ -659,7 +659,7 @@ export function DocumentsManager() {
                 <div>
                   <h3 className="text-sm font-bold text-text truncate max-w-md">{activeDocForPreview.doc.title}</h3>
                   <div className="flex items-center gap-2 text-[10px] text-text-muted mt-0.5">
-                    <span className="font-mono">{activeDocForPreview.chunks.length} pgvector chunks</span>
+                    <span className="font-mono">{activeDocForPreview.chunks.length} indexed sections</span>
                     <span>•</span>
                     <span className="font-mono">{activeDocForPreview.doc.fileName}</span>
                   </div>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeReturnTo, signOAuthState } from "@/lib/auth/oauthState";
 
 export async function GET(req: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -22,11 +23,11 @@ export async function GET(req: NextRequest) {
   const redirectUri = `${origin}/api/integrations/google/callback`;
 
   // Get optional state parameter (e.g. source: 'onboarding' | 'integrations' | 'settings' | 'auth')
-  const returnTo = req.nextUrl.searchParams.get("returnTo") || "/integrations";
+  const returnTo = safeReturnTo(req.nextUrl.searchParams.get("returnTo"));
   const source = req.nextUrl.searchParams.get("source") || "integration";
   // For teammate invites the token rides along so the callback can confirm the Google-verified email.
   const inviteToken = source === "invite" ? (req.nextUrl.searchParams.get("invite") || "") : "";
-  const state = Buffer.from(JSON.stringify({ returnTo, origin, source, inviteToken })).toString("base64url");
+  const state = signOAuthState({ returnTo, origin, source, inviteToken });
 
   // Google OAuth 2.0 Authorization URL
   const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");

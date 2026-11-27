@@ -496,6 +496,12 @@ try {
     source_document_id TEXT,
     source_citation TEXT,
     verified_by TEXT DEFAULT 'system',
+    owner TEXT,
+    verified_at TEXT,
+    expires_at TEXT,
+    version INTEGER DEFAULT 1,
+    classification TEXT DEFAULT 'internal',
+    purpose TEXT DEFAULT 'general',
     is_active INTEGER DEFAULT 1,
     valid_from TEXT NOT NULL,
     valid_to TEXT,
@@ -658,6 +664,16 @@ try {
       business_id TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+
+    -- Per-tenant persistent workspace UI state (reports, playbooks, strategy, gaps, simulator scenarios, advisors, help notes).
+    CREATE TABLE IF NOT EXISTS workspace_state (
+      business_id TEXT NOT NULL,
+      scope TEXT NOT NULL,
+      data TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (business_id, scope)
+    );
+    CREATE INDEX IF NOT EXISTS idx_workspace_state_biz ON workspace_state (business_id);
   `);
 } catch (err) {
   console.warn("[SQLite] Schema initialization handled safely:", err);
@@ -1237,6 +1253,40 @@ export function setPlatformConfig<T>(key: string, value: T): void {
       }
     }
   }
+}
+
+export function getWorkspaceState<T>(businessId: string, scope: string, fallback: T): T {
+  const memKey = `ws:${businessId}:${scope}`;
+  try {
+    const row = db
+      .prepare("SELECT data FROM workspace_state WHERE business_id = ? AND scope = ?")
+      .get(businessId, scope) as { data: string } | undefined;
+    if (row && typeof row.data === "string") {
+      const parsed = JSON.parse(row.data);
+      memoryConfigCache.set(memKey, parsed);
+      return parsed as T;
+    }
+  } catch (err) {
+    console.error(`Error reading workspace state ${scope} for ${businessId}:`, err);
+  }
+  if (memoryConfigCache.has(memKey)) {
+    return memoryConfigCache.get(memKey) as T;
+  }
+  return fallback;
+}
+
+export function setWorkspaceState<T>(businessId: string, scope: string, value: T): void {
+  const memKey = `ws:${businessId}:${scope}`;
+  memoryConfigCache.set(memKey, value);
+  const now = new Date().toISOString();
+  const payload = JSON.stringify(value);
+  db.prepare(`
+    INSERT INTO workspace_state (business_id, scope, data, updated_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(business_id, scope) DO UPDATE SET
+      data = excluded.data,
+      updated_at = excluded.updated_at
+  `).run(businessId, scope, payload, now);
 }
 
 // Initialize seed platform configs ONLY if row does not exist at all (never revive deleted items)

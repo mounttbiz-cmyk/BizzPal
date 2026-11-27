@@ -5,7 +5,14 @@ import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
 
 export const dynamic = "force-dynamic";
 
-/** "₹3,999", "3999/month", 0 → rupees. Anything that is not a positive number counts as free. */
+/** "₹3,999", "3999/month", 0 → rupees. Non-numeric prices (e.g. "Custom") must NEVER be treated as ₹0 free. */
+function isFreePrice(planId: string, price: unknown): boolean {
+  if (planId === "free") return true;
+  if (typeof price === "number") return price === 0;
+  const cleaned = String(price ?? "").replace(/[₹,\s/a-zA-Z-]/g, "");
+  return cleaned !== "" && Number(cleaned) === 0;
+}
+
 function priceInRupees(price: unknown): number {
   if (typeof price === "number") return price > 0 ? price : 0;
   const n = parseFloat(String(price ?? "").replace(/[^0-9.]/g, ""));
@@ -35,7 +42,10 @@ export async function POST(req: Request) {
 
     const current: any = getUserActiveSubscription(auth.email);
 
-    if (priceInRupees(plan.price) > 0) {
+    if (!isFreePrice(planId, plan.price)) {
+      if (priceInRupees(plan.price) <= 0) {
+        return NextResponse.json({ success: false, error: "This custom plan must be activated by billing or an administrator." }, { status: 402 });
+      }
       // Paid plan: only confirm what a verified payment already switched on
       const stillActive = !current?.current_period_end || new Date(current.current_period_end).getTime() > Date.now();
       if (current?.plan_id === planId && current?.status === "active" && stillActive) {

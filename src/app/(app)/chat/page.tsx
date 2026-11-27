@@ -379,7 +379,7 @@ function ChatWorkspaceContent() {
     const toolIdParam = searchParams.get("toolId");
     const categoryParam = searchParams.get("category");
     const badgeParam = searchParams.get("badge");
-    const promptParam = searchParams.get("prompt") || searchParams.get("message");
+    const promptParam = searchParams.get("prompt") || searchParams.get("message") || searchParams.get("query");
     const autoSendParam = searchParams.get("autoSend");
 
     let targetAdvisor = activeAgentIdRef.current;

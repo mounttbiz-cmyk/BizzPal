@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { inflateSync } from "node:zlib";
 import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
 import { isPostgresConfigured, queryPostgres, initializePostgresSchema } from "@/lib/db/pgClient";
 import { generateEmbedding } from "@/lib/ai/embeddings";
@@ -37,6 +38,150 @@ export function normalizeDocumentText(rawText: string): string {
     .replace(/[\t ]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function decodePdfLiteralString(raw: string): string {
+  let out = "";
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (ch !== "\\") {
+      out += ch;
+      continue;
+    }
+    const next = raw[++i];
+    if (next === undefined) break;
+    if (next === "n") out += "\n";
+    else if (next === "r") out += "\r";
+    else if (next === "t") out += "\t";
+    else if (next === "b") out += "\b";
+    else if (next === "f") out += "\f";
+    else if (next === "(" || next === ")" || next === "\\") out += next;
+    else if (next >= "0" && next <= "7") {
+      let oct = next;
+      for (let k = 0; k < 2 && i + 1 < raw.length; k++) {
+        const d = raw[i + 1];
+        if (d >= "0" && d <= "7") {
+          oct += d;
+          i++;
+        } else break;
+      }
+      out += String.fromCharCode(parseInt(oct, 8));
+    } else if (next === "\r" || next === "\n") {
+      if (next === "\r" && raw[i + 1] === "\n") i++;
+    } else {
+      out += next;
+    }
+  }
+  return out;
+}
+
+function decodePdfHexString(hex: string): string {
+  const clean = hex.replace(/[^0-9a-fA-F]/g, "");
+  if (!clean) return "";
+  const padded = clean.length % 2 === 1 ? clean + "0" : clean;
+  const bytes = Buffer.from(padded, "hex");
+  if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
+    let out = "";
+    for (let i = 2; i + 1 < bytes.length; i += 2) {
+      out += String.fromCharCode((bytes[i] << 8) | bytes[i + 1]);
+    }
+    return out;
+  }
+  return bytes.toString("latin1");
+}
+
+function extractTextOperatorsFromStream(decoded: string): string[] {
+  const parts: string[] = [];
+  const btRegex = /\bBT\b([\s\S]*?)\bET\b/g;
+  let btMatch: RegExpExecArray | null;
+
+  const parseSegment = (seg: string) => {
+    // Match TJ arrays [...] TJ and single Tj / ' / " text calls
+    const tokenRegex = /(\[(?:[^\]\\]|\\.|"(?:[^"\\]|\\.)*"|\((?:[^()\\]|\\.|(?:\([^()]*\)))*\)|<[0-9a-fA-F\s]*>)*\]\s*TJ)|(\((?:[^()\\]|\\.)*\)\s*(?:Tj|'|"))|(<[0-9a-fA-F\s]+>\s*(?:Tj|'|"))/g;
+    let tok: RegExpExecArray | null;
+    while ((tok = tokenRegex.exec(seg)) !== null) {
+      const full = tok[0];
+      if (tok[1]) {
+        let line = "";
+        const innerRegex = /(\((?:[^()\\]|\\.)*\))|(<[0-9a-fA-F\s]+>)/g;
+        let inner: RegExpExecArray | null;
+        while ((inner = innerRegex.exec(full)) !== null) {
+          if (inner[1]) {
+            line += decodePdfLiteralString(inner[1].slice(1, -1));
+          } else if (inner[2]) {
+            line += decodePdfHexString(inner[2].slice(1, -1));
+          }
+        }
+        if (line.trim()) parts.push(line);
+      } else if (tok[2]) {
+        const parenEnd = full.lastIndexOf(")");
+        const str = decodePdfLiteralString(full.slice(1, parenEnd));
+        if (str.trim()) parts.push(str);
+      } else if (tok[3]) {
+        const angleEnd = full.lastIndexOf(">");
+        const str = decodePdfHexString(full.slice(1, angleEnd));
+        if (str.trim()) parts.push(str);
+      }
+    }
+  };
+
+  while ((btMatch = btRegex.exec(decoded)) !== null) {
+    parseSegment(btMatch[1]);
+  }
+
+  // Fallback for uncompressed/non-standard text streams that omit BT/ET wrappers
+  if (parts.length === 0 && /\b(Tj|TJ)\b/.test(decoded)) {
+    parseSegment(decoded);
+  }
+
+  return parts;
+}
+
+export function extractPdfText(buffer: Buffer): string {
+  const latin = buffer.toString("latin1");
+  const collected: string[] = [];
+  const streamRegex = /stream[\r\n]+([\s\S]*?)[\r\n]*endstream/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = streamRegex.exec(latin)) !== null) {
+    const rawBody = Buffer.from(match[1], "latin1");
+    let decodedText = "";
+    try {
+      decodedText = inflateSync(rawBody).toString("latin1");
+    } catch {
+      // Not Flate-compressed (or partial zlib wrapper): inspect raw stream text
+      decodedText = match[1];
+    }
+
+    if (!decodedText) continue;
+    const ops = extractTextOperatorsFromStream(decodedText);
+    if (ops.length > 0) {
+      collected.push(ops.join(" ").replace(/\s+/g, " ").trim());
+    }
+  }
+
+  // Also check top-level BT/ET outside stream blocks (rare uncompressed PDFs)
+  if (collected.length === 0) {
+    const directOps = extractTextOperatorsFromStream(latin);
+    if (directOps.length > 0) {
+      collected.push(directOps.join(" ").replace(/\s+/g, " ").trim());
+    }
+  }
+
+  const cleaned = normalizeDocumentText(
+    collected
+      .join("\n\n")
+      .replace(/[^\x20-\x7E\n\r\t\u00A0-\u024F\u2000-\u206F]/g, " ")
+  );
+
+  const meaningfulChars = (cleaned.match(/[A-Za-z0-9]/g) || []).length;
+  if (meaningfulChars < 12) {
+    throw new Error(
+      "Could not extract selectable text from this PDF (it may be scanned, image-only, or encrypted). Export it as text/Markdown or copy-paste its contents."
+    );
+  }
+
+  return cleaned;
 }
 
 /**
@@ -86,11 +231,14 @@ export function extractTextFromContent(content: string | Buffer, fileName: strin
     return { text: normalizeDocumentText(textWithoutTags), fileType: "html" };
   }
 
-  // PDF or binary raw text fallback
+  // PDF text extraction (never index raw binary PDF bytes)
   if (ext === "pdf") {
-    // Extract textual stream if raw text is embedded, or clean UTF-8 representation
-    const textStream = rawString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, " ");
-    return { text: normalizeDocumentText(textStream), fileType: "pdf" };
+    const buf = Buffer.isBuffer(content) ? content : Buffer.from(content, "utf-8");
+    const extracted = extractPdfText(buf);
+    if (!extracted || extracted.length < 20) {
+      throw new Error("Could not extract readable text from this PDF (it may be scanned images). Upload a text-based PDF, TXT, CSV, or DOCX.");
+    }
+    return { text: extracted, fileType: "pdf" };
   }
 
   return {

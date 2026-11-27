@@ -63,12 +63,13 @@ function getCurrentUserEmail(userObj: any): string | null {
  * and exposes plan-gating helpers.
  */
 export function usePlanAccess() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [plan, setPlan] = useState<string>("free");
   const [hasActivated, setHasActivated] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
     let cancelled = false;
 
     async function resolvePlan() {
@@ -91,27 +92,29 @@ export function usePlanAccess() {
 
       try {
         if (user) {
-          // The server knows what this customer has really paid for
+          // The server is authoritative for what this customer is subscribed to
           let remotePlan: string | null = null;
+          let serverResponded = false;
           try {
             const res = await fetch("/api/payments/transactions", { cache: "no-store" });
             if (res.ok) {
+              serverResponded = true;
               const d = await res.json();
-              if (d?.activeSubscription?.plan_id) {
-                remotePlan = d.activeSubscription.plan_id;
-              }
+              remotePlan = d?.activeSubscription?.plan_id || "free";
             }
           } catch {}
-          if (!cancelled && remotePlan) {
+          if (!cancelled && serverResponded && remotePlan) {
             setPlan(remotePlan);
             setHasActivated(remotePlan !== "free");
-            if (email) localStorage.setItem(`bizzpal_subscription_plan_${email}`, remotePlan);
-            localStorage.setItem("bizzpal_subscription_plan", remotePlan);
+            try {
+              if (email) localStorage.setItem(`bizzpal_subscription_plan_${email}`, remotePlan);
+              localStorage.setItem("bizzpal_subscription_plan", remotePlan);
+            } catch {}
             return;
           }
         }
 
-        // Check user-specific storage key first
+        // Fallback to user-specific local cache only when offline / unauthenticated
         if (email) {
           const userSpecificPlan = localStorage.getItem(`bizzpal_subscription_plan_${email}`);
           if (userSpecificPlan) {
@@ -124,7 +127,6 @@ export function usePlanAccess() {
           }
         }
 
-        // If no user-specific plan is found, default strictly to "free"
         if (!cancelled) {
           setPlan("free");
           setHasActivated(false);
@@ -158,7 +160,7 @@ export function usePlanAccess() {
       cancelled = true;
       window.removeEventListener("storage", onStorage);
     };
-  }, [user]);
+  }, [user, authLoading]);
 
   const activatePlan = useCallback(
     async (planId: string, planName?: string) => {
@@ -196,11 +198,7 @@ export function usePlanAccess() {
   );
 
   const email = getCurrentUserEmail(user);
-  const effectivePlan = isDemoAccount(email)
-    ? "enterprise"
-    : isLocalEnvironment() && plan === "free"
-    ? "enterprise"
-    : plan;
+  const effectivePlan = isDemoAccount(email) ? "enterprise" : plan;
 
-  return { plan: effectivePlan as PlanId, hasActivated: isDemoAccount(email) || isLocalEnvironment() || hasActivated, loading, activatePlan, hasPlanLevel };
+  return { plan: effectivePlan as PlanId, hasActivated: isDemoAccount(email) || hasActivated, loading, activatePlan, hasPlanLevel };
 }

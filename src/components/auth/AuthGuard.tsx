@@ -13,14 +13,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const session = localStorage.getItem("bizzpal_user_session");
-        const parsed = session ? JSON.parse(session) : null;
-        if (!parsed || !(parsed.email || parsed.uid || parsed.id)) {
-          router.replace("/login");
-          return;
-        }
-
-        // The server has to agree that this browser is signed in. The copy in local storage proves nothing.
+        // The server session cookie is the source of truth; verify before touching local cache.
         const server = await getServerSession();
         const serverEmail = server?.email || null;
         if (cancelled) return;
@@ -30,8 +23,23 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Anything saved in this browser for a different account is thrown away before the app reads it
+        // Synchronize client cache for this browser from the verified server session
         claimBrowserFor(serverEmail, server?.activeBusinessId);
+        try {
+          const existingRaw = localStorage.getItem("bizzpal_user_session");
+          const existing = existingRaw ? JSON.parse(existingRaw) : {};
+          localStorage.setItem(
+            "bizzpal_user_session",
+            JSON.stringify({
+              ...existing,
+              id: existing?.id || `usr_${serverEmail}`,
+              email: serverEmail,
+              name: server?.name || existing?.name || serverEmail.split("@")[0],
+              provider: server?.provider || existing?.provider || "email",
+            })
+          );
+        } catch {}
+
         setChecked(true);
         const email = serverEmail;
         if (email) {

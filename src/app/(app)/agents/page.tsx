@@ -444,19 +444,20 @@ function AddAgent({
                 </div>
                 <div className="mt-auto pt-5 flex items-end justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[11px] text-text-muted mb-1.5">Needs</p>
+                    <p className="text-[11px] text-text-muted mb-1.5">Connectors</p>
                     <div className="flex flex-wrap gap-1.5">
                       {a.connections.map((c) => (
                         <span
                           key={c.key}
+                          title={c.connected ? `${c.label} connected` : `Connect ${c.label} in Integrations; until then this agent drafts in-app previews only`}
                           className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md ${
                             c.connected
                               ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                              : "bg-surface-2 text-text-muted"
+                              : "bg-surface-2 text-text-muted border border-line/80"
                           }`}
                         >
                           {c.connected && <Check className="w-3 h-3" />}
-                          {c.label}
+                          {c.connected ? c.label : `${c.label} (Connector required · preview only)`}
                         </span>
                       ))}
                     </div>

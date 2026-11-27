@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2, Plus, Trash2 } from "lucide-react";
+import { loadWorkspaceState, saveWorkspaceState } from "@/lib/workspace/stateClient";
 
 /**
  * Decision simulator. Every number here is either from the business's own profile or typed in by the person.
@@ -90,17 +91,22 @@ export default function SimulatorPage() {
   const [aiError, setAiError] = useState("");
   const [taskMsg, setTaskMsg] = useState("");
 
-  // The business's own numbers, then whatever the person had typed last time
+  // The business's own numbers, then saved scenario draft from SQLite
   useEffect(() => {
+    let active = true;
     (async () => {
       let profile: any = null;
-      try { profile = JSON.parse(localStorage.getItem("bizzpal_business_profile") || "null"); } catch {}
-      if (!profile?.name) {
-        try {
-          const d = await fetch("/api/business/intake", { cache: "no-store" }).then(r => r.json());
-          if (d?.success && d.business) profile = { ...d.business, cash: d.business.cashOnHand, burn: d.business.monthlyBurn, founderName: d.business.founderName };
-        } catch {}
+      try {
+        const d = await fetch("/api/business/intake", { cache: "no-store" }).then(r => r.json());
+        if (d?.success && d.business) {
+          profile = { ...d.business, cash: d.business.cashOnHand, burn: d.business.monthlyBurn, founderName: d.business.founderName };
+          try { localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business)); } catch {}
+        }
+      } catch {}
+      if (!profile) {
+        try { profile = JSON.parse(localStorage.getItem("bizzpal_business_profile") || "null"); } catch {}
       }
+      if (!active) return;
       const c = Number(profile?.cash ?? profile?.cashOnHand ?? 0);
       const b = Number(profile?.burn ?? profile?.monthlyBurn ?? 0);
       setCompanyName(profile?.name || "");
@@ -108,21 +114,23 @@ export default function SimulatorPage() {
       if (c > 0) setCash(String(c));
       if (b > 0) setBurn(String(b));
       setFromProfile(c > 0 || b > 0);
-      try {
-        const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
-        if (draft) {
-          if (draft.decision) setDecision(draft.decision);
-          if (Array.isArray(draft.options) && draft.options.length > 0) setOptions(draft.options.slice(0, MAX_OPTIONS));
-          if (draft.horizon) setHorizon(draft.horizon);
-        }
-      } catch {}
-      setLoaded(true);
+      const draft = await loadWorkspaceState<{ decision?: string; options?: Option[]; horizon?: number }>("simulator", DRAFT_KEY);
+      if (active && draft) {
+        if (draft.decision) setDecision(draft.decision);
+        if (Array.isArray(draft.options) && draft.options.length > 0) setOptions(draft.options.slice(0, MAX_OPTIONS));
+        if (draft.horizon) setHorizon(draft.horizon);
+      }
+      if (active) setLoaded(true);
     })();
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
     if (!loaded) return;
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ decision, options, horizon })); } catch {}
+    const t = setTimeout(() => {
+      saveWorkspaceState("simulator", { decision, options, horizon }, DRAFT_KEY).catch(() => {});
+    }, 350);
+    return () => clearTimeout(t);
   }, [loaded, decision, options, horizon]);
 
   const cashN = toNum(cash);

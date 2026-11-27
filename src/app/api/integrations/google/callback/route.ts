@@ -2,24 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, getUserBusinessId, healDatabasePermissions } from "@/lib/db";
 import { getSessionEmail, createUserSession, sessionSetCookie } from "@/lib/userSession";
 import { safeEncrypt } from "@/lib/integrations/crypto";
+import { escapeHtml, safeReturnTo, verifyOAuthState } from "@/lib/auth/oauthState";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const oauthError = req.nextUrl.searchParams.get("error");
   const stateRaw = req.nextUrl.searchParams.get("state");
 
-  let returnTo = "/integrations";
-  let requestOrigin = "";
-  let source = "integration";
-  let inviteToken = "";
-  if (stateRaw) {
-    try {
-      const parsed = JSON.parse(Buffer.from(stateRaw, "base64url").toString("utf8"));
-      if (parsed.returnTo) returnTo = parsed.returnTo;
-      if (parsed.origin) requestOrigin = parsed.origin;
-      if (parsed.source) source = parsed.source;
-      if (typeof parsed.inviteToken === "string") inviteToken = parsed.inviteToken;
-    } catch {}
+  const parsedState = verifyOAuthState(stateRaw);
+  const returnTo = safeReturnTo(parsedState?.returnTo);
+  const requestOrigin = typeof parsedState?.origin === "string" ? parsedState.origin : "";
+  const source = typeof parsedState?.source === "string" ? parsedState.source : "integration";
+  const inviteToken = typeof parsedState?.inviteToken === "string" ? parsedState.inviteToken : "";
+
+  if (!parsedState) {
+    return new NextResponse("Invalid or expired OAuth state. Please start the connection again.", { status: 400 });
   }
 
   // Derive origin from state or request headers
@@ -53,15 +50,15 @@ export async function GET(req: NextRequest) {
 <body>
   <div class="card">
     <h2>Connection Cancelled</h2>
-    <p>${errorMsg}. You can try connecting your Google account again anytime.</p>
+    <p>${escapeHtml(errorMsg)}. You can try connecting your Google account again anytime.</p>
     <button onclick="window.close()">Close Window</button>
   </div>
   <script>
     if (window.opener) {
-      window.opener.postMessage({ type: 'BIZZPAL_GOOGLE_AUTH_ERROR', error: ${JSON.stringify(errorMsg)} }, '*');
+      window.opener.postMessage({ type: 'BIZZPAL_GOOGLE_AUTH_ERROR', error: ${JSON.stringify(errorMsg)} }, window.location.origin);
       setTimeout(() => window.close(), 1500);
     } else {
-      setTimeout(() => { window.location.href = '${returnTo}'; }, 2000);
+      setTimeout(() => { window.location.href = ${JSON.stringify(returnTo)}; }, 2000);
     }
   </script>
 </body>
@@ -228,14 +225,13 @@ export async function GET(req: NextRequest) {
       healDatabasePermissions();
     }
 
-    // 4. Return success HTML with window.opener bridge
+    // 4. Return success HTML with window.opener bridge (never expose encrypted tokens to postMessage)
     const successData = {
       email,
       name,
       picture,
       toolKey: "google",
       detail: `Connected · Live Google Account: ${email}`,
-      config: configData,
     };
 
     return new NextResponse(
@@ -316,17 +312,17 @@ export async function GET(req: NextRequest) {
 </head>
 <body>
   <div class="card">
-    ${picture ? `<img src="${picture}" class="avatar" alt="${name}" />` : ""}
+    ${picture && /^https?:\/\//i.test(picture) ? `<img src="${escapeHtml(picture)}" class="avatar" alt="${escapeHtml(name)}" />` : ""}
     <div class="badge"><span class="pulse-dot"></span> Authenticating Google Account</div>
-    <h2>Authenticating ${name}...</h2>
-    <p class="email">${email}</p>
+    <h2>Authenticating ${escapeHtml(name)}...</h2>
+    <p class="email">${escapeHtml(email)}</p>
     <p class="info">Transferring session to BizzPal Executive Platform...</p>
   </div>
   <script>
     const payload = ${JSON.stringify(successData)};
     if (window.opener) {
       try {
-        window.opener.postMessage({ type: 'BIZZPAL_GOOGLE_AUTH_SUCCESS', data: payload }, '*');
+        window.opener.postMessage({ type: 'BIZZPAL_GOOGLE_AUTH_SUCCESS', data: payload }, window.location.origin);
       } catch (e) {}
       try {
         window.close();
@@ -336,7 +332,7 @@ export async function GET(req: NextRequest) {
       }, 150);
     } else {
       setTimeout(() => {
-        window.location.href = '${returnTo}?connected=google';
+        window.location.href = ${JSON.stringify(`${returnTo}?connected=google`)};
       }, 500);
     }
   </script>
@@ -363,12 +359,12 @@ export async function GET(req: NextRequest) {
 <body>
   <div class="card">
     <h2>Authentication Error</h2>
-    <p>${err.message || "Failed to complete Google OAuth exchange."}</p>
+    <p>${escapeHtml(err?.message || "Failed to complete Google OAuth exchange.")}</p>
     <button onclick="window.close()">Close Window</button>
   </div>
   <script>
     if (window.opener) {
-      window.opener.postMessage({ type: 'BIZZPAL_GOOGLE_AUTH_ERROR', error: ${JSON.stringify(err.message)} }, '*');
+      window.opener.postMessage({ type: 'BIZZPAL_GOOGLE_AUTH_ERROR', error: ${JSON.stringify(err?.message || "Failed")} }, window.location.origin);
       setTimeout(() => window.close(), 2500);
     }
   </script>

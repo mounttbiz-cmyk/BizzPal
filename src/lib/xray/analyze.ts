@@ -16,6 +16,7 @@ import { INDUSTRY_PACKS, packFor, type IndustryId, type LeakType } from "./packs
 
 export const XRAY_SCHEMA_VERSION = "xray.v1";
 export const XRAY_PROMPT_VERSION = "xray-analyst.2026-11-25b";
+export const XRAY_MODEL_POLICY_VERSION = "policy.v1";
 
 export const PROFILE_FIELDS = [
   { key: "name", label: "Business name" },
@@ -52,6 +53,9 @@ export interface Opportunity {
 
 export interface XRayResult {
   schemaVersion: string;
+  promptVersion?: string;
+  modelPolicyVersion?: string;
+  partial?: boolean;
   profile: Record<ProfileKey, ProfileFact>;
   industry: { id: IndustryId; reason: string; sources: string[] };
   opportunities: Opportunity[];
@@ -137,6 +141,11 @@ export async function analyseWebsite(
 ): Promise<XRayResult> {
   const pageTexts = new Map<string, string>(snapshot.pages.map(p => [p.id, p.text]));
   if (ownerFacts.length) pageTexts.set("brief", ownerFacts.join("\n"));
+
+  // Blocked or JS-only public site with no owner facts: return a deterministic partial X-Ray without fabricating anything.
+  if (pageTexts.size === 0) {
+    return validate({ profile: {}, industry: { id: "general", reason: "No readable website text was available.", sources: [] }, opportunities: [], limitations: [] }, pageTexts, snapshot);
+  }
 
   const material = [
     ...snapshot.pages.map(p => `<<<PAGE ${p.id} | ${p.kind} | ${p.url} | title: ${p.title}>>>\n${p.text}\n<<<END PAGE ${p.id}>>>`),
@@ -261,7 +270,8 @@ export function validate(raw: any, pageTexts: Map<string, string>, snapshot: Cra
 
   // What could not be read or determined
   if (snapshot.skipped.length) limitations.push(`${snapshot.skipped.length} ${snapshot.skipped.length === 1 ? "page" : "pages"} could not be read (see "Pages read").`);
-  if (snapshot.pages.length <= 1) limitations.push("Only the home page could be read, so this X-Ray is partial.");
+  if (snapshot.pages.length === 0) limitations.push("No public website text could be read (the site may block automated readers or require JavaScript), so this is a partial X-Ray.");
+  else if (snapshot.pages.length <= 1) limitations.push("Only the home page could be read, so this X-Ray is partial.");
   const missing = PROFILE_FIELDS.filter(f => !profile[f.key].value).map(f => f.label.toLowerCase());
   if (missing.length) limitations.push(`Not found on the website: ${missing.join(", ")}.`);
   if (top.length === 0) limitations.push("No problem could be backed by clear evidence on the website, so none is shown.");
@@ -270,5 +280,15 @@ export function validate(raw: any, pageTexts: Map<string, string>, snapshot: Cra
     if (text && !limitations.includes(text)) limitations.push(text);
   }
 
-  return { schemaVersion: XRAY_SCHEMA_VERSION, profile, industry, opportunities: top, recommendedAgent, limitations };
+  return {
+    schemaVersion: XRAY_SCHEMA_VERSION,
+    promptVersion: XRAY_PROMPT_VERSION,
+    modelPolicyVersion: XRAY_MODEL_POLICY_VERSION,
+    partial: Boolean(snapshot.partial || snapshot.pages.length <= 1 || snapshot.skipped.length > 0),
+    profile,
+    industry,
+    opportunities: top,
+    recommendedAgent,
+    limitations,
+  };
 }

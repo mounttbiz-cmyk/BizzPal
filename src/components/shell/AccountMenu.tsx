@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronsUpDown, LogOut, Monitor, Moon, Settings, Sun } from "lucide-react";
 import { useTheme, ThemeMode } from "@/lib/theme/ThemeProvider";
+import { useAuth } from "@/lib/auth/authContext";
 
 const THEMES: { mode: ThemeMode; label: string; Icon: typeof Sun }[] = [
   { mode: "light", label: "Light", Icon: Sun },
@@ -17,16 +18,21 @@ const THEMES: { mode: ThemeMode; label: string; Icon: typeof Sun }[] = [
  */
 export function AccountMenu({ planLabel, onSignOut }: { planLabel: string; onSignOut: () => void }) {
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [person, setPerson] = useState<{ name: string; email: string }>({ name: "", email: "" });
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (user?.email) {
+      setPerson({ name: String(user.displayName || "").trim(), email: String(user.email || "").trim() });
+      return;
+    }
     try {
       const s = JSON.parse(localStorage.getItem("bizzpal_user_session") || "{}");
       setPerson({ name: String(s.name || "").trim(), email: String(s.email || "").trim() });
     } catch {}
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!open) return;

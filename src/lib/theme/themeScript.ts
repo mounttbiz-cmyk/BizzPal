@@ -3,20 +3,18 @@ export const themeInitScript = `
 (function() {
   try {
     var stored = localStorage.getItem('bizzpal-theme');
-    // BizzPal defaults strictly to Dark theme (Midnight Obsidian & 3D Gold)
-    var resolved = 'dark';
-    if (stored === 'light') {
-      resolved = 'light';
-    } else {
+    var resolved = 'light';
+    if (stored === 'dark') {
       resolved = 'dark';
-      if (!stored || stored === 'system') {
-        localStorage.setItem('bizzpal-theme', 'dark');
-      }
+    } else if (stored === 'system') {
+      resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } else {
+      resolved = 'light';
     }
     document.documentElement.setAttribute('data-theme', resolved);
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(resolved);
-    
+
     var meta = document.querySelector('meta[name="color-scheme"]');
     if (!meta) {
       meta = document.createElement('meta');
@@ -25,8 +23,9 @@ export const themeInitScript = `
     }
     meta.content = resolved;
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    document.documentElement.classList.add('dark');
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
   }
 })();
 `;

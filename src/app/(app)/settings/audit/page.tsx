@@ -48,6 +48,22 @@ const ACTION: Record<string, string> = {
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", second: "2-digit" });
 
+function formatAuditDetail(detail: Record<string, unknown> | undefined): string {
+  if (!detail) return "";
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(detail).slice(0, 3)) {
+    if (v === null || v === undefined || v === "") continue;
+    const label = k.replace(/([A-Z])/g, " $1").replace(/_/g, " ").toLowerCase();
+    const val = Array.isArray(v)
+      ? v.join(", ")
+      : typeof v === "object"
+      ? Object.values(v as Record<string, unknown>).filter(Boolean).slice(0, 2).join(", ")
+      : String(v);
+    if (val) parts.push(`${label}: ${val}`);
+  }
+  return parts.join(" · ");
+}
+
 export default function AuditPage() {
   const [trace, setTrace] = useState<string>("");
   const [d, setD] = useState<{ events: Event[]; integrity: { ok: boolean; checked: number; brokenAt?: string } } | null>(null);
@@ -123,7 +139,7 @@ export default function AuditPage() {
                     <span className="text-text">{ACTION[e.action] || e.action}</span>
                     <span className="block text-xs text-text-muted truncate">
                       {e.actor} · {e.resource}
-                      {Object.keys(e.detail || {}).length ? ` · ${Object.entries(e.detail).slice(0, 3).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`).join(", ")}` : ""}
+                      {Object.keys(e.detail || {}).length ? ` · ${formatAuditDetail(e.detail)}` : ""}
                     </span>
                   </span>
                   {e.traceId && !trace ? (

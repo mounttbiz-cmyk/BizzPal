@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/requireUser";
-import { getUserBusinessId } from "@/lib/db";
+import { getUserBusinessId, db, healDatabasePermissions } from "@/lib/db";
+import { safeEncrypt } from "@/lib/integrations/crypto";
 import { NextResponse } from "next/server";
-import { db, healDatabasePermissions } from "@/lib/db";
 
 // Connection tokens and keys never go back to the browser
 function stripSecrets(cfg: any): any {
@@ -96,12 +96,13 @@ export async function POST(req: Request) {
     }
 
     const now = new Date().toISOString();
+    const encryptedApiKey = apiKey ? safeEncrypt(String(apiKey)) : null;
 
-    // Cache in memory immediately for instantaneous feedback
+    // Cache in memory without exposing raw secret
     memoryIntegrations.set(memKey(tenantId, toolKey), {
       toolKey,
       status: status || "connected",
-      apiKey: apiKey || null,
+      apiKey: encryptedApiKey ? "[encrypted]" : null,
       config: config || {},
       updatedAt: now,
     });
@@ -131,7 +132,7 @@ export async function POST(req: Request) {
             WHERE business_id = ? AND tool_key = ?
           `).run(
             status || null,
-            apiKey !== undefined ? apiKey : null,
+            apiKey !== undefined ? encryptedApiKey : null,
             mergedConfig ? JSON.stringify(mergedConfig) : null,
             now,
             tenantId,
@@ -166,7 +167,7 @@ export async function POST(req: Request) {
             def.name,
             def.category,
             status || "connected",
-            apiKey || null,
+            encryptedApiKey,
             mergedConfig ? JSON.stringify(mergedConfig) : null,
             now
           );

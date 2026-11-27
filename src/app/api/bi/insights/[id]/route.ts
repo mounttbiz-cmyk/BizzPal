@@ -71,7 +71,7 @@ export async function PATCH(
       const result = await approveInsightAction(
         insightId,
         body.actionKey,
-        body.approvedBy || "Executive Founder",
+        auth.email,
         bizId
       );
       return NextResponse.json(result);
@@ -83,7 +83,7 @@ export async function PATCH(
         insightId,
         body.status,
         body.note,
-        body.author || "Executive Founder",
+        auth.email,
         bizId
       );
       return NextResponse.json({ success, message: `Status updated to ${body.status}` });

@@ -42,10 +42,15 @@ export function DesktopRail({
 
   const handleLogout = async () => {
     try {
-    } catch (e) {
-      // ignore
-    }
-    fetch("/api/auth/session", { method: "DELETE" }).catch(() => {}); localStorage.removeItem("bizzpal_user_session"); localStorage.removeItem("bizzpal_business_profile"); localStorage.removeItem("bizzpal_subscription_plan"); localStorage.removeItem("bizzpal_datapal_campaigns"); forgetBrowserOwner();
+      await fetch("/api/auth/session", { method: "DELETE" });
+    } catch {}
+    try {
+      localStorage.removeItem("bizzpal_user_session");
+      localStorage.removeItem("bizzpal_business_profile");
+      localStorage.removeItem("bizzpal_subscription_plan");
+      localStorage.removeItem("bizzpal_datapal_campaigns");
+      forgetBrowserOwner();
+    } catch {}
     window.location.href = WEBSITE_URL;
   };
 

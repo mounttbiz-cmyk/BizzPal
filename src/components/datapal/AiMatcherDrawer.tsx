@@ -21,6 +21,7 @@ export function AiMatcherDrawer({
 }: AiMatcherDrawerProps) {
   const [mounted, setMounted] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [statusNote, setStatusNote] = useState<string | null>(null);
   const [result, setResult] = useState<{
     inferredRequirement: string;
     recommendedCategories: string[];
@@ -43,37 +44,81 @@ export function AiMatcherDrawer({
 
   if (!isOpen || !mounted || typeof document === "undefined") return null;
 
-  const handleAnalyze = () => {
-    if (!serviceDescription.trim()) return;
+  const fallbackKeywordMatch = (raw: string) => {
+    const text = raw.toLowerCase();
+    let req = "Normal Extract (All Business Details)";
+    let cats = ["Dental Clinics", "Aesthetic & Dermatology Clinics"];
+
+    if (text.includes("web") || text.includes("site") || text.includes("domain")) {
+      req = "Missing Website";
+      cats = ["Restaurants & Fine Dining", "Dental Clinics", "Automobile Service & Garage"];
+    } else if (text.includes("seo") || text.includes("maps") || text.includes("google")) {
+      req = "Missing Google Business Profile (GBP / Maps)";
+      cats = ["Medical Clinics", "Lawyers & Advocates", "Salons & Hairdressers"];
+    } else if (text.includes("chat") || text.includes("whatsapp")) {
+      req = "Missing WhatsApp Business / Direct Chat";
+      cats = ["Diagnostic Centers", "Clinics & Doctors", "Boutique Stores"];
+    } else if (text.includes("social") || text.includes("instagram")) {
+      req = "Missing Social Media Presence";
+      cats = ["Cafes & Coffee Shops", "Aesthetic Clinics", "Jewelry & Watches"];
+    }
+
+    return {
+      inferredRequirement: req,
+      recommendedCategories: cats,
+      summary: `Target ${cats.join(", ")} with directive "${req}".`,
+    };
+  };
+
+  const handleAnalyze = async () => {
+    if (!serviceDescription.trim() || isAnalyzing) return;
     setIsAnalyzing(true);
+    setStatusNote(null);
 
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      const text = serviceDescription.toLowerCase();
+    try {
+      const prompt = [
+        "Given this B2B service pitch, choose the single best DataPal target directive from:",
+        "- Normal Extract (All Business Details)",
+        "- Missing Website",
+        "- Missing Google Business Profile (GBP / Maps)",
+        "- Missing WhatsApp Business / Direct Chat",
+        "- Missing Social Media Presence",
+        "And list 3 specific Indian local business categories (e.g. Dental Clinics, Aesthetic & Dermatology Clinics, Restaurants & Fine Dining, Automobile Service & Garage, Logistics & Warehousing, Real Estate Agencies) that would convert best.",
+        'Respond strictly as compact JSON with keys: "inferredRequirement" (string), "recommendedCategories" (array of 3 strings), "summary" (1 sentence).',
+        `Service pitch: ${serviceDescription.trim()}`,
+      ].join("\n");
 
-      let req = "Normal Extract (All Business Details)";
-      let cats = ["Dental Clinics", "Aesthetic & Dermatology Clinics"];
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: prompt, agentId: "marketing" }),
+      });
+      const data = await res.json().catch(() => null);
 
-      if (text.includes("web") || text.includes("site") || text.includes("domain")) {
-        req = "Missing Website";
-        cats = ["Restaurants & Fine Dining", "Dental Clinics", "Automobile Service & Garage"];
-      } else if (text.includes("seo") || text.includes("maps") || text.includes("google")) {
-        req = "Missing Google Business Profile (GBP / Maps)";
-        cats = ["Medical Clinics", "Lawyers & Advocates", "Salons & Hairdressers"];
-      } else if (text.includes("chat") || text.includes("whatsapp")) {
-        req = "Missing WhatsApp Business / Direct Chat";
-        cats = ["Diagnostic Centers", "Clinics & Doctors", "Boutique Stores"];
-      } else if (text.includes("social") || text.includes("instagram")) {
-        req = "Missing Social Media Presence";
-        cats = ["Cafes & Coffee Shops", "Aesthetic Clinics", "Jewelry & Watches"];
+      if (res.ok && data?.success && typeof data.text === "string") {
+        const jsonMatch = data.text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed?.inferredRequirement && Array.isArray(parsed?.recommendedCategories) && parsed.recommendedCategories.length > 0) {
+            setResult({
+              inferredRequirement: String(parsed.inferredRequirement),
+              recommendedCategories: parsed.recommendedCategories.slice(0, 5).map(String),
+              summary: String(parsed.summary || `Target ${parsed.recommendedCategories.join(", ")} for ${parsed.inferredRequirement}.`),
+            });
+            setIsAnalyzing(false);
+            return;
+          }
+        }
       }
 
-      setResult({
-        inferredRequirement: req,
-        recommendedCategories: cats,
-        summary: `Target ${cats.join(", ")} with gap directive "${req}".`,
-      });
-    }, 700);
+      setStatusNote("AI advisor unavailable — showing quick keyword suggestions.");
+      setResult(fallbackKeywordMatch(serviceDescription));
+    } catch {
+      setStatusNote("Could not reach AI service — showing quick keyword suggestions.");
+      setResult(fallbackKeywordMatch(serviceDescription));
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleApply = () => {
@@ -91,7 +136,7 @@ export function AiMatcherDrawer({
       style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
     >
       <div
-        className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-xs transition-opacity animate-fade-in"
+        className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm transition-opacity animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -128,11 +173,15 @@ export function AiMatcherDrawer({
             type="button"
             disabled={!serviceDescription.trim() || isAnalyzing}
             onClick={handleAnalyze}
-            className="w-full py-2.5 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 disabled:opacity-50 cursor-pointer shadow-xs flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-xl bg-brass text-white text-xs font-bold hover:brightness-110 disabled:opacity-50 cursor-pointer shadow-sm flex items-center justify-center gap-2"
           >
             <Target className="w-4 h-4 text-white" />
             <span>{isAnalyzing ? "Analyzing Pitch…" : "Analyze Pitch & Match Niches"}</span>
           </button>
+
+          {statusNote && (
+            <p className="text-[11px] text-text-muted">{statusNote}</p>
+          )}
 
           {result && (
             <div className="p-4 rounded-xl bg-surface-2/60 border border-brass/40 space-y-3 animate-fade-in">

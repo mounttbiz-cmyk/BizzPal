@@ -20,10 +20,9 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { config, apiKey, apiEndpoint, account, excludeSignatures } = body as {
+    const { config, apiKey, account, excludeSignatures } = body as {
       config: DataPalSearchConfig;
       apiKey?: string;
-      apiEndpoint?: string;
       account?: { email?: string; name?: string };
       excludeSignatures?: string[];
     };
@@ -53,34 +52,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. If an external DataPal scraper API key is provided, proxy to DataPal backend
-    if (apiKey && apiKey.trim().length > 5) {
-      const endpoint = apiEndpoint || "https://data-pal.vercel.app/api/scraper/bulkSearch";
-      try {
-        const upstreamResponse = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-            "X-DataPal-Key": apiKey,
-          },
-          body: JSON.stringify({
-            businessTypes: config.selectedCategories,
-            location: [config.areaPincode, config.city, config.state, config.countryCode].filter(Boolean).join(", "),
-            requirement: config.requirement,
-          }),
-        });
-
-        if (upstreamResponse.ok) {
-          const upstreamData = await upstreamResponse.json();
-          return NextResponse.json({ mode: "live", data: upstreamData, timestamp: new Date().toISOString() });
-        }
-      } catch (upstreamErr) {
-        console.warn("DataPal live API unreachable, using the built-in directory extractor:", upstreamErr);
-      }
-    }
-
-    // 2. Real businesses only (Google Places / OpenStreetMap). Nothing is invented.
+    // 1. Real businesses only (Google Places / OpenStreetMap), ignoring arbitrary client endpoints (SSRF protection).
     const { leads: realLeads, sourceMode, googleRequests } = await extractRealBusinessLeads(config, apiKey);
 
     const asked = config.requestedCount && config.requestedCount > 0 ? config.requestedCount : 25;

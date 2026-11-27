@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Send, BrainCircuit, Tag, CheckCircle2, Maximize2, Minimize2, MessageSquare } from "lucide-react";
+import { X, Send, BrainCircuit, Tag, Maximize2, Minimize2, MessageSquare } from "lucide-react";
 import { AgentAvatarIcon } from "@/components/chat/CustomizeAdvisorModal";
 
 export interface ContextChip {
@@ -121,7 +121,14 @@ export function ChatDock({
     setInput("");
     setIsStreaming(true);
 
-    // Call real AI assistant API route (/api/ai/chat)
+    // Parse @mention advisor routing (supports @ceo, @cfo, @marketing, @sales, @hr, @operations, @strategy)
+    const mentionMatch = question.match(/@(ceo|cfo|marketing|sales|hr|operations|strategy)\b/i);
+    const targetAgentId = mentionMatch ? mentionMatch[1].toLowerCase() : "cfo";
+    const chipContext =
+      activeContextChips.length > 0
+        ? `\n\n[Active Workspace Context: ${activeContextChips.map(c => c.label).join(" · ")}]`
+        : "";
+
     (async () => {
       try {
         let profile = {};
@@ -134,45 +141,54 @@ export function ChatDock({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            message: question,
-            agentId: "cfo",
+            message: `${question}${chipContext}`,
+            agentId: targetAgentId,
             companyProfile: profile,
             email: (() => { try { return JSON.parse(localStorage.getItem("bizzpal_user_session") || "{}")?.email || ""; } catch { return ""; } })(),
           }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (res.ok && data.success && data.text) {
           const replyMsg: ChatMessage = {
             id: `ai_${Date.now()}`,
-            sender: "cfo",
-            senderName: data.agent || cfoName || "CFO",
-            role: "CFO",
-            avatar: "📊",
+            sender: targetAgentId === "ceo" ? "ceo" : "cfo",
+            senderName: data.agent || (targetAgentId === "ceo" ? ceoName : targetAgentId === "cfo" ? cfoName : targetAgentId.toUpperCase()),
+            role: data.role || targetAgentId.toUpperCase(),
+            avatar: targetAgentId === "ceo" ? "Briefcase" : "BarChart3",
             content: data.text,
             timestamp: "Just now",
-            situation: `Assessing operational telemetry against company priorities.`,
-            analysis: `Synthesized with active business metrics and unit economics benchmarks.`,
-            recommendation: `Execute near-term directives to strengthen working capital and pipeline conversion.`,
-            provenance: "from_data",
+            provenance: data.grounding?.factCount ? "from_data" : undefined,
           };
           setMessages(prev => [...prev, replyMsg]);
         } else {
-          throw new Error("Fallback needed");
+          const errorDetail = data?.error || (res.status === 401 ? "Please sign in again to continue." : "AI advisor could not respond right now.");
+          setMessages(prev => [
+            ...prev,
+            {
+              id: `err_${Date.now()}`,
+              sender: "cfo",
+              senderName: "BizzPal",
+              role: "System Notice",
+              avatar: "AlertCircle",
+              content: errorDetail,
+              timestamp: "Just now",
+            },
+          ]);
         }
       } catch {
-        // Fallback response if offline or backend unavailable
-        const replyMsg: ChatMessage = {
-          id: `ai_${Date.now()}`,
-          sender: "cfo",
-          senderName: cfoName || "CFO",
-          role: "CFO",
-          avatar: "📊",
-          content: `Regarding "${question}": Based on your active telemetry, cash runway and capital allocation remain aligned with your baseline targets.`,
-          timestamp: "Just now",
-          provenance: "benchmark",
-        };
-        setMessages(prev => [...prev, replyMsg]);
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `err_${Date.now()}`,
+            sender: "cfo",
+            senderName: "BizzPal",
+            role: "Connection Error",
+            avatar: "AlertCircle",
+            content: "Could not reach the AI advisor service. Check your connection and try again.",
+            timestamp: "Just now",
+          },
+        ]);
       } finally {
         setIsStreaming(false);
       }
@@ -277,78 +293,10 @@ export function ChatDock({
                 className={`p-3.5 rounded-xl text-xs max-w-[95%] border ${
                   isUser
                     ? "bg-brass text-white border-brass font-medium"
-                    : "bg-surface-2 border-line text-text surface-document"
+                    : "bg-surface-2 border-line text-text"
                 }`}
               >
-                <p className="mb-2 leading-relaxed">{msg.content}</p>
-
-                {/* Substantive 6-part executive structure on document surface (§12.2) */}
-                {msg.situation && (
-                  <div className="mt-3 pt-3 border-t border-line space-y-2 text-[11.5px]">
-                    <div>
-                      <span className="font-semibold text-text uppercase tracking-wider text-[9.5px] block text-brass">
-                        1. The Situation
-                      </span>
-                      <p className="text-text-muted mt-0.5">{msg.situation}</p>
-                    </div>
-
-                    <div>
-                      <span className="font-semibold text-text uppercase tracking-wider text-[9.5px] block text-brass">
-                        2. Analysis
-                      </span>
-                      <p className="text-text-muted mt-0.5">{msg.analysis}</p>
-                    </div>
-
-                    <div>
-                      <span className="font-semibold text-text uppercase tracking-wider text-[9.5px] block text-brass">
-                        3. Recommendation
-                      </span>
-                      <p className="text-text font-medium mt-0.5">{msg.recommendation}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
-                      <div className="p-2 rounded bg-rust/10 border border-rust/20">
-                        <span className="font-semibold text-rust text-[9px] uppercase block">
-                          4. Key Risk
-                        </span>
-                        <p className="text-text-muted text-[10.5px] mt-0.5">{msg.risks}</p>
-                      </div>
-                      <div className="p-2 rounded bg-jade/10 border border-jade/20">
-                        <span className="font-semibold text-jade text-[9px] uppercase block">
-                          5. Opportunity
-                        </span>
-                        <p className="text-text-muted text-[10.5px] mt-0.5">{msg.opportunities}</p>
-                      </div>
-                    </div>
-
-                    {msg.nextSteps && msg.nextSteps.length > 0 && (
-                      <div className="pt-1">
-                        <span className="font-semibold text-text uppercase tracking-wider text-[9.5px] block text-brass mb-1">
-                          6. Immediate Actions
-                        </span>
-                        <div className="space-y-1">
-                          {msg.nextSteps.map((step, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center justify-between p-1.5 rounded bg-surface border border-line text-[11px]"
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-brass shrink-0" />
-                                <span className="truncate">{step}</span>
-                              </div>
-                              <button
-                                type="button"
-                                className="text-[10px] text-brass hover:underline shrink-0 ml-2 font-medium"
-                              >
-                                Execute
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
               </div>
             </div>
           );

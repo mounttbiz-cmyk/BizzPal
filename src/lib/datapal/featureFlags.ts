@@ -16,6 +16,7 @@ export const DEFAULT_DATAPAL_FEATURE_FLAGS: DataPalFeatureFlags = {
 
 const STORAGE_KEY = "bizzpal_datapal_feature_flags";
 const EVENT_NAME = "bizzpal_datapal_flags_updated";
+let serverFlagsLoaded = false;
 
 export function getStoredFeatureFlags(): DataPalFeatureFlags {
   if (typeof window === "undefined") return DEFAULT_DATAPAL_FEATURE_FLAGS;
@@ -43,8 +44,49 @@ export function saveStoredFeatureFlags(flags: Partial<DataPalFeatureFlags>) {
   }
 }
 
+export async function syncFeatureFlagsFromServer(): Promise<DataPalFeatureFlags> {
+  if (typeof window === "undefined") return DEFAULT_DATAPAL_FEATURE_FLAGS;
+  try {
+    const res = await fetch("/api/public/config", { cache: "no-store" });
+    if (!res.ok) return getStoredFeatureFlags();
+    const json = await res.json().catch(() => null);
+    if (json?.datapalFlags && typeof json.datapalFlags === "object") {
+      const merged = { ...DEFAULT_DATAPAL_FEATURE_FLAGS, ...json.datapalFlags };
+      serverFlagsLoaded = true;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      window.dispatchEvent(new Event(EVENT_NAME));
+      return merged;
+    }
+  } catch {}
+  return getStoredFeatureFlags();
+}
+
+export async function saveServerFeatureFlags(
+  flags: DataPalFeatureFlags
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch("/api/admin/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        section: "datapal_flags",
+        payload: flags,
+        note: "Updated DataPal feature flags",
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.success === false) {
+      return { ok: false, error: data?.error || `HTTP ${res.status}` };
+    }
+    saveStoredFeatureFlags(flags);
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || "Network error" };
+  }
+}
+
 /**
- * Reactive React hook for reading a feature flag state.
+ * Reactive React hook for reading a feature flag state (backed by server platform_config).
  */
 export function useFeatureFlag(flagName: keyof DataPalFeatureFlags): boolean {
   const [enabled, setEnabled] = useState<boolean>(() => {
@@ -57,6 +99,9 @@ export function useFeatureFlag(flagName: keyof DataPalFeatureFlags): boolean {
     };
 
     handleUpdate();
+    if (!serverFlagsLoaded) {
+      syncFeatureFlagsFromServer();
+    }
     window.addEventListener(EVENT_NAME, handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {

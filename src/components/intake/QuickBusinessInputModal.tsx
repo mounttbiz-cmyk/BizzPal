@@ -584,8 +584,7 @@ export function QuickBusinessInputModal({ isOpen, onClose, onSuccess }: QuickBus
                     value={formData.founderName}
                     onChange={e => setFormData({ ...formData, founderName: e.target.value })}
                     placeholder="e.g. Alex Morgan"
-                    className="w-full px-3 py-2 rounded-lg border border-line text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
-                    style={{ backgroundColor: "var(--surface-2)", color: "var(--text)" }}
+                    className="w-full px-3 py-2 rounded-lg border border-line bg-surface-2 text-base sm:text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
                   />
                 </div>
                 <div>
@@ -597,8 +596,7 @@ export function QuickBusinessInputModal({ isOpen, onClose, onSuccess }: QuickBus
                     value={formData.monthlyRevenue}
                     onChange={e => setFormData({ ...formData, monthlyRevenue: e.target.value })}
                     placeholder="e.g. 500000"
-                    className="w-full px-3 py-2 rounded-lg border border-line text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
-                    style={{ backgroundColor: "var(--surface-2)", color: "var(--text)" }}
+                    className="w-full px-3 py-2 rounded-lg border border-line bg-surface-2 text-base sm:text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
                   />
                 </div>
                 <div>
@@ -610,8 +608,7 @@ export function QuickBusinessInputModal({ isOpen, onClose, onSuccess }: QuickBus
                     value={formData.monthlyBurn}
                     onChange={e => setFormData({ ...formData, monthlyBurn: e.target.value })}
                     placeholder="e.g. 150000"
-                    className="w-full px-3 py-2 rounded-lg border border-line text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
-                    style={{ backgroundColor: "var(--surface-2)", color: "var(--text)" }}
+                    className="w-full px-3 py-2 rounded-lg border border-line bg-surface-2 text-base sm:text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
                   />
                 </div>
                 <div>
@@ -623,8 +620,7 @@ export function QuickBusinessInputModal({ isOpen, onClose, onSuccess }: QuickBus
                     value={formData.cashOnHand}
                     onChange={e => setFormData({ ...formData, cashOnHand: e.target.value })}
                     placeholder="e.g. 1000000"
-                    className="w-full px-3 py-2 rounded-lg border border-line text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
-                    style={{ backgroundColor: "var(--surface-2)", color: "var(--text)" }}
+                    className="w-full px-3 py-2 rounded-lg border border-line bg-surface-2 text-base sm:text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
                   />
                 </div>
                 <div>
@@ -636,8 +632,7 @@ export function QuickBusinessInputModal({ isOpen, onClose, onSuccess }: QuickBus
                     value={formData.teamSize}
                     onChange={e => setFormData({ ...formData, teamSize: e.target.value })}
                     placeholder="e.g. 8"
-                    className="w-full px-3 py-2 rounded-lg border border-line text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
-                    style={{ backgroundColor: "var(--surface-2)", color: "var(--text)" }}
+                    className="w-full px-3 py-2 rounded-lg border border-line bg-surface-2 text-base sm:text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
                   />
                 </div>
               </div>
@@ -651,67 +646,55 @@ export function QuickBusinessInputModal({ isOpen, onClose, onSuccess }: QuickBus
                   value={formData.operationalNotes}
                   onChange={e => setFormData({ ...formData, operationalNotes: e.target.value })}
                   placeholder="e.g. Closing 3 enterprise pilots and expanding outbound sales."
-                  className="w-full px-3 py-2 rounded-lg border border-line text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
-                  style={{ backgroundColor: "var(--surface-2)", color: "var(--text)" }}
+                  className="w-full px-3 py-2 rounded-lg border border-line bg-surface-2 text-base sm:text-xs text-text focus:ring-1 focus:ring-brass focus:outline-none"
                 />
               </div>
             </form>
           )}
 
-          {/* Tab 4: Automated Integrations Feed */}
+          {/* Tab 4: Live Integrations Status */}
           {activeTab === "integrations" && (
             <div className="space-y-3">
               <p className="text-xs text-text-muted">
-                When integrations are active, BizzPal pulls data automatically so you don’t need to enter numbers manually.
+                Connect real accounts (Google Sheets, Razorpay, Stripe, Email, Bank &amp; Tally) so BizzPal updates your numbers from actual records instead of manual entries.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {[
-                  { name: "Stripe Revenue Telemetry", status: "Live Sync Active", type: "Recurring MRR & Invoices", icon: CreditCard, color: "text-emerald-400" },
-                  { name: "Shopify / Storefront", status: "Syncing Every 15m", type: "Order volumes & AOV", icon: ShoppingBag, color: "text-purple-400" },
-                  { name: "Zoho Books / QuickBooks", status: "Reconciled Today", type: "P&L, Vendor Invoices, GST", icon: Activity, color: "text-blue-400" },
-                  { name: "Slack / WhatsApp Bot", status: "Bidirectional Ready", type: "Daily check-in prompts", icon: Zap, color: "text-amber-400" },
+                  { name: "Bank & Tally Ledger", desc: "Import CSV/XLSX statements & Tally exports", href: "/money", icon: Activity, color: "text-jade" },
+                  { name: "Leads & Enquiries", desc: "Sync Google Sheets & email inbox enquiries", href: "/leads", icon: ShoppingBag, color: "text-cyan" },
+                  { name: "Payments (Razorpay / Stripe)", desc: "Verify revenue directly from payment providers", href: "/integrations", icon: CreditCard, color: "text-brass" },
+                  { name: "Email & Slack Alerts", desc: "Send approved follow-ups & daily briefings", href: "/integrations", icon: Zap, color: "text-amber" },
                 ].map((item, idx) => {
                   const Icon = item.icon;
                   return (
-                    <div
+                    <a
                       key={idx}
-                      className="p-3 rounded-xl border border-line flex items-start gap-2.5"
-                      style={{ backgroundColor: "var(--surface-2)" }}
+                      href={item.href}
+                      className="p-3 rounded-xl border border-line bg-surface-2 hover:border-brass/40 flex items-start gap-2.5 transition-colors"
                     >
                       <div className="w-7 h-7 rounded-lg bg-surface border border-line flex items-center justify-center shrink-0 mt-0.5">
                         <Icon className={`w-3.5 h-3.5 ${item.color}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-xs font-bold text-text block truncate">{item.name}</span>
-                        <span className="text-[10px] text-text-muted block">{item.type}</span>
-                        <span className="text-[10px] font-semibold text-jade flex items-center gap-1 mt-1">
-                          <CheckCircle2 className="w-2.5 h-2.5" />
-                          {item.status}
-                        </span>
+                        <span className="text-xs font-semibold text-text block truncate">{item.name}</span>
+                        <span className="text-[11px] text-text-muted block mt-0.5">{item.desc}</span>
                       </div>
-                    </div>
+                    </a>
                   );
                 })}
               </div>
 
-              <div
-                className="p-3 rounded-xl border border-line text-xs flex items-center justify-between"
-                style={{ backgroundColor: "var(--surface-2)" }}
-              >
+              <div className="p-3 rounded-xl border border-line bg-surface-2 text-xs flex items-center justify-between gap-3">
                 <span className="text-text-muted text-[11px]">
-                  Next scheduled telemetry pull in <strong className="text-text">4 minutes</strong>
+                  Only verified connections sync into your dashboard figures.
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSuccessMessage("Triggered on-demand synchronization with connected tools!");
-                    setTimeout(() => setSuccessMessage(null), 2500);
-                  }}
-                  className="px-3 py-1 rounded-md bg-brass text-white text-[11px] font-bold hover:brightness-110 btn-tactile cursor-pointer"
+                <a
+                  href="/integrations"
+                  className="px-3 py-1.5 rounded-md bg-brass text-white text-[11px] font-semibold hover:brightness-110 shrink-0"
                 >
-                  Sync Now
-                </button>
+                  Manage Integrations
+                </a>
               </div>
             </div>
           )}

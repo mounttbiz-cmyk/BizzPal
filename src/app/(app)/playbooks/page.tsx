@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { useCustomAdvisors } from "@/lib/advisors";
+import { loadWorkspaceState, saveWorkspaceState } from "@/lib/workspace/stateClient";
 
 import { askConfirm } from "@/components/ui/dialogs";
 interface Playbook {
@@ -408,33 +409,37 @@ export default function ExecutivePlaybooksPage() {
   };
 
   useEffect(() => {
+    let active = true;
     try {
       const savedProfile = localStorage.getItem("bizzpal_business_profile");
       if (savedProfile) {
         applyBusiness(JSON.parse(savedProfile));
-      } else {
-        fetch("/api/business/intake")
-          .then(r => r.json())
-          .then(d => {
-            if (d.success && d.business) {
-              applyBusiness(d.business);
-              localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business));
-            }
-          })
-          .catch(() => {});
       }
+    } catch {}
 
-      const savedPlaybooks = localStorage.getItem("bizzpal_executive_playbooks");
-      if (savedPlaybooks) {
-        const parsed = JSON.parse(savedPlaybooks);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const sanitized = parsed.map(sanitizePlaybook);
-          setPlaybooks(sanitized);
+    fetch("/api/business/intake", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => {
+        if (active && d?.success && d.business) {
+          applyBusiness(d.business);
+          try {
+            localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business));
+          } catch {}
         }
-      }
-    } catch (e) {
-      // ignore
-    }
+      })
+      .catch(() => {});
+
+    loadWorkspaceState<Playbook[]>("playbooks", "bizzpal_executive_playbooks")
+      .then(parsed => {
+        if (active && Array.isArray(parsed) && parsed.length > 0) {
+          setPlaybooks(parsed.map(sanitizePlaybook));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleSavePlaybook = (e: React.FormEvent) => {
@@ -472,9 +477,7 @@ export default function ExecutivePlaybooksPage() {
 
     const updated = [newPb, ...playbooks];
     setPlaybooks(updated);
-    try {
-      localStorage.setItem("bizzpal_executive_playbooks", JSON.stringify(updated));
-    } catch {}
+    saveWorkspaceState("playbooks", updated, "bizzpal_executive_playbooks").catch(() => {});
 
     setIsCreateOpen(false);
     setNewTitle("");
@@ -489,9 +492,7 @@ export default function ExecutivePlaybooksPage() {
     if (!(await askConfirm({ title: `Delete "${title}"?`, message: "This playbook will be removed.", confirmLabel: "Delete", danger: true }))) return;
     const updated = playbooks.filter(p => p.id !== id);
     setPlaybooks(updated);
-    try {
-      localStorage.setItem("bizzpal_executive_playbooks", JSON.stringify(updated));
-    } catch {}
+    saveWorkspaceState("playbooks", updated, "bizzpal_executive_playbooks").catch(() => {});
     setToastMessage(`Playbook '${title}' removed.`);
     setTimeout(() => setToastMessage(null), 3000);
   };

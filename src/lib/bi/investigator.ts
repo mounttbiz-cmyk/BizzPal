@@ -1,5 +1,6 @@
 import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
 import { searchCompanyKnowledge } from "@/lib/knowledge/retrieval";
+import { generateChat } from "@/lib/ai/providers";
 import { BusinessMetricSnapshot } from "./metricsEngine";
 
 export interface RecommendedAction {
@@ -82,8 +83,8 @@ export async function investigateBusinessAnomaly(params: {
   }
 
   // 2. Invoke AI for root-cause synthesis and corrective action formulation
-  const prompt = `You are BizzPal's Chief Business Intelligence Copilot.
-An important business KPI alert was triggered:
+  const prompt = `You are BizzPal's Business Intelligence Analyst.
+A business KPI alert was triggered:
 - Metric: ${kpi.name} (${kpi.metricKey})
 - Current Value: ${currentValue}
 - Previous Period Value: ${previousValue}
@@ -100,75 +101,111 @@ An important business KPI alert was triggered:
 === RETRIEVED COMPANY MEMORY EVIDENCE ===
 ${documentEvidence.map((d) => `Document "${d.title}": ${d.snippet}`).join("\n") || "No internal strategy documents found."}
 
-TASK:
-Produce an evidence-based investigation.
-1. Separate VERIFIED FACTS (from data/docs) from HYPOTHESES (inferred potential causes).
-2. Recommend 2 to 3 concrete corrective actions with suggested department, suggested owner, priority, and expected impact.
-3. Be objective. Do not claim causation from correlation without evidence. Note any uncertainty.`;
+Respond ONLY as compact valid JSON matching this schema:
+{
+  "summary": "2-sentence grounded diagnostic summary",
+  "verifiedFacts": ["factual statement 1 from above numbers/docs"],
+  "hypotheses": ["plausible cause 1 clearly labeled as hypothesis"],
+  "actions": [
+    {
+      "title": "Action title",
+      "description": "Concrete step grounded in this alert",
+      "targetDepartment": "Finance & Ops | Growth & Sales | Operations",
+      "suggestedOwner": "CFO | CEO | Finance Lead",
+      "priority": "high | medium | low",
+      "expectedImpact": "Measurable goal without inventing percentages"
+    }
+  ]
+}`;
 
-  let aiInvestigationText: string | null = null;
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
-    try {
-      const resp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 2000 },
-          }),
-        }
-      );
-      if (resp.ok) {
-        const data = await resp.json();
-        aiInvestigationText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      }
-    } catch {}
-  }
+  const aiInvestigationText = await generateChat(
+    {
+      system: "You are an objective business intelligence analyst. Ground every claim strictly in provided numbers and documents.",
+      message: prompt,
+      temperature: 0.25,
+      meter: { businessId, feature: "bi_investigator" },
+    },
+    "paid"
+  ).catch(() => null);
 
-  // Fallback structured generation
   const insightId = `ins_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const now = new Date().toISOString();
 
-  // Formulate structured actions
-  const recommendedActions: RecommendedAction[] = [
-    {
-      key: `act_${insightId}_1`,
-      title: `Audit ${kpi.name} variance with department leads`,
-      description: `Schedule a 30-minute cross-functional review to examine unit-level drivers behind the ${changePct}% shift in ${kpi.name}.`,
-      targetDepartment: kpi.metricKey.includes("burn") ? "Finance & Ops" : "Growth & Sales",
-      suggestedOwner: kpi.metricKey.includes("burn") ? "CFO" : "CEO",
-      priority: severity === "critical" ? "high" : "medium",
-      expectedImpact: `Re-anchor target trajectory within 14 business days.`,
-      status: "recommended",
-    },
-    {
-      key: `act_${insightId}_2`,
-      title: `Optimize variable spend allocation`,
-      description: `Review highest-cost components in the spend breakdown to pause underperforming campaigns or non-essential tooling.`,
-      targetDepartment: "Finance & Operations",
-      suggestedOwner: "Finance Lead",
-      priority: "medium",
-      expectedImpact: "Preserve additional 1.5 months of cash runway.",
-      status: "recommended",
-    },
+  let parsedAi: {
+    summary?: string;
+    verifiedFacts?: unknown;
+    hypotheses?: unknown;
+    actions?: unknown;
+  } | null = null;
+  if (aiInvestigationText) {
+    try {
+      const m = aiInvestigationText.match(/\{[\s\S]*\}/);
+      if (m) parsedAi = JSON.parse(m[0]);
+    } catch {
+      parsedAi = null;
+    }
+  }
+
+  const aiActions: RecommendedAction[] = Array.isArray(parsedAi?.actions)
+    ? parsedAi!.actions
+        .slice(0, 3)
+        .filter((a: any) => a && typeof a.title === "string")
+        .map((a: any, idx: number) => ({
+          key: `act_${insightId}_${idx + 1}`,
+          title: String(a.title).slice(0, 120),
+          description: String(a.description || a.title).slice(0, 300),
+          targetDepartment: String(a.targetDepartment || (kpi.metricKey.includes("burn") ? "Finance & Ops" : "Growth & Sales")),
+          suggestedOwner: String(a.suggestedOwner || (kpi.metricKey.includes("burn") ? "CFO" : "CEO")),
+          priority: a.priority === "high" || a.priority === "low" ? a.priority : "medium",
+          expectedImpact: String(a.expectedImpact || "Address metric deviation against threshold."),
+          status: "recommended" as const,
+        }))
+    : [];
+
+  const recommendedActions: RecommendedAction[] =
+    aiActions.length > 0
+      ? aiActions
+      : [
+          {
+            key: `act_${insightId}_1`,
+            title: `Review ${kpi.name} drivers`,
+            description: `Audit underlying line items and activity behind the ${changePct}% shift from ${previousValue} to ${currentValue}.`,
+            targetDepartment: kpi.metricKey.includes("burn") ? "Finance & Ops" : "Growth & Sales",
+            suggestedOwner: kpi.metricKey.includes("burn") ? "CFO" : "CEO",
+            priority: severity === "critical" ? "high" : "medium",
+            expectedImpact: "Verify root cause before committing budget or headcount changes.",
+            status: "recommended",
+          },
+        ];
+
+  const baseFacts: string[] = [
+    `${kpi.name} moved ${changePct}% from ${previousValue} to ${currentValue}.`,
+    metricsSnapshot.runwayMonths !== null
+      ? `Current runway is ${metricsSnapshot.runwayMonths} months against monthly burn of ₹${metricsSnapshot.monthlyBurn}.`
+      : `Current monthly burn is ₹${metricsSnapshot.monthlyBurn}; runway is unknown until cash reserve is recorded.`,
   ];
 
-  const verifiedFacts: string[] = [
-    `${kpi.name} experienced a ${changePct}% variation from ${previousValue} to ${currentValue}.`,
-    `Current runway is ${metricsSnapshot.runwayMonths} months against monthly burn of ₹${metricsSnapshot.monthlyBurn}.`,
-  ];
+  const aiFacts = Array.isArray(parsedAi?.verifiedFacts)
+    ? parsedAi!.verifiedFacts.filter((s): s is string => typeof s === "string" && s.trim().length > 0).slice(0, 4)
+    : [];
 
-  const hypotheses: string[] = [
-    `Shift may be linked to seasonality, contract billing milestone cycles, or customer acquisition cadence.`,
-    `Infrastructure or paid ad spend reallocations during the reporting period may have intensified the margin gap.`,
-  ];
+  const verifiedFacts = aiFacts.length > 0 ? aiFacts : baseFacts;
 
-  const summary = aiInvestigationText
-    ? aiInvestigationText.slice(0, 500)
-    : `BizzPal detected a ${severity} deviation in ${kpi.name}. Observed change of ${changePct}% crossed established monitoring thresholds. Review recommended corrective actions to realign operating parameters.`;
+  const aiHypotheses = Array.isArray(parsedAi?.hypotheses)
+    ? parsedAi!.hypotheses.filter((s): s is string => typeof s === "string" && s.trim().length > 0).slice(0, 4)
+    : [];
+
+  const hypotheses: string[] =
+    aiHypotheses.length > 0
+      ? aiHypotheses
+      : ["AI hypothesis synthesis unavailable for this run; inspect recent uploads and invoices for primary variance causes."];
+
+  const summary =
+    typeof parsedAi?.summary === "string" && parsedAi.summary.trim()
+      ? parsedAi.summary.trim().slice(0, 600)
+      : aiInvestigationText
+      ? aiInvestigationText.slice(0, 500)
+      : `Detected a ${severity} threshold breach in ${kpi.name} (${changePct}% shift from ${previousValue} to ${currentValue}). Review recorded transactions and recommended next steps.`;
 
   const evidenceSummary = {
     affectedKpi: kpi.name,

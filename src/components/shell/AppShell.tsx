@@ -171,30 +171,25 @@ export function AppShell({
         if (savedProfileStr) {
           const saved = JSON.parse(savedProfileStr);
           if (saved.name) setCompanyName(saved.name);
-          if (saved.industryLabel) {
-            setIndustry(saved.industryLabel);
-          } else if (saved.industry) {
-            setIndustry(saved.industry);
-          }
-        } else {
-          fetch("/api/business/intake")
-            .then(r => r.json())
-            .then(d => {
-              if (d.success && d.business) {
-                if (d.business.name) setCompanyName(d.business.name);
-                if (d.business.industry_label || d.business.industryLabel) {
-                  setIndustry(d.business.industry_label || d.business.industryLabel);
-                }
-                try {
-                  localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business));
-                } catch {}
-              }
-            })
-            .catch(() => {});
+          if (saved.industryLabel) setIndustry(saved.industryLabel);
+          else if (saved.industry) setIndustry(saved.industry);
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch {}
+
+      fetch("/api/business/intake", { cache: "no-store" })
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => {
+          if (d?.success && d.business) {
+            if (d.business.name) setCompanyName(d.business.name);
+            if (d.business.industry_label || d.business.industryLabel) {
+              setIndustry(d.business.industry_label || d.business.industryLabel);
+            }
+            try {
+              localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business));
+            } catch {}
+          }
+        })
+        .catch(() => {});
     };
 
     syncProfile();
@@ -275,13 +270,13 @@ export function AppShell({
         </main>
       </div>
 
-      {/* Floating AI Executive Launcher Button (Desktop & Tablet & Mobile) - Signature BizzPal Champagne Gold */}
+      {/* Floating AI Executive Launcher Button (Tablet & Desktop; Mobile already has header Copilot + bottom Chat) */}
       {features.enableAiCopilot && pathname !== "/chat" && (
         <button
           type="button"
           onClick={() => setChatOpen(true)}
           aria-label="Open AI Workspace"
-          className="fixed z-40 flex items-center gap-2 rounded-full bg-brass text-white shadow-lg shadow-black/10 hover:brightness-110 transition-all text-sm font-medium cursor-pointer bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-4 sm:right-6 pl-4 pr-5 py-3"
+          className="hidden md:flex fixed z-40 items-center gap-2 rounded-full bg-brass text-white shadow-lg shadow-black/10 hover:brightness-110 transition-all text-sm font-medium cursor-pointer bottom-6 right-6 pl-4 pr-5 py-3"
         >
           <MessageSquare className="w-4 h-4" />
           <span>Ask AI</span>

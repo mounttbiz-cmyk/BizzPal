@@ -160,8 +160,8 @@ export async function extractRealBusinessLeads(
           const reviewsCount = place.userRatingCount || 0;
           const ratingText = rating !== null ? `${reviewsCount} reviews (${rating}★)` : "no reviews yet";
 
-          const isNormalExtract = config.requirement.toLowerCase().includes("normal");
-          const isMissingWebsite = !isNormalExtract && (config.requirement.toLowerCase().includes("website") || !hasWebsite);
+          const isNormalExtract = !config.requirement || config.requirement.toLowerCase().includes("normal");
+          const isMissingWebsite = !hasWebsite;
 
           // Phone numbers come from Google only. A business without one has none listed.
           const phone: string | null = place.nationalPhoneNumber || place.internationalPhoneNumber || null;

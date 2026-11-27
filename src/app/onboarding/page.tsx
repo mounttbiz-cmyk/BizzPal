@@ -17,6 +17,7 @@ import { AboutBusinessStep } from "@/components/onboarding/AboutBusinessStep";
 import { BankStep } from "@/components/onboarding/BankStep";
 import { PaymentsStep } from "@/components/onboarding/PaymentsStep";
 import { TeamStep } from "@/components/onboarding/TeamStep";
+import { InstantXRayFlow } from "@/components/onboarding/InstantXRayFlow";
 import { STEPS, inr, type BankState, type DomainState, type GstState, type IfscLookup, type InviteRow, type PaySource, type PayTotal, type StepId } from "@/components/onboarding/types";
 
 async function postJson(url: string, body: unknown): Promise<{ status: number; data: any }> {
@@ -35,58 +36,77 @@ export default function OnboardingPage() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const isNewSignup = params.get("mode") === "new_signup" || params.get("signup") === "true";
+    let active = true;
+    (async () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const isNewSignup = params.get("mode") === "new_signup" || params.get("signup") === "true";
 
-      const raw = localStorage.getItem("bizzpal_user_session");
-      const sess = raw ? JSON.parse(raw) : null;
-      const userEmail = (sess?.email || "").trim().toLowerCase();
-      if (!userEmail) {
-        router.replace("/login");
-        return;
-      }
+        let raw = localStorage.getItem("bizzpal_user_session");
+        let sess = raw ? JSON.parse(raw) : null;
+        let userEmail = (sess?.email || "").trim().toLowerCase();
+        let userName = (sess?.name || "").trim();
 
-      const isDemo = isDemoAccount(userEmail);
+        // Always confirm / hydrate from server cookie session if localStorage is missing
+        if (!userEmail) {
+          const r = await fetch("/api/auth/session", { cache: "no-store" }).catch(() => null);
+          const s = r && r.ok ? await r.json().catch(() => null) : null;
+          if (s?.authenticated && s.email) {
+            userEmail = s.email.trim().toLowerCase();
+            userName = (s.name || "").trim();
+            localStorage.setItem(
+              "bizzpal_user_session",
+              JSON.stringify({ id: `usr_${userEmail}`, email: userEmail, name: userName || userEmail.split("@")[0], provider: s.provider || "email" })
+            );
+          }
+        }
 
-      if (isDemo) {
-        // Clear previous state for demo user so it always opens onboarding fresh
-        localStorage.removeItem("bizzpal_business_profile");
-        localStorage.removeItem("bizzpal_onboarding_step");
-        localStorage.removeItem(`bizzpal_user_business_${userEmail}`);
-        localStorage.setItem("bizzpal_subscription_plan", "enterprise");
-        localStorage.setItem(`bizzpal_subscription_plan_${userEmail}`, "enterprise");
-      }
+        if (!active) return;
+        if (!userEmail) {
+          router.replace("/login");
+          return;
+        }
 
-      if (isNewSignup) {
-        if (!isDemo) {
+        const isDemo = isDemoAccount(userEmail);
+
+        if (isDemo) {
+          localStorage.removeItem("bizzpal_business_profile");
+          localStorage.removeItem("bizzpal_onboarding_step");
+          localStorage.removeItem(`bizzpal_user_business_${userEmail}`);
+          localStorage.setItem("bizzpal_subscription_plan", "enterprise");
+          localStorage.setItem(`bizzpal_subscription_plan_${userEmail}`, "enterprise");
+        }
+
+        if (isNewSignup && !isDemo) {
           localStorage.removeItem("bizzpal_business_profile");
           localStorage.removeItem("bizzpal_datapal_campaigns");
           localStorage.setItem("bizzpal_subscription_plan", "free");
         }
-      }
 
-      // An account that already finished setup goes straight to its dashboard (unless it is a new signup or demo).
-      if (!isNewSignup && !isDemo) {
-        const saved = localStorage.getItem(`bizzpal_user_business_${userEmail}`);
-        if (saved) {
-          const p = JSON.parse(saved);
-          if (p.completedAt || (p.name && p.revenue !== undefined)) {
-            router.replace("/dashboard");
-            return;
+        // Check server-side business completion if this isn't explicitly a new signup or demo
+        if (!isNewSignup && !isDemo) {
+          const saved = localStorage.getItem(`bizzpal_user_business_${userEmail}`);
+          if (saved) {
+            const p = JSON.parse(saved);
+            if (p.completedAt || (p.name && p.revenue !== undefined)) {
+              router.replace("/dashboard");
+              return;
+            }
           }
         }
-      }
 
-      setEmail(userEmail);
-      setFounderName((sess?.name || "").trim() || userEmail.split("@")[0]);
-      setReady(true);
-    } catch {
-      router.replace("/login");
-    }
+        setEmail(userEmail);
+        setFounderName(userName || userEmail.split("@")[0]);
+        setReady(true);
+      } catch {
+        if (active) router.replace("/login");
+      }
+    })();
+    return () => { active = false; };
   }, [router]);
 
   // ---- wizard state ----
+  const [fastXRayMode, setFastXRayMode] = useState(true);
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx].id;
 
@@ -274,7 +294,7 @@ export default function OnboardingPage() {
         google: { status: "connected", detail: "it@bizzpal.ai" },
         slack: { status: "connected", detail: "BizzPal Workspace" },
       });
-      setIndustries(["it_tech"]);
+      setIndustries(["it"]);
       setNeeds(["growth", "runway", "playbooks"]);
       setMaxStep(7); // Allows user to inspect any step and click Next / Continue
       return;
@@ -539,7 +559,16 @@ export default function OnboardingPage() {
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 lg:py-10 grid grid-cols-1 lg:grid-cols-[270px_minmax(0,1fr)] gap-6 lg:gap-10 items-start">
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 lg:py-10">
+        {fastXRayMode ? (
+          <InstantXRayFlow
+            initialUrl={domainInput}
+            onUseFullSetup={() => setFastXRayMode(false)}
+            onSkipToDashboard={() => router.push("/dashboard")}
+            onOpenXRay={() => router.push("/xray")}
+          />
+        ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-[270px_minmax(0,1fr)] gap-6 lg:gap-10 items-start">
         {/* Left rail */}
         <aside className="hidden lg:block sticky top-6 space-y-5">
           <nav aria-label="Registration progress">
@@ -688,6 +717,8 @@ export default function OnboardingPage() {
             />
           )}
         </section>
+        )}
+        </div>
         )}
       </main>
 

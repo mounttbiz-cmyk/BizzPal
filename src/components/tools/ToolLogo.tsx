@@ -12,6 +12,7 @@ export function ToolLogo({ toolId, className = "", size = 24, glyphOnly = false 
   switch (toolId) {
     case "google":
     case "google_workspace":
+    case "google_drive":
       // Official Google 4-Color 'G' Logo
       return (
         <svg
@@ -43,6 +44,7 @@ export function ToolLogo({ toolId, className = "", size = 24, glyphOnly = false 
 
     case "microsoft":
     case "microsoft_365":
+    case "onedrive":
       // Official Microsoft 4-Color Quadrant Logo
       return (
         <svg

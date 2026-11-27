@@ -205,12 +205,25 @@ export default function LoginPage() {
       localStorage.setItem(`bizzpal_user_business_${cleanEmail}`, JSON.stringify(businessProfile));
     }
 
-    // Demo account always accesses highest "enterprise" plan, others restore saved or default to "free"
-    const userPlan = isDemo
-      ? "enterprise"
-      : (localStorage.getItem(`bizzpal_subscription_plan_${cleanEmail}`) || "free");
+    // Resolve plan from server activeSubscription first (only falling back to user-scoped cache when offline)
+    let userPlan = "free";
+    if (isDemo) {
+      userPlan = "enterprise";
+    } else {
+      try {
+        const txRes = await fetch("/api/payments/transactions", { cache: "no-store" });
+        if (txRes.ok) {
+          const txData = await txRes.json();
+          if (txData?.activeSubscription?.plan_id) {
+            userPlan = txData.activeSubscription.plan_id;
+          }
+        }
+      } catch {
+        userPlan = (cleanEmail && localStorage.getItem(`bizzpal_subscription_plan_${cleanEmail}`)) || "free";
+      }
+    }
     localStorage.setItem("bizzpal_subscription_plan", userPlan);
-    localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, userPlan);
+    if (cleanEmail) localStorage.setItem(`bizzpal_subscription_plan_${cleanEmail}`, userPlan);
 
     // Instant UI feedback and guaranteed redirect without delay
     handleSuccessfulAuth("/dashboard", "Login successful! Loading your dashboard...");

@@ -28,8 +28,8 @@ export async function POST(req: Request) {
         console.warn("[Razorpay Webhook] Invalid or missing signature rejected");
         return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
       }
-    } else if (getRazorpayCredentials().isLive) {
-      // Never accept unsigned webhooks once real keys are in use.
+    } else if (process.env.NODE_ENV === "production" || getRazorpayCredentials().isLive) {
+      // Never accept unsigned webhooks on production or once Razorpay keys are configured.
       return NextResponse.json({ error: "Webhook secret not configured" }, { status: 503 });
     }
 

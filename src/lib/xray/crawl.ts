@@ -37,6 +37,8 @@ export interface CrawlSnapshot {
   skipped: Array<{ url: string; reason: string }>;
   /** Pages found worth reading but left out because of the page limit */
   notRead: number;
+  /** True when the public site blocked automated reading or yielded no readable text */
+  partial?: boolean;
 }
 
 export class CrawlError extends Error {
@@ -150,7 +152,16 @@ export async function crawlWebsite(raw: string, onProgress?: (read: number, tota
   const skipped: CrawlSnapshot["skipped"] = [];
 
   if (!(await allowedByRobots(start))) {
-    throw new CrawlError("This website's robots.txt asks automated readers not to open it, so we did not read it.");
+    return {
+      startUrl: start.toString(),
+      finalUrl: start.toString(),
+      crawledAt: new Date().toISOString(),
+      durationMs: Date.now() - started,
+      pages: [],
+      skipped: [{ url: start.toString(), reason: "The site's robots.txt asks automated readers not to open it." }],
+      notRead: 0,
+      partial: true,
+    };
   }
   const home = await safeGet(start.toString(), "html", 1_500_000);
   if (!home) {
@@ -219,7 +230,16 @@ export async function crawlWebsite(raw: string, onProgress?: (read: number, tota
     }
   }
   if (pages.length === 0) {
-    throw new CrawlError("We opened the website but found no readable text. It may only show content after loading in a browser or signing in.");
+    return {
+      startUrl: start.toString(),
+      finalUrl: home.url.toString(),
+      crawledAt: new Date().toISOString(),
+      durationMs: Date.now() - started,
+      pages: [],
+      skipped,
+      notRead: Math.max(0, candidates.length - chosen.length),
+      partial: true,
+    };
   }
   // Ids in reading order, so the report lists them neatly
   pages.forEach((p, i) => (p.id = `p${i + 1}`));
@@ -232,5 +252,6 @@ export async function crawlWebsite(raw: string, onProgress?: (read: number, tota
     pages,
     skipped,
     notRead: Math.max(0, candidates.length - chosen.length),
+    partial: pages.length <= 1 || skipped.length > 0,
   };
 }

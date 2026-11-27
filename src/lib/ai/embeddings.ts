@@ -20,6 +20,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
         `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`,
         {
           method: "POST",
+          signal: AbortSignal.timeout(5000),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "models/text-embedding-004",
@@ -45,6 +46,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     try {
       const resp = await fetch("https://api.mistral.ai/v1/embeddings", {
         method: "POST",
+        signal: AbortSignal.timeout(5000),
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${mistralKey}`,
@@ -73,6 +75,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     try {
       const resp = await fetch("https://api.cohere.ai/v1/embed", {
         method: "POST",
+        signal: AbortSignal.timeout(5000),
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${cohereKey}`,
@@ -109,6 +112,7 @@ export async function generateQueryEmbedding(query: string): Promise<number[]> {
     try {
       const resp = await fetch("https://api.cohere.ai/v1/embed", {
         method: "POST",
+        signal: AbortSignal.timeout(5000),
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${cohereKey}`,

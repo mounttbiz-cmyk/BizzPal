@@ -62,7 +62,13 @@ export function upsertKpiDefinition(data: {
   enabled?: boolean;
 }) {
   const businessId = data.businessId || DEFAULT_BUSINESS_ID;
-  const id = data.id || `kpi_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  let id = `kpi_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  if (data.id) {
+    const existing = db.prepare("SELECT business_id FROM kpi_definitions WHERE id = ?").get(data.id) as any;
+    if (!existing || existing.business_id === businessId) {
+      id = data.id;
+    }
+  }
   const now = new Date().toISOString();
 
   db.prepare(`
@@ -182,7 +188,7 @@ export async function evaluateBusinessKpis(businessId = DEFAULT_BUSINESS_ID): Pr
     }
 
     // Update last evaluated timestamp
-    db.prepare("UPDATE kpi_definitions SET last_evaluated_at = ? WHERE id = ?").run(now, kpi.id);
+    db.prepare("UPDATE kpi_definitions SET last_evaluated_at = ? WHERE id = ? AND business_id = ?").run(now, kpi.id, businessId);
 
     let insightCreated = false;
     let insightId: string | undefined;

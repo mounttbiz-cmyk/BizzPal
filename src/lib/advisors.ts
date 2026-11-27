@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { loadWorkspaceState, saveWorkspaceState } from "@/lib/workspace/stateClient";
 
 export interface AgentMeta {
   id: string;
@@ -176,11 +177,31 @@ export function getStoredCustomAdvisors(): CustomAdvisorStore {
   }
 }
 
+let serverAdvisorsHydrated = false;
+
+function hydrateAdvisorsOnceFromServer() {
+  if (typeof window === "undefined" || serverAdvisorsHydrated) return;
+  serverAdvisorsHydrated = true;
+  loadWorkspaceState<CustomAdvisorStore>("advisors", "bizzpal_custom_advisors")
+    .then(data => {
+      if (data && Object.keys(data).length > 0) {
+        try {
+          localStorage.setItem("bizzpal_custom_advisors", JSON.stringify(data));
+        } catch {}
+        window.dispatchEvent(new Event("bizzpal_advisors_updated"));
+      }
+    })
+    .catch(() => {
+      serverAdvisorsHydrated = false;
+    });
+}
+
 export function saveStoredCustomAdvisors(data: CustomAdvisorStore) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem("bizzpal_custom_advisors", JSON.stringify(data));
     window.dispatchEvent(new Event("bizzpal_advisors_updated"));
+    saveWorkspaceState("advisors", data, "bizzpal_custom_advisors").catch(() => {});
   } catch (e) {
     console.error("Failed to save custom advisors:", e);
   }
@@ -224,6 +245,7 @@ export function useCustomAdvisors() {
       setStore(getStoredCustomAdvisors());
     };
     handleSync();
+    hydrateAdvisorsOnceFromServer();
     window.addEventListener("bizzpal_advisors_updated", handleSync);
     window.addEventListener("storage", handleSync);
     return () => {
@@ -398,6 +420,7 @@ export function useEffectiveAdvisors() {
     };
 
     handleUpdate();
+    hydrateAdvisorsOnceFromServer();
     window.addEventListener("bizzpal_advisors_updated", handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {

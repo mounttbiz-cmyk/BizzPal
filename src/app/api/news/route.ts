@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Parser from "rss-parser";
+import { requireUser } from "@/lib/auth/requireUser";
 
 const parser = new Parser({
   timeout: 8000,
@@ -77,6 +78,9 @@ function extractSource(content: string | undefined): string {
 }
 
 export async function GET(request: Request) {
+  const auth = requireUser(request);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category") || "all";
@@ -120,12 +124,8 @@ export async function GET(request: Request) {
               item.contentSnippet?.replace(/<[^>]*>/g, "").slice(0, 280) ||
               item.title ||
               "",
-            businessImpact: `This development has direct relevance for executive decision-making in the ${feedConfig.categoryLabel.toLowerCase()} domain.`,
-            keyTakeaways: [
-              "Monitor this development for strategic opportunities.",
-              "Assess operational impact within the next quarter.",
-              "Brief executive leadership on potential implications.",
-            ],
+            businessImpact: "",
+            keyTakeaways: [],
             url: item.link || "",
             badgeColor: feedConfig.badgeColor,
             executiveAdvisor: feedConfig.advisor,

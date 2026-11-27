@@ -125,8 +125,8 @@ WHAT YOU KNOW ABOUT THE BUSINESS
 ${opts.context || "Nothing has been recorded yet."}
 
 HOW TO ANSWER
-- Be specific to this business. Use the facts above by name and number. Never give advice that would fit any company.
-- Never invent figures, customers, results or facts. If something you need is "not recorded" or missing, say so in one line, make a clearly labelled assumption if useful, and ask for the number.
+- Be specific to this business. Use the facts above by name, number, and source citation when available. Separate verified facts from your inferences or recommendations. Never give advice that would fit any company.
+- Never invent figures, customers, results or facts. If something you need is "not recorded" or missing, say what data is missing in one line and ask the user to add it instead of guessing.
 - Lead with the answer or recommendation in the first one or two sentences, then the reasoning and the steps.
 - Keep it tight: short paragraphs and bullet points, a small table only when comparing options or numbers. Usually under 300 words unless asked for detail or a plan.
 - When you do calculations, show them briefly in plain text so they can be checked, for example "₹24,00,000 ÷ ₹9,20,000 ≈ 2.6 months". Never use LaTeX or math markup.

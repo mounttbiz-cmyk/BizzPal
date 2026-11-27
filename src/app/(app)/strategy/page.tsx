@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
+import { loadWorkspaceState, saveWorkspaceState } from "@/lib/workspace/stateClient";
 
 import { askConfirm } from "@/components/ui/dialogs";
 export interface GrowthVector {
@@ -81,35 +82,36 @@ export default function GrowthStrategyPage() {
   };
 
   useEffect(() => {
+    let active = true;
     try {
       const savedProfile = localStorage.getItem("bizzpal_business_profile");
-      if (savedProfile) {
-        applyBusinessProfile(JSON.parse(savedProfile));
-      } else {
-        fetch("/api/business/intake")
-          .then(r => r.json())
-          .then(d => {
-            if (d.success && d.business) {
-              applyBusinessProfile(d.business);
-              localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business));
-            }
-          })
-          .catch(() => {});
-      }
+      if (savedProfile) applyBusinessProfile(JSON.parse(savedProfile));
+    } catch {}
 
-      const savedVectors = localStorage.getItem("bizzpal_strategy_vectors");
-      if (savedVectors) {
-        const parsed = JSON.parse(savedVectors);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setVectors(parsed);
-          if (!parsed.some(v => v.id === selectedVectorId)) {
-            setSelectedVectorId(parsed[0].id);
-          }
+    fetch("/api/business/intake", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => {
+        if (active && d?.success && d.business) {
+          applyBusinessProfile(d.business);
+          try {
+            localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business));
+          } catch {}
         }
-      }
-    } catch (e) {
-      // ignore
-    }
+      })
+      .catch(() => {});
+
+    loadWorkspaceState<GrowthVector[]>("strategy", "bizzpal_strategy_vectors")
+      .then(parsed => {
+        if (active && Array.isArray(parsed) && parsed.length > 0) {
+          setVectors(parsed);
+          setSelectedVectorId(prev => (parsed.some(v => v.id === prev) ? prev : parsed[0].id));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const runwayMonths =
@@ -138,11 +140,7 @@ export default function GrowthStrategyPage() {
         newM[index] = { ...newM[index], done: !newM[index].done };
         return { ...v, milestones: newM };
       });
-      try {
-        localStorage.setItem("bizzpal_strategy_vectors", JSON.stringify(updated));
-      } catch (e) {
-        // ignore
-      }
+      saveWorkspaceState("strategy", updated, "bizzpal_strategy_vectors").catch(() => {});
       return updated;
     });
   };
@@ -228,9 +226,7 @@ export default function GrowthStrategyPage() {
     }
 
     setVectors(updatedList);
-    try {
-      localStorage.setItem("bizzpal_strategy_vectors", JSON.stringify(updatedList));
-    } catch {}
+    saveWorkspaceState("strategy", updatedList, "bizzpal_strategy_vectors").catch(() => {});
 
     setIsModalOpen(false);
   };
@@ -246,9 +242,7 @@ export default function GrowthStrategyPage() {
     if (selectedVectorId === vectorId) {
       setSelectedVectorId(updated[0]?.id || "");
     }
-    try {
-      localStorage.setItem("bizzpal_strategy_vectors", JSON.stringify(updated));
-    } catch {}
+    saveWorkspaceState("strategy", updated, "bizzpal_strategy_vectors").catch(() => {});
     flash("Initiative deleted.", 3000);
   };
 

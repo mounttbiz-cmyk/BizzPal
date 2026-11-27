@@ -20,19 +20,30 @@ function sameSecret(a: string, b: string): boolean {
 }
 
 function isValidPasscode(input: unknown, expected: string): boolean {
-  if (!input || typeof input !== "string") return false;
+  if (!input || typeof input !== "string" || !expected) return false;
   const cleanInput = input.trim();
-  const cleanExpected = (expected || "bizzpal2026").trim();
-  if (sameSecret(cleanInput, cleanExpected)) return true;
-  if (sameSecret(cleanInput.toLowerCase(), cleanExpected.toLowerCase())) return true;
-  if (cleanInput.toLowerCase() === "bizzpal2026" || cleanInput.toLowerCase() === "bizzpal@2026") return true;
-  return false;
+  const cleanExpected = expected.trim();
+  if (!cleanInput || !cleanExpected) return false;
+  return sameSecret(cleanInput, cleanExpected);
 }
 
 export async function POST(req: NextRequest) {
   try {
     const expectedPasscode = getAdminPasscode();
+    if (!expectedPasscode) {
+      return NextResponse.json({ success: false, error: "Admin login is not configured on this server." }, { status: 503 });
+    }
     const ip = clientIp(req);
+    const now = Date.now();
+    const record = fails.get(ip);
+    if (record && record.resetAt > now && record.count >= MAX_FAILS) {
+      const waitMin = Math.max(1, Math.ceil((record.resetAt - now) / 60000));
+      return NextResponse.json(
+        { success: false, error: `Too many wrong passcodes. Try again in ${waitMin} minute${waitMin === 1 ? "" : "s"}.` },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
     const passcode = body?.passcode;
 
@@ -67,16 +78,16 @@ export async function POST(req: NextRequest) {
     }
 
     // If passcode was wrong, check rate limits
-    const now = Date.now();
+    const checkTime = Date.now();
     const entry = fails.get(ip);
-    if (process.env.NODE_ENV !== "development" && entry && entry.resetAt > now && entry.count >= MAX_FAILS) {
+    if (process.env.NODE_ENV !== "development" && entry && entry.resetAt > checkTime && entry.count >= MAX_FAILS) {
       return NextResponse.json(
         { success: false, error: "Too many attempts. Try again later." },
         { status: 429 }
       );
     }
 
-    const cur = entry && entry.resetAt > now ? entry : { count: 0, resetAt: now + WINDOW_MS };
+    const cur = entry && entry.resetAt > checkTime ? entry : { count: 0, resetAt: checkTime + WINDOW_MS };
     cur.count += 1;
     fails.set(ip, cur);
 

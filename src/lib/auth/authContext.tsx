@@ -136,12 +136,24 @@ export async function hasServerSession(): Promise<boolean> {
 }
 
 /** Who the server says is signed in, and which company they are working in. Null when nobody is. */
-export async function getServerSession(): Promise<{ email: string; activeBusinessId: string | null } | null> {
+export async function getServerSession(): Promise<{
+  email: string;
+  name?: string | null;
+  provider?: string | null;
+  activeBusinessId: string | null;
+} | null> {
   try {
     const res = await fetch("/api/auth/session", { cache: "no-store" });
     if (!res.ok) return null;
     const d = await res.json();
-    return d?.authenticated && d.email ? { email: String(d.email), activeBusinessId: d.activeBusinessId || null } : null;
+    return d?.authenticated && d.email
+      ? {
+          email: String(d.email),
+          name: d.name || null,
+          provider: d.provider || null,
+          activeBusinessId: d.activeBusinessId || null,
+        }
+      : null;
   } catch {
     return null;
   }

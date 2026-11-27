@@ -6,10 +6,12 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { NavItem } from "@/config/schemas/nav";
 import { DynamicIcon } from "./DynamicIcon";
-import { Sun, Moon, Search, Lock } from "lucide-react";
+import { Sun, Moon, Search, Lock, Settings, LogOut } from "lucide-react";
 import { useTheme } from "@/lib/theme/ThemeProvider";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 import { UpgradeModal } from "./UpgradeModal";
+import { WEBSITE_URL } from "@/config/urls";
+import { forgetBrowserOwner } from "@/lib/auth/localData";
 
 interface TabletRailProps {
   navItems: NavItem[];
@@ -74,7 +76,7 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
             badge: isRedundant ? undefined : rawItem.badge && /^[0-9]+$/.test(rawItem.badge.trim()) ? undefined : rawItem.badge,
           };
 
-          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+          const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
           const isLocked = !hasPlanLevel(item.requiredPlan);
 
           if (isLocked) {
@@ -108,8 +110,8 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
         })}
       </nav>
 
-      {/* Theme toggle */}
-      <div className="pt-2 border-t border-line w-full flex flex-col items-center gap-2">
+      {/* Theme, Settings & Sign out */}
+      <div className="pt-2 border-t border-line w-full flex flex-col items-center gap-1.5">
         <button
           type="button"
           onClick={cycleTheme}
@@ -121,6 +123,33 @@ export function TabletRail({ navItems, onOpenSearch }: TabletRailProps) {
           ) : (
             <Sun className="w-4 h-4 text-amber-500" />
           )}
+        </button>
+        <Link
+          href="/settings/profile"
+          title="Settings"
+          aria-label="Settings"
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2 transition-colors"
+        >
+          <Settings className="w-4 h-4" />
+        </Link>
+        <button
+          type="button"
+          title="Sign out"
+          aria-label="Sign out"
+          onClick={async () => {
+            try { await fetch("/api/auth/session", { method: "DELETE" }); } catch {}
+            try {
+              localStorage.removeItem("bizzpal_user_session");
+              localStorage.removeItem("bizzpal_business_profile");
+              localStorage.removeItem("bizzpal_subscription_plan");
+              localStorage.removeItem("bizzpal_datapal_campaigns");
+              forgetBrowserOwner();
+            } catch {}
+            window.location.href = WEBSITE_URL;
+          }}
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-rust hover:bg-rust/10 transition-colors cursor-pointer"
+        >
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
 

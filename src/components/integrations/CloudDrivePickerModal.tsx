@@ -119,6 +119,11 @@ export function CloudDrivePickerModal({
     [provider, filterType]
   );
 
+  // Sync provider when initialProvider changes or modal opens
+  useEffect(() => {
+    if (isOpen) setProvider(initialProvider);
+  }, [isOpen, initialProvider]);
+
   // Initial load when modal opens or provider changes
   useEffect(() => {
     if (!isOpen) return;

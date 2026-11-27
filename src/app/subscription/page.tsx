@@ -7,6 +7,7 @@ import { Check, X, Loader2 } from "lucide-react";
 import { ThemeSwitch } from "@/components/shell/ThemeSwitch";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
+import { useAuth } from "@/lib/auth/authContext";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { clearRazorpayBackdrop, loadRazorpaySDK } from "@/lib/payments/loadRazorpay";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/config/seeds/defaultCatalog";
@@ -34,6 +35,9 @@ const DEFAULT_FALLBACK_PLANS = DEFAULT_SUBSCRIPTION_PLANS as unknown as PlanTier
 
 export default function SubscriptionPage() {
   const { plan: currentPlan, activatePlan } = usePlanAccess();
+  const { user } = useAuth();
+  const backHref = user ? "/dashboard" : "/";
+  const backLabel = user ? "Back to dashboard" : "Back to home";
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -446,7 +450,7 @@ export default function SubscriptionPage() {
       )}
 
       <header className="max-w-7xl w-full mx-auto pb-5 border-b border-line flex items-center justify-between gap-3">
-        <Link href="/dashboard" className="flex items-center gap-3">
+        <Link href={backHref} className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-surface border border-line flex items-center justify-center p-1">
             <Image src="/logo.png" alt="BizzPal" width={28} height={28} className="object-contain" />
           </div>
@@ -455,10 +459,10 @@ export default function SubscriptionPage() {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/dashboard"
+            href={backHref}
             className="text-sm text-text-muted hover:text-text px-3.5 py-2 rounded-lg border border-line bg-surface whitespace-nowrap"
           >
-            <span className="hidden sm:inline">Back to dashboard</span>
+            <span className="hidden sm:inline">{backLabel}</span>
             <span className="sm:hidden">Back</span>
           </Link>
           <div className="w-28 sm:w-32 shrink-0">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, getUserBusinessId, healDatabasePermissions } from "@/lib/db";
 import { getSessionEmail } from "@/lib/userSession";
 import { safeEncrypt } from "@/lib/integrations/crypto";
+import { escapeHtml, safeReturnTo, verifyOAuthState } from "@/lib/auth/oauthState";
 
 export const dynamic = "force-dynamic";
 
@@ -11,14 +12,11 @@ export async function GET(req: NextRequest) {
   const errorDesc = req.nextUrl.searchParams.get("error_description");
   const stateRaw = req.nextUrl.searchParams.get("state");
 
-  let returnTo = "/integrations";
-  let requestOrigin = "";
-  if (stateRaw) {
-    try {
-      const parsed = JSON.parse(Buffer.from(stateRaw, "base64url").toString("utf8"));
-      if (parsed.returnTo) returnTo = parsed.returnTo;
-      if (parsed.origin) requestOrigin = parsed.origin;
-    } catch {}
+  const parsedState = verifyOAuthState(stateRaw);
+  const returnTo = safeReturnTo(parsedState?.returnTo);
+  const requestOrigin = typeof parsedState?.origin === "string" ? parsedState.origin : "";
+  if (!parsedState) {
+    return new NextResponse("Invalid or expired OAuth state. Please start the connection again.", { status: 400 });
   }
 
   // Derive origin from state or request headers
@@ -51,15 +49,15 @@ export async function GET(req: NextRequest) {
 <body>
   <div class="card">
     <h2>OneDrive Connection Cancelled</h2>
-    <p>${errorMsg}</p>
+    <p>${escapeHtml(errorMsg)}</p>
     <button onclick="window.close()">Close Window</button>
   </div>
   <script>
     if (window.opener) {
-      window.opener.postMessage({ type: 'BIZZPAL_ONEDRIVE_AUTH_ERROR', error: ${JSON.stringify(errorMsg)} }, '*');
+      window.opener.postMessage({ type: 'BIZZPAL_ONEDRIVE_AUTH_ERROR', error: ${JSON.stringify(errorMsg)} }, window.location.origin);
       setTimeout(() => window.close(), 1500);
     } else {
-      setTimeout(() => { window.location.href = '${returnTo}'; }, 2000);
+      setTimeout(() => { window.location.href = ${JSON.stringify(returnTo)}; }, 2000);
     }
   </script>
 </body>
@@ -195,22 +193,22 @@ export async function GET(req: NextRequest) {
 <body>
   <div class="card">
     <div class="badge">● Authenticating OneDrive</div>
-    <h2>Connected ${name}</h2>
-    <p class="email">${email}</p>
+    <h2>Connected ${escapeHtml(name)}</h2>
+    <p class="email">${escapeHtml(email)}</p>
     <p class="info">Synchronizing OneDrive with BizzPal Executive Platform...</p>
   </div>
   <script>
     const payload = ${JSON.stringify(successData)};
     if (window.opener) {
       try {
-        window.opener.postMessage({ type: 'BIZZPAL_ONEDRIVE_AUTH_SUCCESS', data: payload }, '*');
+        window.opener.postMessage({ type: 'BIZZPAL_ONEDRIVE_AUTH_SUCCESS', data: payload }, window.location.origin);
       } catch (e) {}
       setTimeout(() => {
         try { window.close(); } catch (e) {}
       }, 300);
     } else {
       setTimeout(() => {
-        window.location.href = '${returnTo}?connected=onedrive';
+        window.location.href = ${JSON.stringify(`${returnTo}?connected=onedrive`)};
       }, 600);
     }
   </script>
@@ -225,7 +223,7 @@ export async function GET(req: NextRequest) {
       <body style="font-family:sans-serif;background:#0b0f19;color:#f8fafc;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
         <div style="background:#131b2e;border:1px solid #e11d48;border-radius:16px;padding:32px;max-width:420px;text-align:center">
           <h2 style="color:#f43f5e">Connection Error</h2>
-          <p style="color:#94a3b8;font-size:13px">${err.message}</p>
+          <p style="color:#94a3b8;font-size:13px">${escapeHtml(err?.message || "OneDrive connection failed.")}</p>
           <button onclick="window.close()" style="background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:8px 16px;border-radius:8px;cursor:pointer">Close</button>
         </div>
       </body></html>`,

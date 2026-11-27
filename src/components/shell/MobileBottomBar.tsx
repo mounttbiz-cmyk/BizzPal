@@ -5,11 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavItem } from "@/config/schemas/nav";
 import { DynamicIcon } from "./DynamicIcon";
-import { Menu, X, Sun, Moon, Lock } from "lucide-react";
+import { Menu, X, Sun, Moon, Lock, Settings, LogOut } from "lucide-react";
 import { useTheme } from "@/lib/theme/ThemeProvider";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 import { UpgradeModal } from "./UpgradeModal";
+import { WEBSITE_URL } from "@/config/urls";
+import { forgetBrowserOwner } from "@/lib/auth/localData";
 
 interface MobileBottomBarProps {
   navItems: NavItem[];
@@ -25,18 +27,36 @@ export function MobileBottomBar({ navItems }: MobileBottomBarProps) {
   // Close drawer on Escape
   useEscapeKey(() => setMoreOpen(false), moreOpen);
 
-  // Primary 4 tabs + 5th is "More"
-  const primaryTabs: { id: string; label: string; href: string; icon: string }[] = [
+  // Primary tabs filtered against RBAC-visible navItems & plan levels
+  const allowedHrefs = new Set(navItems.map(n => n.href));
+  const candidatePrimary: { id: string; label: string; href: string; icon: string }[] = [
     { id: "tab_dash", label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
     { id: "tab_chat", label: "Chat", href: "/chat", icon: "MessageSquare" },
     { id: "tab_gaps", label: "Gaps", href: "/gaps", icon: "AlertTriangle" },
     { id: "tab_tasks", label: "Tasks", href: "/tasks", icon: "CheckSquare" },
   ];
+  const primaryTabs = candidatePrimary.filter(t => {
+    const matched = navItems.find(n => n.href === t.href);
+    return (t.href === "/dashboard" || allowedHrefs.has(t.href)) && hasPlanLevel(matched?.requiredPlan);
+  });
 
   // Secondary items for the More bottom sheet
   const secondaryItems = navItems.filter(
     item => !primaryTabs.some(tab => tab.href === item.href)
   );
+
+  const handleSignOut = async () => {
+    setMoreOpen(false);
+    try { await fetch("/api/auth/session", { method: "DELETE" }); } catch {}
+    try {
+      localStorage.removeItem("bizzpal_user_session");
+      localStorage.removeItem("bizzpal_business_profile");
+      localStorage.removeItem("bizzpal_subscription_plan");
+      localStorage.removeItem("bizzpal_datapal_campaigns");
+      forgetBrowserOwner();
+    } catch {}
+    window.location.href = WEBSITE_URL;
+  };
 
   return (
     <>
@@ -45,7 +65,10 @@ export function MobileBottomBar({ navItems }: MobileBottomBarProps) {
         aria-label="Mobile Navigation"
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-xl border-t border-line pb-[env(safe-area-inset-bottom)]"
       >
-        <div className="grid grid-cols-5 h-14 items-center justify-around px-1">
+        <div
+          className="grid h-14 items-center justify-around px-1"
+          style={{ gridTemplateColumns: `repeat(${primaryTabs.length + 1}, minmax(0, 1fr))` }}
+        >
           {primaryTabs.map(tab => {
             const isActive = pathname === tab.href || (tab.href !== "/dashboard" && pathname.startsWith(tab.href));
             return (
@@ -169,6 +192,25 @@ export function MobileBottomBar({ navItems }: MobileBottomBarProps) {
                   </button>
                 ))}
               </div>
+            </div>
+            {/* Account Actions (Settings & Sign Out) */}
+            <div className="pt-2 border-t border-line grid grid-cols-2 gap-2">
+              <Link
+                href="/settings/profile"
+                onClick={() => setMoreOpen(false)}
+                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-line bg-surface-2/40 text-xs font-medium text-text hover:bg-surface-2"
+              >
+                <Settings className="w-4 h-4 text-text-muted" />
+                <span>Settings</span>
+              </Link>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-rust/30 bg-rust/5 text-xs font-medium text-rust hover:bg-rust/10 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign out</span>
+              </button>
             </div>
           </div>
         </div>

@@ -150,22 +150,6 @@ export function TenantsManager({ tenants, onRefresh, notify }: TenantsManagerPro
     }
   };
 
-  const handleOpenDashboard = async (t: Tenant) => {
-    try {
-      const res = await fetch("/api/admin/tenants", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ id: t.id, setActive: true }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
-      localStorage.setItem("bizzpal_business_profile", JSON.stringify(t));
-      window.open("/dashboard", "_blank");
-    } catch (err: any) {
-      notify(`Could not open the dashboard: ${err.message}`);
-    }
-  };
-
   const handleDelete = async (t: Tenant) => {
     if (!(await askConfirm({ title: `Delete ${t.name}?`, message: "The business and all of its data will be removed. This cannot be undone.", confirmLabel: "Delete business", danger: true }))) return;
     try {
@@ -289,11 +273,11 @@ export function TenantsManager({ tenants, onRefresh, notify }: TenantsManagerPro
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
-                            onClick={() => handleOpenDashboard(t)}
+                            onClick={() => setViewing(t)}
                             className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg text-sm text-text hover:bg-surface-2 cursor-pointer whitespace-nowrap"
-                            title="Open this business's dashboard in a new tab"
+                            title="Inspect business details"
                           >
-                            Open <ArrowUpRight className="w-3.5 h-3.5" />
+                            Inspect <ArrowUpRight className="w-3.5 h-3.5" />
                           </button>
                           <button type="button" onClick={() => openEditModal(t)} className={iconButton} title="Edit" aria-label={`Edit ${t.name}`}>
                             <Pencil className="w-4 h-4" />
@@ -344,12 +328,9 @@ export function TenantsManager({ tenants, onRefresh, notify }: TenantsManagerPro
                   setViewing(null);
                   openEditModal(t);
                 }}
-                className={secondaryButton}
+                className={primaryButton}
               >
-                <Pencil className="w-4 h-4" /> Edit
-              </button>
-              <button type="button" onClick={() => handleOpenDashboard(viewing)} className={primaryButton}>
-                Open dashboard <ArrowUpRight className="w-4 h-4" />
+                <Pencil className="w-4 h-4" /> Edit business
               </button>
             </>
           )

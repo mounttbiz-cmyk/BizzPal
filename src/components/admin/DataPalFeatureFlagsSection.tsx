@@ -6,26 +6,45 @@ import {
   DataPalFeatureFlags,
   DEFAULT_DATAPAL_FEATURE_FLAGS,
   getStoredFeatureFlags,
-  saveStoredFeatureFlags,
+  saveServerFeatureFlags,
 } from "@/lib/datapal/featureFlags";
 
 export function DataPalFeatureFlagsSection() {
   const [flags, setFlags] = useState<DataPalFeatureFlags>(DEFAULT_DATAPAL_FEATURE_FLAGS);
   const [justSaved, setJustSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
 
   useEffect(() => {
     setFlags(getStoredFeatureFlags());
+    fetch("/api/admin/config", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(json => {
+        if (json?.data?.datapalFlags) {
+          setFlags({ ...DEFAULT_DATAPAL_FEATURE_FLAGS, ...json.data.datapalFlags });
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  const handleToggle = (key: keyof DataPalFeatureFlags) => {
+  const handleToggle = async (key: keyof DataPalFeatureFlags) => {
+    const prev = flags;
     const updated = {
       ...flags,
       [key]: !flags[key],
     };
     setFlags(updated);
-    saveStoredFeatureFlags(updated);
-    setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 2000);
+    setSaveError(null);
+    setSavingKey(key);
+    const result = await saveServerFeatureFlags(updated);
+    setSavingKey(null);
+    if (result.ok) {
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2000);
+    } else {
+      setFlags(prev);
+      setSaveError(result.error || "Could not save DataPal flags on server.");
+    }
   };
 
   const featureItems: {
@@ -57,12 +76,14 @@ export function DataPalFeatureFlagsSection() {
           <h2 className="text-base font-semibold text-text">DataPal options</h2>
           <p className="text-sm text-text-muted mt-0.5">Optional steps and helpers in the DataPal studio.</p>
         </div>
-        {justSaved && (
+        {saveError ? (
+          <span className="text-sm text-rust">{saveError}</span>
+        ) : justSaved ? (
           <span className="text-sm text-jade flex items-center gap-1">
             <Check className="w-4 h-4" />
             Saved
           </span>
-        )}
+        ) : null}
       </div>
 
       <div className="rounded-2xl border border-line bg-surface shadow-sm divide-y divide-line overflow-hidden">
@@ -79,8 +100,9 @@ export function DataPalFeatureFlagsSection() {
                 role="switch"
                 aria-checked={isEnabled}
                 aria-label={item.title}
+                disabled={savingKey === item.key}
                 onClick={() => handleToggle(item.key)}
-                className={`relative w-10 h-6 rounded-full shrink-0 cursor-pointer transition-colors ${isEnabled ? "bg-brass" : "bg-line-strong"}`}
+                className={`relative w-10 h-6 rounded-full shrink-0 cursor-pointer transition-colors disabled:opacity-50 ${isEnabled ? "bg-brass" : "bg-line-strong"}`}
               >
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${isEnabled ? "translate-x-4" : ""}`} />
               </button>

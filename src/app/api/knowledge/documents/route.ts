@@ -18,7 +18,9 @@ export async function GET(req: NextRequest) {
     const docs = getCompanyDocuments(bizId);
     return NextResponse.json({ success: true, documents: docs, businessId: bizId });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const msg = String(error?.message || "Failed to process document");
+    const status = /PDF|selectable text|Missing/i.test(msg) ? 422 : 500;
+    return NextResponse.json({ success: false, error: msg }, { status });
   }
 }
 
@@ -29,9 +31,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const contentType = req.headers.get("content-type") || "";
-    const bizId =
-      req.headers.get("x-business-id") ||
-      tenantId;
+    const bizId = tenantId;
 
     let fileName = "company_document.txt";
     let fileBuffer: Buffer | string = "";
@@ -71,6 +71,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, result });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const msg = String(error?.message || "Failed to process document");
+    const status = /PDF|selectable text|Missing/i.test(msg) ? 422 : 500;
+    return NextResponse.json({ success: false, error: msg }, { status });
   }
 }

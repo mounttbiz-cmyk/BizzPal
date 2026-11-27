@@ -166,25 +166,104 @@ async function callGemini(apiKey: string, req: ChatRequest, models: string[], ti
   return null;
 }
 
-/** OpenAI-style chat APIs (Groq, OpenRouter, Mistral). */
-async function callOpenAiStyle(provider: string, url: string, apiKey: string, models: string[], req: ChatRequest): Promise<Answer | null> {
+/** OpenAI-style chat APIs (Groq, OpenRouter, Mistral, FreeLLMAPI). */
+async function callOpenAiStyle(
+  provider: string,
+  url: string,
+  apiKey: string,
+  models: string[],
+  req: ChatRequest,
+  timeoutMs = 25_000
+): Promise<{ answer: Answer | null; lastStatus?: number }> {
   const messages = [
     { role: "system", content: req.system },
     ...(req.history || []).map(t => ({ role: t.role, content: t.text })),
     { role: "user", content: req.message },
   ];
+  let lastStatus: number | undefined;
   for (const model of models) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const resp = await fetch(url, {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model, messages, temperature: req.temperature ?? 0.6, max_tokens: 3500 }),
+        body: JSON.stringify({ model, messages, temperature: req.temperature ?? (req.json ? 0.2 : 0.6), max_tokens: 3500 }),
       });
-      if (!resp.ok) continue;
+      lastStatus = resp.status;
+      if (!resp.ok) {
+        const detail = (await resp.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
+        console.warn(`[ai] ${provider} (${model}) answered ${resp.status}: ${detail}`);
+        continue;
+      }
       const data = await resp.json();
-      const text = data.choices?.[0]?.message?.content;
-      if (text) return { text, provider, model: String(data.model || model), inputTokens: tokens(data.usage?.prompt_tokens), outputTokens: tokens(data.usage?.completion_tokens) };
-    } catch {}
+      const rawText = data.choices?.[0]?.message?.content;
+      const text = typeof rawText === "string" ? rawText.replace(/<think>[\s\S]*?<\/think>/gi, "").trim() : "";
+      if (text) {
+        return {
+          answer: {
+            text,
+            provider,
+            model: String(data.model || model),
+            inputTokens: tokens(data.usage?.prompt_tokens),
+            outputTokens: tokens(data.usage?.completion_tokens),
+          },
+          lastStatus,
+        };
+      }
+    } catch (err: any) {
+      console.warn(`[ai] ${provider} (${model}) failed: ${err?.name === "AbortError" ? "timed out" : err?.message}`);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return { answer: null, lastStatus };
+}
+
+export function freeLlmBaseUrl(): string {
+  const raw = (process.env.FREELMAPI_BASE_URL || "http://127.0.0.1:31415/v1").trim().replace(/\/+$/, "");
+  return raw.endsWith("/chat/completions") ? raw.slice(0, -"/chat/completions".length) : raw;
+}
+
+/** Fetches available model IDs from a running FreeLLMAPI OpenAI-compatible router (/v1/models). */
+export async function listFreeLlmModels(baseUrl = freeLlmBaseUrl(), apiKey = process.env.FREELMAPI_API_KEY || ""): Promise<string[]> {
+  if (!apiKey) return [];
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4_000);
+  try {
+    const resp = await fetch(`${baseUrl}/models`, {
+      method: "GET",
+      signal: controller.signal,
+      headers: { Authorization: `Bearer ${apiKey}` },
+      cache: "no-store",
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json().catch(() => ({}));
+    return Array.isArray(data?.data) ? data.data.map((m: any) => String(m?.id || "").trim()).filter(Boolean) : [];
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function callFreeLlmApi(apiKey: string, req: ChatRequest): Promise<Answer | null> {
+  const baseUrl = freeLlmBaseUrl();
+  const chatUrl = `${baseUrl}/chat/completions`;
+  const configured = listFromEnv(process.env.FREELMAPI_MODELS, []);
+  if (configured.length > 0) {
+    return (await callOpenAiStyle("freellmapi", chatUrl, apiKey, configured, req)).answer;
+  }
+
+  // Try "auto" first; if the router rejects "auto" or rate-limits/unavailable (400/404/422/429/503), discover exact IDs from /v1/models
+  const autoRes = await callOpenAiStyle("freellmapi", chatUrl, apiKey, ["auto"], req);
+  if (autoRes.answer) return autoRes.answer;
+  if (autoRes.lastStatus && [400, 404, 422, 429, 503].includes(autoRes.lastStatus)) {
+    const discovered = (await listFreeLlmModels(baseUrl, apiKey)).filter(id => id !== "auto").slice(0, 4);
+    if (discovered.length > 0) {
+      return (await callOpenAiStyle("freellmapi", chatUrl, apiKey, discovered, req)).answer;
+    }
   }
   return null;
 }
@@ -219,33 +298,40 @@ export async function generateChatDetailed(req: ChatRequest, tier: AiTier): Prom
   const env = process.env;
   const gemini = () =>
     env.GEMINI_API_KEY ? callGemini(env.GEMINI_API_KEY, req, GEMINI_MODELS[tier](), tier) : Promise.resolve(null);
+  const freellmapi = () => (env.FREELMAPI_API_KEY ? callFreeLlmApi(env.FREELMAPI_API_KEY, req) : Promise.resolve(null));
+  const groq = () =>
+    env.GROQ_API_KEY
+      ? callOpenAiStyle("groq", "https://api.groq.com/openai/v1/chat/completions", env.GROQ_API_KEY, ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"], req).then(r => r.answer)
+      : Promise.resolve(null);
+  const openrouter = () =>
+    env.OPENROUTER_API_KEY
+      ? callOpenAiStyle(
+          "openrouter",
+          "https://openrouter.ai/api/v1/chat/completions",
+          env.OPENROUTER_API_KEY,
+          ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen-2.5-72b-instruct"],
+          req
+        ).then(r => r.answer)
+      : Promise.resolve(null);
+  const mistral = () =>
+    env.MISTRAL_API_KEY
+      ? callOpenAiStyle("mistral", "https://api.mistral.ai/v1/chat/completions", env.MISTRAL_API_KEY, ["mistral-small-latest"], req).then(r => r.answer)
+      : Promise.resolve(null);
+  const cohere = () => (env.COHERE_API_KEY ? callCohere(env.COHERE_API_KEY, req) : Promise.resolve(null));
 
-  // The top plan is answered by Gemini Pro and nothing else. Files can only be read by Gemini.
-  const chain: Array<() => Promise<Answer | null>> =
-    tier === "top" || (req.files && req.files.length > 0)
-      ? [gemini]
-      : [
-          gemini,
-          () =>
-            env.GROQ_API_KEY
-              ? callOpenAiStyle("groq", "https://api.groq.com/openai/v1/chat/completions", env.GROQ_API_KEY, ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"], req)
-              : Promise.resolve(null),
-          () =>
-            env.OPENROUTER_API_KEY
-              ? callOpenAiStyle(
-                  "openrouter",
-                  "https://openrouter.ai/api/v1/chat/completions",
-                  env.OPENROUTER_API_KEY,
-                  ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen-2.5-72b-instruct"],
-                  req
-                )
-              : Promise.resolve(null),
-          () =>
-            env.MISTRAL_API_KEY
-              ? callOpenAiStyle("mistral", "https://api.mistral.ai/v1/chat/completions", env.MISTRAL_API_KEY, ["mistral-small-latest"], req)
-              : Promise.resolve(null),
-          () => (env.COHERE_API_KEY ? callCohere(env.COHERE_API_KEY, req) : Promise.resolve(null)),
-        ];
+  const freeLlmFirst = env.FREELMAPI_FIRST === "true" || env.FREELMAPI_FIRST === "1";
+  const hasFiles = Boolean(req.files && req.files.length > 0);
+
+  // Files can only be read by Gemini. Top plan is Gemini Pro unless FREELMAPI_FIRST is explicitly enabled for routing.
+  const chain: Array<() => Promise<Answer | null>> = hasFiles
+    ? [gemini]
+    : freeLlmFirst
+    ? tier === "top"
+      ? [freellmapi, gemini]
+      : [freellmapi, gemini, groq, openrouter, mistral, cohere]
+    : tier === "top"
+    ? [gemini]
+    : [gemini, freellmapi, groq, openrouter, mistral, cohere];
 
   for (const attempt of chain) {
     try {

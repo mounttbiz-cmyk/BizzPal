@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeReturnTo, signOAuthState } from "@/lib/auth/oauthState";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
   }
 
   const redirectUri = `${origin}/api/integrations/onedrive/callback`;
-  const returnTo = req.nextUrl.searchParams.get("returnTo") || "/integrations";
+  const returnTo = safeReturnTo(req.nextUrl.searchParams.get("returnTo"));
 
   if (!clientId) {
     return new NextResponse(
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const state = Buffer.from(JSON.stringify({ returnTo, origin })).toString("base64url");
+  const state = signOAuthState({ returnTo, origin });
 
   const authUrl = new URL("https://login.microsoftonline.com/common/oauth2/v2.0/authorize");
   authUrl.searchParams.set("client_id", clientId);

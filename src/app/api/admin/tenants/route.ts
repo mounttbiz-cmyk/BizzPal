@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, deleteBusinessData, deleteRegisteredUser, setPlatformConfig } from "@/lib/db";
+import { db, deleteBusinessData, deleteRegisteredUser } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -197,7 +197,6 @@ export async function PUT(request: Request) {
       teamSize,
       website,
       logoUrl,
-      setActive,
     } = body;
 
     if (!id) {
@@ -236,13 +235,6 @@ export async function PUT(request: Request) {
       now,
       id
     );
-
-    // If setActive requested, mark as active tenant in platform settings & touch updated_at
-    if (setActive) {
-      db.prepare("UPDATE businesses SET updated_at = ? WHERE id = ?").run(now, id);
-      setPlatformConfig("active_tenant_id", id);
-    }
-
 
     return NextResponse.json({
       success: true,

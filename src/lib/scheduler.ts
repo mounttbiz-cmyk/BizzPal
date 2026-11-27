@@ -110,9 +110,13 @@ export async function runAutomationNow(
       }
 
       try {
-        const owner = db.prepare("SELECT email FROM registered_users WHERE business_id = ?").get(businessId) as any;
-        if (owner?.email && owner.email.includes("@")) {
-          targetEmails.add(owner.email.trim().toLowerCase());
+        const users = db.prepare("SELECT email FROM registered_users").all() as Array<{ email: string }>;
+        for (const u of users) {
+          const derivedId = `biz_${String(u.email || "").replace(/[^a-zA-Z0-9]/g, "_")}`;
+          if (derivedId === businessId && u.email.includes("@")) {
+            targetEmails.add(u.email.trim().toLowerCase());
+            break;
+          }
         }
       } catch {}
     }
@@ -184,14 +188,40 @@ export function getAutomationRuns(businessId: string, limit = 50) {
     .all(businessId, limit) as Array<{ id: string; automationId: string; automationName: string; status: RunStatus; detail: string; source: string; at: string }>;
 }
 
+function isRuleDue(triggerEvent: string, lastRunIso: string | null): boolean {
+  if (!lastRunIso) return true;
+  const elapsed = Date.now() - new Date(lastRunIso).getTime();
+  if (!Number.isFinite(elapsed) || elapsed < 0) return true;
+  const t = String(triggerEvent || "").toLowerCase();
+
+  // Weekly / named weekday digests must not spam every 6 hours
+  const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const namedDay = weekdays.findIndex(d => t.includes(d));
+  if (t.includes("weekly") || namedDay !== -1) {
+    if (elapsed < 6 * 86400_000) return false;
+    if (namedDay !== -1) {
+      const istNow = new Date(Date.now() + 5.5 * 3600_000);
+      if (istNow.getUTCDay() !== namedDay) return false;
+    }
+    return true;
+  }
+  if (t.includes("daily") || t.includes("morning") || t.includes("evening") || t.includes("every day")) {
+    return elapsed >= 20 * 3600_000;
+  }
+  return true;
+}
+
 async function runEveryBusiness() {
   ensureTables();
   const businesses = db.prepare("SELECT id FROM businesses").all() as Array<{ id: string }>;
   for (const b of businesses) {
     try {
       calculateBusinessMetrics(b.id); // saves this month's snapshot of the real figures
-      const rules = db.prepare("SELECT id, title, trigger_event, action_event FROM business_automations WHERE business_id = ? AND enabled = 1").all(b.id) as any[];
-      for (const r of rules) await runAutomationNow(b.id, { id: r.id, title: r.title, trigger: r.trigger_event, action: r.action_event }, "schedule");
+      const rules = db.prepare("SELECT id, title, trigger_event, action_event, last_run FROM business_automations WHERE business_id = ? AND enabled = 1").all(b.id) as any[];
+      for (const r of rules) {
+        if (!isRuleDue(r.trigger_event, r.last_run || null)) continue;
+        await runAutomationNow(b.id, { id: r.id, title: r.title, trigger: r.trigger_event, action: r.action_event }, "schedule");
+      }
     } catch (e) {
       console.error("[scheduler] business job failed:", b.id, (e as Error).message);
     }

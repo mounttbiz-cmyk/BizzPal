@@ -21,6 +21,11 @@ export function safeDecrypt(val: string): string {
   try {
     return decryptSecret(val);
   } catch (err) {
+    // Never return raw ciphertext if it is formatted as an encrypted v1 secret
+    if (val.startsWith("v1.")) {
+      console.warn("[crypto] Could not decrypt stored secret.");
+      return "";
+    }
     return val;
   }
 }

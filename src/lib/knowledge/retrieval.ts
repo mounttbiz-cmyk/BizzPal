@@ -1,6 +1,7 @@
 import { db, DEFAULT_BUSINESS_ID } from "@/lib/db";
 import { isPostgresConfigured, queryPostgres } from "@/lib/db/pgClient";
 import { generateQueryEmbedding, cosineSimilarity } from "@/lib/ai/embeddings";
+import { generateChat } from "@/lib/ai/providers";
 
 export interface SearchResultItem {
   id: string;
@@ -49,6 +50,13 @@ export async function searchCompanyKnowledge(
 ): Promise<SearchResultItem[]> {
   const limit = options.limit || 6;
   const minSimilarity = options.minSimilarity ?? 0.05;
+
+  // Fast path: when using SQLite and this business has no document chunks, skip embedding network calls
+  if (!isPostgresConfigured()) {
+    const hasAny = db.prepare("SELECT 1 FROM document_chunks WHERE business_id = ? LIMIT 1").get(businessId);
+    if (!hasAny) return [];
+  }
+
   const queryEmbedding = await generateQueryEmbedding(query);
 
   // 1. Try pgvector if PostgreSQL is configured
@@ -165,30 +173,87 @@ export async function searchCompanyKnowledge(
   return scored.slice(0, limit);
 }
 
+export interface FactFilterOptions {
+  category?: string;
+  role?: string;
+  classification?: string;
+  purpose?: string;
+  includeExpired?: boolean;
+}
+
+function allowedClassificationsForRole(role?: string): string[] {
+  const r = String(role || "Owner").toLowerCase();
+  if (r === "owner" || r === "admin") return ["public", "internal", "confidential", "restricted"];
+  if (r === "manager" || r === "operator") return ["public", "internal", "confidential"];
+  return ["public", "internal"];
+}
+
 /**
- * Retrieve verified persistent business facts
+ * Retrieve verified persistent business facts filtered by tenant, role/classification, purpose, and expiry.
  */
-export function getPersistentBusinessFacts(businessId = DEFAULT_BUSINESS_ID, category?: string) {
+export function getPersistentBusinessFacts(businessId = DEFAULT_BUSINESS_ID, categoryOrOptions?: string | FactFilterOptions) {
+  const opts: FactFilterOptions =
+    typeof categoryOrOptions === "string" ? { category: categoryOrOptions } : categoryOrOptions || {};
+
+  // Ensure provenance columns exist on older databases
+  for (const col of [
+    "ALTER TABLE business_facts ADD COLUMN owner TEXT",
+    "ALTER TABLE business_facts ADD COLUMN verified_at TEXT",
+    "ALTER TABLE business_facts ADD COLUMN expires_at TEXT",
+    "ALTER TABLE business_facts ADD COLUMN version INTEGER DEFAULT 1",
+    "ALTER TABLE business_facts ADD COLUMN classification TEXT DEFAULT 'internal'",
+    "ALTER TABLE business_facts ADD COLUMN purpose TEXT DEFAULT 'general'",
+  ]) {
+    try { db.exec(col); } catch {}
+  }
+
+  const now = new Date().toISOString();
   let sql = "SELECT * FROM business_facts WHERE business_id = ? AND is_active = 1";
   const params: any[] = [businessId];
-  if (category) {
-    sql += " AND category = ?";
-    params.push(category);
+
+  if (!opts.includeExpired) {
+    sql += " AND (expires_at IS NULL OR expires_at > ?) AND (valid_to IS NULL OR valid_to > ?)";
+    params.push(now, now);
   }
+  if (opts.category) {
+    sql += " AND category = ?";
+    params.push(opts.category);
+  }
+  if (opts.purpose) {
+    sql += " AND (purpose IS NULL OR purpose = 'general' OR purpose = ?)";
+    params.push(opts.purpose);
+  }
+  if (opts.classification) {
+    sql += " AND classification = ?";
+    params.push(opts.classification);
+  }
+
   sql += " ORDER BY category ASC, fact_key ASC";
   const rows = db.prepare(sql).all(...params) as any[];
-  return rows.map((r) => ({
-    id: r.id,
-    businessId: r.business_id,
-    category: r.category,
-    key: r.fact_key,
-    value: r.fact_value,
-    confidence: r.confidence,
-    sourceDocumentId: r.source_document_id,
-    sourceCitation: r.source_citation,
-    verifiedBy: r.verified_by,
-    createdAt: r.created_at,
-  }));
+  const allowedClasses = new Set(allowedClassificationsForRole(opts.role));
+
+  return rows
+    .filter(r => allowedClasses.has(String(r.classification || "internal").toLowerCase()))
+    .map((r) => ({
+      id: r.id,
+      businessId: r.business_id,
+      category: r.category,
+      key: r.fact_key,
+      value: r.fact_value,
+      confidence: r.confidence,
+      sourceDocumentId: r.source_document_id,
+      source: r.source_citation,
+      sourceCitation: r.source_citation,
+      verifiedBy: r.verified_by,
+      owner: r.owner || r.verified_by || "Owner",
+      verifiedAt: r.verified_at || r.valid_from || r.created_at,
+      expiresAt: r.expires_at || null,
+      expired: Boolean(r.expires_at && r.expires_at <= now),
+      version: Number(r.version || 1),
+      classification: r.classification || "internal",
+      purpose: r.purpose || "general",
+      createdAt: r.created_at,
+    }));
 }
 
 /**
@@ -246,53 +311,16 @@ TASK:
    - "INFERRED CONCLUSIONS": Deductions or business extrapolations based on the data.
 4. If the retrieved evidence does not contain the answer or is incomplete, clearly state what information is missing. DO NOT make up dates, numbers, or facts.`;
 
-  // Call AI models using multi-provider fallback (Gemini -> Groq -> OpenRouter -> Mistral)
-  let aiAnswer: string | null = null;
-
-  // Try Gemini
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
-    try {
-      const resp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 2000 },
-          }),
-        }
-      );
-      if (resp.ok) {
-        const data = await resp.json();
-        aiAnswer = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      }
-    } catch {}
-  }
-
-  // Try Groq fallback
-  if (!aiAnswer && process.env.GROQ_API_KEY) {
-    try {
-      const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.2,
-          max_tokens: 2000,
-        }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        aiAnswer = data.choices?.[0]?.message?.content;
-      }
-    } catch {}
-  }
+  // Call AI models using the unified provider router (Gemini / FreeLLMAPI / Groq / OpenRouter / Mistral / Cohere)
+  let aiAnswer = await generateChat(
+    {
+      system: "You are BizzPal's Business Context Engine. Answer strictly from supplied evidence and cite sources.",
+      message: prompt,
+      temperature: 0.2,
+      meter: { businessId, feature: "knowledge_query" },
+    },
+    "paid"
+  ).catch(() => null);
 
   // Deterministic synthesis fallback if AI APIs unavailable
   if (!aiAnswer) {

@@ -86,14 +86,17 @@ function taskLines(businessId: string): string[] {
 
 function factLines(businessId: string): string[] {
   try {
+    const now = new Date().toISOString();
     const rows = db
       .prepare(
-        `SELECT category, fact_key, fact_value FROM business_facts
-         WHERE business_id = ? AND is_active = 1 AND (valid_to IS NULL OR valid_to > ?)
+        `SELECT category, fact_key, fact_value, source_citation, version FROM business_facts
+         WHERE business_id = ? AND is_active = 1
+           AND (valid_to IS NULL OR valid_to > ?)
+           AND (expires_at IS NULL OR expires_at > ?)
          ORDER BY confidence DESC, updated_at DESC LIMIT 25`
       )
-      .all(businessId, new Date().toISOString()) as any[];
-    return rows.map(f => `- ${f.category}: ${clip(String(f.fact_key), 80)} = ${clip(String(f.fact_value), 200)}`);
+      .all(businessId, now, now) as any[];
+    return rows.map(f => `- ${f.category}: ${clip(String(f.fact_key), 80)} = ${clip(String(f.fact_value), 200)} (source: ${f.source_citation || "verified"}, v${Number(f.version || 1)})`);
   } catch {
     return [];
   }

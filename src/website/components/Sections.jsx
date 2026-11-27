@@ -8,8 +8,8 @@ import { applyFX, resetFX } from '../lib/engine';
 import { DASHBOARD_URL } from '../config';
 
 export const DEFAULT_CONTACT = {
-  email: 'hello@bizzpal.ai',
-  site: 'bizzpal.ai',
+  email: 'hello@bizzpal.in',
+  site: 'bizzpal.in',
   linkedin: 'https://linkedin.com/company/bizzpal',
   twitter: 'https://twitter.com/bizzpal'
 };
@@ -431,7 +431,7 @@ export function Contact({ data }) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setNote('Please enter a valid email address.'); setAlert(true); return;
     }
-    const to = contactInfo.email || 'hello@bizzpal.ai';
+    const to = contactInfo.email || 'hello@bizzpal.in';
     const subject = encodeURIComponent('Starting a conversation with BizzPal');
     const body = encodeURIComponent(`Hi BizzPal,\n\nI'd like to talk about a project.\n\nMy email: ${email.trim()}\n\n`);
     window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;

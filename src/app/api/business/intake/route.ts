@@ -77,12 +77,12 @@ export async function POST(req: Request) {
       monthlyRevenue,
       monthlyBurn,
       cashOnHand,
-      connectedTools = [],
-      noIntegrations = false,
-      whatsappOptIn = false,
-      whatsappNumber = "",
+      connectedTools,
+      noIntegrations,
+      whatsappOptIn,
+      whatsappNumber,
       logoUrl,
-      dynamicAnswers = {},
+      dynamicAnswers,
       structured,
     } = body;
 
@@ -208,34 +208,41 @@ export async function POST(req: Request) {
       });
     }
 
-    // 2. Update integrations according to intake branching logic
-    const allTools = ["stripe", "slack", "zoho_books", "google_calendar", "help_desk"];
-    for (const toolKey of allTools) {
-      const isSelected = !noIntegrations && Array.isArray(connectedTools) && connectedTools.includes(toolKey);
-      const currentInt = db
-        .prepare("SELECT status FROM integrations WHERE business_id = ? AND tool_key = ?")
-        .get(targetBizId, toolKey) as any;
+    // 2. Only update integration selections when explicitly sent in the request, without wiping verified OAuth/Slack/Stripe connections
+    if (connectedTools !== undefined || noIntegrations !== undefined) {
+      const allTools = ["stripe", "slack", "zoho_books", "google_calendar", "help_desk"];
+      for (const toolKey of allTools) {
+        const isSelected = !noIntegrations && Array.isArray(connectedTools) && connectedTools.includes(toolKey);
+        const currentInt = db
+          .prepare("SELECT status FROM integrations WHERE business_id = ? AND tool_key = ?")
+          .get(targetBizId, toolKey) as any;
 
-      let nextStatus = "not_connected";
-      if (isSelected) {
-        nextStatus = currentInt && currentInt.status === "connected" ? "connected" : "pending_connection";
+        if (currentInt?.status === "connected" && !isSelected) {
+          // Never downgrade an already verified connection when saving settings
+          continue;
+        }
+
+        let nextStatus = "not_connected";
+        if (isSelected) {
+          nextStatus = currentInt && currentInt.status === "connected" ? "connected" : "pending_connection";
+        }
+
+        db.prepare(`
+          INSERT INTO integrations (id, business_id, tool_key, name, category, status, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(business_id, tool_key) DO UPDATE SET
+            status = excluded.status,
+            updated_at = excluded.updated_at
+        `).run(
+          `int_${targetBizId}_${toolKey}`,
+          targetBizId,
+          toolKey,
+          toolKey === "stripe" ? "Stripe" : toolKey === "slack" ? "Slack" : toolKey === "zoho_books" ? "Zoho Books" : toolKey === "google_calendar" ? "Google Calendar" : "Help Desk",
+          toolKey === "stripe" ? "payments" : toolKey === "slack" ? "communication" : toolKey === "zoho_books" ? "accounting" : toolKey === "google_calendar" ? "scheduling" : "support",
+          nextStatus,
+          now
+        );
       }
-
-      db.prepare(`
-        INSERT INTO integrations (id, business_id, tool_key, name, category, status, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(business_id, tool_key) DO UPDATE SET
-          status = excluded.status,
-          updated_at = excluded.updated_at
-      `).run(
-        `int_${targetBizId}_${toolKey}`,
-        targetBizId,
-        toolKey,
-        toolKey === "stripe" ? "Stripe" : toolKey === "slack" ? "Slack" : toolKey === "zoho_books" ? "Zoho Books" : toolKey === "google_calendar" ? "Google Calendar" : "Help Desk",
-        toolKey === "stripe" ? "payments" : toolKey === "slack" ? "communication" : toolKey === "zoho_books" ? "accounting" : toolKey === "google_calendar" ? "scheduling" : "support",
-        nextStatus,
-        now
-      );
     }
 
     return NextResponse.json({

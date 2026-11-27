@@ -10,19 +10,26 @@ import { defaultWidgets } from "@/config/seeds/defaultWidgets";
 
 export const dynamic = "force-dynamic";
 
+const DEFAULT_DATAPAL_FLAGS = {
+  "datapal.pitchAngle.enabled": false,
+  "datapal.advancedRules.enabled": false,
+  "datapal.aiMatcher.enabled": false,
+};
+
 async function fetchPublicConfigWithCloudFirst<T>(key: string, localFallback: T): Promise<T> {
   return getPlatformConfig<T>(key, localFallback);
 }
 
 export async function GET() {
   try {
-    const [website, features, rawNav, tools, widgets, plans] = await Promise.all([
+    const [website, features, rawNav, tools, widgets, plans, datapalFlags] = await Promise.all([
       fetchPublicConfigWithCloudFirst("website_config", DEFAULT_WEBSITE_CONFIG),
       fetchPublicConfigWithCloudFirst("dashboard_features", DEFAULT_DASHBOARD_FEATURES),
       fetchPublicConfigWithCloudFirst("dashboard_nav", defaultNavItems),
       fetchPublicConfigWithCloudFirst("tools_catalog", DEFAULT_TOOLS_CATALOG),
       fetchPublicConfigWithCloudFirst("dashboard_widgets", defaultWidgets),
       fetchPublicConfigWithCloudFirst("subscription_plans", DEFAULT_SUBSCRIPTION_PLANS),
+      fetchPublicConfigWithCloudFirst("datapal_feature_flags", DEFAULT_DATAPAL_FLAGS),
     ]);
 
     const sanitizeNav = (items: any[]) => (Array.isArray(items) ? items : []).map(item => ({
@@ -52,6 +59,7 @@ export async function GET() {
       tools: finalTools,
       widgets: finalWidgets,
       plans,
+      datapalFlags,
     }, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",

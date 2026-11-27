@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
+import { loadWorkspaceState, saveWorkspaceState } from "@/lib/workspace/stateClient";
 
 interface FAQItem {
   id: string;
@@ -67,6 +68,7 @@ export default function HelpPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
     try {
       const profile = localStorage.getItem("bizzpal_business_profile");
       if (profile) {
@@ -74,12 +76,25 @@ export default function HelpPage() {
         if (p.name) setCompanyName(p.name);
         if (p.founderName) setFounderName(p.founderName);
       }
-      const raw = localStorage.getItem(QUESTIONS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setSaved(parsed);
-      }
     } catch {}
+
+    fetch("/api/business/intake", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => {
+        if (active && d?.success && d.business) {
+          if (d.business.name) setCompanyName(d.business.name);
+          if (d.business.founderName) setFounderName(d.business.founderName);
+        }
+      })
+      .catch(() => {});
+
+    loadWorkspaceState<SavedQuestion[]>("help", QUESTIONS_KEY)
+      .then(parsed => {
+        if (active && Array.isArray(parsed)) setSaved(parsed);
+      })
+      .catch(() => {});
+
+    return () => { active = false; };
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -95,9 +110,7 @@ export default function HelpPage() {
     };
     const next = [entry, ...saved].slice(0, 30);
     setSaved(next);
-    try {
-      localStorage.setItem(QUESTIONS_KEY, JSON.stringify(next));
-    } catch {}
+    saveWorkspaceState("help", next, QUESTIONS_KEY).catch(() => {});
 
     // Opens the person's own email app, addressed to us
     const body = `${entry.message}\n\n—\n${founderName || "Founder"}${companyName ? `, ${companyName}` : ""}\nTopic: ${category}`;

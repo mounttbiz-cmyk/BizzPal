@@ -40,6 +40,8 @@ interface XRay {
   promptVersion: string;
   snapshot: { finalUrl: string; crawledAt: string; durationMs: number; pages: SnapshotPage[]; skipped: Array<{ url: string; reason: string }>; notRead: number } | null;
   result: {
+    partial?: boolean;
+    modelPolicyVersion?: string;
     profile: Record<string, Fact>;
     industry: { id: IndustryId; reason: string; sources: string[] };
     opportunities: Opportunity[];
@@ -404,6 +406,7 @@ function Report({ xray, canCorrect }: { xray: XRay; canCorrect: boolean }) {
           <span className="text-text font-medium">{host(xray.snapshot?.finalUrl || xray.url)}</span> · {when(xray.finishedAt || xray.createdAt)}
         </span>
         <span>Industry: {INDUSTRY_NAMES[r.industry.id]}</span>
+        {r.partial && <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-medium">Partial X-Ray</span>}
         {xray.durationMs ? <span>Took {Math.round(xray.durationMs / 1000)}s</span> : null}
       </div>
 

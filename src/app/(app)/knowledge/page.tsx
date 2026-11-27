@@ -12,6 +12,7 @@ import {
   OneDriveIcon,
   CloudDriveFileResult,
 } from "@/components/integrations/CloudDrivePickerModal";
+import { loadWorkspaceState, saveWorkspaceState } from "@/lib/workspace/stateClient";
 
 interface KnowledgeDoc {
   id: string;
@@ -125,31 +126,45 @@ export default function KnowledgeHubPage() {
   };
 
   useEffect(() => {
+    let active = true;
     try {
       const savedProfile = localStorage.getItem("bizzpal_business_profile");
       if (savedProfile) {
         const parsed = JSON.parse(savedProfile);
         if (parsed.name) setCompanyName(parsed.name);
       }
+    } catch {}
 
-      const savedDocs = localStorage.getItem("bizzpal_knowledge_docs");
-      if (savedDocs) {
-        const parsed = JSON.parse(savedDocs);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const sanitizedDocs = parsed.map((d: KnowledgeDoc) => ({
-            ...d,
-            content: (d.content || "")
-              .replace(/Astra\s*\(CEO\s*AI\)/gi, "CEO")
-              .replace(/Astra\s*AI/gi, "CEO AI")
-              .replace(/Marcus\s*\(CFO\s*AI\)/gi, "CFO")
-              .replace(/Marcus\s*AI/gi, "CFO AI")
-              .replace(/Elena\s*\(Marketing\s*AI\)/gi, "Marketing")
-              .replace(/Elena\s*AI/gi, "Marketing AI"),
-          }));
-          setDocs(sanitizedDocs);
+    fetch("/api/business/intake", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => {
+        if (active && d?.success && d.business?.name) {
+          setCompanyName(d.business.name);
         }
-      }
+      })
+      .catch(() => {});
 
+    const sanitizeDocsList = (parsed: KnowledgeDoc[]) =>
+      parsed.map((d: KnowledgeDoc) => ({
+        ...d,
+        content: (d.content || "")
+          .replace(/Astra\s*\(CEO\s*AI\)/gi, "CEO")
+          .replace(/Astra\s*AI/gi, "CEO AI")
+          .replace(/Marcus\s*\(CFO\s*AI\)/gi, "CFO")
+          .replace(/Marcus\s*AI/gi, "CFO AI")
+          .replace(/Elena\s*\(Marketing\s*AI\)/gi, "Marketing")
+          .replace(/Elena\s*AI/gi, "Marketing AI"),
+      }));
+
+    loadWorkspaceState<KnowledgeDoc[]>("knowledge_playbooks", "bizzpal_knowledge_docs")
+      .then(parsed => {
+        if (active && Array.isArray(parsed) && parsed.length > 0) {
+          setDocs(sanitizeDocsList(parsed));
+        }
+      })
+      .catch(() => {});
+
+    try {
       const savedNews = localStorage.getItem("bizzpal_business_news");
       if (savedNews) {
         const parsed = JSON.parse(savedNews);
@@ -173,6 +188,7 @@ export default function KnowledgeHubPage() {
 
     // Auto-fetch live news on mount
     fetchLiveNews(false);
+    return () => { active = false; };
   }, []);
 
   const handleRefreshNews = () => {
@@ -222,9 +238,7 @@ export default function KnowledgeHubPage() {
 
       setDocs(prev => {
         const updated = [newDocItem, ...prev];
-        try {
-          localStorage.setItem("bizzpal_knowledge_docs", JSON.stringify(updated));
-        } catch (e) {}
+        saveWorkspaceState("knowledge_playbooks", updated, "bizzpal_knowledge_docs").catch(() => {});
         return updated;
       });
 
@@ -455,36 +469,56 @@ export default function KnowledgeHubPage() {
                 </p>
               </div>
 
-              {/* Strategic Business Impact for User */}
-              <div className="p-4 rounded-lg bg-surface-2 border border-line space-y-1.5">
-                <p className="text-xs font-semibold text-text">Impact on {companyName}</p>
-                <p className="text-xs text-text leading-relaxed">
-                  {activeNews.businessImpact}
-                </p>
-              </div>
-
-              {/* Key Actionable Takeaways */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-text uppercase tracking-wider">Executive Takeaways</h4>
-                <div className="space-y-1.5">
-                  {activeNews.keyTakeaways.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-2 text-xs text-text-muted">
-                      <span className="w-1.5 h-1.5 rounded-full bg-text-muted mt-1.5 shrink-0" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
+              {/* Strategic Business Impact for User (only if provided) */}
+              {activeNews.businessImpact && (
+                <div className="p-4 rounded-lg bg-surface-2 border border-line space-y-1.5">
+                  <p className="text-xs font-semibold text-text">Impact on {companyName}</p>
+                  <p className="text-xs text-text leading-relaxed">
+                    {activeNews.businessImpact}
+                  </p>
                 </div>
-              </div>
+              )}
+
+              {/* Key Actionable Takeaways (only if present) */}
+              {Array.isArray(activeNews.keyTakeaways) && activeNews.keyTakeaways.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-text uppercase tracking-wider">Key Takeaways</h4>
+                  <div className="space-y-1.5">
+                    {activeNews.keyTakeaways.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs text-text-muted">
+                        <span className="w-1.5 h-1.5 rounded-full bg-text-muted mt-1.5 shrink-0" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="pt-4 border-t border-line flex items-center justify-between">
-              <a
-                href="/chat"
-                className="text-xs font-semibold text-brass hover:underline flex items-center gap-1"
-              >
-                <span>Discuss this development with {activeNews.executiveAdvisor}</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+            <div className="pt-4 border-t border-line flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-4">
+                <a
+                  href={`/chat?advisor=${encodeURIComponent(
+                    (activeNews.executiveAdvisor || "ceo").toLowerCase()
+                  )}&prompt=${encodeURIComponent(
+                    `Analyze how this market development impacts ${companyName}: "${activeNews.title}" — ${activeNews.summary}`
+                  )}`}
+                  className="text-xs font-semibold text-brass hover:underline flex items-center gap-1"
+                >
+                  <span>Discuss with {activeNews.executiveAdvisor}</span>
+                </a>
+                {activeNews.url && (
+                  <a
+                    href={activeNews.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-text-muted hover:text-text hover:underline inline-flex items-center gap-1"
+                  >
+                    <span>Source article</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => setActiveNews(null)}

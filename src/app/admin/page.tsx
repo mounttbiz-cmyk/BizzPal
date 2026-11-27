@@ -48,6 +48,7 @@ import { DataPalFeatureFlagsSection } from "@/components/admin/DataPalFeatureFla
 import { TenantsManager } from "./components/TenantsManager";
 import { UsersManager } from "./components/UsersManager";
 import { DataPalUsageManager } from "./components/DataPalUsageManager";
+import { AgentEvaluationsSection } from "./components/AgentEvaluationsSection";
 import { PricingManager } from "./components/PricingManager";
 import { WebsiteCmsExtra } from "./components/WebsiteCmsExtra";
 import { defaultNavItems } from "@/config/seeds/defaultNav";
@@ -276,11 +277,19 @@ export default function AdminPage() {
     fetchAllConfig();
   }, []);
 
-  // Save specific section to database & mirror to localStorage for instant website and dashboard sync
+  // Save specific section to database with full rollback if backend rejects/fails
   const saveSection = async (sectionName: string, payload: any, note?: string) => {
+    const prevSnapshot = {
+      plans,
+      websiteConfig,
+      navItems,
+      widgets,
+      tools,
+      featuresConfig,
+    };
+
     try {
       setSaving(true);
-      // Synchronize parent React state immediately so UI and all child components reflect without lag or reversion
       if (sectionName === "plans") setPlans(payload);
       if (sectionName === "website") setWebsiteConfig(payload);
       if (sectionName === "nav") setNavItems(payload);
@@ -296,7 +305,33 @@ export default function AdminPage() {
         if (Array.isArray(payload.plans)) setPlans(payload.plans);
       }
 
-      // 1. Immediately mirror to localStorage so website and dashboard reflect instantly on same domain
+      // Persist to server first before broadcasting across tabs
+      const res = await fetch("/api/admin/config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          section: sectionName,
+          payload,
+          note: note || `Updated ${sectionName} settings`,
+          actor: "Superadmin",
+        }),
+      });
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text().catch(() => "");
+        const isHtml = text.includes("<html") || text.includes("<!DOCTYPE");
+        throw new Error(isHtml ? "The server was temporarily busy or recompiling. Please retry in a moment." : (text.slice(0, 100) || `HTTP ${res.status}`));
+      }
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || `Server returned HTTP ${res.status}`);
+      }
+
+      // Mirror verified save to localStorage and BroadcastChannel
       if (typeof window !== "undefined") {
         try {
           if (sectionName === "website") localStorage.setItem("bizzpal_website_config", JSON.stringify(payload));
@@ -323,36 +358,18 @@ export default function AdminPage() {
         } catch {}
       }
 
-      // 2. Persist to server
-      const res = await fetch("/api/admin/config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          section: sectionName,
-          payload,
-          note: note || `Updated ${sectionName} settings`,
-          actor: "Superadmin",
-        }),
-      });
-      let data: any = null;
-      try {
-        data = await res.json();
-      } catch {
-        const text = await res.text().catch(() => "");
-        const isHtml = text.includes("<html") || text.includes("<!DOCTYPE");
-        throw new Error(isHtml ? "The server was temporarily busy or recompiling. Please retry in a moment." : (text.slice(0, 100) || `HTTP ${res.status}`));
-      }
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.error || `Server returned HTTP ${res.status}`);
-      }
       if (data.version) setVersion(data.version);
       if (data.auditLogs) setAuditLogs(data.auditLogs);
       notify("Changes saved successfully");
     } catch (err: any) {
-      notify(`Save failed: ${err.message}`);
+      // Rollback optimistic UI state when persistence fails
+      setPlans(prevSnapshot.plans);
+      setWebsiteConfig(prevSnapshot.websiteConfig);
+      setNavItems(prevSnapshot.navItems);
+      setWidgets(prevSnapshot.widgets);
+      setTools(prevSnapshot.tools);
+      setFeaturesConfig(prevSnapshot.featuresConfig);
+      notify(`Save failed (reverted): ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -2273,6 +2290,8 @@ export default function AdminPage() {
         </Panel>
       )}
 
+      {activeTab === "tools" && <AgentEvaluationsSection notify={notify} />}
+
       {/* ============================================================= */}
       {/* SETTINGS: CHANGE HISTORY                                      */}
       {/* ============================================================= */}
@@ -2306,6 +2325,8 @@ export default function AdminPage() {
           )}
         </Panel>
       )}
+
+      {activeTab === "tools" && <AgentEvaluationsSection notify={notify} />}
 
       {/* ============================================================= */}
       {/* SETTINGS: BACKUP & RESTORE                                    */}

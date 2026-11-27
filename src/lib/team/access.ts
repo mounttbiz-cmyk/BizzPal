@@ -19,6 +19,17 @@ const AREA_BY_PREFIX: Array<[string, string]> = [
   ["/api/integrations", "integrations"],
 ];
 
+const SCOPE_TO_AREA: Record<string, string> = {
+  reports: "finance",
+  simulator: "finance",
+  advisors: "advisors",
+  playbooks: "workflows",
+  knowledge_playbooks: "workflows",
+  strategy: "workflows",
+  gaps: "workflows",
+  help: "workflows",
+};
+
 // Only the owner may use these at all.
 const OWNER_ONLY_PREFIXES = ["/api/team/invites", "/api/team/hris", "/api/payments", "/api/verify", "/api/business/register"];
 // Owner-only when changing something; teammates may read.
@@ -49,7 +60,13 @@ export function checkTeamAccess(req: Request, membership: TeamMembership, ownerB
   if (!isRead && !TEAMMATE_WRITES.includes(path) && OWNER_ONLY_WRITES.some(p => startsWith(path, p))) return forbidden("Only the account owner can change this.");
   if (!isRead && startsWith(path, "/api/team/permissions")) return forbidden("Only the account owner can change permissions.");
 
-  const area = AREA_BY_PREFIX.find(([p]) => startsWith(path, p))?.[1];
+  let area = AREA_BY_PREFIX.find(([p]) => startsWith(path, p))?.[1];
+  if (!area && startsWith(path, "/api/workspace/state")) {
+    try {
+      const scope = new URL(req.url).searchParams.get("scope") || "";
+      area = SCOPE_TO_AREA[scope];
+    } catch {}
+  }
   if (!area) return null;
 
   let matrix = DEFAULT_MATRIX;

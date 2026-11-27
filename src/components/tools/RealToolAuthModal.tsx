@@ -106,6 +106,7 @@ export function RealToolAuthModal({
     setError(null);
     setSubmitting(false);
     setIsGoogleOAuthLoading(false);
+    setIsOneDriveLoading(false);
 
     const cfg = currentAuthState?.config || {};
     const safeDomain = companyName ? companyName.toLowerCase().replace(/[^a-z0-9]/g, "") : "";
@@ -194,12 +195,23 @@ export function RealToolAuthModal({
       `width=${width},height=${height},left=${left},top=${top},status=0,toolbar=0,menubar=0`
     );
 
+    let closedMonitor: ReturnType<typeof setInterval> | null = null;
+
+    const cleanup = () => {
+      window.removeEventListener("message", handleMessage);
+      if (closedMonitor) {
+        clearInterval(closedMonitor);
+        closedMonitor = null;
+      }
+    };
+
     const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type === "BIZZPAL_GOOGLE_AUTH_SUCCESS") {
-        window.removeEventListener("message", handleMessage);
-        const data = event.data.data;
+        cleanup();
+        const data = event.data.data || {};
         setIsGoogleOAuthLoading(false);
-        setGoogleEmail(data.email);
+        setGoogleEmail(data.email || "");
         setGoogleProfile({
           email: data.email,
           name: data.name,
@@ -208,10 +220,20 @@ export function RealToolAuthModal({
         });
 
         const detail = data.detail || `Connected · Live Google Account: ${data.email}`;
-        onConnectSuccess(toolId, detail, data.config);
+        onConnectSuccess(
+          toolId,
+          detail,
+          data.config || {
+            connectedEmail: data.email,
+            accountEmail: data.email,
+            accountName: data.name,
+            picture: data.picture || null,
+            liveOAuth: true,
+          }
+        );
         onClose();
       } else if (event.data?.type === "BIZZPAL_GOOGLE_AUTH_ERROR") {
-        window.removeEventListener("message", handleMessage);
+        cleanup();
         setIsGoogleOAuthLoading(false);
         setError(event.data.error || "Google authentication was cancelled or failed.");
       }
@@ -220,9 +242,9 @@ export function RealToolAuthModal({
     window.addEventListener("message", handleMessage);
 
     // Fallback watcher in case popup is closed by user manually
-    const checkClosed = setInterval(() => {
+    closedMonitor = setInterval(() => {
       if (!popup || popup.closed) {
-        clearInterval(checkClosed);
+        cleanup();
         setIsGoogleOAuthLoading(false);
       }
     }, 1200);
@@ -249,17 +271,36 @@ export function RealToolAuthModal({
       `width=${width},height=${height},left=${left},top=${top},status=0,toolbar=0,menubar=0`
     );
 
+    let closedMonitor: ReturnType<typeof setInterval> | null = null;
+
+    const cleanup = () => {
+      window.removeEventListener("message", handleMessage);
+      if (closedMonitor) {
+        clearInterval(closedMonitor);
+        closedMonitor = null;
+      }
+    };
+
     const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type === "BIZZPAL_ONEDRIVE_AUTH_SUCCESS") {
-        window.removeEventListener("message", handleMessage);
-        const data = event.data.data;
+        cleanup();
+        const data = event.data.data || {};
         setIsOneDriveLoading(false);
-        setMsEmail(data.email);
+        setMsEmail(data.email || "");
         const detail = data.detail || `Connected · Live Microsoft OneDrive: ${data.email}`;
-        onConnectSuccess(toolId, detail, data);
+        onConnectSuccess(
+          toolId,
+          detail,
+          data.config || {
+            accountEmail: data.email,
+            accountName: data.name,
+            liveOAuth: true,
+          }
+        );
         onClose();
       } else if (event.data?.type === "BIZZPAL_ONEDRIVE_AUTH_ERROR") {
-        window.removeEventListener("message", handleMessage);
+        cleanup();
         setIsOneDriveLoading(false);
         setError(event.data.error || "Microsoft OneDrive authentication was cancelled or failed.");
       }
@@ -267,9 +308,9 @@ export function RealToolAuthModal({
 
     window.addEventListener("message", handleMessage);
 
-    const checkClosed = setInterval(() => {
+    closedMonitor = setInterval(() => {
       if (!popup || popup.closed) {
-        clearInterval(checkClosed);
+        cleanup();
         setIsOneDriveLoading(false);
       }
     }, 1200);
@@ -289,12 +330,23 @@ export function RealToolAuthModal({
     };
 
     try {
-      if (toolId === "google" || toolId === "google_calendar" || toolId === "google_workspace") {
+      if (toolId === "google_drive" && !googleProfile?.liveOAuth && !showManualGoogleLink) {
+        setSubmitting(false);
+        handleGoogleLiveOAuth();
+        return;
+      }
+      if (toolId === "onedrive" && !currentAuthState?.config?.liveOAuth && !msEmail.trim()) {
+        setSubmitting(false);
+        handleOneDriveLiveOAuth();
+        return;
+      }
+
+      if (toolId === "google" || toolId === "google_calendar" || toolId === "google_workspace" || toolId === "google_drive") {
         const cleanEmail = googleEmail.trim().toLowerCase();
         if (!cleanEmail || !cleanEmail.includes("@")) {
-          throw new Error("Please enter your real Google Account Email or click 'Connect with Google'.");
+          throw new Error("Please enter your real Google Account Email or click 'Continue with Google'.");
         }
-        detail = `Connected · Google Account: ${cleanEmail} (Live Calendar & Telemetry)`;
+        detail = `Connected · Google Account: ${cleanEmail}${toolId === "google_drive" ? " (Google Drive)" : " (Live Calendar & Telemetry)"}`;
         configPayload = {
           ...configPayload,
           connectedEmail: cleanEmail,
@@ -302,21 +354,21 @@ export function RealToolAuthModal({
           accountName: googleProfile?.name || cleanEmail.split("@")[0],
           picture: googleProfile?.picture || null,
           calendarScope,
-          provider: "Google Workspace / Calendar",
+          provider: toolId === "google_drive" ? "Google Drive" : "Google Workspace / Calendar",
         };
-      } else if (toolId === "microsoft" || toolId === "microsoft_365") {
+      } else if (toolId === "microsoft" || toolId === "microsoft_365" || toolId === "onedrive") {
         const cleanEmail = msEmail.trim().toLowerCase();
         if (!cleanEmail || !cleanEmail.includes("@")) {
-          throw new Error("Please enter your Microsoft 365 / Entra Work Email.");
+          throw new Error("Please enter your Microsoft 365 / OneDrive Email or authorize Microsoft.");
         }
-        detail = `Connected · Microsoft 365: ${cleanEmail} (${msSyncScope === "full" ? "SSO + Teams + Outlook" : "Workload Synced"})`;
+        detail = `Connected · Microsoft ${toolId === "onedrive" ? "OneDrive" : "365"}: ${cleanEmail} (${msSyncScope === "full" ? "SSO + Teams + Outlook" : "Workload Synced"})`;
         configPayload = {
           ...configPayload,
           accountEmail: cleanEmail,
           tenantId: msTenantId.trim(),
           teamsWebhook: msTeamsWebhook.trim(),
           syncScope: msSyncScope,
-          provider: "Microsoft 365 / Entra ID",
+          provider: toolId === "onedrive" ? "Microsoft OneDrive" : "Microsoft 365 / Entra ID",
         };
       } else if (toolId === "linkedin" || toolId === "linkedin_company") {
         const cleanUrl = linkedinPageUrl.trim();
@@ -359,7 +411,6 @@ export function RealToolAuthModal({
           accountId: cleanAcc,
           apiKey: cleanKey,
           mode: stripeMode,
-          webhookEndpoint: "/api/webhooks/stripe",
         };
       } else if (toolId === "slack") {
         const cleanWs = slackWorkspace.trim();
@@ -461,17 +512,29 @@ export function RealToolAuthModal({
   const handleDisconnect = async () => {
     if (!(await askConfirm({ title: `Disconnect ${toolName}?`, message: "BizzPal will stop syncing data from it. You can connect it again later.", confirmLabel: "Disconnect", danger: true }))) return;
     setSubmitting(true);
+    setError(null);
     try {
-      await fetch("/api/integrations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          toolKey: toolId,
-          status: "not_connected",
-          config: null,
-        }),
-      });
-      if (onDisconnect) {
+      let res: Response;
+      if (toolId === "google_drive") {
+        res = await fetch("/api/integrations/google/drive/disconnect", { method: "POST" });
+      } else if (toolId === "onedrive") {
+        res = await fetch("/api/integrations/onedrive/disconnect", { method: "POST" });
+      } else {
+        res = await fetch("/api/integrations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            toolKey: toolId,
+            status: "not_connected",
+            config: null,
+          }),
+        });
+      }
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Failed to disconnect tool");
+      }
+      if (onDisconnect && toolId) {
         onDisconnect(toolId);
       }
       onClose();
@@ -941,7 +1004,7 @@ export function RealToolAuthModal({
                   />
                 </div>
                 <p className="text-xs text-text-muted mt-1">
-                  Live Webhook Endpoint is ready at <code>/api/webhooks/stripe</code> for instant subscription updates.
+                  Your API key is encrypted at rest and used only for authorized MRR reconciliation.
                 </p>
               </div>
             </div>
@@ -1185,8 +1248,10 @@ export function RealToolAuthModal({
             "google",
             "google_calendar",
             "google_workspace",
+            "google_drive",
             "microsoft",
             "microsoft_365",
+            "onedrive",
             "linkedin",
             "linkedin_company",
             "meta",
@@ -1251,7 +1316,7 @@ export function RealToolAuthModal({
 
             <button
               type="submit"
-              disabled={submitting || isGoogleOAuthLoading}
+              disabled={submitting || isGoogleOAuthLoading || isOneDriveLoading}
               className="px-5 py-2 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
             >
               {submitting ? (

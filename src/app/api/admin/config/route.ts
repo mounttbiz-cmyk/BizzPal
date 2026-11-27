@@ -15,6 +15,12 @@ import { platformConfigStore } from "@/config/store";
 
 export const dynamic = "force-dynamic";
 
+const DEFAULT_DATAPAL_FLAGS = {
+  "datapal.pitchAngle.enabled": false,
+  "datapal.advancedRules.enabled": false,
+  "datapal.aiMatcher.enabled": false,
+};
+
 interface AuditLogItem {
   id: string;
   timestamp: string;
@@ -31,7 +37,7 @@ async function fetchConfigWithCloudFirst<T>(key: string, localFallback: T): Prom
 
 export async function GET() {
   try {
-    const [website, features, widgets, rawNav, tools, plans, metrics, cloudAuditLogs, cloudVersion] = await Promise.all([
+    const [website, features, widgets, rawNav, tools, plans, metrics, datapalFlags, cloudAuditLogs, cloudVersion] = await Promise.all([
       fetchConfigWithCloudFirst("website_config", DEFAULT_WEBSITE_CONFIG),
       fetchConfigWithCloudFirst("dashboard_features", DEFAULT_DASHBOARD_FEATURES),
       fetchConfigWithCloudFirst("dashboard_widgets", defaultWidgets),
@@ -39,6 +45,7 @@ export async function GET() {
       fetchConfigWithCloudFirst("tools_catalog", DEFAULT_TOOLS_CATALOG),
       fetchConfigWithCloudFirst("subscription_plans", DEFAULT_SUBSCRIPTION_PLANS),
       fetchConfigWithCloudFirst("dashboard_metrics", defaultMetrics),
+      fetchConfigWithCloudFirst("datapal_feature_flags", DEFAULT_DATAPAL_FLAGS),
       fetchConfigWithCloudFirst<AuditLogItem[] | null>("audit_logs", null),
       fetchConfigWithCloudFirst<number | null>("config_version", null),
     ]);
@@ -68,6 +75,7 @@ export async function GET() {
         tools,
         plans,
         metrics,
+        datapalFlags,
         auditLogs,
         version,
       },
@@ -84,6 +92,7 @@ export async function GET() {
         tools: DEFAULT_TOOLS_CATALOG,
         plans: DEFAULT_SUBSCRIPTION_PLANS,
         metrics: defaultMetrics,
+        datapalFlags: DEFAULT_DATAPAL_FLAGS,
         auditLogs: [],
         version: 1,
       },
@@ -137,6 +146,9 @@ export async function POST(request: Request) {
     } else if (section === "plans" && payload) {
       clearMemoryConfigCache("subscription_plans");
       setPlatformConfig("subscription_plans", payload);
+    } else if (section === "datapal_flags" && payload) {
+      clearMemoryConfigCache("datapal_feature_flags");
+      setPlatformConfig("datapal_feature_flags", { ...DEFAULT_DATAPAL_FLAGS, ...payload });
     } else if ((section === "all" || section === "import") && payload) {
       clearMemoryConfigCache();
       if (payload.website) {
@@ -158,6 +170,9 @@ export async function POST(request: Request) {
       }
       if (payload.plans) {
         setPlatformConfig("subscription_plans", payload.plans);
+      }
+      if (payload.datapalFlags) {
+        setPlatformConfig("datapal_feature_flags", { ...DEFAULT_DATAPAL_FLAGS, ...payload.datapalFlags });
       }
     } else {
       return NextResponse.json(
@@ -200,6 +215,7 @@ export async function DELETE() {
     setPlatformConfig("tools_catalog", DEFAULT_TOOLS_CATALOG);
     setPlatformConfig("subscription_plans", DEFAULT_SUBSCRIPTION_PLANS);
     setPlatformConfig("dashboard_metrics", defaultMetrics);
+    setPlatformConfig("datapal_feature_flags", DEFAULT_DATAPAL_FLAGS);
 
     // Keep in-memory config store in sync
     platformConfigStore.setNav(defaultNavItems);

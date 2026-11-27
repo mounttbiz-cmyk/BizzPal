@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   const userEmail = auth.email;
   try {
     const body = await req.json();
-    const { planId, planName: rawPlanName, amount: rawAmount } = body;
+    const { planId, planName: rawPlanName } = body;
     const businessId = undefined as string | undefined;
 
     if (!planId) {
@@ -42,11 +42,12 @@ export async function POST(req: Request) {
 
     let planName = matchedPlan?.name || rawPlanName || "BizzPal Business OS";
     let amountInPaise = 0;
+    const isPack = String(planId).startsWith("datapal_pack_") || isCreditPackId(planId);
 
-    if (matchedPlan?.price) {
-      amountInPaise = parsePriceToPaise(matchedPlan.price);
-    } else if (rawAmount) {
-      amountInPaise = parsePriceToPaise(rawAmount);
+    if (matchedPlan) {
+      amountInPaise = matchedPlan.id === "free" ? 0 : parsePriceToPaise(matchedPlan.price);
+    } else if (!isPack) {
+      return NextResponse.json({ success: false, error: "Unknown plan or pack." }, { status: 404 });
     }
 
     // DataPal top-up packs: the price always comes from the server's own list
@@ -70,6 +71,13 @@ export async function POST(req: Request) {
       }
       planName = `${pack.credits.toLocaleString("en-IN")} agent credits`;
       amountInPaise = pack.priceInr * 100;
+    }
+
+    if (matchedPlan && matchedPlan.id !== "free" && amountInPaise <= 0) {
+      return NextResponse.json(
+        { success: false, error: "This custom plan must be arranged with billing or an administrator." },
+        { status: 400 }
+      );
     }
 
     if (amountInPaise <= 0) {

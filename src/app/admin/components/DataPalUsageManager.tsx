@@ -57,6 +57,44 @@ export function DataPalUsageManager() {
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [billing, setBilling] = useState<any>(null);
+  const [grantEmail, setGrantEmail] = useState("");
+  const [grantCredits, setGrantCredits] = useState("100");
+  const [grantNote, setGrantNote] = useState("");
+  const [granting, setGranting] = useState(false);
+  const [grantMsg, setGrantMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const handleGrantCredits = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!grantEmail.trim() || !grantCredits.trim()) return;
+    setGranting(true);
+    setGrantMsg(null);
+    try {
+      const res = await fetch("/api/admin/credits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: grantEmail.trim().toLowerCase(),
+          credits: Number(grantCredits),
+          note: grantNote.trim() || "Granted by BizzPal Admin",
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        setGrantMsg({ type: "err", text: json.error || "Could not grant credits." });
+      } else {
+        setGrantMsg({
+          type: "ok",
+          text: `Granted ${grantCredits} credits to ${grantEmail.trim()} (new balance: ${json.wallet?.balance ?? "updated"}).`,
+        });
+        setGrantEmail("");
+        setGrantNote("");
+      }
+    } catch {
+      setGrantMsg({ type: "err", text: "Network error while granting credits." });
+    } finally {
+      setGranting(false);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -206,6 +244,57 @@ export function DataPalUsageManager() {
             ))}
           </div>
 
+          <div className="rounded-xl border border-line bg-surface p-5 space-y-4">
+            <div>
+              <h3 className="text-base font-semibold text-text">Grant DataPal credits</h3>
+              <p className="text-sm text-text-muted mt-0.5">Issue pilot or support DataPal lead credits to any registered account email.</p>
+            </div>
+            <form onSubmit={handleGrantCredits} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-text-muted mb-1">Account email</label>
+                <input
+                  type="email"
+                  required
+                  value={grantEmail}
+                  onChange={e => setGrantEmail(e.target.value)}
+                  placeholder="founder@company.com"
+                  className="w-full h-10 px-3 rounded-lg bg-bg border border-line text-sm text-text focus:outline-none focus:border-brass"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-text-muted mb-1">Credits</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100000}
+                  required
+                  value={grantCredits}
+                  onChange={e => setGrantCredits(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg bg-bg border border-line text-sm text-text focus:outline-none focus:border-brass"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={granting}
+                className="h-10 px-4 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
+              >
+                {granting ? "Granting…" : "Grant credits"}
+              </button>
+              <div className="sm:col-span-4">
+                <input
+                  type="text"
+                  value={grantNote}
+                  onChange={e => setGrantNote(e.target.value)}
+                  placeholder="Optional note (e.g. Onboarding pilot credits)"
+                  className="w-full h-9 px-3 rounded-lg bg-bg border border-line text-xs text-text focus:outline-none focus:border-brass"
+                />
+              </div>
+            </form>
+            {grantMsg && (
+              <p className={`text-sm ${grantMsg.type === "ok" ? "text-jade" : "text-rust"}`}>{grantMsg.text}</p>
+            )}
+          </div>
+
           <div className="rounded-xl border border-line bg-surface overflow-hidden">
             <div className="px-5 py-4 border-b border-line">
               <h3 className="text-base font-semibold text-text">By account <span className="font-normal text-text-muted">· estimated from searches</span></h3>
@@ -246,6 +335,57 @@ export function DataPalUsageManager() {
                   </tbody>
                 </table>
               </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-line bg-surface p-5 space-y-4">
+            <div>
+              <h3 className="text-base font-semibold text-text">Grant DataPal credits</h3>
+              <p className="text-sm text-text-muted mt-0.5">Issue pilot or support DataPal lead credits to any registered account email.</p>
+            </div>
+            <form onSubmit={handleGrantCredits} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-text-muted mb-1">Account email</label>
+                <input
+                  type="email"
+                  required
+                  value={grantEmail}
+                  onChange={e => setGrantEmail(e.target.value)}
+                  placeholder="founder@company.com"
+                  className="w-full h-10 px-3 rounded-lg bg-bg border border-line text-sm text-text focus:outline-none focus:border-brass"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-text-muted mb-1">Credits</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100000}
+                  required
+                  value={grantCredits}
+                  onChange={e => setGrantCredits(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg bg-bg border border-line text-sm text-text focus:outline-none focus:border-brass"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={granting}
+                className="h-10 px-4 rounded-lg bg-brass text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 cursor-pointer"
+              >
+                {granting ? "Granting…" : "Grant credits"}
+              </button>
+              <div className="sm:col-span-4">
+                <input
+                  type="text"
+                  value={grantNote}
+                  onChange={e => setGrantNote(e.target.value)}
+                  placeholder="Optional note (e.g. Onboarding pilot credits)"
+                  className="w-full h-9 px-3 rounded-lg bg-bg border border-line text-xs text-text focus:outline-none focus:border-brass"
+                />
+              </div>
+            </form>
+            {grantMsg && (
+              <p className={`text-sm ${grantMsg.type === "ok" ? "text-jade" : "text-rust"}`}>{grantMsg.text}</p>
             )}
           </div>
 

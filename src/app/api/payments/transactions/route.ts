@@ -17,12 +17,16 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Not allowed." }, { status: 403 });
     }
 
+    if (!isSuperadmin && !email) {
+      return NextResponse.json({ success: false, error: "Please sign in again." }, { status: 401 });
+    }
+
     const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "";
     const keySecret = process.env.RAZORPAY_KEY_SECRET || "";
     const isLive = Boolean(
       keyId &&
       keySecret &&
-      keyId.startsWith("rzp_") &&
+      /^rzp_(live|test)_/.test(keyId) &&
       !keyId.includes("YOUR_KEY") &&
       keySecret.length > 6 &&
       !keySecret.includes("YOUR_")
@@ -30,10 +34,10 @@ export async function GET(req: Request) {
 
     const gatewayStatus = {
       isLive,
-      mode: isLive ? "Live Production" : "Test Simulation / Sandbox",
+      mode: keyId.startsWith("rzp_live_") && isLive ? "Live Production" : "Test Simulation / Sandbox",
       keyConfigured: Boolean(keyId && !keyId.includes("YOUR_KEY")),
       secretConfigured: Boolean(keySecret && !keySecret.includes("YOUR_")),
-      keyPrefix: keyId ? keyId.slice(0, 8) + "..." : "Not configured",
+      ...(isSuperadmin ? { keyPrefix: keyId ? keyId.slice(0, 8) + "..." : "Not configured" } : {}),
     };
 
     if (isSuperadmin) {

@@ -4,12 +4,14 @@ import React, { useState, useEffect } from "react";
 import { AppShell } from "@/components/shell/AppShell";
 import { resolveTenantConfig } from "@/config/resolver";
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 
 export default function MainAppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { plan } = usePlanAccess();
   const [businessProfile, setBusinessProfile] = useState<{
     name: string;
     industry: string;
@@ -56,10 +58,35 @@ export default function MainAppLayout({
       } catch {}
     };
 
+    const refreshFromServer = () => {
+      fetch("/api/business/intake", { cache: "no-store" })
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => {
+          if (d?.success && d.business) {
+            const b = d.business;
+            const cleanName = (b.name && b.name.startsWith("GSTIN ") && (b.tradeName || b.legalName))
+              ? (b.tradeName || b.legalName)
+              : b.name;
+            setBusinessProfile({
+              name: cleanName || "",
+              industry: b.industry || "",
+              industryLabel: b.industryLabel || b.industry || "",
+            });
+            try {
+              localStorage.setItem("bizzpal_business_profile", JSON.stringify(b));
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    };
+
+    refreshFromServer();
     window.addEventListener("bizzpal_profile_updated", handleProfileUpdate);
+    window.addEventListener("bizzpal_business_data_updated", refreshFromServer);
     window.addEventListener("storage", handleProfileUpdate);
     return () => {
       window.removeEventListener("bizzpal_profile_updated", handleProfileUpdate);
+      window.removeEventListener("bizzpal_business_data_updated", refreshFromServer);
       window.removeEventListener("storage", handleProfileUpdate);
     };
   }, []);
@@ -67,7 +94,7 @@ export default function MainAppLayout({
   const config = resolveTenantConfig({
     industry: (businessProfile.industry as any) || "saas",
     businessModel: "subscription",
-    plan: "growth",
+    plan: (plan as any) || "free",
   });
 
   return (

@@ -69,10 +69,13 @@ export async function getGoogleDriveToken(businessId: string): Promise<{
   error?: string;
 }> {
   try {
-    // Check google_drive first, then fallback to google integration
     let record = db
       .prepare("SELECT * FROM integrations WHERE business_id = ? AND tool_key = ?")
       .get(businessId, "google_drive") as any;
+
+    if (record && record.status === "not_connected") {
+      return { connected: false };
+    }
 
     if (!record || record.status !== "connected") {
       record = db

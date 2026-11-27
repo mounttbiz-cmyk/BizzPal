@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Trash2, X } from "lucide-react";
 import { PortalModal } from "@/components/ui/PortalModal";
 import { buildBriefing, BriefingContent } from "@/lib/briefing/build";
+import { loadWorkspaceState, saveWorkspaceState } from "@/lib/workspace/stateClient";
 
 import { askConfirm } from "@/components/ui/dialogs";
 interface LeadershipDecision {
@@ -42,6 +43,7 @@ export default function ReportsPage() {
   const [newDecCategory, setNewDecCategory] = useState<LeadershipDecision["category"]>("finance");
   const [newDecImpact, setNewDecImpact] = useState("");
   const [newDecRecommendation, setNewDecRecommendation] = useState("");
+  const stateHydratedRef = useRef(false);
 
   const notify = (msg: string) => {
     setNotice(msg);
@@ -62,33 +64,55 @@ export default function ReportsPage() {
   };
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("bizzpal_business_profile");
-      if (saved) {
-        setProfile(JSON.parse(saved));
-      } else {
-        fetch("/api/business/intake")
-          .then(r => r.json())
-          .then(d => {
-            if (d.success && d.business) {
-              setProfile(d.business);
-              localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business));
-            }
-          })
-          .catch(() => {});
+    let active = true;
+    (async () => {
+      try {
+        const saved = localStorage.getItem("bizzpal_business_profile");
+        if (saved && active) setProfile(JSON.parse(saved));
+      } catch {}
+
+      try {
+        const intakeRes = await fetch("/api/business/intake", { cache: "no-store" });
+        const d = await intakeRes.json().catch(() => null);
+        if (active && d?.success && d.business) {
+          setProfile(d.business);
+          try {
+            localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business));
+          } catch {}
+        }
+      } catch {}
+
+      let serverState = await loadWorkspaceState<{
+        decisions?: LeadershipDecision[];
+        history?: BriefingContent[];
+      }>("reports");
+
+      if (!serverState) {
+        try {
+          const dRaw = localStorage.getItem(DECISIONS_KEY);
+          const hRaw = localStorage.getItem(HISTORY_KEY);
+          const dParsed = dRaw ? JSON.parse(dRaw) : [];
+          const hParsed = hRaw ? JSON.parse(hRaw) : [];
+          if ((Array.isArray(dParsed) && dParsed.length > 0) || (Array.isArray(hParsed) && hParsed.length > 0)) {
+            serverState = {
+              decisions: Array.isArray(dParsed) ? dParsed : [],
+              history: Array.isArray(hParsed) ? hParsed : [],
+            };
+            saveWorkspaceState("reports", serverState).catch(() => {});
+          }
+        } catch {}
       }
-      const savedDecisions = localStorage.getItem(DECISIONS_KEY);
-      if (savedDecisions) {
-        const parsed = JSON.parse(savedDecisions);
-        if (Array.isArray(parsed)) setDecisions(parsed);
+
+      if (active && serverState) {
+        if (Array.isArray(serverState.decisions)) setDecisions(serverState.decisions);
+        if (Array.isArray(serverState.history)) setHistory(serverState.history);
       }
-      const savedHistory = localStorage.getItem(HISTORY_KEY);
-      if (savedHistory) {
-        const parsed = JSON.parse(savedHistory);
-        if (Array.isArray(parsed)) setHistory(parsed);
-      }
-    } catch {}
+      stateHydratedRef.current = true;
+    })();
     loadTasks();
+    return () => {
+      active = false;
+    };
   }, []);
 
   // The live briefing always reflects your latest numbers
@@ -99,7 +123,7 @@ export default function ReportsPage() {
 
   // Keep the suggested decisions in line with your numbers
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || !stateHydratedRef.current) return;
     setDecisions(prev => {
       const wanted = new Map(live.suggestedDecisions.map(s => [s.id, s]));
       // drop suggestions that no longer apply and were never acted on
@@ -114,17 +138,19 @@ export default function ReportsPage() {
         try {
           localStorage.setItem(DECISIONS_KEY, JSON.stringify(next));
         } catch {}
+        saveWorkspaceState("reports", { decisions: next, history }).catch(() => {});
         return next;
       }
       return prev;
     });
-  }, [live, profile]);
+  }, [live, profile, history]);
 
   const saveDecisions = (next: LeadershipDecision[]) => {
     setDecisions(next);
     try {
       localStorage.setItem(DECISIONS_KEY, JSON.stringify(next));
     } catch {}
+    saveWorkspaceState("reports", { decisions: next, history }).catch(() => {});
   };
 
   const isLive = selectedId === "live";
@@ -210,6 +236,7 @@ export default function ReportsPage() {
     try {
       localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
     } catch {}
+    await saveWorkspaceState("reports", { decisions, history: next }).catch(() => {});
     setSelectedId(snapshot.id);
     setIsSaving(false);
     notify("Briefing saved. You can open it again from the list.");

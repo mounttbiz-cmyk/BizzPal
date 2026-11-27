@@ -44,7 +44,6 @@ const PAGE_HINTS: Record<string, { hint: string; keywords: string[] }> = {
   "/integrations": { hint: "Connect your tools", keywords: ["integrations", "connect", "email", "slack", "drive", "razorpay"] },
   "/group": { hint: "Your companies", keywords: ["group", "companies", "subsidiaries"] },
   "/help": { hint: "Help and support", keywords: ["help", "support", "faq"] },
-  "/workflows": { hint: "Workflows", keywords: ["workflow", "process"] },
 };
 
 const TOOLS: Result[] = [

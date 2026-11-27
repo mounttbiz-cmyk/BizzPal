@@ -11,6 +11,7 @@ import { UploadDataModal } from "@/components/upload/UploadDataModal";
 import { QuickBusinessInputModal } from "@/components/intake/QuickBusinessInputModal";
 import { useBusinessDataSync } from "@/lib/upload/events";
 import { usePlanName } from "@/lib/hooks/usePlanName";
+import { usePlanAccess } from "@/lib/hooks/usePlanAccess";
 import { computeHealth } from "@/lib/health/score";
 import { BriefPromptCard } from "@/components/widgets/BriefPromptCard";
 
@@ -38,6 +39,7 @@ const formatCurrencyCompact = (amount: number) => {
 function DashboardContent() {
   const searchParams = useSearchParams();
   const planName = usePlanName();
+  const { plan: activePlan } = usePlanAccess();
   const [selectedIndustry, setSelectedIndustry] = useState<TenantContext["industry"]>("saas");
   const [selectedModel] = useState<TenantContext["businessModel"]>("subscription");
   const [companyName, setCompanyName] = useState<string>(() => {
@@ -187,28 +189,49 @@ function DashboardContent() {
     setOverallHealthScore(computedScore);
   };
 
-  // Read saved business profile if available from localStorage or backend SQLite database
+  // Authoritative sync from SQLite intake + live integrated/uploaded figures (never skip when localStorage exists)
   useEffect(() => {
-    const handleProfileSync = () => {
+    let active = true;
+    const syncAuthoritative = async () => {
+      let merged: any = null;
       try {
-        const savedProfileStr = localStorage.getItem("bizzpal_business_profile");
-        if (savedProfileStr) {
-          const parsed = JSON.parse(savedProfileStr);
-          applyProfileData(parsed);
-        } else {
-          // Fetch real enterprise record from database API
-          fetch("/api/business/intake")
-            .then(r => r.json())
-            .then(d => {
-              if (d.success && d.business) {
-                applyProfileData(d.business);
-                localStorage.setItem("bizzpal_business_profile", JSON.stringify(d.business));
-              }
-            })
-            .catch(() => {});
+        const localStr = localStorage.getItem("bizzpal_business_profile");
+        if (localStr) merged = JSON.parse(localStr);
+      } catch {}
+
+      try {
+        const [intakeRes, figRes] = await Promise.all([
+          fetch("/api/business/intake", { cache: "no-store" }),
+          fetch("/api/business/figures", { cache: "no-store" }),
+        ]);
+        const intakeData = intakeRes.ok ? await intakeRes.json().catch(() => null) : null;
+        const figData = figRes.ok ? await figRes.json().catch(() => null) : null;
+
+        if (!active) return;
+
+        if (intakeData?.success && intakeData.business) {
+          merged = { ...(merged || {}), ...intakeData.business };
+          try {
+            localStorage.setItem("bizzpal_business_profile", JSON.stringify(merged));
+          } catch {}
         }
-      } catch (e) {
-        // ignore
+
+        if (figData?.success && figData.figures) {
+          const f = figData.figures;
+          merged = {
+            ...(merged || {}),
+            revenue: Number(f.monthlyRevenue?.value) ?? merged?.revenue ?? 0,
+            monthlyRevenue: Number(f.monthlyRevenue?.value) ?? merged?.monthlyRevenue ?? 0,
+            burn: Number(f.monthlySpending?.value) ?? merged?.burn ?? 0,
+            monthlyBurn: Number(f.monthlySpending?.value) ?? merged?.monthlyBurn ?? 0,
+            cash: Number(f.cash?.value) ?? merged?.cash ?? 0,
+            cashOnHand: Number(f.cash?.value) ?? merged?.cashOnHand ?? 0,
+          };
+        }
+
+        if (merged) applyProfileData(merged);
+      } catch {
+        if (merged && active) applyProfileData(merged);
       }
     };
 
@@ -222,16 +245,17 @@ function DashboardContent() {
       refreshTasksCount();
     };
 
-    handleProfileSync();
-    window.addEventListener("storage", handleProfileSync);
-    window.addEventListener("bizzpal_business_data_updated", handleProfileSync);
+    syncAuthoritative();
+    window.addEventListener("storage", syncAuthoritative);
+    window.addEventListener("bizzpal_business_data_updated", syncAuthoritative);
     window.addEventListener("bizzpal_gaps_count", handleGapsCount);
     window.addEventListener("bizzpal_task_created", handleTasksRefresh);
     window.addEventListener("bizzpal_task_updated", handleTasksRefresh);
 
     return () => {
-      window.removeEventListener("storage", handleProfileSync);
-      window.removeEventListener("bizzpal_business_data_updated", handleProfileSync);
+      active = false;
+      window.removeEventListener("storage", syncAuthoritative);
+      window.removeEventListener("bizzpal_business_data_updated", syncAuthoritative);
       window.removeEventListener("bizzpal_gaps_count", handleGapsCount);
       window.removeEventListener("bizzpal_task_created", handleTasksRefresh);
       window.removeEventListener("bizzpal_task_updated", handleTasksRefresh);
@@ -246,7 +270,7 @@ function DashboardContent() {
   const baseConfig = resolveTenantConfig({
     industry: selectedIndustry,
     businessModel: selectedModel,
-    plan: "growth",
+    plan: (activePlan as any) || "free",
   });
 
   useEffect(() => {
@@ -263,7 +287,8 @@ function DashboardContent() {
   };
 
   const healthLabel = overallHealthScore === null ? "No figures yet" : overallHealthScore >= 75 ? "Healthy" : "Needs attention";
-  const runwayLabel = Number(liquidRunwayMo) >= 6 ? "Safe" : "Short";
+  const netMonthly = monthlyRevenue - monthlyBurn;
+  const hasMonthlyFigures = monthlyRevenue > 0 || monthlyBurn > 0;
 
   const stats = [
     {
@@ -275,12 +300,12 @@ function DashboardContent() {
       good: (overallHealthScore ?? 0) >= 75,
     },
     {
-      href: "/simulator",
-      label: "Cash runway",
-      value: liquidRunwayMo,
-      unit: "months",
-      note: runwayLabel,
-      good: Number(liquidRunwayMo) >= 6,
+      href: "/money",
+      label: "Monthly net",
+      value: hasMonthlyFigures ? `${netMonthly >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(netMonthly))}` : "\u2014",
+      unit: "/ mo",
+      note: !hasMonthlyFigures ? "No figures yet" : netMonthly >= 0 ? "Cash surplus" : "Net burn",
+      good: netMonthly >= 0,
     },
     {
       href: "/tasks",
@@ -303,7 +328,7 @@ function DashboardContent() {
   return (
     <div className="space-y-6 pb-28 sm:pb-32">
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-lg bg-surface border border-line shadow-lg text-sm text-text">
+        <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 px-4 py-2.5 rounded-lg bg-surface border border-line shadow-lg text-sm text-text">
           {toast}
         </div>
       )}

@@ -501,6 +501,31 @@ function ToolsContent() {
   const [empToolsAnnual, setEmpToolsAnnual] = useState(0);
   const [empBillableHours, setEmpBillableHours] = useState(0);
 
+  // Lead Scoring Matrix State
+  const [leadCompanyFit, setLeadCompanyFit] = useState(8);
+  const [leadBudgetFit, setLeadBudgetFit] = useState(7);
+  const [leadAuthority, setLeadAuthority] = useState(6);
+  const [leadUrgency, setLeadUrgency] = useState(7);
+
+  // Capacity Planner State
+  const [capTeamCount, setCapTeamCount] = useState(6);
+  const [capHoursPerWeek, setCapHoursPerWeek] = useState(40);
+  const [capAdminPct, setCapAdminPct] = useState(20);
+  const [capDemandHours, setCapDemandHours] = useState(180);
+
+  // SWOT Analyzer State
+  const [swotStrengths, setSwotStrengths] = useState("");
+  const [swotWeaknesses, setSwotWeaknesses] = useState("");
+  const [swotOpportunities, setSwotOpportunities] = useState("");
+  const [swotThreats, setSwotThreats] = useState("");
+
+  // Hiring Simulator State
+  const [hireCount, setHireCount] = useState(1);
+  const [hireMonthlySalary, setHireMonthlySalary] = useState(0);
+  const [hireOnboardingCost, setHireOnboardingCost] = useState(0);
+  const [hireMonthlyRevPerHire, setHireMonthlyRevPerHire] = useState(0);
+  const [hireRampMonths, setHireRampMonths] = useState(3);
+
   // Start from the business's own numbers, when BizzPal has them
   useEffect(() => {
     try {
@@ -577,7 +602,7 @@ function ToolsContent() {
 
   const netBenefit = roiBenefit - roiCost;
   const roiPercentage = roiCost > 0 ? Math.round((netBenefit / roiCost) * 100) : 0;
-  const paybackMonths = roiBenefit > 0 ? (roiCost / (roiBenefit / 12)).toFixed(1) : "0";
+  const paybackMonths = roiBenefit > 0 ? (roiCost / (roiBenefit / 12)).toFixed(1) : "—";
 
   // EMI Calculations
   const emiMonthlyRate = emiRateAnnual > 0 ? emiRateAnnual / (12 * 100) : 0;
@@ -611,14 +636,40 @@ function ToolsContent() {
   const wcCcc = wcDso + wcDio - wcDpo;
   const wcTrappedCash = wcReceivables + wcInventory - wcPayables;
 
-  // Discount Sensitivity Calculations
-  const discDiscountedPrice = Math.round(discDealPrice * (1 - discPercent / 100));
-  const discBaseProfit = Math.round(discDealPrice * (discBaseMargin / 100));
+  // Discount Sensitivity Calculations (never mask negative per-deal margin)
+  const safeBaseMargin = Math.max(0, Math.min(100, discBaseMargin));
+  const safeDiscPercent = Math.max(0, Math.min(99, discPercent));
+  const discDiscountedPrice = Math.round(discDealPrice * (1 - safeDiscPercent / 100));
+  const discBaseProfit = Math.round(discDealPrice * (safeBaseMargin / 100));
   const discBaseCost = discDealPrice - discBaseProfit;
-  const discNewProfit = Math.max(0, discDiscountedPrice - discBaseCost);
+  const discNewProfit = discDiscountedPrice - discBaseCost;
   const discNewMargin = discDiscountedPrice > 0 ? ((discNewProfit / discDiscountedPrice) * 100).toFixed(1) : "0";
   const discExtraVolumeNeeded =
-    discNewProfit > 0 ? (((discBaseProfit / discNewProfit) - 1) * 100).toFixed(1) : "100+";
+    discNewProfit > 0 ? (((discBaseProfit / discNewProfit) - 1) * 100).toFixed(1) : "Unprofitable";
+
+  // Lead Scoring Calculations (0-100 weighted ICP matrix)
+  const leadScoreTotal = Math.round(
+    (leadCompanyFit * 3 + leadBudgetFit * 3 + leadAuthority * 2 + leadUrgency * 2)
+  );
+  const leadTier = leadScoreTotal >= 80 ? "Hot (P1 Immediate)" : leadScoreTotal >= 55 ? "Warm (Active Follow-up)" : "Nurture";
+
+  // Capacity Planner Calculations
+  const capAvailableHours = Math.max(
+    0,
+    Math.round(capTeamCount * capHoursPerWeek * (1 - Math.max(0, Math.min(90, capAdminPct)) / 100))
+  );
+  const capUtilizationPct = capAvailableHours > 0 ? Math.round((capDemandHours / capAvailableHours) * 100) : 0;
+  const capSpareHours = capAvailableHours - capDemandHours;
+
+  // Hiring Simulator Calculations
+  const hireLoadedMonthlyCost = Math.round(hireCount * hireMonthlySalary * 1.15);
+  const hireTotalUpfront = hireCount * hireOnboardingCost;
+  const hireExpectedRevSteady = hireCount * hireMonthlyRevPerHire;
+  const hireNetSteadyDelta = hireExpectedRevSteady - hireLoadedMonthlyCost;
+  const hirePostRunway =
+    monthlyBurn + hireLoadedMonthlyCost > 0 && cashReserve > hireTotalUpfront
+      ? ((cashReserve - hireTotalUpfront) / Math.max(1, monthlyBurn + hireLoadedMonthlyCost - monthlyInflow)).toFixed(1)
+      : "—";
 
   // NRR Calculations
   const nrrGrr = nrrStartingMrr > 0 ? (((nrrStartingMrr - nrrChurnMrr) / nrrStartingMrr) * 100).toFixed(1) : "0";
@@ -1121,16 +1172,24 @@ function ToolsContent() {
                             <div className="p-3 rounded-xl bg-surface border border-line">
                               <div className="text-xs text-text-muted">Projected Runway</div>
                               <div className="text-base font-semibold text-brass tabular-nums">
-                                {runwayMonths === "Profitable" ? "Infinite" : `${runwayMonths} Mo`}
+                                {runwayMonths === "Profitable" ? "Cash-flow positive" : `${runwayMonths} Mo`}
                               </div>
-                              <div className="text-xs text-text-muted mt-0.5">at current burn</div>
+                              <div className="text-xs text-text-muted mt-0.5">
+                                {runwayMonths === "Profitable" ? "Revenue exceeds burn" : "at current burn"}
+                              </div>
                             </div>
                           </div>
                         </div>
 
                         <div className="pt-3 border-t border-line">
                           <Link
-                            href={getAdvisorUrl(activeTool, `${cfoName}, our cash runway is ${runwayMonths} months with net monthly outflow of ₹${Math.abs(netCashFlow).toLocaleString("en-IN")}. What cash stabilization steps do you advise?`, "cfo")}
+                            href={getAdvisorUrl(
+                              activeTool,
+                              runwayMonths === "Profitable"
+                                ? `${cfoName}, we are currently cash-flow positive (+₹${netCashFlow.toLocaleString("en-IN")}/mo) with ₹${cashReserve.toLocaleString("en-IN")} cash reserve. How should we deploy surplus capital?`
+                                : `${cfoName}, our cash runway is ${runwayMonths} months with net monthly outflow of ₹${Math.abs(netCashFlow).toLocaleString("en-IN")}. What cash stabilization steps do you advise?`,
+                              "cfo"
+                            )}
                             className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:opacity-90 text-white font-medium text-sm text-center transition-colors cursor-pointer"
                           >
                             Plan Cash Runway with {cfoName} →
@@ -1193,9 +1252,11 @@ function ToolsContent() {
                             <div className="p-3 rounded-xl bg-surface border border-line">
                               <div className="text-xs text-text-muted">Payback Period</div>
                               <div className="text-base font-semibold text-brass tabular-nums">
-                                {paybackMonths} Mo
+                                {paybackMonths === "—" ? "—" : `${paybackMonths} Mo`}
                               </div>
-                              <div className="text-xs text-text-muted mt-0.5">to break-even</div>
+                              <div className="text-xs text-text-muted mt-0.5">
+                                {paybackMonths === "—" ? "Enter annual return" : "to break-even"}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1596,17 +1657,19 @@ function ToolsContent() {
                               <div className="text-sm font-semibold text-text tabular-nums">
                                 ₹{discDiscountedPrice.toLocaleString("en-IN")}
                               </div>
-                              <div className="text-xs text-negative mt-0.5">
-                                Margin: {discNewMargin}% (was {discBaseMargin}%)
+                              <div className={`text-xs mt-0.5 ${discNewProfit < 0 ? "text-rust" : "text-negative"}`}>
+                                {discNewProfit < 0
+                                  ? `Loss: -₹${Math.abs(discNewProfit).toLocaleString("en-IN")}/deal`
+                                  : `Margin: ${discNewMargin}% (was ${discBaseMargin}%)`}
                               </div>
                             </div>
                             <div className="p-2.5 rounded-xl bg-surface border border-line">
                               <div className="text-xs text-text-muted">Extra Volume Needed</div>
-                              <div className="text-sm font-semibold text-caution tabular-nums">
-                                +{discExtraVolumeNeeded}%
+                              <div className={`text-sm font-semibold tabular-nums ${discNewProfit <= 0 ? "text-rust" : "text-caution"}`}>
+                                {discNewProfit <= 0 ? "Unprofitable" : `+${discExtraVolumeNeeded}%`}
                               </div>
                               <div className="text-xs text-text-muted mt-0.5">
-                                to match base profit
+                                {discNewProfit <= 0 ? "Cost exceeds discounted price" : "to match base profit"}
                               </div>
                             </div>
                           </div>
@@ -1819,18 +1882,219 @@ function ToolsContent() {
                     </div>
                   )}
 
-                  {/* Fallback interactive sandbox for any other tool with calculator enabled */}
-                  {!["profit", "breakeven", "cac", "ltv", "cashflow", "roi", "emi", "gst", "working_capital", "discount_margin", "nrr", "loaded_cost"].includes(activeTool.id) && (
+                  {/* Lead Scoring Matrix */}
+                  {activeTool.id === "lead_scoring" && (
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                      <div className="md:col-span-6 space-y-3 text-xs">
+                        {[
+                          { label: "ICP Company Size & Fit (1–10)", val: leadCompanyFit, set: setLeadCompanyFit },
+                          { label: "Verified Budget Alignment (1–10)", val: leadBudgetFit, set: setLeadBudgetFit },
+                          { label: "Decision-Maker Authority (1–10)", val: leadAuthority, set: setLeadAuthority },
+                          { label: "Urgency & Buying Intent (1–10)", val: leadUrgency, set: setLeadUrgency },
+                        ].map(item => (
+                          <div key={item.label}>
+                            <div className="flex justify-between mb-1">
+                              <label className="font-medium text-text text-sm">{item.label}</label>
+                              <span className="font-semibold text-brass tabular-nums">{item.val}/10</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={1}
+                              max={10}
+                              value={item.val}
+                              onChange={e => item.set(Number(e.target.value))}
+                              className="w-full accent-[#8a6414]"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
+                        <div className="space-y-3">
+                          <span className="text-xs font-medium text-text-muted block">ICP Qualification Score</span>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Composite Score</div>
+                              <div className="text-xl font-semibold text-text tabular-nums">{leadScoreTotal} / 100</div>
+                            </div>
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Priority Tier</div>
+                              <div className="text-sm font-semibold text-brass">{leadTier}</div>
+                            </div>
+                          </div>
+                        </div>
+                        <Link
+                          href={getAdvisorUrl(activeTool, `A prospect scored ${leadScoreTotal}/100 (${leadTier}) on ICP fit, budget ${leadBudgetFit}/10, authority ${leadAuthority}/10, urgency ${leadUrgency}/10. Recommend next qualification steps.`, "sales")}
+                          className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:brightness-110 text-white font-medium text-sm text-center cursor-pointer"
+                        >
+                          Plan Deal Strategy with {ceoName} →
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Capacity Planner */}
+                  {activeTool.id === "capacity" && (
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                      <div className="md:col-span-6 space-y-3 text-xs">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="font-medium text-text block mb-1.5 text-sm">Delivery Team Size</label>
+                            <input type="number" min={1} value={capTeamCount} onChange={e => setCapTeamCount(Math.max(1, Number(e.target.value) || 1))} className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm" />
+                          </div>
+                          <div>
+                            <label className="font-medium text-text block mb-1.5 text-sm">Hours / Week / Person</label>
+                            <input type="number" min={1} max={80} value={capHoursPerWeek} onChange={e => setCapHoursPerWeek(Math.max(1, Number(e.target.value) || 40))} className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="font-medium text-text block mb-1.5 text-sm">Non-Billable Admin (%)</label>
+                            <input type="number" min={0} max={90} value={capAdminPct} onChange={e => setCapAdminPct(Number(e.target.value) || 0)} className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm" />
+                          </div>
+                          <div>
+                            <label className="font-medium text-text block mb-1.5 text-sm">Weekly Demand (Hours)</label>
+                            <input type="number" min={0} value={capDemandHours} onChange={e => setCapDemandHours(Math.max(0, Number(e.target.value) || 0))} className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
+                        <div className="space-y-3">
+                          <span className="text-xs font-medium text-text-muted block">Team Utilization & Slack</span>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">Utilization Rate</div>
+                              <div className={`text-xl font-semibold tabular-nums ${capUtilizationPct > 95 ? "text-rust" : capUtilizationPct >= 75 ? "text-jade" : "text-text"}`}>
+                                {capUtilizationPct}%
+                              </div>
+                              <div className="text-xs text-text-muted">{capAvailableHours} billable hrs/wk available</div>
+                            </div>
+                            <div className="p-3 rounded-xl bg-surface border border-line">
+                              <div className="text-xs text-text-muted">{capSpareHours >= 0 ? "Spare Buffer" : "Overload"}</div>
+                              <div className="text-xl font-semibold text-text tabular-nums">{Math.abs(capSpareHours)} hrs/wk</div>
+                            </div>
+                          </div>
+                        </div>
+                        <Link
+                          href={getAdvisorUrl(activeTool, `Our delivery team of ${capTeamCount} has ${capAvailableHours} billable hrs/wk vs ${capDemandHours} hrs demand (${capUtilizationPct}% utilization). How should we adjust staffing or SLAs?`, "operations")}
+                          className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:brightness-110 text-white font-medium text-sm text-center cursor-pointer"
+                        >
+                          Review Capacity with Operations Advisor →
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SWOT Analyzer */}
+                  {activeTool.id === "swot" && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {[
+                          { label: "Strengths", val: swotStrengths, set: setSwotStrengths, ph: "Fast onboarding, founder domain expertise..." },
+                          { label: "Weaknesses", val: swotWeaknesses, set: setSwotWeaknesses, ph: "Single acquisition channel, small sales team..." },
+                          { label: "Opportunities", val: swotOpportunities, set: setSwotOpportunities, ph: "Enterprise tier expansion, partner referrals..." },
+                          { label: "Threats", val: swotThreats, set: setSwotThreats, ph: "Price compression from larger incumbents..." },
+                        ].map(q => (
+                          <div key={q.label} className="p-3 rounded-xl bg-surface-2/50 border border-line">
+                            <label className="text-xs font-semibold text-text block mb-1.5">{q.label}</label>
+                            <textarea
+                              rows={3}
+                              value={q.val}
+                              onChange={e => q.set(e.target.value)}
+                              placeholder={q.ph}
+                              className="w-full px-3 py-2 rounded-lg bg-surface border border-line text-sm text-text placeholder:text-text-muted/60 focus:outline-none focus:border-brass resize-none"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <Link
+                        href={getAdvisorUrl(
+                          activeTool,
+                          `Synthesize strategic priorities from our SWOT:\nStrengths: ${swotStrengths || "not listed"}\nWeaknesses: ${swotWeaknesses || "not listed"}\nOpportunities: ${swotOpportunities || "not listed"}\nThreats: ${swotThreats || "not listed"}`,
+                          "strategy"
+                        )}
+                        className="w-full block py-2.5 px-4 rounded-xl bg-brass hover:brightness-110 text-white font-medium text-sm text-center cursor-pointer"
+                      >
+                        Synthesize SWOT Action Plan with {ceoName} →
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Hiring Simulator */}
+                  {activeTool.id === "hiring" && (
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                      <div className="md:col-span-6 space-y-3 text-xs">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="font-medium text-text block mb-1.5 text-sm">Planned Hires</label>
+                            <input type="number" min={1} value={hireCount} onChange={e => setHireCount(Math.max(1, Number(e.target.value) || 1))} className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm" />
+                          </div>
+                          <div>
+                            <label className="font-medium text-text block mb-1.5 text-sm">Ramp Period (Mo)</label>
+                            <input type="number" min={0} max={24} value={hireRampMonths} onChange={e => setHireRampMonths(Math.max(0, Number(e.target.value) || 0))} className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="font-medium text-text block mb-1.5 text-sm">Base Monthly Salary / Hire (₹)</label>
+                          <input type="text" inputMode="numeric" value={hireMonthlySalary ? formatINR(hireMonthlySalary) : ""} onChange={e => setHireMonthlySalary(Number(parseINR(e.target.value)) || 0)} placeholder="e.g. 1,20,000" className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="font-medium text-text block mb-1.5 text-sm">One-Time Setup / Hire (₹)</label>
+                            <input type="text" inputMode="numeric" value={hireOnboardingCost ? formatINR(hireOnboardingCost) : ""} onChange={e => setHireOnboardingCost(Number(parseINR(e.target.value)) || 0)} placeholder="e.g. 75,000" className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm" />
+                          </div>
+                          <div>
+                            <label className="font-medium text-text block mb-1.5 text-sm">Post-Ramp Rev / Hire / Mo (₹)</label>
+                            <input type="text" inputMode="numeric" value={hireMonthlyRevPerHire ? formatINR(hireMonthlyRevPerHire) : ""} onChange={e => setHireMonthlyRevPerHire(Number(parseINR(e.target.value)) || 0)} placeholder="e.g. 3,00,000" className="w-full px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-text tabular-nums text-sm" />
+                          </div>
+                        </div>
+                      </div>
+                      {!(hireMonthlySalary > 0) ? (
+                        <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex items-center justify-center text-center text-sm text-text-muted">
+                          Enter a monthly salary to simulate runway and break-even impact.
+                        </div>
+                      ) : (
+                        <div className="md:col-span-6 p-4 rounded-xl bg-surface-2/50 border border-line flex flex-col justify-between space-y-4">
+                          <div className="space-y-3">
+                            <span className="text-xs font-medium text-text-muted block">Loaded Hiring Impact (~15% PF & benefits)</span>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-3 rounded-xl bg-surface border border-line">
+                                <div className="text-xs text-text-muted">Loaded Burn Added</div>
+                                <div className="text-base font-semibold text-text tabular-nums">₹{hireLoadedMonthlyCost.toLocaleString("en-IN")}/mo</div>
+                                <div className="text-xs text-text-muted">Upfront: ₹{hireTotalUpfront.toLocaleString("en-IN")}</div>
+                              </div>
+                              <div className="p-3 rounded-xl bg-surface border border-line">
+                                <div className="text-xs text-text-muted">Post-Ramp Net Impact</div>
+                                <div className={`text-base font-semibold tabular-nums ${hireNetSteadyDelta >= 0 ? "text-jade" : "text-negative"}`}>
+                                  {hireNetSteadyDelta >= 0 ? "+" : "-"}₹{Math.abs(hireNetSteadyDelta).toLocaleString("en-IN")}/mo
+                                </div>
+                                <div className="text-xs text-text-muted">Runway est: {hirePostRunway === "—" ? "Positive / N/A" : `${hirePostRunway} mo`}</div>
+                              </div>
+                            </div>
+                          </div>
+                          <Link
+                            href={getAdvisorUrl(activeTool, `${cfoName}, hiring ${hireCount} person(s) adds ₹${hireLoadedMonthlyCost.toLocaleString("en-IN")}/mo burn with a ${hireRampMonths}-month ramp. Can our runway afford this hire now?`, "cfo")}
+                            className="w-full block py-2.5 px-3 rounded-xl bg-brass hover:brightness-110 text-white font-medium text-sm text-center cursor-pointer"
+                          >
+                            Stress-Test Hiring Plan with {cfoName} →
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Guided Advisor Mode for qualitative / scenario tools */}
+                  {!["profit", "breakeven", "cac", "ltv", "cashflow", "roi", "emi", "gst", "working_capital", "discount_margin", "nrr", "loaded_cost", "lead_scoring", "capacity", "swot", "hiring"].includes(activeTool.id) && (
                     <div className="p-6 rounded-xl bg-surface-2/50 border border-line text-center space-y-4">
                       <div className="w-12 h-12 rounded-2xl bg-brass/10 border border-brass/30 flex items-center justify-center text-brass mx-auto">
                         <Activity className="w-6 h-6" />
                       </div>
                       <div className="space-y-1">
+                        <span className="text-[11px] font-medium uppercase tracking-wider text-brass">Guided Advisor Mode</span>
                         <h3 className="text-sm font-bold text-text">
                           {activeTool.name}
                         </h3>
                         <p className="text-xs text-text-muted max-w-md mx-auto">
-                          Work this through with your advisor, or test a scenario in the Decision Simulator.
+                          Run this framework interactively with your AI advisor using your live business numbers, or compare scenarios in the Decision Simulator.
                         </p>
                       </div>
                       <div className="pt-3 flex items-center justify-center gap-3">
@@ -1886,11 +2150,11 @@ function ToolsContent() {
                 className={`mt-2 self-start px-3.5 py-1.5 rounded-lg border text-sm font-medium inline-flex items-center gap-1.5 ${
                   locked
                     ? "border-line text-text-muted"
-                    : "border-brass/50 text-brass group-hover:bg-brass group-hover:text-white"
+                    : "border-brass/50 text-brass group-hover:bg-brass group-hover:text-white dark:group-hover:text-[#120E05]"
                 }`}
               >
                 {locked ? <Lock className="w-3.5 h-3.5" /> : null}
-                {locked ? "Unlock" : tool.hasInteractiveCalculator ? "Open calculator" : "Open tool"}
+                {locked ? "Unlock" : tool.hasInteractiveCalculator ? "Open calculator" : "Start guided session"}
                 {!locked && <ArrowRight className="w-3.5 h-3.5" />}
               </span>
             </button>

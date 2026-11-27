@@ -58,19 +58,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    const migrated = localStorage.getItem("bizzpal-theme-default-v3");
-    let stored = localStorage.getItem("bizzpal-theme") as ThemeMode | null;
-    if (!migrated) {
-      localStorage.setItem("bizzpal-theme", "light");
-      localStorage.setItem("bizzpal-theme-default-v3", "light");
-      stored = "light";
-    }
-    const initialMode: ThemeMode = stored === "dark" ? "dark" : "light";
+    const stored = localStorage.getItem("bizzpal-theme") as ThemeMode | null;
+    const initialMode: ThemeMode =
+      stored === "dark" || stored === "system" || stored === "light" ? stored : "light";
     setThemeState(initialMode);
     applyTheme(initialMode);
-    if (!stored || stored === "system") {
-      localStorage.setItem("bizzpal-theme", "light");
-    }
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemChange = () => {
+      if ((localStorage.getItem("bizzpal-theme") as ThemeMode | null) === "system") {
+        applyTheme("system");
+      }
+    };
+    mediaQuery.addEventListener("change", handleSystemChange);
 
     // Keyboard shortcut: ⌘/Ctrl + Shift + L to cycle themes
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -82,6 +82,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      mediaQuery.removeEventListener("change", handleSystemChange);
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
